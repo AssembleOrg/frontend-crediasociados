@@ -33,7 +33,7 @@ export function Logo({
       className={className}
     >
       <Image
-        src='/logo-prestamito.png'
+        src='/crediasociados-logo.webp'
         alt='Prestamito - Sistema de Gestión de Préstamos'
         width={width}
         height={height}

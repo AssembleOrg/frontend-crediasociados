@@ -1,6 +1,13 @@
 'use client';
 
-import { AppBar, Toolbar, Typography, Button, Box, Container } from '@mui/material';
+import {
+  AppBar,
+  Toolbar,
+  Typography,
+  Button,
+  Box,
+  Container,
+} from '@mui/material';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/stores/auth';
 import { Logo } from './Logo';
@@ -29,12 +36,12 @@ export function Navbar() {
       elevation={1}
     >
       <Toolbar sx={{ px: 0 }}>
-        <Container 
-          maxWidth="lg" 
-          sx={{ 
-            display: 'flex', 
+        <Container
+          maxWidth='md'
+          sx={{
+            display: 'flex',
             alignItems: 'center',
-            justifyContent: 'space-between' 
+            justifyContent: 'space-between',
           }}
         >
           <Box
@@ -46,10 +53,8 @@ export function Navbar() {
             onClick={() => router.push('/')}
           >
             <Logo
-              width={140}
-              height={70}
-              mobileWidth={120}
-              mobileHeight={60}
+              width={150}
+              height={100}
               priority
             />
           </Box>

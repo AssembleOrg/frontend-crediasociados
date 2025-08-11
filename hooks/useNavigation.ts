@@ -21,10 +21,16 @@ export function useNavigation() {
       return
     }
 
+    // Solo permitir admin y prestamista
+    if (!['admin', 'prestamista'].includes(forceUser.role)) {
+      console.log('❌ Role not allowed:', forceUser.role)
+      navigateToLogin()
+      return
+    }
+
     const dashboardRoute = `/dashboard/${forceUser.role}`
     console.log(`🔄 SIMPLE NAVIGATION: Going to ${dashboardRoute}`)
     
-    // Usar router.push simple
     router.push(dashboardRoute)
   }
 

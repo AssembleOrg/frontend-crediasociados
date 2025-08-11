@@ -19,7 +19,7 @@ export function Footer() {
         borderColor: 'divider',
       }}
     >
-      <Container maxWidth='lg'>
+      <Container maxWidth='md'>
         <Box
           sx={{
             display: 'flex',
@@ -31,8 +31,6 @@ export function Footer() {
           <Logo
             width={370}
             height={142}
-            mobileWidth={130}
-            mobileHeight={32}
           />
           <Box sx={{ display: 'flex', gap: 3 }}>
             <Link

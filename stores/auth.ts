@@ -26,7 +26,7 @@ export const useAuthStore = create<AuthStore>()(
           // Simulación de autenticación - aquí conectarías con tu backend
           await new Promise(resolve => setTimeout(resolve, 1000))
           
-          // Mock de usuarios para desarrollo
+          // Mock de usuarios para desarrollo - Solo Admin y Prestamista
           const mockUsers: Record<string, User> = {
             'admin@prestamito.com': { 
               id: '1', 
@@ -39,12 +39,6 @@ export const useAuthStore = create<AuthStore>()(
               email: 'prestamista@prestamito.com', 
               name: 'Juan Pérez', 
               role: 'prestamista' 
-            },
-            'cliente@prestamito.com': { 
-              id: '3', 
-              email: 'cliente@prestamito.com', 
-              name: 'María González', 
-              role: 'cliente' 
             }
           }
 
@@ -85,7 +79,6 @@ export const useAuthStore = create<AuthStore>()(
         switch (user.role) {
           case 'admin': return '/dashboard/admin'
           case 'prestamista': return '/dashboard/prestamista'
-          case 'cliente': return '/dashboard/cliente'
           default: return '/login'
         }
       }

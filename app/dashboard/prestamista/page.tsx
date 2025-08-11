@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import {
   Typography,
   Box,
@@ -32,6 +32,7 @@ import { StatsCard } from '@/components/dashboard/StatsCard';
 export default function PrestamistaDashboard() {
   const { clientes, agregarCliente } = useClientesStore();
   const { prestamos, agregarPrestamo } = usePrestamosStore();
+  const initializedRef = useRef(false);
   const [openClienteDialog, setOpenClienteDialog] = useState(false);
   const [openPrestamoDialog, setOpenPrestamoDialog] = useState(false);
   const [nuevoCliente, setNuevoCliente] = useState({
@@ -55,9 +56,11 @@ export default function PrestamistaDashboard() {
     fechaVencimiento: new Date(),
   });
 
-  // Mock data para mostrar funcionalidad
+  // Mock data para mostrar funcionalidad - solo una vez
   useEffect(() => {
-    if (clientes.length === 0) {
+    if (!initializedRef.current && clientes.length === 0) {
+      initializedRef.current = true;
+      
       // Agregar clientes de ejemplo
       agregarCliente({
         nombre: 'Ana García',
@@ -215,7 +218,7 @@ export default function PrestamistaDashboard() {
           gridTemplateColumns: {
             xs: '1fr',
             sm: 'repeat(2, 1fr)',
-            md: 'repeat(4, 1fr)',
+            lg: 'repeat(4, 1fr)',
           },
           gap: 3,
           mb: 4,
