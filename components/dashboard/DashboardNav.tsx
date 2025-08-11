@@ -76,8 +76,6 @@ export function DashboardNav() {
           <Logo
             width={140}
             height={80}
-            mobileWidth={140}
-            mobileHeight={70}
             priority
           />
         </Box>

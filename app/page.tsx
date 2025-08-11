@@ -69,7 +69,7 @@ export default function Home() {
     <>
       <Navbar />
 
-      <Container maxWidth='lg'>
+      <Container maxWidth='md'>
         {/* Hero Section */}
         <Box
           sx={{
@@ -177,8 +177,8 @@ export default function Home() {
                 '&:hover': {
                   transform: 'scale(1.02)',
                   transition: 'transform 0.3s ease',
-                  boxShadow: 6
-                }
+                  boxShadow: 6,
+                },
               }}
             >
               <Image
@@ -186,7 +186,7 @@ export default function Home() {
                 alt='Prestamistas profesionales cerrando acuerdos exitosos'
                 fill
                 style={{
-                  objectFit: 'cover'
+                  objectFit: 'cover',
                 }}
                 priority
                 sizes='(max-width: 768px) 100vw, 800px'
