@@ -65,7 +65,7 @@ export default function LoginPage() {
       email: 'prestamista@prestamito.com',
       password: 'password',
     },
-    { role: 'Cliente', email: 'cliente@prestamito.com', password: 'password' },
+    // { role: 'Cliente', email: 'cliente@prestamito.com', password: 'password' },
   ];
 
   const fillDemoAccount = (email: string, password: string) => {
