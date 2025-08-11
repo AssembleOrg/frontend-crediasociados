@@ -134,7 +134,7 @@ export default function AdminDashboard() {
           gridTemplateColumns: {
             xs: '1fr',
             sm: 'repeat(2, 1fr)',
-            md: 'repeat(4, 1fr)',
+            lg: 'repeat(4, 1fr)',
           },
           gap: 3,
           mb: 4,
@@ -181,7 +181,7 @@ export default function AdminDashboard() {
       <Box
         sx={{
           display: 'grid',
-          gridTemplateColumns: { xs: '1fr', md: 'repeat(2, 1fr)' },
+          gridTemplateColumns: { xs: '1fr', lg: 'repeat(2, 1fr)' },
           gap: 3,
           mb: 4,
         }}
@@ -223,7 +223,7 @@ export default function AdminDashboard() {
                   <TableCell align='center' sx={{ display: { xs: 'none', sm: 'table-cell' } }}>
                     Clientes
                   </TableCell>
-                  <TableCell align='center' sx={{ display: { xs: 'none', md: 'table-cell' } }}>
+                  <TableCell align='center' sx={{ display: { xs: 'none', lg: 'table-cell' } }}>
                     Acciones
                   </TableCell>
                 </TableRow>
@@ -268,7 +268,7 @@ export default function AdminDashboard() {
                     <TableCell align='center' sx={{ display: { xs: 'none', sm: 'table-cell' } }}>
                       {prestamista.clientesActivos}
                     </TableCell>
-                    <TableCell align='center' sx={{ display: { xs: 'none', md: 'table-cell' } }}>
+                    <TableCell align='center' sx={{ display: { xs: 'none', lg: 'table-cell' } }}>
                       <Button
                         size='small'
                         variant='outlined'

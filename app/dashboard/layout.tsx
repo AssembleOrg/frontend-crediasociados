@@ -10,7 +10,7 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   return (
-    <RoleGuard allowedRoles={['admin', 'prestamista', 'cliente']}>
+    <RoleGuard allowedRoles={['admin', 'prestamista']}>
       <Box
         sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}
       >
