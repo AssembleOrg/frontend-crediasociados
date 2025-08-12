@@ -105,7 +105,6 @@ export function DashboardNav() {
             </Typography>
           </Box>
 
-          {/* Nombre compacto en mobile */}
           <Typography
             variant='body2'
             sx={{

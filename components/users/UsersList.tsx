@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import {
   Box,
   Paper,
@@ -38,41 +38,50 @@ export const UsersList = ({ onEditUser, onCreateUser }: UsersListProps) => {
     filters,
     fetchUsers,
     deleteUser,
-    clearError
+    clearError,
+    getFilteredUsers
   } = useUsers()
 
-  const [searchTerm, setSearchTerm] = useState(filters.search || '')
+  const [searchTerm, setSearchTerm] = useState('')
+  const [currentPage, setCurrentPage] = useState(0)
+  const [rowsPerPage, setRowsPerPage] = useState(10)
 
-  const handleSearch = () => {
-    fetchUsers({ ...filters, search: searchTerm, page: 1 })
-  }
+  // Local filtering and pagination
+  const filteredUsers = useMemo(() => {
+    return getFilteredUsers({ search: searchTerm })
+  }, [getFilteredUsers, searchTerm])
+
+  const paginatedUsers = useMemo(() => {
+    const start = currentPage * rowsPerPage
+    const end = start + rowsPerPage
+    return filteredUsers.slice(start, end)
+  }, [filteredUsers, currentPage, rowsPerPage])
 
   const handleSearchKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') {
-      handleSearch()
+      setCurrentPage(0) // Reset to first page when searching
     }
   }
 
   const handlePageChange = (event: unknown, newPage: number) => {
-    fetchUsers({ ...filters, page: newPage + 1 })
+    setCurrentPage(newPage)
   }
 
   const handleRowsPerPageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const limit = parseInt(event.target.value, 10)
-    fetchUsers({ ...filters, limit, page: 1 })
+    setRowsPerPage(parseInt(event.target.value, 10))
+    setCurrentPage(0)
   }
 
   const handleDeleteUser = async (user: User) => {
     if (window.confirm(`¿Estás seguro de que quieres eliminar al usuario ${user.fullName}?`)) {
       const success = await deleteUser(user.id)
       if (success) {
-        // Refresh the list
-        fetchUsers(filters)
+        // No need to refresh - store automatically updates
       }
     }
   }
 
-  const getRoleColor = (role: string) => {
+  const getRoleColor = (role: string): 'error' | 'primary' | 'default' => {
     switch (role) {
       case 'admin': return 'error'
       case 'prestamista': return 'primary'
@@ -80,7 +89,7 @@ export const UsersList = ({ onEditUser, onCreateUser }: UsersListProps) => {
     }
   }
 
-  if (isLoading && users.length === 0) {
+  if (isLoading && filteredUsers.length === 0) {
     return (
       <Box display="flex" justifyContent="center" alignItems="center" minHeight="200px">
         <CircularProgress />
@@ -122,13 +131,6 @@ export const UsersList = ({ onEditUser, onCreateUser }: UsersListProps) => {
             ),
           }}
         />
-        <Button 
-          variant="outlined" 
-          onClick={handleSearch}
-          disabled={isLoading}
-        >
-          Buscar
-        </Button>
       </Box>
 
       {/* Error Alert */}
@@ -158,7 +160,7 @@ export const UsersList = ({ onEditUser, onCreateUser }: UsersListProps) => {
               </TableRow>
             </TableHead>
             <TableBody>
-              {users.map((user) => (
+              {paginatedUsers.map((user) => (
                 <TableRow key={user.id} hover>
                   <TableCell>
                     <Typography variant="body2" fontWeight="medium">
@@ -170,7 +172,7 @@ export const UsersList = ({ onEditUser, onCreateUser }: UsersListProps) => {
                   <TableCell>
                     <Chip
                       label={getRoleDisplayName(user.role)}
-                      color={getRoleColor(user.role) as any}
+                      color={getRoleColor(user.role)}
                       size="small"
                     />
                   </TableCell>
@@ -213,10 +215,10 @@ export const UsersList = ({ onEditUser, onCreateUser }: UsersListProps) => {
         {/* Pagination */}
         <TablePagination
           component="div"
-          count={pagination.total}
-          page={pagination.page - 1}
+          count={filteredUsers.length}
+          page={currentPage}
           onPageChange={handlePageChange}
-          rowsPerPage={pagination.limit}
+          rowsPerPage={rowsPerPage}
           onRowsPerPageChange={handleRowsPerPageChange}
           rowsPerPageOptions={[5, 10, 25, 50]}
           labelRowsPerPage="Filas por página:"
@@ -224,7 +226,7 @@ export const UsersList = ({ onEditUser, onCreateUser }: UsersListProps) => {
       </Paper>
 
       {/* Loading Overlay */}
-      {isLoading && users.length > 0 && (
+      {isLoading && filteredUsers.length > 0 && (
         <Box 
           position="absolute" 
           top={0} 

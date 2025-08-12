@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import { immer } from 'zustand/middleware/immer'
-import type { User, PaginationParams } from '@/types/auth'
+import type { User, PaginationParams, SearchParams } from '@/types/auth'
 
 /**
  * THE WAREHOUSE - Users Store
@@ -16,18 +16,18 @@ interface UsersState {
     total: number
     totalPages: number
   }
-  filters: PaginationParams
+  filters: SearchParams
 }
 
 interface UsersStore extends UsersState {
-  // Simple synchronous setters only - NO async logic here
   setUsers: (users: User[]) => void
   addUser: (user: User) => void
-  updateUser: (id: string, userData: Partial<User>) => void
+  updateUser: (user: User) => void
   removeUser: (id: string) => void
   setSelectedUser: (user: User | null) => void
   setPagination: (pagination: UsersState['pagination']) => void
-  setFilters: (filters: Partial<PaginationParams>) => void
+  setFilters: (filters: Partial<SearchParams>) => void
+  getFilteredUsers: (searchParams?: SearchParams) => User[]
   clearUsers: () => void
   
   // Centralized calculations - single source of truth
@@ -39,7 +39,6 @@ interface UsersStore extends UsersState {
 
 export const useUsersStore = create<UsersStore>()(
   immer((set, get) => ({
-    // Initial state
     users: [],
     selectedUser: null,
     pagination: {
@@ -48,12 +47,46 @@ export const useUsersStore = create<UsersStore>()(
       total: 0,
       totalPages: 0
     },
-    filters: {
-      page: 1,
-      limit: 10
+    filters: {},
+
+    // Local filtering getter
+    getFilteredUsers: (searchParams?: SearchParams) => {
+      const state = get()
+      const params = searchParams || state.filters
+      let filtered = [...state.users]
+
+      // Apply role filter
+      if (params.role) {
+        filtered = filtered.filter(user => user.role === params.role)
+      }
+
+      // Apply search filter
+      if (params.search) {
+        const searchLower = params.search.toLowerCase()
+        filtered = filtered.filter(user => 
+          user.fullName?.toLowerCase().includes(searchLower) ||
+          user.email?.toLowerCase().includes(searchLower)
+        )
+      }
+
+      // Apply sorting (frontend only - not sent to API)
+      if (params.sortBy) {
+        filtered.sort((a, b) => {
+          const aVal = a[params.sortBy as keyof User]
+          const bVal = b[params.sortBy as keyof User]
+          
+          if (!aVal && !bVal) return 0
+          if (!aVal) return 1
+          if (!bVal) return -1
+          
+          const comparison = aVal < bVal ? -1 : aVal > bVal ? 1 : 0
+          return params.sortOrder === 'desc' ? -comparison : comparison
+        })
+      }
+
+      return filtered
     },
 
-    // Simple synchronous actions only
     setUsers: (users: User[]) => {
       set((state) => {
         state.users = users
@@ -66,16 +99,15 @@ export const useUsersStore = create<UsersStore>()(
       })
     },
 
-    updateUser: (id: string, userData: Partial<User>) => {
+    updateUser: (user: User) => {
       set((state) => {
-        const index = state.users.findIndex(u => u.id === id)
+        const index = state.users.findIndex(u => u.id === user.id)
         if (index !== -1) {
-          state.users[index] = { ...state.users[index], ...userData }
+          state.users[index] = user
         }
         
-        // Update selected if it's the same user
-        if (state.selectedUser?.id === id) {
-          state.selectedUser = { ...state.selectedUser, ...userData }
+        if (state.selectedUser?.id === user.id) {
+          state.selectedUser = user
         }
       })
     },
@@ -84,7 +116,6 @@ export const useUsersStore = create<UsersStore>()(
       set((state) => {
         state.users = state.users.filter(u => u.id !== id)
         
-        // Clear selection if it's the removed user
         if (state.selectedUser?.id === id) {
           state.selectedUser = null
         }
@@ -103,7 +134,7 @@ export const useUsersStore = create<UsersStore>()(
       })
     },
 
-    setFilters: (filters: Partial<PaginationParams>) => {
+    setFilters: (filters: Partial<SearchParams>) => {
       set((state) => {
         state.filters = { ...state.filters, ...filters }
       })
@@ -119,14 +150,10 @@ export const useUsersStore = create<UsersStore>()(
           total: 0,
           totalPages: 0
         }
-        state.filters = {
-          page: 1,
-          limit: 10
-        }
+        state.filters = {}
       })
     },
 
-    // Centralized calculations - single source of truth
     getUsersByRole: (role: User['role']) => {
       return get().users.filter(user => user.role === role)
     },

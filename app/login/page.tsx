@@ -17,7 +17,8 @@ import { useAuth } from '@/hooks/useAuth';
 import { Logo } from '@/components/ui/Logo';
 
 export default function LoginPage() {
-  const { login, isLoading, error, navigateToDashboard, clearError } = useAuth();
+  const { login, isLoading, error, navigateToDashboard, clearError } =
+    useAuth();
 
   const [formData, setFormData] = useState({
     email: '',
@@ -51,20 +52,7 @@ export default function LoginPage() {
     setShowPassword((prev) => !prev);
   };
 
-  const demoAccounts = [
-    { role: 'Admin', email: 'admin@prestamito.com', password: 'password' },
-    {
-      role: 'Prestamista',
-      email: 'prestamista@prestamito.com',
-      password: 'password',
-    },
-    // { role: 'Cliente', email: 'cliente@prestamito.com', password: 'password' },
-  ];
-
-  const fillDemoAccount = (email: string, password: string) => {
-    setFormData({ email, password });
-    clearError();
-  };
+  // Demo accounts removed - use real backend credentials
 
   return (
     <Container maxWidth='sm'>
@@ -185,51 +173,11 @@ export default function LoginPage() {
             </Button>
           </Box>
 
-          {/* Demo Accounts */}
-          <Box sx={{ mt: 4, p: 3, bgcolor: 'grey.50', borderRadius: 2 }}>
-            <Typography
-              variant='subtitle2'
-              sx={{ mb: 2, fontWeight: 600, textAlign: 'center' }}
-            >
-              Cuentas de Demostración
-            </Typography>
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-              {demoAccounts.map((account, index) => (
-                <Button
-                  key={index}
-                  variant='outlined'
-                  size='small'
-                  onClick={() =>
-                    fillDemoAccount(account.email, account.password)
-                  }
-                  sx={{
-                    textTransform: 'none',
-                    justifyContent: 'flex-start',
-                    fontSize: '0.9rem',
-                  }}
-                >
-                  <strong>{account.role}:</strong>&nbsp;{account.email}
-                </Button>
-              ))}
-            </Box>
-            <Typography
-              variant='caption'
-              sx={{
-                display: 'block',
-                textAlign: 'center',
-                mt: 2,
-                color: 'text.secondary',
-              }}
-            >
-              Contraseña para todas: <strong>password</strong>
-            </Typography>
-          </Box>
-
           {/* Back to Home */}
           <Box sx={{ textAlign: 'center', mt: 3 }}>
             <Button
               variant='text'
-              onClick={() => window.location.href = '/'}
+              onClick={() => (window.location.href = '/')}
               sx={{ textTransform: 'none' }}
             >
               ← Volver al inicio

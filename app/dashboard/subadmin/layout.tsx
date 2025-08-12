@@ -8,7 +8,7 @@ import {
   ListItemIcon,
   ListItemText,
 } from '@mui/material';
-import { Dashboard, People, Assessment, Settings } from '@mui/icons-material';
+import { Dashboard, People } from '@mui/icons-material';
 import { useRouter, usePathname } from 'next/navigation';
 import { QuickActions } from '@/components/dashboard/QuickActions';
 
@@ -18,16 +18,6 @@ const subadminMenuItems = [
     label: 'Managers',
     icon: <People />,
     path: '/dashboard/subadmin/usuarios',
-  },
-  {
-    label: 'Reportes',
-    icon: <Assessment />,
-    path: '/dashboard/subadmin/reportes',
-  },
-  {
-    label: 'Configuración',
-    icon: <Settings />,
-    path: '/dashboard/subadmin/config',
   },
 ];
 
@@ -42,16 +32,6 @@ const subadminQuickActions = [
     label: 'Managers',
     icon: <People />,
     path: '/dashboard/subadmin/usuarios',
-  },
-  {
-    label: 'Reportes',
-    icon: <Assessment />,
-    path: '/dashboard/subadmin/reportes',
-  },
-  {
-    label: 'Configuración',
-    icon: <Settings />,
-    path: '/dashboard/subadmin/config',
   },
 ];
 

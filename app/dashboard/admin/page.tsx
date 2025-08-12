@@ -1,278 +1,85 @@
 'use client';
 
 import React from 'react';
-import {
-  Typography,
-  Box,
-  Paper,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Chip,
-  Button,
-} from '@mui/material';
-import {
-  TrendingUp,
-  People,
-  AccountBalance,
-  Assessment,
-  Add,
-} from '@mui/icons-material';
-import { useStatsStore } from '@/stores/stats';
+import { Typography, Box, Paper } from '@mui/material';
+import { People, Assessment } from '@mui/icons-material';
+import { useStats } from '@/hooks/useStats';
 import { StatsCard } from '@/components/dashboard/StatsCard';
 
 export default function AdminDashboard() {
-  const { dashboardStats: stats } = useStatsStore();
-
-
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('es-AR', {
-      style: 'currency',
-      currency: 'ARS',
-    }).format(amount);
-  };
-
-  const mockSubadmins = [
-    {
-      id: 1,
-      nombre: 'Ana Rodríguez',
-      email: 'ana@prestamito.com',
-      managersActivos: 8,
-      montoTotal: 1250000,
-      estado: 'activo',
-    },
-    {
-      id: 2,
-      nombre: 'Carlos Mendoza',
-      email: 'carlos@prestamito.com',
-      managersActivos: 12,
-      montoTotal: 1890000,
-      estado: 'activo',
-    },
-    {
-      id: 3,
-      nombre: 'Laura Fernández',
-      email: 'laura@prestamito.com',
-      managersActivos: 6,
-      montoTotal: 780000,
-      estado: 'inactivo',
-    },
-  ];
-
-  const getEstadoColor = (estado: string) => {
-    return estado === 'activo' ? 'success' : 'default';
-  };
-
+  const { stats, totalUsers } = useStats();
 
   return (
-    <Box>
-      {/* Header - Responsive */}
-      <Box
-        sx={{
-          mb: 4,
-          display: 'flex',
-          flexDirection: { xs: 'column', sm: 'row' },
-          justifyContent: 'space-between',
-          alignItems: { xs: 'flex-start', sm: 'center' },
-          gap: { xs: 3, sm: 0 }
-        }}
-      >
-        <Box>
-          <Typography
-            variant='h4'
-            sx={{ 
-              fontWeight: 600, 
-              mb: 1,
-              fontSize: { xs: '1.5rem', sm: '2.125rem' }
-            }}
-          >
-            Dashboard Principal
-          </Typography>
-          <Typography
-            variant='body1'
-            color='text.secondary'
-          >
-            Vista global del sistema y gestión de sub-administradores
-          </Typography>
-        </Box>
-        <Button
-          variant='contained'
-          startIcon={<Add />}
-          sx={{ 
-            height: 'fit-content',
-            width: { xs: '100%', sm: 'auto' }
-          }}
+    <Box sx={{ p: 3 }}>
+      {/* Header */}
+      <Box sx={{ mb: 4 }}>
+        <Typography
+          variant='h4'
+          component='h1'
+          gutterBottom
         >
-          Nuevo Sub-Admin
-        </Button>
+          Dashboard Principal
+        </Typography>
+        <Typography
+          variant='body1'
+          color='text.secondary'
+        >
+          Vista global del sistema y gestión de usuarios
+        </Typography>
       </Box>
 
-      {/* Global Stats Grid */}
+      {/* Stats Grids */}
       <Box
         sx={{
           display: 'grid',
           gridTemplateColumns: {
             xs: '1fr',
             sm: 'repeat(2, 1fr)',
-            lg: 'repeat(4, 1fr)',
+            lg: 'repeat(3, 1fr)',
           },
           gap: 3,
           mb: 4,
         }}
       >
         <StatsCard
-          title='Total Préstamos'
-          value={stats.totalPrestamos}
+          title='Total Usuarios'
+          value={totalUsers}
           subtitle='en toda la plataforma'
-          icon={<AccountBalance />}
+          icon={<People />}
           color='primary'
-          trend={{ value: 12, label: 'vs mes anterior', isPositive: true }}
-        />
-
-        <StatsCard
-          title='Volumen Total'
-          value={formatCurrency(stats.montoTotalPrestado * 3.2)} // Multiplicar por factor global
-          subtitle='capital total gestionado'
-          icon={<TrendingUp />}
-          color='success'
-          trend={{ value: 15, label: 'vs mes anterior', isPositive: true }}
         />
 
         <StatsCard
           title='Sub-Administradores'
-          value={3}
-          subtitle='administradores activos'
+          value={stats?.users?.subadmin || 0}
+          subtitle='gestores regionales'
           icon={<People />}
-          color='primary'
-          progress={75}
+          color='success'
         />
 
         <StatsCard
-          title='Efectividad Global'
-          value={`${Math.round(stats.tasaCobranza * 1.05)}%`}
-          subtitle='tasa de cobranza promedio'
+          title='Prestamistas'
+          value={stats?.users?.prestamista || 0}
+          subtitle='gestores de préstamos'
           icon={<Assessment />}
-          color={stats.tasaCobranza > 70 ? 'success' : 'error'}
-          progress={Math.round(stats.tasaCobranza * 1.05)}
-        />
-      </Box>
-
-      {/* Additional Global Stats */}
-      <Box
-        sx={{
-          display: 'grid',
-          gridTemplateColumns: { xs: '1fr', lg: 'repeat(3, 1fr)' },
-          gap: 3,
-          mb: 4,
-        }}
-      >
-        <StatsCard
-          title='Managers Total'
-          value={26}
-          subtitle='gestores de préstamos activos'
-          icon={<People />}
-          color='primary'
-        />
-
-        <StatsCard
-          title='Clientes Únicos'
-          value={stats.clientesActivos * 4}
-          subtitle='base total de clientes'
-          icon={<People />}
           color='warning'
         />
-
-        <StatsCard
-          title='Préstamos Críticos'
-          value={stats.prestamosVencidos}
-          subtitle='requieren atención inmediata'
-          icon={<AccountBalance />}
-          color='error'
-        />
       </Box>
 
-      {/* Sub-Administradores Table */}
-      <Paper elevation={1}>
-        <Box sx={{ p: 3 }}>
-          <Typography
-            variant='h6'
-            sx={{ mb: 3, fontWeight: 600 }}
-          >
-            Sub-Administradores
-          </Typography>
-
-          <TableContainer>
-            <Table size="small">
-              <TableHead>
-                <TableRow>
-                  <TableCell>Sub-Administrador</TableCell>
-                  <TableCell align='right'>Volumen Gestionado</TableCell>
-                  <TableCell align='center'>Estado</TableCell>
-                  <TableCell align='center' sx={{ display: { xs: 'none', sm: 'table-cell' } }}>
-                    Managers
-                  </TableCell>
-                  <TableCell align='center' sx={{ display: { xs: 'none', lg: 'table-cell' } }}>
-                    Acciones
-                  </TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {mockSubadmins.map((subadmin) => (
-                  <TableRow
-                    key={subadmin.id}
-                    hover
-                  >
-                    <TableCell>
-                      <Typography
-                        variant='subtitle2'
-                        sx={{ fontWeight: 500 }}
-                      >
-                        {subadmin.nombre}
-                      </Typography>
-                      {/* Info adicional en mobile */}
-                      <Typography 
-                        variant='caption' 
-                        color='text.secondary'
-                        sx={{ display: { xs: 'block', sm: 'none' } }}
-                      >
-                        {subadmin.managersActivos} managers • {subadmin.email}
-                      </Typography>
-                    </TableCell>
-                    <TableCell align='right'>
-                      <Typography
-                        variant='body2'
-                        sx={{ fontWeight: 500 }}
-                      >
-                        {formatCurrency(subadmin.montoTotal)}
-                      </Typography>
-                    </TableCell>
-                    <TableCell align='center'>
-                      <Chip
-                        label={subadmin.estado}
-                        color={getEstadoColor(subadmin.estado)}
-                        size='small'
-                      />
-                    </TableCell>
-                    <TableCell align='center' sx={{ display: { xs: 'none', sm: 'table-cell' } }}>
-                      {subadmin.managersActivos}
-                    </TableCell>
-                    <TableCell align='center' sx={{ display: { xs: 'none', lg: 'table-cell' } }}>
-                      <Button
-                        size='small'
-                        variant='outlined'
-                      >
-                        Ver Detalle
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </TableContainer>
-        </Box>
+      <Paper sx={{ p: 3 }}>
+        <Typography
+          variant='h6'
+          gutterBottom
+        >
+          Gestión de Usuarios
+        </Typography>
+        <Typography
+          variant='body1'
+          color='text.secondary'
+        >
+          Para gestionar sub-administradores, visita la sección
+          &ldquo;Sub-Admins&rdquo; en el menú lateral.
+        </Typography>
       </Paper>
     </Box>
   );

@@ -23,7 +23,6 @@ import type {
 export const useUsers = () => {
   const usersStore = useUsersStore()
   
-  // Local state for loading and errors
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -53,7 +52,7 @@ export const useUsers = () => {
     } finally {
       setIsLoading(false)
     }
-  }, [usersStore])
+  }, []) // ✅ Sin dependencias - usersStore es estable
 
   const createUser = useCallback(async (
     userData: Omit<User, 'id' | 'createdAt' | 'updatedAt'> & { password: string }
@@ -84,7 +83,7 @@ export const useUsers = () => {
     } finally {
       setIsLoading(false)
     }
-  }, [usersStore])
+  }, [])
 
   const updateUser = useCallback(async (
     id: string, 
@@ -104,7 +103,7 @@ export const useUsers = () => {
       const updatedUser = apiUserToUser(apiUser)
       
       // Update the store
-      usersStore.updateUser(id, updatedUser)
+      usersStore.updateUser(updatedUser)
       
       return true
       
@@ -116,7 +115,7 @@ export const useUsers = () => {
     } finally {
       setIsLoading(false)
     }
-  }, [usersStore])
+  }, [])
 
   const deleteUser = useCallback(async (id: string): Promise<boolean> => {
     setIsLoading(true)
@@ -139,7 +138,7 @@ export const useUsers = () => {
     } finally {
       setIsLoading(false)
     }
-  }, [usersStore])
+  }, [])
 
   const getUserById = useCallback(async (id: string): Promise<User | null> => {
     setIsLoading(true)
@@ -165,41 +164,64 @@ export const useUsers = () => {
     } finally {
       setIsLoading(false)
     }
-  }, [usersStore])
+  }, [])
 
   // Auto-fetch users when filters change
   useEffect(() => {
     fetchUsers()
   }, []) // Only on mount - fetchUsers handles filter updates
 
-  // Clear error manually
   const clearError = useCallback(() => {
     setError(null)
   }, [])
 
-  // Clear selected user
   const clearSelectedUser = useCallback(() => {
     usersStore.setSelectedUser(null)
-  }, [usersStore])
+  }, [])
+
+  const getCreatedUsers = useCallback(async (userId: string, params?: PaginationParams): Promise<boolean> => {
+    setIsLoading(true)
+    setError(null)
+
+    try {
+      const response = await usersService.getCreatedUsers(userId, params)
+      const users = response.data.map(apiUserToUser)
+      
+      usersStore.setUsers(users)
+      usersStore.setPagination(response.meta)
+      
+      return true
+    } catch (err) {
+      const apiError = err as ApiError
+      setError(apiError.message || 'Failed to fetch created users')
+      return false
+    } finally {
+      setIsLoading(false)
+    }
+  }, [])
 
   return {
-    // State from store
     users: usersStore.users,
     selectedUser: usersStore.selectedUser,
     pagination: usersStore.pagination,
     filters: usersStore.filters,
     
-    // Local state
     isLoading,
     error,
     
-    // Actions
     fetchUsers,
     createUser,
     updateUser,
     deleteUser,
     getUserById,
+    getCreatedUsers,
     clearSelectedUser,
-    clearError
+    clearError,
+    
+    getUsersByRole: usersStore.getUsersByRole,
+    getTotalUsers: usersStore.getTotalUsers,
+    getUsersWithPhone: usersStore.getUsersWithPhone,
+    getAdminUsers: usersStore.getAdminUsers,
+    getFilteredUsers: usersStore.getFilteredUsers
   }
 }

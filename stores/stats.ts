@@ -1,71 +1,73 @@
-import { create } from 'zustand'
-import { immer } from 'zustand/middleware/immer'
-
-/**
- * THE WAREHOUSE - Stats Store
- * "Dumb" store that only holds data and has simple, synchronous actions.
- * NEVER calls services or has async logic - that's the Controller Hook's job.
- * 
- * This store acts as a computed store that derives stats from other stores
- * or receives calculated stats from the Controller Hook.
- */
+import { create } from 'zustand';
+import { immer } from 'zustand/middleware/immer';
 
 // Core stats interfaces
 interface DashboardStats {
-  totalPrestamos: number
-  montoTotalPrestado: number
-  montoTotalCobrado: number
-  clientesActivos: number
-  prestamistasCantidad: number
-  tasaCobranza: number
-  prestamosVencidos: number
-  prestamosActivos: number
-  montoPromedioPrestamo: number
-  ingresosDelMes: number
-  crecimientoMensual: number
+  totalPrestamos: number;
+  montoTotalPrestado: number;
+  montoTotalCobrado: number;
+  clientesActivos: number;
+  prestamistasCantidad: number;
+  tasaCobranza: number;
+  prestamosVencidos: number;
+  prestamosActivos: number;
+  montoPromedioPrestamo: number;
+  ingresosDelMes: number;
+  crecimientoMensual: number;
 }
 
 interface PeriodStats {
-  periodo: 'diario' | 'semanal' | 'mensual' | 'anual'
-  fechaInicio: Date
-  fechaFin: Date
-  prestamosOtorgados: number
-  montoOtorgado: number
-  pagosRecibidos: number
-  montoCobrado: number
-  clientesNuevos: number
-  morosidad: number
+  periodo: 'diario' | 'semanal' | 'mensual' | 'anual';
+  fechaInicio: Date;
+  fechaFin: Date;
+  prestamosOtorgados: number;
+  montoOtorgado: number;
+  pagosRecibidos: number;
+  montoCobrado: number;
+  clientesNuevos: number;
+  morosidad: number;
 }
 
 interface StatsState {
-  dashboardStats: DashboardStats
-  periodStats: PeriodStats[]
-  selectedPeriod: 'diario' | 'semanal' | 'mensual' | 'anual'
-  ultimaActualizacion: Date | null
+  dashboardStats: DashboardStats;
+  periodStats: PeriodStats[];
+  selectedPeriod: 'diario' | 'semanal' | 'mensual' | 'anual';
+  ultimaActualizacion: Date | null;
   filters: {
-    fechaDesde?: Date
-    fechaHasta?: Date
-    prestamista?: string
-    tipoReporte?: 'general' | 'prestamista' | 'cliente'
-  }
+    fechaDesde?: Date;
+    fechaHasta?: Date;
+    prestamista?: string;
+    tipoReporte?: 'general' | 'prestamista' | 'cliente';
+  };
 }
 
 interface StatsStore extends StatsState {
   // Simple synchronous setters only - NO async logic here
-  setDashboardStats: (stats: DashboardStats) => void
-  setPeriodStats: (stats: PeriodStats[]) => void
-  addPeriodStat: (stat: PeriodStats) => void
-  setSelectedPeriod: (period: StatsState['selectedPeriod']) => void
-  setFilters: (filters: Partial<StatsState['filters']>) => void
-  setUltimaActualizacion: (fecha: Date) => void
-  clearStats: () => void
-  
+  setDashboardStats: (stats: DashboardStats) => void;
+  setPeriodStats: (stats: PeriodStats[]) => void;
+  addPeriodStat: (stat: PeriodStats) => void;
+  setSelectedPeriod: (period: StatsState['selectedPeriod']) => void;
+  setFilters: (filters: Partial<StatsState['filters']>) => void;
+  setUltimaActualizacion: (fecha: Date) => void;
+  clearStats: () => void;
+
   // Centralized calculations - single source of truth
-  getStatsByPeriod: (periodo: StatsState['selectedPeriod']) => PeriodStats[]
-  getCurrentMonthStats: () => PeriodStats | null
-  getGrowthTrend: () => { porcentaje: number, tendencia: 'crecimiento' | 'decrecimiento' | 'estable' }
-  getTopMetrics: () => { titulo: string, valor: number | string, cambio?: number }[]
-  getEfficiencyMetrics: () => { cobranza: number, aprovacion: number, retencion: number }
+  getStatsByPeriod: (periodo: StatsState['selectedPeriod']) => PeriodStats[];
+  getCurrentMonthStats: () => PeriodStats | null;
+  getGrowthTrend: () => {
+    porcentaje: number;
+    tendencia: 'crecimiento' | 'decrecimiento' | 'estable';
+  };
+  getTopMetrics: () => {
+    titulo: string;
+    valor: number | string;
+    cambio?: number;
+  }[];
+  getEfficiencyMetrics: () => {
+    cobranza: number;
+    aprovacion: number;
+    retencion: number;
+  };
 }
 
 const defaultDashboardStats: DashboardStats = {
@@ -79,8 +81,8 @@ const defaultDashboardStats: DashboardStats = {
   prestamosActivos: 0,
   montoPromedioPrestamo: 0,
   ingresosDelMes: 0,
-  crecimientoMensual: 0
-}
+  crecimientoMensual: 0,
+};
 
 export const useStatsStore = create<StatsStore>()(
   immer((set, get) => ({
@@ -94,105 +96,111 @@ export const useStatsStore = create<StatsStore>()(
     // Simple synchronous actions only
     setDashboardStats: (stats: DashboardStats) => {
       set((state) => {
-        state.dashboardStats = stats
-        state.ultimaActualizacion = new Date()
-      })
+        state.dashboardStats = stats;
+        state.ultimaActualizacion = new Date();
+      });
     },
 
     setPeriodStats: (stats: PeriodStats[]) => {
       set((state) => {
-        state.periodStats = stats
-        state.ultimaActualizacion = new Date()
-      })
+        state.periodStats = stats;
+        state.ultimaActualizacion = new Date();
+      });
     },
 
     addPeriodStat: (stat: PeriodStats) => {
       set((state) => {
         // Remove existing stat for same period if exists
-        state.periodStats = state.periodStats.filter(s => 
-          s.periodo !== stat.periodo || 
-          s.fechaInicio.getTime() !== stat.fechaInicio.getTime()
-        )
-        state.periodStats.push(stat)
-        state.periodStats.sort((a, b) => b.fechaInicio.getTime() - a.fechaInicio.getTime())
-      })
+        state.periodStats = state.periodStats.filter(
+          (s) =>
+            s.periodo !== stat.periodo ||
+            s.fechaInicio.getTime() !== stat.fechaInicio.getTime()
+        );
+        state.periodStats.push(stat);
+        state.periodStats.sort(
+          (a, b) => b.fechaInicio.getTime() - a.fechaInicio.getTime()
+        );
+      });
     },
 
     setSelectedPeriod: (period: StatsState['selectedPeriod']) => {
       set((state) => {
-        state.selectedPeriod = period
-      })
+        state.selectedPeriod = period;
+      });
     },
 
     setFilters: (filters: Partial<StatsState['filters']>) => {
       set((state) => {
-        state.filters = { ...state.filters, ...filters }
-      })
+        state.filters = { ...state.filters, ...filters };
+      });
     },
 
     setUltimaActualizacion: (fecha: Date) => {
       set((state) => {
-        state.ultimaActualizacion = fecha
-      })
+        state.ultimaActualizacion = fecha;
+      });
     },
 
     clearStats: () => {
       set((state) => {
-        state.dashboardStats = defaultDashboardStats
-        state.periodStats = []
-        state.ultimaActualizacion = null
-        state.filters = {}
-      })
+        state.dashboardStats = defaultDashboardStats;
+        state.periodStats = [];
+        state.ultimaActualizacion = null;
+        state.filters = {};
+      });
     },
 
     // Centralized calculations - single source of truth
     getStatsByPeriod: (periodo: StatsState['selectedPeriod']) => {
-      return get().periodStats.filter(stat => stat.periodo === periodo)
+      return get().periodStats.filter((stat) => stat.periodo === periodo);
     },
 
     getCurrentMonthStats: () => {
-      const ahora = new Date()
-      const inicioMes = new Date(ahora.getFullYear(), ahora.getMonth(), 1)
-      
-      return get().periodStats.find(stat => 
-        stat.periodo === 'mensual' && 
-        stat.fechaInicio.getTime() === inicioMes.getTime()
-      ) || null
+      const ahora = new Date();
+      const inicioMes = new Date(ahora.getFullYear(), ahora.getMonth(), 1);
+
+      return (
+        get().periodStats.find(
+          (stat) =>
+            stat.periodo === 'mensual' &&
+            stat.fechaInicio.getTime() === inicioMes.getTime()
+        ) || null
+      );
     },
 
     getGrowthTrend: () => {
-      const stats = get().getStatsByPeriod('mensual').slice(0, 2) // Últimos 2 meses
-      
+      const stats = get().getStatsByPeriod('mensual').slice(0, 2);
+
       if (stats.length < 2) {
-        return { porcentaje: 0, tendencia: 'estable' as const }
+        return { porcentaje: 0, tendencia: 'estable' as const };
       }
-      
-      const actual = stats[0].montoOtorgado
-      const anterior = stats[1].montoOtorgado
-      
+
+      const actual = stats[0].montoOtorgado;
+      const anterior = stats[1].montoOtorgado;
+
       if (anterior === 0) {
-        return { porcentaje: 0, tendencia: 'estable' as const }
+        return { porcentaje: 0, tendencia: 'estable' as const };
       }
-      
-      const porcentaje = ((actual - anterior) / anterior) * 100
-      
-      let tendencia: 'crecimiento' | 'decrecimiento' | 'estable'
-      if (porcentaje > 5) tendencia = 'crecimiento'
-      else if (porcentaje < -5) tendencia = 'decrecimiento'
-      else tendencia = 'estable'
-      
-      return { porcentaje: Math.round(porcentaje * 100) / 100, tendencia }
+
+      const porcentaje = ((actual - anterior) / anterior) * 100;
+
+      let tendencia: 'crecimiento' | 'decrecimiento' | 'estable';
+      if (porcentaje > 5) tendencia = 'crecimiento';
+      else if (porcentaje < -5) tendencia = 'decrecimiento';
+      else tendencia = 'estable';
+
+      return { porcentaje: Math.round(porcentaje * 100) / 100, tendencia };
     },
 
     getTopMetrics: () => {
-      const { dashboardStats } = get()
-      const growth = get().getGrowthTrend()
-      
+      const { dashboardStats } = get();
+      const growth = get().getGrowthTrend();
+
       return [
         {
           titulo: 'Préstamos Activos',
           valor: dashboardStats.prestamosActivos,
-          cambio: growth.porcentaje
+          cambio: growth.porcentaje,
         },
         {
           titulo: 'Monto Total Prestado',
@@ -205,22 +213,29 @@ export const useStatsStore = create<StatsStore>()(
         {
           titulo: 'Clientes Activos',
           valor: dashboardStats.clientesActivos,
-        }
-      ]
+        },
+      ];
     },
 
     getEfficiencyMetrics: () => {
-      const { dashboardStats } = get()
-      
+      const { dashboardStats } = get();
+
       return {
         cobranza: dashboardStats.tasaCobranza,
-        aprovacion: dashboardStats.totalPrestamos > 0 
-          ? (dashboardStats.prestamosActivos / dashboardStats.totalPrestamos) * 100 
-          : 0,
-        retencion: dashboardStats.clientesActivos > 0 
-          ? ((dashboardStats.clientesActivos - dashboardStats.prestamosVencidos) / dashboardStats.clientesActivos) * 100 
-          : 0
-      }
-    }
+        aprovacion:
+          dashboardStats.totalPrestamos > 0
+            ? (dashboardStats.prestamosActivos /
+                dashboardStats.totalPrestamos) *
+              100
+            : 0,
+        retencion:
+          dashboardStats.clientesActivos > 0
+            ? ((dashboardStats.clientesActivos -
+                dashboardStats.prestamosVencidos) /
+                dashboardStats.clientesActivos) *
+              100
+            : 0,
+      };
+    },
   }))
-)
+);

@@ -9,25 +9,26 @@ import {
   Container,
 } from '@mui/material';
 import { useRouter } from 'next/navigation';
-import { useAuthStore } from '@/stores/auth';
+import { useAuth } from '@/hooks/useAuth';
 import { Logo } from './Logo';
 
 export function Navbar() {
   const router = useRouter();
-  const { isAuthenticated, user, logout } = useAuthStore();
+  const { isAuthenticated, user, logout } = useAuth();
 
   const handleLogin = () => {
     router.push('/login');
   };
 
-  const handleLogout = () => {
-    logout();
+  const handleLogout = async () => {
+    await logout();
     router.push('/');
   };
 
   const handleDashboard = () => {
-    const route = useAuthStore.getState().getDashboardRoute();
-    router.push(route);
+    if (user?.role === 'admin') router.push('/dashboard/admin');
+    else if (user?.role === 'subadmin') router.push('/dashboard/subadmin');
+    else if (user?.role === 'prestamista') router.push('/dashboard/prestamista');
   };
 
   return (
@@ -66,7 +67,7 @@ export function Navbar() {
                   variant='body2'
                   sx={{ color: 'text.secondary' }}
                 >
-                  Hola, {user.name}
+                  Hola, {user.fullName}
                 </Typography>
                 <Button
                   variant='outlined'

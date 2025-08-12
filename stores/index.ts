@@ -1,8 +1,6 @@
 // Core domain stores
 export { useAuthStore } from './auth'
 export { useUsersStore } from './users'
-export { useClientesStore } from './clientes'
-export { usePrestamosStore } from './prestamos'
 export { useStatsStore } from './stats'
 
 // App/UI store

@@ -27,10 +27,10 @@ export const apiUserToUser = (apiUser: UserResponseDto): User => ({
   id: apiUser.id,
   email: apiUser.email,
   fullName: apiUser.fullName,
-  phone: apiUser.phone,
+  phone: typeof apiUser.phone === 'string' ? apiUser.phone : undefined,
   role: ROLE_MAP[apiUser.role] || 'prestamista',
-  dni: apiUser.dni,
-  cuit: apiUser.cuit,
+  dni: typeof apiUser.dni === 'string' ? apiUser.dni : undefined,
+  cuit: typeof apiUser.cuit === 'string' ? apiUser.cuit : undefined,
   createdAt: new Date(apiUser.createdAt),
   updatedAt: new Date(apiUser.updatedAt),
 });
@@ -44,8 +44,6 @@ export const userToCreateDto = (
   fullName: user.fullName,
   phone: user.phone,
   role: REVERSE_ROLE_MAP[user.role] || 'MANAGER',
-  dni: user.dni,
-  cuit: user.cuit,
 });
 
 // Transform frontend user to API update DTO
@@ -60,8 +58,6 @@ export const userToUpdateDto = (
   if (user.phone !== undefined) dto.phone = user.phone;
   if (user.role !== undefined)
     dto.role = REVERSE_ROLE_MAP[user.role] || 'MANAGER';
-  if (user.dni !== undefined) dto.dni = user.dni;
-  if (user.cuit !== undefined) dto.cuit = user.cuit;
 
   return dto;
 };
