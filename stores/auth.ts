@@ -1,83 +1,61 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
-import type { User, AuthState, UserRole } from '@/types/auth'
+import type { User, AuthState } from '@/types/auth'
 
+/**
+ * THE WAREHOUSE - Auth Store
+ * "Dumb" store that only holds data and has simple, synchronous actions.
+ * NEVER calls services or has async logic.
+ */
 interface AuthStore extends AuthState {
-  login: (email: string, password: string) => Promise<{ success: boolean; user: User | null }>
-  logout: () => void
-  setLoading: (loading: boolean) => void
+  // Simple synchronous setters only
+  setUser: (user: User | null) => void
+  setTokens: (token: string | null, refreshToken: string | null) => void
+  setAuthentication: (isAuthenticated: boolean) => void
+  clearAuth: () => void
   getDashboardRoute: () => string
 }
 
 export const useAuthStore = create<AuthStore>()(
   persist(
     (set, get) => ({
+      // State
       user: null,
       token: null,
+      refreshToken: null,
       isAuthenticated: false,
-      isLoading: false,
 
-      setLoading: (loading: boolean) => set({ isLoading: loading }),
-
-      login: async (email: string, password: string) => {
-        set({ isLoading: true })
-        
-        try {
-          // Simulación de autenticación - aquí conectarías con tu backend
-          await new Promise(resolve => setTimeout(resolve, 1000))
-          
-          // Mock de usuarios para desarrollo - Solo Admin y Prestamista
-          const mockUsers: Record<string, User> = {
-            'admin@prestamito.com': { 
-              id: '1', 
-              email: 'admin@prestamito.com', 
-              name: 'Administrador', 
-              role: 'admin' 
-            },
-            'prestamista@prestamito.com': { 
-              id: '2', 
-              email: 'prestamista@prestamito.com', 
-              name: 'Juan Pérez', 
-              role: 'prestamista' 
-            }
-          }
-
-          const user = mockUsers[email]
-          if (user && password === 'password') {
-            const token = `token-${user.id}-${Date.now()}`
-            set({ 
-              user, 
-              token, 
-              isAuthenticated: true, 
-              isLoading: false 
-            })
-            console.log('Auth store updated with user:', user)
-            return { success: true, user }
-          }
-          
-          set({ isLoading: false })
-          return { success: false, user: null }
-        } catch (error) {
-          set({ isLoading: false })
-          return { success: false, user: null }
-        }
+      // Simple synchronous actions only
+      setUser: (user: User | null) => {
+        set({ user })
       },
 
-      logout: () => {
+      setTokens: (token: string | null, refreshToken: string | null) => {
+        set({ token, refreshToken })
+      },
+
+      setAuthentication: (isAuthenticated: boolean) => {
+        set({ isAuthenticated })
+      },
+
+      // Complete authentication setup
+      clearAuth: () => {
         set({ 
           user: null, 
           token: null, 
-          isAuthenticated: false,
-          isLoading: false
+          refreshToken: null,
+          isAuthenticated: false
         })
       },
 
+      // Utility function for routing
       getDashboardRoute: () => {
         const { user } = get()
         if (!user) return '/login'
         
         switch (user.role) {
           case 'admin': return '/dashboard/admin'
+          case 'subadmin': return '/dashboard/subadmin'
           case 'prestamista': return '/dashboard/prestamista'
           default: return '/login'
         }
@@ -88,9 +66,10 @@ export const useAuthStore = create<AuthStore>()(
       partialize: (state) => ({ 
         user: state.user, 
         token: state.token, 
+        refreshToken: state.refreshToken,
         isAuthenticated: state.isAuthenticated 
       }),
-      skipHydration: false, // Asegurar hidratación correcta
+      skipHydration: false,
     }
   )
 )

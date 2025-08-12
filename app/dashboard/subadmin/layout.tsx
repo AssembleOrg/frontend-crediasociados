@@ -12,50 +12,50 @@ import { Dashboard, People, Assessment, Settings } from '@mui/icons-material';
 import { useRouter, usePathname } from 'next/navigation';
 import { QuickActions } from '@/components/dashboard/QuickActions';
 
-const adminMenuItems = [
-  { label: 'Dashboard', icon: <Dashboard />, path: '/dashboard/admin' },
+const subadminMenuItems = [
+  { label: 'Dashboard', icon: <Dashboard />, path: '/dashboard/subadmin' },
   {
-    label: 'Sub-Administradores',
+    label: 'Managers',
     icon: <People />,
-    path: '/dashboard/admin/subadmins',
-  },
-  {
-    label: 'Reportes Globales',
-    icon: <Assessment />,
-    path: '/dashboard/admin/reportes',
-  },
-  {
-    label: 'Configuración',
-    icon: <Settings />,
-    path: '/dashboard/admin/config',
-  },
-];
-
-const adminQuickActions = [
-  {
-    label: 'Dashboard',
-    icon: <Dashboard />,
-    path: '/dashboard/admin',
-    variant: 'contained' as const,
-  },
-  {
-    label: 'Sub-Administradores',
-    icon: <People />,
-    path: '/dashboard/admin/subadmins',
+    path: '/dashboard/subadmin/usuarios',
   },
   {
     label: 'Reportes',
     icon: <Assessment />,
-    path: '/dashboard/admin/reportes',
+    path: '/dashboard/subadmin/reportes',
   },
   {
     label: 'Configuración',
     icon: <Settings />,
-    path: '/dashboard/admin/config',
+    path: '/dashboard/subadmin/config',
   },
 ];
 
-export default function AdminLayout({
+const subadminQuickActions = [
+  {
+    label: 'Dashboard',
+    icon: <Dashboard />,
+    path: '/dashboard/subadmin',
+    variant: 'contained' as const,
+  },
+  {
+    label: 'Managers',
+    icon: <People />,
+    path: '/dashboard/subadmin/usuarios',
+  },
+  {
+    label: 'Reportes',
+    icon: <Assessment />,
+    path: '/dashboard/subadmin/reportes',
+  },
+  {
+    label: 'Configuración',
+    icon: <Settings />,
+    path: '/dashboard/subadmin/config',
+  },
+];
+
+export default function SubadminLayout({
   children,
 }: {
   children: React.ReactNode;
@@ -85,7 +85,7 @@ export default function AdminLayout({
         }}
       >
         <List>
-          {adminMenuItems.map((item, index) => (
+          {subadminMenuItems.map((item, index) => (
             <ListItem
               key={index}
               onClick={() => router.push(item.path)}
@@ -122,7 +122,7 @@ export default function AdminLayout({
         }}
       >
         {/* QuickActions - Solo Mobile */}
-        <QuickActions actions={adminQuickActions} />
+        <QuickActions actions={subadminQuickActions} />
 
         {children}
       </Box>

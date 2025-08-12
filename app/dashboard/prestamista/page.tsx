@@ -28,6 +28,7 @@ import {
 } from '@mui/icons-material';
 import { useClientesStore, usePrestamosStore } from '@/stores';
 import { StatsCard } from '@/components/dashboard/StatsCard';
+import { calculateLoan, formatCurrency } from '@/lib/loan-calculator';
 
 export default function PrestamistaDashboard() {
   const { clientes, agregarCliente } = useClientesStore();
@@ -56,7 +57,7 @@ export default function PrestamistaDashboard() {
     fechaVencimiento: new Date(),
   });
 
-  // Mock data para mostrar funcionalidad - solo una vez
+  // Mock data para mostrar funcionalidad - inicialización segura
   useEffect(() => {
     if (!initializedRef.current && clientes.length === 0) {
       initializedRef.current = true;
@@ -82,14 +83,9 @@ export default function PrestamistaDashboard() {
         prestamistaId: 'prestamista-1',
       });
     }
-  }, [clientes.length, agregarCliente]);
+  }, []); // Empty deps - safe single initialization
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('es-AR', {
-      style: 'currency',
-      currency: 'ARS',
-    }).format(amount);
-  };
+  // formatCurrency moved to lib/loan-calculator.ts
 
   const handleAgregarCliente = () => {
     if (nuevoCliente.nombre && nuevoCliente.dni) {
@@ -106,24 +102,25 @@ export default function PrestamistaDashboard() {
       setOpenClienteDialog(false);
     }
   };
-  //* TESTEAR Y MOVERLOGICA
   const handleAgregarPrestamo = () => {
     if (
       nuevoPrestamo.clienteId &&
       nuevoPrestamo.monto > 0 &&
       nuevoPrestamo.cuotas > 0
     ) {
-      // 1. Calcula los valores que faltan
-      // Nota: Este es un cálculo de interés simple. Ajústalo si tu lógica es diferente.
-      const montoTotalCalculado =
-        nuevoPrestamo.monto * (1 + nuevoPrestamo.interes / 100);
-      const valorCuotaCalculado = montoTotalCalculado / nuevoPrestamo.cuotas;
+      // Usar calculador centralizado
+      const calculation = calculateLoan({
+        monto: nuevoPrestamo.monto,
+        interes: nuevoPrestamo.interes,
+        cuotas: nuevoPrestamo.cuotas,
+        fechaInicio: nuevoPrestamo.fechaInicio
+      });
 
-      // 2. Crea el objeto completo que cumple con el tipo `Prestamo`
+      // Crear objeto completo usando cálculos centralizados
       const prestamoParaAgregar = {
         ...nuevoPrestamo,
-        montoTotal: montoTotalCalculado,
-        valorCuota: valorCuotaCalculado,
+        montoTotal: calculation.montoTotal,
+        valorCuota: calculation.valorCuota,
         estado: 'activo' as const,
       };
 

@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
 import {
   Container,
   Paper,
@@ -14,36 +13,30 @@ import {
   IconButton,
 } from '@mui/material';
 import { Email, Lock, Visibility, VisibilityOff } from '@mui/icons-material';
-import { useAuthStore } from '@/stores/auth';
+import { useAuth } from '@/hooks/useAuth';
 import { Logo } from '@/components/ui/Logo';
 
 export default function LoginPage() {
-  const router = useRouter();
-  const { login, isLoading } = useAuthStore();
+  const { login, isLoading, error, navigateToDashboard, clearError } = useAuth();
 
   const [formData, setFormData] = useState({
     email: '',
     password: '',
   });
   const [showPassword, setShowPassword] = useState(false);
-  const [error, setError] = useState('');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
+    clearError();
 
     if (!formData.email || !formData.password) {
-      setError('Por favor completa todos los campos');
       return;
     }
 
-    const success = await login(formData.email, formData.password);
+    const success = await login(formData);
 
     if (success) {
-      const dashboardRoute = useAuthStore.getState().getDashboardRoute();
-      router.replace(dashboardRoute);
-    } else {
-      setError('Credenciales inválidas. Verifica tu email y contraseña.');
+      navigateToDashboard();
     }
   };
 
@@ -70,7 +63,7 @@ export default function LoginPage() {
 
   const fillDemoAccount = (email: string, password: string) => {
     setFormData({ email, password });
-    setError('');
+    clearError();
   };
 
   return (
@@ -236,7 +229,7 @@ export default function LoginPage() {
           <Box sx={{ textAlign: 'center', mt: 3 }}>
             <Button
               variant='text'
-              onClick={() => router.push('/')}
+              onClick={() => window.location.href = '/'}
               sx={{ textTransform: 'none' }}
             >
               ← Volver al inicio

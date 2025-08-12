@@ -24,7 +24,7 @@ import {
 import { useStatsStore } from '@/stores/stats';
 import { StatsCard } from '@/components/dashboard/StatsCard';
 
-export default function AdminDashboard() {
+export default function SubadminDashboard() {
   const { dashboardStats: stats } = useStatsStore();
 
 
@@ -35,29 +35,29 @@ export default function AdminDashboard() {
     }).format(amount);
   };
 
-  const mockSubadmins = [
+  const mockManagers = [
     {
       id: 1,
-      nombre: 'Ana Rodríguez',
-      email: 'ana@prestamito.com',
-      managersActivos: 8,
-      montoTotal: 1250000,
+      nombre: 'Juan Pérez',
+      email: 'juan@prestamito.com',
+      clientesActivos: 15,
+      montoTotal: 450000,
       estado: 'activo',
     },
     {
       id: 2,
-      nombre: 'Carlos Mendoza',
-      email: 'carlos@prestamito.com',
-      managersActivos: 12,
-      montoTotal: 1890000,
+      nombre: 'María González',
+      email: 'maria@prestamito.com',
+      clientesActivos: 23,
+      montoTotal: 680000,
       estado: 'activo',
     },
     {
       id: 3,
-      nombre: 'Laura Fernández',
-      email: 'laura@prestamito.com',
-      managersActivos: 6,
-      montoTotal: 780000,
+      nombre: 'Carlos López',
+      email: 'carlos@prestamito.com',
+      clientesActivos: 8,
+      montoTotal: 220000,
       estado: 'inactivo',
     },
   ];
@@ -89,13 +89,13 @@ export default function AdminDashboard() {
               fontSize: { xs: '1.5rem', sm: '2.125rem' }
             }}
           >
-            Dashboard Principal
+            Dashboard Sub-Administrativo
           </Typography>
           <Typography
             variant='body1'
             color='text.secondary'
           >
-            Vista global del sistema y gestión de sub-administradores
+            Resumen general y gestión de managers
           </Typography>
         </Box>
         <Button
@@ -106,11 +106,11 @@ export default function AdminDashboard() {
             width: { xs: '100%', sm: 'auto' }
           }}
         >
-          Nuevo Sub-Admin
+          Nuevo Manager
         </Button>
       </Box>
 
-      {/* Global Stats Grid */}
+      {/* Stats Grid */}
       <Box
         sx={{
           display: 'grid',
@@ -126,93 +126,85 @@ export default function AdminDashboard() {
         <StatsCard
           title='Total Préstamos'
           value={stats.totalPrestamos}
-          subtitle='en toda la plataforma'
+          subtitle='préstamos registrados'
           icon={<AccountBalance />}
           color='primary'
           trend={{ value: 12, label: 'vs mes anterior', isPositive: true }}
         />
 
         <StatsCard
-          title='Volumen Total'
-          value={formatCurrency(stats.montoTotalPrestado * 3.2)} // Multiplicar por factor global
-          subtitle='capital total gestionado'
+          title='Monto Total'
+          value={formatCurrency(stats.montoTotalPrestado)}
+          subtitle='capital prestado'
           icon={<TrendingUp />}
           color='success'
-          trend={{ value: 15, label: 'vs mes anterior', isPositive: true }}
+          trend={{ value: 8, label: 'vs mes anterior', isPositive: true }}
         />
 
         <StatsCard
-          title='Sub-Administradores'
-          value={3}
-          subtitle='administradores activos'
+          title='Clientes Activos'
+          value={stats.clientesActivos}
+          subtitle='clientes con préstamos'
           icon={<People />}
-          color='primary'
-          progress={75}
+          color='warning'
+          progress={Math.round((stats.clientesActivos / 120) * 100)}
         />
 
         <StatsCard
-          title='Efectividad Global'
-          value={`${Math.round(stats.tasaCobranza * 1.05)}%`}
-          subtitle='tasa de cobranza promedio'
+          title='Tasa de Cobranza'
+          value={`${stats.tasaCobranza}%`}
+          subtitle='efectividad de cobros'
           icon={<Assessment />}
           color={stats.tasaCobranza > 70 ? 'success' : 'error'}
-          progress={Math.round(stats.tasaCobranza * 1.05)}
+          progress={stats.tasaCobranza}
         />
       </Box>
 
-      {/* Additional Global Stats */}
+      {/* Additional Stats Row */}
       <Box
         sx={{
           display: 'grid',
-          gridTemplateColumns: { xs: '1fr', lg: 'repeat(3, 1fr)' },
+          gridTemplateColumns: { xs: '1fr', lg: 'repeat(2, 1fr)' },
           gap: 3,
           mb: 4,
         }}
       >
         <StatsCard
-          title='Managers Total'
-          value={26}
-          subtitle='gestores de préstamos activos'
+          title='Managers'
+          value={stats.prestamistasCantidad}
+          subtitle='usuarios activos bajo su gestión'
           icon={<People />}
           color='primary'
         />
 
         <StatsCard
-          title='Clientes Únicos'
-          value={stats.clientesActivos * 4}
-          subtitle='base total de clientes'
-          icon={<People />}
-          color='warning'
-        />
-
-        <StatsCard
-          title='Préstamos Críticos'
+          title='Préstamos Vencidos'
           value={stats.prestamosVencidos}
-          subtitle='requieren atención inmediata'
+          subtitle='requieren seguimiento'
           icon={<AccountBalance />}
           color='error'
         />
       </Box>
 
-      {/* Sub-Administradores Table */}
+      {/* Prestamistas Table */}
       <Paper elevation={1}>
         <Box sx={{ p: 3 }}>
           <Typography
             variant='h6'
             sx={{ mb: 3, fontWeight: 600 }}
           >
-            Sub-Administradores
+            Managers Registrados
           </Typography>
 
           <TableContainer>
             <Table size="small">
               <TableHead>
                 <TableRow>
-                  <TableCell>Sub-Administrador</TableCell>
-                  <TableCell align='right'>Volumen Gestionado</TableCell>
+                  <TableCell>Manager</TableCell>
+                  <TableCell align='right'>Monto Total</TableCell>
                   <TableCell align='center'>Estado</TableCell>
                   <TableCell align='center' sx={{ display: { xs: 'none', sm: 'table-cell' } }}>
-                    Managers
+                    Clientes
                   </TableCell>
                   <TableCell align='center' sx={{ display: { xs: 'none', lg: 'table-cell' } }}>
                     Acciones
@@ -220,9 +212,9 @@ export default function AdminDashboard() {
                 </TableRow>
               </TableHead>
               <TableBody>
-                {mockSubadmins.map((subadmin) => (
+                {mockManagers.map((manager) => (
                   <TableRow
-                    key={subadmin.id}
+                    key={manager.id}
                     hover
                   >
                     <TableCell>
@@ -230,7 +222,7 @@ export default function AdminDashboard() {
                         variant='subtitle2'
                         sx={{ fontWeight: 500 }}
                       >
-                        {subadmin.nombre}
+                        {manager.nombre}
                       </Typography>
                       {/* Info adicional en mobile */}
                       <Typography 
@@ -238,7 +230,7 @@ export default function AdminDashboard() {
                         color='text.secondary'
                         sx={{ display: { xs: 'block', sm: 'none' } }}
                       >
-                        {subadmin.managersActivos} managers • {subadmin.email}
+                        {manager.clientesActivos} clientes • {manager.email}
                       </Typography>
                     </TableCell>
                     <TableCell align='right'>
@@ -246,18 +238,18 @@ export default function AdminDashboard() {
                         variant='body2'
                         sx={{ fontWeight: 500 }}
                       >
-                        {formatCurrency(subadmin.montoTotal)}
+                        {formatCurrency(manager.montoTotal)}
                       </Typography>
                     </TableCell>
                     <TableCell align='center'>
                       <Chip
-                        label={subadmin.estado}
-                        color={getEstadoColor(subadmin.estado)}
+                        label={manager.estado}
+                        color={getEstadoColor(manager.estado)}
                         size='small'
                       />
                     </TableCell>
                     <TableCell align='center' sx={{ display: { xs: 'none', sm: 'table-cell' } }}>
-                      {subadmin.managersActivos}
+                      {manager.clientesActivos}
                     </TableCell>
                     <TableCell align='center' sx={{ display: { xs: 'none', lg: 'table-cell' } }}>
                       <Button

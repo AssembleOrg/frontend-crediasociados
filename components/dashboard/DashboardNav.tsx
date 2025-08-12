@@ -12,13 +12,13 @@ import {
   Box,
 } from '@mui/material';
 import { AccountCircle, ExitToApp } from '@mui/icons-material';
-import { useAuthStore } from '@/stores/auth';
-import { useNavigation } from '@/hooks/useNavigation';
+import { useRouter } from 'next/navigation';
+import { useAuth } from '@/hooks/useAuth';
 import { Logo } from '@/components/ui/Logo';
 
 export function DashboardNav() {
-  const { user, logout } = useAuthStore();
-  const { navigateToHome } = useNavigation();
+  const router = useRouter();
+  const { user, logout } = useAuth();
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
 
   const handleMenu = (event: React.MouseEvent<HTMLElement>) => {
@@ -31,7 +31,7 @@ export function DashboardNav() {
 
   const handleLogout = () => {
     logout();
-    navigateToHome();
+    router.push('/');
     handleClose();
   };
 
@@ -43,7 +43,8 @@ export function DashboardNav() {
   const getRoleDisplayName = (role: string) => {
     const roleNames = {
       admin: 'Administrador',
-      prestamista: 'Prestamista',
+      subadmin: 'Sub-Administrador',
+      prestamista: 'Manager',
       cliente: 'Cliente',
     };
     return roleNames[role as keyof typeof roleNames] || role;
@@ -52,6 +53,7 @@ export function DashboardNav() {
   const getRoleColor = (role: string) => {
     const roleColors = {
       admin: '#d32f2f',
+      subadmin: '#f57c00',
       prestamista: '#1976d2',
       cliente: '#388e3c',
     };
@@ -71,7 +73,7 @@ export function DashboardNav() {
             display: 'flex',
             alignItems: 'center',
           }}
-          onClick={navigateToHome}
+          onClick={() => router.push('/')}
         >
           <Logo
             width={140}
@@ -90,7 +92,7 @@ export function DashboardNav() {
               variant='body2'
               sx={{ fontWeight: 500 }}
             >
-              {user?.name}
+              {user?.fullName}
             </Typography>
             <Typography
               variant='caption'
@@ -111,7 +113,7 @@ export function DashboardNav() {
               display: { xs: 'block', sm: 'none' },
             }}
           >
-            Hola, {user?.name?.split(' ')[0]}
+            Hola, {user?.fullName?.split(' ')[0]}
           </Typography>
 
           <IconButton
@@ -134,7 +136,7 @@ export function DashboardNav() {
                 height: { xs: 28, sm: 32 },
               }}
             >
-              {user?.name?.charAt(0).toUpperCase()}
+              {user?.fullName?.charAt(0).toUpperCase()}
             </Avatar>
           </IconButton>
 

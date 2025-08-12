@@ -22,12 +22,12 @@ import {
   Assessment,
   Group,
 } from '@mui/icons-material';
+import { useRouter } from 'next/navigation';
 import { Navbar } from '@/components/ui/Navbar';
 import { Footer } from '@/components/ui/Footer';
-import { useNavigation } from '@/hooks/useNavigation';
 
 export default function Home() {
-  const { navigateToRoute } = useNavigation();
+  const router = useRouter();
 
   const features = [
     {
@@ -119,7 +119,7 @@ export default function Home() {
               variant='contained'
               size='large'
               sx={{ px: 4, py: 1.5, fontSize: '1.1rem' }}
-              onClick={() => navigateToRoute('/login')}
+              onClick={() => router.push('/login')}
             >
               Comenzar Ahora
             </Button>
@@ -447,7 +447,7 @@ export default function Home() {
                 boxShadow: 4,
               },
             }}
-            onClick={() => navigateToRoute('/login')}
+            onClick={() => router.push('/login')}
           >
             Contactar
           </Button>

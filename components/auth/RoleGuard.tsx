@@ -1,9 +1,7 @@
 'use client'
 
-import { Box, Typography } from '@mui/material'
-import { useAuthStore } from '@/stores/auth'
-import { useNavigation } from '@/hooks/useNavigation'
-import { useEffect } from 'react'
+import { Box, Typography, Button } from '@mui/material'
+import { useAuth } from '@/hooks/useAuth'
 import type { UserRole } from '@/types/auth'
 
 interface RoleGuardProps {
@@ -11,28 +9,15 @@ interface RoleGuardProps {
   allowedRoles: UserRole[]
 }
 
+/**
+ * Simplified RoleGuard - Server-side auth should handle security
+ * This is just for UX and preventing unnecessary API calls
+ */
 export function RoleGuard({ children, allowedRoles }: RoleGuardProps) {
-  const { user, isAuthenticated, isLoading } = useAuthStore()
-  const { navigateToLogin } = useNavigation()
+  const { user, isAuthenticated } = useAuth()
 
-  // MOCKUP - No hacer redirects automáticos, solo mostrar mensaje
-  useEffect(() => {
-    if (!isLoading && !isAuthenticated) {
-      console.log('⚠️ User not authenticated, but this is mockup - showing login message')
-    }
-  }, [isLoading, isAuthenticated])
-
-  // Mientras carga
-  if (isLoading) {
-    return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '50vh' }}>
-        <Typography>Cargando...</Typography>
-      </Box>
-    )
-  }
-
-  // No autenticado - mostrar mensaje pero no redirigir
-  if (!isAuthenticated) {
+  // No autenticado
+  if (!isAuthenticated || !user) {
     return (
       <Box sx={{ p: 4, textAlign: 'center' }}>
         <Typography variant="h5" sx={{ mb: 2 }}>
@@ -41,19 +26,18 @@ export function RoleGuard({ children, allowedRoles }: RoleGuardProps) {
         <Typography sx={{ mb: 3 }}>
           Necesitas iniciar sesión para ver esta sección.
         </Typography>
-        <Typography 
-          variant="body2" 
-          sx={{ cursor: 'pointer', color: 'primary.main' }}
-          onClick={() => navigateToLogin()}
+        <Button 
+          variant="contained"
+          onClick={() => window.location.href = '/login'}
         >
           Ir a Login
-        </Typography>
+        </Button>
       </Box>
     )
   }
 
   // Autenticado pero sin permisos
-  if (user && !allowedRoles.includes(user.role)) {
+  if (!allowedRoles.includes(user.role)) {
     return (
       <Box sx={{ p: 4, textAlign: 'center' }}>
         <Typography variant="h5" color="error" sx={{ mb: 2 }}>
