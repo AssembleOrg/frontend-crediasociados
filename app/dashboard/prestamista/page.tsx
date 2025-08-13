@@ -1,64 +1,116 @@
 'use client';
 
-import { Typography, Box, Paper } from '@mui/material';
-import { People, AccountBalance, TrendingUp } from '@mui/icons-material';
+import React from 'react';
+import { Typography, Box, Paper, Button } from '@mui/material';
+import { People, AccountBalance, TrendingUp, Add } from '@mui/icons-material';
+import { useRouter } from 'next/navigation';
 import { StatsCard } from '@/components/dashboard/StatsCard';
+import { useClients } from '@/hooks/useClients';
 
 export default function PrestamistaDashboard() {
+  const router = useRouter();
+  const { getTotalClients } = useClients();
+
+  const clientsCount = getTotalClients();
+
   return (
     <Box sx={{ p: 3 }}>
       {/* Header */}
-      <Typography
-        variant='h4'
-        component='h1'
-        gutterBottom
-      >
-        Dashboard Prestamista
-      </Typography>
+      <Box sx={{ mb: 4 }}>
+        <Typography
+          variant='h4'
+          component='h1'
+          gutterBottom
+        >
+          Dashboard Prestamista
+        </Typography>
+        <Typography
+          variant='body1'
+          color='text.secondary'
+        >
+          Gestión de clientes y préstamos de tu cartera
+        </Typography>
+      </Box>
 
-      {/* Stats Cards */}
+      {/* Stats Grid */}
       <Box
         sx={{
           display: 'grid',
-          gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr', md: '1fr 1fr 1fr' },
+          gridTemplateColumns: {
+            xs: '1fr',
+            sm: 'repeat(2, 1fr)',
+            lg: 'repeat(3, 1fr)',
+          },
           gap: 3,
           mb: 4,
         }}
       >
         <StatsCard
           title='Clientes Activos'
-          value='0'
+          value={clientsCount}
+          subtitle={`cliente${clientsCount !== 1 ? 's' : ''} en tu cartera`}
           icon={<People />}
           color='primary'
         />
         <StatsCard
           title='Préstamos Activos'
           value='$0'
+          subtitle='próximamente'
           icon={<AccountBalance />}
           color='warning'
         />
         <StatsCard
           title='Ingresos del Mes'
           value='$0'
+          subtitle='próximamente'
           icon={<TrendingUp />}
           color='success'
         />
       </Box>
 
-      {/* Content */}
-      <Paper sx={{ p: 3, mt: 3 }}>
-        <Typography
-          variant='h6'
-          gutterBottom
+      <Paper sx={{ p: 3 }}>
+        <Box sx={{ 
+          display: 'flex', 
+          justifyContent: 'space-between', 
+          alignItems: 'flex-start',
+          mb: 2
+        }}>
+          <Box>
+            <Typography
+              variant='h6'
+              gutterBottom
+            >
+              Gestión de Clientes
+            </Typography>
+            <Typography
+              variant='body1'
+              color='text.secondary'
+              sx={{ mb: 2 }}
+            >
+              {clientsCount > 0 
+                ? `Tienes ${clientsCount} cliente${clientsCount !== 1 ? 's' : ''} registrado${clientsCount !== 1 ? 's' : ''} en tu cartera.`
+                : 'Aún no tienes clientes registrados en tu cartera.'
+              }
+            </Typography>
+          </Box>
+          
+          <Button
+            variant="contained"
+            startIcon={<Add />}
+            onClick={() => router.push('/dashboard/prestamista/clientes')}
+            size="small"
+          >
+            {clientsCount > 0 ? 'Ver Clientes' : 'Agregar Cliente'}
+          </Button>
+        </Box>
+        
+        <Button
+          variant="outlined"
+          fullWidth
+          onClick={() => router.push('/dashboard/prestamista/clientes')}
         >
-          Gestión de Clientes y Préstamos
-        </Typography>
-        <Typography
-          variant='body1'
-          color='text.secondary'
-        >
-          A desarrollar
-        </Typography>
+          Ir a la sección de Clientes
+        </Button>
       </Paper>
     </Box>
   );

@@ -15,6 +15,7 @@ import {
 import { Email, Lock, Visibility, VisibilityOff } from '@mui/icons-material';
 import { useAuth } from '@/hooks/useAuth';
 import { Logo } from '@/components/ui/Logo';
+import { AuthLoadingOverlay } from '@/components/ui/AuthLoadingOverlay';
 
 export default function LoginPage() {
   const { login, isLoading, error, navigateToDashboard, clearError } =
@@ -37,7 +38,7 @@ export default function LoginPage() {
     const success = await login(formData);
 
     if (success) {
-      navigateToDashboard();
+      await navigateToDashboard();
     }
   };
 
@@ -185,6 +186,12 @@ export default function LoginPage() {
           </Box>
         </Paper>
       </Box>
+      
+      {/* Auth loading overlay */}
+      <AuthLoadingOverlay 
+        open={isLoading} 
+        message="Iniciando sesión..."
+      />
     </Container>
   );
 }

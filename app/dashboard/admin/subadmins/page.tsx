@@ -32,6 +32,7 @@ import { getRoleDisplayName } from '@/types/transforms';
 import { CreateUserModal } from '@/components/users/CreateUserModal';
 import { EditUserModal } from '@/components/users/EditUserModal';
 import { DeleteUserConfirmDialog } from '@/components/users/DeleteUserConfirmDialog';
+import { TableSkeleton } from '@/components/ui/TableSkeleton';
 
 export default function SubadminsPage() {
   const [searchTerm, setSearchTerm] = useState('');
@@ -144,18 +145,6 @@ export default function SubadminsPage() {
         />
       </Box>
 
-      {/* Loading State */}
-      {isLoading && (
-        <Box sx={{ p: 4, textAlign: 'center' }}>
-          <Typography
-            variant='body1'
-            color='text.secondary'
-          >
-            Cargando sub-administradores...
-          </Typography>
-        </Box>
-      )}
-
       {/* Error State */}
       {error && (
         <Paper
@@ -172,137 +161,141 @@ export default function SubadminsPage() {
       )}
 
       {/* Sub-Administradores Table */}
-      {!isLoading && !error && (
-        <Paper elevation={1}>
-          <TableContainer>
-            <Table>
-              <TableHead>
-                <TableRow>
-                  <TableCell>Sub-Administrador</TableCell>
-                  <TableCell align='center'>Rol</TableCell>
-                  <TableCell
-                    align='center'
-                    sx={{ display: { xs: 'none', sm: 'table-cell' } }}
-                  >
-                    Teléfono
-                  </TableCell>
-                  <TableCell
-                    align='center'
-                    sx={{ display: { xs: 'none', md: 'table-cell' } }}
-                  >
-                    Fecha Creación
-                  </TableCell>
-                  <TableCell
-                    align='center'
-                    sx={{ display: { xs: 'none', lg: 'table-cell' } }}
-                  >
-                    Última Actualización
-                  </TableCell>
-                  <TableCell align='center'>Acciones</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {filteredSubadmins.map((subadmin) => (
-                  <TableRow
-                    key={subadmin.id}
-                    hover
-                  >
-                    <TableCell>
-                      <Typography
-                        variant='subtitle2'
-                        sx={{ fontWeight: 500 }}
-                      >
-                        {subadmin.fullName}
-                      </Typography>
-                      <Typography
-                        variant='caption'
-                        color='text.secondary'
-                      >
-                        {subadmin.email}
-                      </Typography>
-                      {/* Info adicional en mobile */}
-                      <Typography
-                        variant='caption'
-                        color='text.secondary'
-                        sx={{ display: { xs: 'block', sm: 'none' }, mt: 0.5 }}
-                      >
-                        Rol: {getRoleDisplayName(subadmin.role)} • Creado:{' '}
-                        {formatDate(subadmin.createdAt.toISOString())}
-                      </Typography>
-                    </TableCell>
-                    <TableCell align='center'>
-                      <Chip
-                        label={getRoleDisplayName(subadmin.role)}
-                        color='warning'
-                        size='small'
-                      />
-                    </TableCell>
-                    <TableCell
-                      align='center'
-                      sx={{ display: { xs: 'none', sm: 'table-cell' } }}
+      <Paper elevation={1}>
+        <TableContainer>
+          <Table>
+            <TableHead>
+              <TableRow>
+                <TableCell>Sub-Administrador</TableCell>
+                <TableCell align='center'>Rol</TableCell>
+                <TableCell
+                  align='center'
+                  sx={{ display: { xs: 'none', sm: 'table-cell' } }}
+                >
+                  Teléfono
+                </TableCell>
+                <TableCell
+                  align='center'
+                  sx={{ display: { xs: 'none', md: 'table-cell' } }}
+                >
+                  Fecha Creación
+                </TableCell>
+                <TableCell
+                  align='center'
+                  sx={{ display: { xs: 'none', lg: 'table-cell' } }}
+                >
+                  Última Actualización
+                </TableCell>
+                <TableCell align='center'>Acciones</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {isLoading ? (
+                <TableSkeleton columns={6} rows={8} />
+              ) : (
+                <>
+                  {filteredSubadmins.map((subadmin) => (
+                    <TableRow
+                      key={subadmin.id}
+                      hover
                     >
-                      <Typography
-                        variant='body2'
-                        color='text.secondary'
+                      <TableCell>
+                        <Typography
+                          variant='subtitle2'
+                          sx={{ fontWeight: 500 }}
+                        >
+                          {subadmin.fullName}
+                        </Typography>
+                        <Typography
+                          variant='caption'
+                          color='text.secondary'
+                        >
+                          {subadmin.email}
+                        </Typography>
+                        {/* Info adicional en mobile */}
+                        <Typography
+                          variant='caption'
+                          color='text.secondary'
+                          sx={{ display: { xs: 'block', sm: 'none' }, mt: 0.5 }}
+                        >
+                          Rol: {getRoleDisplayName(subadmin.role)} • Creado:{' '}
+                          {formatDate(subadmin.createdAt.toISOString())}
+                        </Typography>
+                      </TableCell>
+                      <TableCell align='center'>
+                        <Chip
+                          label={getRoleDisplayName(subadmin.role)}
+                          color='warning'
+                          size='small'
+                        />
+                      </TableCell>
+                      <TableCell
+                        align='center'
+                        sx={{ display: { xs: 'none', sm: 'table-cell' } }}
                       >
-                        {subadmin.phone || 'No especificado'}
-                      </Typography>
-                    </TableCell>
-                    <TableCell
-                      align='center'
-                      sx={{ display: { xs: 'none', md: 'table-cell' } }}
-                    >
-                      <Typography
-                        variant='body2'
-                        color='text.secondary'
+                        <Typography
+                          variant='body2'
+                          color='text.secondary'
+                        >
+                          {subadmin.phone || 'No especificado'}
+                        </Typography>
+                      </TableCell>
+                      <TableCell
+                        align='center'
+                        sx={{ display: { xs: 'none', md: 'table-cell' } }}
                       >
-                        {formatDate(subadmin.createdAt.toISOString())}
-                      </Typography>
-                    </TableCell>
-                    <TableCell
-                      align='center'
-                      sx={{ display: { xs: 'none', lg: 'table-cell' } }}
-                    >
-                      <Typography
-                        variant='body2'
-                        color='text.secondary'
+                        <Typography
+                          variant='body2'
+                          color='text.secondary'
+                        >
+                          {formatDate(subadmin.createdAt.toISOString())}
+                        </Typography>
+                      </TableCell>
+                      <TableCell
+                        align='center'
+                        sx={{ display: { xs: 'none', lg: 'table-cell' } }}
                       >
-                        {formatDate(subadmin.updatedAt.toISOString())}
-                      </Typography>
-                    </TableCell>
-                    <TableCell align='center'>
-                      <IconButton
-                        size='small'
-                        onClick={(e) => handleMenuOpen(e, subadmin.id)}
-                      >
-                        <MoreVert />
-                      </IconButton>
-                    </TableCell>
-                  </TableRow>
-                ))}
+                        <Typography
+                          variant='body2'
+                          color='text.secondary'
+                        >
+                          {formatDate(subadmin.updatedAt.toISOString())}
+                        </Typography>
+                      </TableCell>
+                      <TableCell align='center'>
+                        <IconButton
+                          size='small'
+                          onClick={(e) => handleMenuOpen(e, subadmin.id)}
+                        >
+                          <MoreVert />
+                        </IconButton>
+                      </TableCell>
+                    </TableRow>
+                  ))}
 
-                {filteredSubadmins.length === 0 && (
-                  <TableRow>
-                    <TableCell
-                      colSpan={6}
-                      sx={{ textAlign: 'center', py: 4 }}
-                    >
-                      <Typography
-                        variant='body2'
-                        color='text.secondary'
+                  {filteredSubadmins.length === 0 && !isLoading && (
+                    <TableRow>
+                      <TableCell
+                        colSpan={6}
+                        sx={{ textAlign: 'center', py: 4 }}
                       >
-                        {subadmins.length === 0
-                          ? 'No hay sub-administradores registrados todavía'
-                          : 'No se encontraron sub-administradores que coincidan con la búsqueda'}
-                      </Typography>
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </TableContainer>
-        </Paper>
-      )}
+                        <Typography
+                          variant='body2'
+                          color='text.secondary'
+                        >
+                          {subadmins.length === 0
+                            ? 'No hay sub-administradores registrados todavía'
+                            : 'No se encontraron sub-administradores que coincidan con la búsqueda'}
+                        </Typography>
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </>
+              )}
+            </TableBody>
+          </Table>
+        </TableContainer>
+      </Paper>
 
       {/* Actions Menu */}
       <Menu

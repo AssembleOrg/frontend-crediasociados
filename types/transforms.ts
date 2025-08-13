@@ -5,6 +5,10 @@ import type {
   User,
   CreateUserDto,
   UpdateUserDto,
+  ClientResponseDto,
+  Client,
+  CreateClientDto,
+  UpdateClientDto,
 } from './auth';
 
 // Role mapping between API and Frontend
@@ -71,4 +75,50 @@ export const getRoleDisplayName = (role: UserRole): string => {
     cliente: 'Cliente',
   };
   return ROLE_DISPLAY[role] || 'Usuario';
+};
+
+// CLIENT TRANSFORMS - Following same pattern as User transforms
+
+// Transform API client to frontend client
+export const apiClientToClient = (apiClient: ClientResponseDto): Client => ({
+  id: apiClient.id,
+  fullName: apiClient.fullName,
+  dni: apiClient.dni || undefined,
+  cuit: apiClient.cuit || undefined,
+  phone: apiClient.phone || undefined,
+  email: apiClient.email || undefined,
+  address: apiClient.address || undefined,
+  job: apiClient.job || undefined,
+  createdAt: new Date(apiClient.createdAt),
+  updatedAt: new Date(apiClient.updatedAt),
+});
+
+// Transform frontend client to API create DTO
+export const clientToCreateDto = (
+  client: Omit<Client, 'id' | 'createdAt' | 'updatedAt'>
+): CreateClientDto => ({
+  fullName: client.fullName,
+  dni: client.dni,
+  cuit: client.cuit,
+  phone: client.phone,
+  email: client.email,
+  address: client.address,
+  // Note: job field is not supported in CreateClientDto, only in UpdateClientDto
+});
+
+// Transform frontend client to API update DTO
+export const clientToUpdateDto = (
+  client: Partial<Client>
+): UpdateClientDto => {
+  const dto: UpdateClientDto = {};
+
+  if (client.fullName !== undefined) dto.fullName = client.fullName;
+  if (client.dni !== undefined) dto.dni = client.dni;
+  if (client.cuit !== undefined) dto.cuit = client.cuit;
+  if (client.phone !== undefined) dto.phone = client.phone;
+  if (client.email !== undefined) dto.email = client.email;
+  if (client.address !== undefined) dto.address = client.address;
+  if (client.job !== undefined) dto.job = client.job;
+
+  return dto;
 };

@@ -1,6 +1,30 @@
 import { create } from 'zustand'
-import { persist } from 'zustand/middleware'
+import { persist, createJSONStorage } from 'zustand/middleware'
 import type { User, AuthState } from '@/types/auth'
+
+// Custom cookie storage for Zustand persist
+const cookieStorage = {
+  getItem: (key: string): string | null => {
+    if (typeof window === 'undefined') return null;
+    const cookies = document.cookie.split(';');
+    const cookie = cookies.find(c => c.trim().startsWith(`${key}=`));
+    return cookie ? decodeURIComponent(cookie.split('=')[1]) : null;
+  },
+  setItem: (key: string, value: string): void => {
+    if (typeof window === 'undefined') return;
+    console.log('🍪 Cookie Storage - Setting cookie:', key, 'value length:', value.length);
+    // Set cookie with appropriate flags for Next.js middleware
+    document.cookie = `${key}=${encodeURIComponent(value)}; path=/; max-age=86400; SameSite=Lax`;
+    
+    // Verify the cookie was set
+    const verification = document.cookie.split(';').find(c => c.trim().startsWith(`${key}=`));
+    console.log('🍪 Cookie Storage - Cookie set verification:', !!verification);
+  },
+  removeItem: (key: string): void => {
+    if (typeof window === 'undefined') return;
+    document.cookie = `${key}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT`;
+  }
+};
 
 /**
  * THE WAREHOUSE - Auth Store
@@ -40,6 +64,7 @@ export const useAuthStore = create<AuthStore>()(
 
       // Complete authentication setup
       clearAuth: () => {
+        console.log('🔄 Auth Store - Clearing auth state');
         set({ 
           user: null, 
           token: null, 
@@ -63,6 +88,7 @@ export const useAuthStore = create<AuthStore>()(
     }),
     {
       name: 'auth-storage',
+      storage: createJSONStorage(() => cookieStorage),
       partialize: (state) => ({ 
         user: state.user, 
         token: state.token, 
@@ -70,6 +96,13 @@ export const useAuthStore = create<AuthStore>()(
         isAuthenticated: state.isAuthenticated 
       }),
       skipHydration: false,
+      onRehydrateStorage: () => (state, error) => {
+        if (error) {
+          console.error('🔄 Zustand rehydration error:', error);
+        } else {
+          console.log('🔄 Zustand rehydrated state:', state);
+        }
+      },
     }
   )
 )

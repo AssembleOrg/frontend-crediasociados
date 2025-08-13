@@ -16,7 +16,6 @@ import {
   Chip,
   IconButton,
   Alert,
-  CircularProgress,
 } from '@mui/material'
 import {
   Add,
@@ -27,6 +26,7 @@ import { useManagers } from '@/hooks/useManagers'
 import { CreateUserModal } from '@/components/users/CreateUserModal'
 import { EditUserModal } from '@/components/users/EditUserModal'
 import { DeleteUserConfirmDialog } from '@/components/users/DeleteUserConfirmDialog'
+import { TableSkeleton } from '@/components/ui/TableSkeleton'
 import type { User } from '@/types/auth'
 
 export default function ManagersPage() {
@@ -126,11 +126,7 @@ export default function ManagersPage() {
             </TableHead>
             <TableBody>
               {isLoading && managers.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={5} align="center" sx={{ py: 4 }}>
-                    <CircularProgress />
-                  </TableCell>
-                </TableRow>
+                <TableSkeleton columns={5} rows={8} />
               ) : managers.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={5} align="center" sx={{ py: 4 }}>

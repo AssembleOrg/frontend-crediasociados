@@ -7,7 +7,12 @@ export type LoginDto = components['schemas']['LoginDto'];
 export type RefreshTokenDto = components['schemas']['RefreshTokenDto'];
 export type CreateUserDto = components['schemas']['CreateUserDto'];
 export type UpdateUserDto = components['schemas']['UpdateUserDto'];
-export type UserResponseDto = components['schemas']['UserResponseDto'];
+export type UserResponseDto = components['schemas']['UserResponseDto']
+
+// Client API Contract Types
+export type CreateClientDto = components['schemas']['CreateClientDto']
+export type UpdateClientDto = components['schemas']['UpdateClientDto']
+export type ClientResponseDto = components['schemas']['ClientResponseDto'];
 
 export interface LoginResponse {
   user: UserResponseDto;
@@ -58,6 +63,20 @@ export interface User {
   updatedAt: Date;
 }
 
+// Frontend domain type for Clients
+export interface Client {
+  id: string;
+  fullName: string;
+  dni?: string;
+  cuit?: string;
+  phone?: string;
+  email?: string;
+  address?: string;
+  job?: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 // Auth state for store
 export interface AuthState {
   user: User | null;
@@ -78,3 +97,9 @@ export type ApiUserToUser = (apiUser: UserResponseDto) => User;
 export type UserToCreateDto = (
   user: Omit<User, 'id' | 'createdAt' | 'updatedAt'>
 ) => CreateUserDto;
+
+// Client transform utilities
+export type ApiClientToClient = (apiClient: ClientResponseDto) => Client;
+export type ClientToCreateDto = (
+  client: Omit<Client, 'id' | 'createdAt' | 'updatedAt'>
+) => CreateClientDto;

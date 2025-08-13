@@ -10,6 +10,7 @@ import {
   MenuItem,
   Avatar,
   Box,
+  CircularProgress,
 } from '@mui/material';
 import { AccountCircle, ExitToApp } from '@mui/icons-material';
 import { useRouter } from 'next/navigation';
@@ -18,8 +19,9 @@ import { Logo } from '@/components/ui/Logo';
 
 export function DashboardNav() {
   const router = useRouter();
-  const { user, logout } = useAuth();
+  const { user, logout, isLoading } = useAuth();
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+  const [isLogoutLoading, setIsLogoutLoading] = useState(false);
 
   const handleMenu = (event: React.MouseEvent<HTMLElement>) => {
     setAnchorEl(event.currentTarget);
@@ -29,10 +31,20 @@ export function DashboardNav() {
     setAnchorEl(null);
   };
 
-  const handleLogout = () => {
-    logout();
-    router.push('/');
+  const handleLogout = async () => {
+    setIsLogoutLoading(true);
     handleClose();
+    
+    try {
+      await logout();
+      // No necesitamos router.push() porque logout() ya maneja el redirect
+    } catch (error) {
+      console.error('Error during logout:', error);
+      // En caso de error, forzar redirect
+      router.replace('/login');
+    } finally {
+      setIsLogoutLoading(false);
+    }
   };
 
   const handleProfile = () => {
@@ -158,9 +170,13 @@ export function DashboardNav() {
               <AccountCircle sx={{ mr: 1 }} />
               Mi Perfil
             </MenuItem>
-            <MenuItem onClick={handleLogout}>
-              <ExitToApp sx={{ mr: 1 }} />
-              Cerrar Sesión
+            <MenuItem onClick={handleLogout} disabled={isLogoutLoading}>
+              {isLogoutLoading ? (
+                <CircularProgress size={16} sx={{ mr: 1 }} />
+              ) : (
+                <ExitToApp sx={{ mr: 1 }} />
+              )}
+              {isLogoutLoading ? 'Cerrando sesión...' : 'Cerrar Sesión'}
             </MenuItem>
           </Menu>
         </Box>

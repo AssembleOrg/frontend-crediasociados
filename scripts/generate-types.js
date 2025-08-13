@@ -1,80 +1,110 @@
 #!/usr/bin/env node
 
-/**
- * Script para generar tipos TypeScript desde el OpenAPI spec del backend
- * 
- * Usage:
- *   npm run generate-types
- * 
- * Este script:
- *   1. Lee el OpenAPI spec desde railwayendpoints.md
- *   2. Genera tipos TypeScript usando openapi-typescript
- *   3. Los guarda en types/api-generated.ts
- */
-
 const fs = require('fs');
 const path = require('path');
 const { execSync } = require('child_process');
 
-const RAILWAY_ENDPOINTS_FILE = path.join(__dirname, '../../.claude/railwayendpoints.md');
-const TEMP_OPENAPI_FILE = path.join(__dirname, '..', 'types', 'openapi-temp.json');
+const RAILWAY_FILE = path.join(__dirname, '../../.claude/railwayendpoints.json');
 const OUTPUT_FILE = path.join(__dirname, '..', 'types', 'api-generated.ts');
 
-async function generateTypes() {
-  try {
-    console.log('🔄 Generando tipos TypeScript desde Railway endpoints...');
-    
-    // Leer el archivo de endpoints de Railway
-    if (!fs.existsSync(RAILWAY_ENDPOINTS_FILE)) {
-      throw new Error(`No se encuentra el archivo: ${RAILWAY_ENDPOINTS_FILE}`);
-    }
-    
-    const content = fs.readFileSync(RAILWAY_ENDPOINTS_FILE, 'utf8');
-    
-    // Extraer el objeto swaggerDoc del contenido
-    const swaggerMatch = content.match(/"swaggerDoc":\s*({[\s\S]*}),?\s*"customOptions"/);
-    
-    if (!swaggerMatch) {
-      throw new Error('No se pudo extraer swaggerDoc del archivo');
-    }
-    
-    const swaggerDoc = JSON.parse(swaggerMatch[1]);
-    
-    // Asegurar que el directorio types existe
-    const typesDir = path.dirname(TEMP_OPENAPI_FILE);
-    if (!fs.existsSync(typesDir)) {
-      fs.mkdirSync(typesDir, { recursive: true });
-    }
-    
-    // Crear archivo temporal con el spec OpenAPI
-    fs.writeFileSync(TEMP_OPENAPI_FILE, JSON.stringify(swaggerDoc, null, 2));
-    console.log('📄 OpenAPI spec extraído exitosamente');
-    
-    // Generar tipos usando openapi-typescript
-    const command = `npx openapi-typescript "${TEMP_OPENAPI_FILE}" --output "${OUTPUT_FILE}"`;
-    
-    execSync(command, { 
-      stdio: 'inherit',
-      cwd: path.join(__dirname, '..') 
-    });
-    
-    // Limpiar archivo temporal
-    fs.unlinkSync(TEMP_OPENAPI_FILE);
-    
-    console.log(`✅ Tipos generados exitosamente en: ${OUTPUT_FILE}`);
-    console.log('\n📝 Próximos pasos:');
-    console.log('   1. Revisa los tipos generados');
-    console.log('   2. Actualiza tus services para usar los tipos generados');
-    console.log('   3. Importa tipos en tu código: import type { paths } from "@/types/api-generated"');
-    
-  } catch (error) {
-    console.error('❌ Error generando tipos:', error.message);
-    console.log('\n🔧 Solución de problemas:');
-    console.log('   1. Verifica que existe el archivo railwayendpoints.md');
-    console.log('   2. Revisa que el formato JSON sea válido');
-    console.log('   3. Asegurate que openapi-typescript esté instalado');
-    process.exit(1);
+try {
+  console.log('🔄 Generando tipos desde Railway endpoints...');
+  
+  const content = fs.readFileSync(RAILWAY_FILE, 'utf8');
+  const spec = JSON.parse(content);
+  console.log('📄 OpenAPI JSON cargado');
+  
+  // Add missing schema definitions to avoid $ref resolution errors
+  if (!spec.components) {
+    spec.components = { schemas: {} };
   }
+  if (!spec.components.schemas) {
+    spec.components.schemas = {};
+  }
+  
+  // Add missing schemas that are referenced but not defined
+  const missingSchemas = {
+    ClientResponseDto: {
+      type: "object",
+      properties: {
+        id: { type: "string" },
+        fullName: { type: "string" },
+        dni: { type: "string", nullable: true },
+        cuit: { type: "string", nullable: true },
+        phone: { type: "string", nullable: true },
+        email: { type: "string", nullable: true },
+        address: { type: "string", nullable: true },
+        job: { type: "string", nullable: true },
+        createdAt: { type: "string", format: "date-time" },
+        updatedAt: { type: "string", format: "date-time" }
+      },
+      required: ["id", "fullName", "createdAt", "updatedAt"]
+    },
+    ClientWithManagersDto: {
+      type: "object",
+      allOf: [
+        { "$ref": "#/components/schemas/ClientResponseDto" },
+        {
+          type: "object",
+          properties: {
+            managers: {
+              type: "array",
+              items: { "$ref": "#/components/schemas/UserResponseDto" }
+            }
+          }
+        }
+      ]
+    },
+    ClientWithDetailsDto: {
+      type: "object",
+      allOf: [
+        { "$ref": "#/components/schemas/ClientResponseDto" },
+        {
+          type: "object",
+          properties: {
+            loans: {
+              type: "array",
+              items: { type: "object" }
+            },
+            managers: {
+              type: "array", 
+              items: { "$ref": "#/components/schemas/UserResponseDto" }
+            }
+          }
+        }
+      ]
+    },
+    PaginationMeta: {
+      type: "object",
+      properties: {
+        page: { type: "number" },
+        limit: { type: "number" },
+        total: { type: "number" },
+        totalPages: { type: "number" },
+        hasNextPage: { type: "boolean" },
+        hasPreviousPage: { type: "boolean" }
+      },
+      required: ["page", "limit", "total", "totalPages", "hasNextPage", "hasPreviousPage"]
+    }
+  };
+  
+  // Add missing schemas to the spec
+  Object.assign(spec.components.schemas, missingSchemas);
+  
+  // Crear archivo temporal
+  const TEMP_FILE = path.join(__dirname, '..', 'types', 'temp-openapi.json');
+  fs.writeFileSync(TEMP_FILE, JSON.stringify(spec, null, 2));
+  
+  // Generar tipos desde archivo temporal
+  const command = `npx openapi-typescript "${TEMP_FILE}" --output "${OUTPUT_FILE}"`;
+  execSync(command, { stdio: 'inherit' });
+  
+  // Limpiar archivo temporal
+  fs.unlinkSync(TEMP_FILE);
+  
+  console.log(`✅ Tipos generados en: ${OUTPUT_FILE}`);
+  
+} catch (error) {
+  console.error('❌ Error:', error.message);
+  process.exit(1);
 }
-
-generateTypes();
