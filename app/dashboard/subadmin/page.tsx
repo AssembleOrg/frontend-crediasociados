@@ -7,7 +7,7 @@ import { useStats } from '@/hooks/useStats';
 import { StatsCard } from '@/components/dashboard/StatsCard';
 
 export default function SubadminDashboard() {
-  const { stats, totalUsers } = useStats();
+  const { stats } = useStats();
 
   return (
     <Box sx={{ p: 3 }}>

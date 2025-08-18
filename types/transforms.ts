@@ -9,6 +9,9 @@ import type {
   Client,
   CreateClientDto,
   UpdateClientDto,
+  Loan,
+  LoanResponseDto,
+  CreateLoanDto,
 } from './auth';
 
 // Role mapping between API and Frontend
@@ -122,3 +125,50 @@ export const clientToUpdateDto = (
 
   return dto;
 };
+
+// ========================
+// LOAN TRANSFORMATIONS
+// ========================
+
+// Transform API loan response to frontend loan
+// Note: LoanResponseDto is incomplete in OpenAPI, using available fields only
+export const apiLoanToLoan = (apiLoan: LoanResponseDto): Loan => ({
+  id: apiLoan.id,
+  clientId: 'client-id-placeholder', // Not available in LoanTrackingResponseDto
+  amount: apiLoan.amount,
+  baseInterestRate: 0.05, // Default, not available in current API response
+  penaltyInterestRate: 0.05, // Default, not available in current API response  
+  currency: 'ARS' as const,
+  paymentFrequency: apiLoan.paymentFrequency as 'DAILY' | 'WEEKLY' | 'BIWEEKLY' | 'MONTHLY',
+  paymentDay: apiLoan.paymentDay as 'MONDAY' | 'TUESDAY' | 'WEDNESDAY' | 'THURSDAY' | 'FRIDAY' | 'SATURDAY' | 'SUNDAY' | undefined,
+  totalPayments: apiLoan.totalPayments,
+  firstDueDate: apiLoan.firstDueDate ? new Date(apiLoan.firstDueDate) : undefined,
+  loanTrack: apiLoan.loanTrack,
+  description: apiLoan.description || undefined,
+  notes: undefined, // Not available in current API response
+  status: 'ACTIVE', // Default, not available in current API response
+  requestDate: new Date(apiLoan.createdAt), // Use createdAt as requestDate
+  approvedDate: undefined, // Not available in current API response
+  completedDate: undefined, // Not available in current API response
+  createdAt: new Date(apiLoan.createdAt),
+  updatedAt: new Date(apiLoan.createdAt), // Use createdAt as updatedAt placeholder
+  // client: apiLoan.client ? {...} : undefined, // Available but empty Record<string, never>
+});
+
+// Transform frontend loan to API create DTO
+export const loanToCreateDto = (
+  loan: Omit<Loan, 'id' | 'status' | 'requestDate' | 'approvedDate' | 'completedDate' | 'createdAt' | 'updatedAt' | 'client'>
+): CreateLoanDto => ({
+  clientId: loan.clientId,
+  amount: loan.amount,
+  baseInterestRate: loan.baseInterestRate,
+  penaltyInterestRate: loan.penaltyInterestRate,
+  currency: loan.currency,
+  paymentFrequency: loan.paymentFrequency,
+  paymentDay: loan.paymentDay,
+  totalPayments: loan.totalPayments,
+  firstDueDate: loan.firstDueDate?.toISOString(),
+  loanTrack: loan.loanTrack,
+  description: loan.description,
+  notes: loan.notes,
+});

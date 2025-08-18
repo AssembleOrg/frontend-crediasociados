@@ -57,7 +57,7 @@ export const useClients = () => {
       }
     },
     []
-  ); // ✅ Sin dependencias - clientsStore es estable
+  );
 
   const createClient = useCallback(
     async (
@@ -67,26 +67,26 @@ export const useClients = () => {
       setError(null);
 
       try {
-        // Transform to API format (excluding job field for create)
         const createDto = clientToCreateDto(clientData);
 
-        // Call the service to create the client
         const apiClient = await clientsService.createClient(createDto);
 
-        // If client has a job, update it separately since CreateDto doesn't support job
         if (clientData.job) {
           const updateDto = clientToUpdateDto({ job: clientData.job });
-          const updatedApiClient = await clientsService.updateClient(apiClient.id, updateDto);
-          
+          const updatedApiClient = await clientsService.updateClient(
+            apiClient.id,
+            updateDto
+          );
+
           // Transform back to frontend format
           const newClient = apiClientToClient(updatedApiClient);
-          
+
           // Update the store
           clientsStore.addClient(newClient);
         } else {
           // Transform back to frontend format
           const newClient = apiClientToClient(apiClient);
-          
+
           // Update the store
           clientsStore.addClient(newClient);
         }

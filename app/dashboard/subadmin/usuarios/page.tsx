@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import {
   Box,
   Typography,
@@ -35,8 +35,6 @@ export default function ManagersPage() {
     totalManagers, 
     isLoading, 
     error, 
-    createManager, 
-    updateUser, 
     deleteUser, 
     clearError 
   } = useManagers()

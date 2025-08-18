@@ -35,8 +35,6 @@ export default function ClientesPage() {
     getTotalClients, 
     isLoading, 
     error, 
-    createClient, 
-    updateClient, 
     deleteClient, 
     clearError 
   } = useClients()

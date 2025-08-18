@@ -31,12 +31,8 @@ interface UsersListProps {
 
 export const UsersList = ({ onEditUser, onCreateUser }: UsersListProps) => {
   const {
-    users,
     isLoading,
     error,
-    pagination,
-    filters,
-    fetchUsers,
     deleteUser,
     clearError,
     getFilteredUsers

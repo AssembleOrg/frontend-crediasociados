@@ -9,7 +9,7 @@ import { useClients } from '@/hooks/useClients';
 
 export default function PrestamistaDashboard() {
   const router = useRouter();
-  const { getTotalClients } = useClients();
+  const { getTotalClients, isLoading } = useClients();
 
   const clientsCount = getTotalClients();
 
@@ -51,6 +51,7 @@ export default function PrestamistaDashboard() {
           subtitle={`cliente${clientsCount !== 1 ? 's' : ''} en tu cartera`}
           icon={<People />}
           color='primary'
+          isLoading={isLoading}
         />
         <StatsCard
           title='Préstamos Activos'

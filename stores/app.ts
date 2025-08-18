@@ -46,7 +46,7 @@ export interface AppState {
   preferences: {
     theme: 'light' | 'dark' | 'auto';
     language: 'es' | 'en';
-    currency: 'ARS' | 'USD';
+    currency: 'ARS';
     dateFormat: 'DD/MM/YYYY' | 'MM/DD/YYYY' | 'YYYY-MM-DD';
     timezone: string;
     itemsPerPage: number;
@@ -59,7 +59,6 @@ export interface AppState {
   // Feature flags / app configuration
   features: {
     darkMode: boolean;
-    multiCurrency: boolean;
     advancedReports: boolean;
     exportData: boolean;
     bulkOperations: boolean;
@@ -119,7 +118,6 @@ const defaultPreferences: AppState['preferences'] = {
 
 const defaultFeatures: AppState['features'] = {
   darkMode: true,
-  multiCurrency: false,
   advancedReports: true,
   exportData: true,
   bulkOperations: false,

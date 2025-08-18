@@ -11,10 +11,9 @@ import {
   Box,
   Typography,
   Alert,
-  MenuItem,
 } from '@mui/material'
 import { useUsers } from '@/hooks/useUsers'
-import type { User, UserRole } from '@/types/auth'
+import type { UserRole } from '@/types/auth'
 import { getRoleDisplayName } from '@/types/transforms'
 
 interface CreateUserModalProps {

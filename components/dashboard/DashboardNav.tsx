@@ -19,7 +19,7 @@ import { Logo } from '@/components/ui/Logo';
 
 export function DashboardNav() {
   const router = useRouter();
-  const { user, logout, isLoading } = useAuth();
+  const { user, logout } = useAuth();
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [isLogoutLoading, setIsLogoutLoading] = useState(false);
 

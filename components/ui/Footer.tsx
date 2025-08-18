@@ -80,7 +80,7 @@ export function Footer() {
             color='text.secondary'
             sx={{ textAlign: { xs: 'center', md: 'right' } }}
           >
-            Desarrollado para gestión profesional de préstamos por{' '}
+            Desarrollado por{' '}
             <Link
               href={`https://wa.me/+5491138207230?text=${whatsappMessage}`}
               target='_blank'

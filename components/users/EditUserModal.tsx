@@ -13,7 +13,6 @@ import {
   Alert,
 } from '@mui/material';
 import { useUsers } from '@/hooks/useUsers';
-import { useAuthStore } from '@/stores/auth';
 import type { User, UserRole } from '@/types/auth';
 import { getRoleDisplayName } from '@/types/transforms';
 
@@ -23,27 +22,10 @@ interface EditUserModalProps {
   user: User | null;
 }
 
-const getRoleOptionsForUser = (currentUserRole: UserRole): UserRole[] => {
-  switch (currentUserRole) {
-    case 'admin':
-      return ['subadmin'];
-    case 'subadmin':
-      return ['prestamista'];
-    case 'prestamista':
-      return [];
-    default:
-      return [];
-  }
-};
 
 export function EditUserModal({ open, onClose, user }: EditUserModalProps) {
   const { updateUser, isLoading, error } = useUsers();
-  const { user: currentUser } = useAuthStore();
 
-  // Get allowed roles for current user
-  const allowedRoles = currentUser
-    ? getRoleOptionsForUser(currentUser.role)
-    : [];
 
   const [formData, setFormData] = useState({
     fullName: '',

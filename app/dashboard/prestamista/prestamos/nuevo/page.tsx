@@ -1,10 +1,88 @@
-import PageInDevelopment from '@/components/ui/PageInDevelopment'
+'use client'
+
+import { useState } from 'react'
+import {
+  Box,
+  Typography,
+  Button,
+  Paper,
+  Alert
+} from '@mui/material'
+import { Add } from '@mui/icons-material'
+import { CreateLoanModal } from '@/components/loans/CreateLoanModal'
+import { useClients } from '@/hooks/useClients'
 
 export default function NuevoPrestamoPage() {
+  const [modalOpen, setModalOpen] = useState(false)
+  const { clients, isLoading, error } = useClients()
+
+  const handleOpenModal = () => {
+    setModalOpen(true)
+  }
+
+  const handleCloseModal = () => {
+    setModalOpen(false)
+  }
+
   return (
-    <PageInDevelopment 
-      title="Crear Nuevo Préstamo" 
-      description="Formulario para crear un nuevo préstamo con calculadora de intereses automática y selección de cliente existente."
-    />
+    <Box sx={{ p: 3 }}>
+      {/* Header */}
+      <Box sx={{ mb: 4 }}>
+        <Typography variant="h4" component="h1" gutterBottom>
+          Crear Nuevo Préstamo
+        </Typography>
+        <Typography variant="body1" color="text.secondary">
+          Genera un nuevo préstamo con simulador de cuotas para tus clientes
+        </Typography>
+      </Box>
+
+      {/* Error Alert */}
+      {error && (
+        <Alert severity="error" sx={{ mb: 3 }}>
+          {error}
+        </Alert>
+      )}
+
+      {/* No clients warning */}
+      {!isLoading && clients.length === 0 && (
+        <Alert severity="warning" sx={{ mb: 3 }}>
+          No tienes clientes registrados. Necesitas crear al menos un cliente antes de poder generar préstamos.
+        </Alert>
+      )}
+
+      {/* Main Content */}
+      <Paper sx={{ p: 4, textAlign: 'center' }}>
+        <Typography variant="h6" gutterBottom>
+          Simulador de Préstamos
+        </Typography>
+        <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
+          Utiliza el simulador para calcular las cuotas y términos del préstamo antes de confirmarlo.
+          Podrás ver todos los pagos calculados y ajustar los parámetros según necesites.
+        </Typography>
+
+        <Button
+          variant="contained"
+          size="large"
+          startIcon={<Add />}
+          onClick={handleOpenModal}
+          disabled={isLoading || clients.length === 0}
+        >
+          {isLoading ? 'Cargando...' : 'Abrir Simulador de Préstamos'}
+        </Button>
+
+        {clients.length === 0 && !isLoading && (
+          <Typography variant="caption" display="block" sx={{ mt: 2, color: 'text.secondary' }}>
+            Primero debes crear clientes en la sección &quot;Clientes&quot;
+          </Typography>
+        )}
+      </Paper>
+
+      {/* Modal */}
+      <CreateLoanModal
+        open={modalOpen}
+        onClose={handleCloseModal}
+        title="Simulador de Préstamos"
+      />
+    </Box>
   )
 }

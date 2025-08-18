@@ -14,6 +14,13 @@ export type CreateClientDto = components['schemas']['CreateClientDto']
 export type UpdateClientDto = components['schemas']['UpdateClientDto']
 export type ClientResponseDto = components['schemas']['ClientResponseDto'];
 
+// Loan API Contract Types
+export type CreateLoanDto = components['schemas']['CreateLoanDto']
+export type CreateLoanResponseDto = components['schemas']['CreateLoanResponseDto']
+export type LoanTrackingResponseDto = components['schemas']['LoanTrackingResponseDto']
+// Since getAllLoans doesn't have a specific response type, we'll use CreateLoanResponseDto
+export type LoanResponseDto = CreateLoanResponseDto
+
 export interface LoginResponse {
   user: UserResponseDto;
   token: string;
@@ -77,6 +84,31 @@ export interface Client {
   updatedAt: Date;
 }
 
+// Frontend Loan type (normalized from API)
+export interface Loan {
+  id: string;
+  clientId: string;
+  amount: number;
+  baseInterestRate: number;
+  penaltyInterestRate: number;
+  currency: 'ARS';
+  paymentFrequency: 'DAILY' | 'WEEKLY' | 'BIWEEKLY' | 'MONTHLY';
+  paymentDay?: 'MONDAY' | 'TUESDAY' | 'WEDNESDAY' | 'THURSDAY' | 'FRIDAY' | 'SATURDAY' | 'SUNDAY';
+  totalPayments: number;
+  firstDueDate?: Date;
+  loanTrack: string;
+  description?: string;
+  notes?: string;
+  status: 'PENDING' | 'APPROVED' | 'REJECTED' | 'ACTIVE' | 'COMPLETED' | 'DEFAULTED';
+  requestDate: Date;
+  approvedDate?: Date;
+  completedDate?: Date;
+  createdAt: Date;
+  updatedAt: Date;
+  // Related data
+  client?: Client;
+}
+
 // Auth state for store
 export interface AuthState {
   user: User | null;
@@ -103,3 +135,9 @@ export type ApiClientToClient = (apiClient: ClientResponseDto) => Client;
 export type ClientToCreateDto = (
   client: Omit<Client, 'id' | 'createdAt' | 'updatedAt'>
 ) => CreateClientDto;
+
+// Loan transform utilities  
+export type ApiLoanToLoan = (apiLoan: LoanResponseDto) => Loan;
+export type LoanToCreateDto = (
+  loan: Omit<Loan, 'id' | 'status' | 'requestDate' | 'approvedDate' | 'completedDate' | 'createdAt' | 'updatedAt' | 'client'>
+) => CreateLoanDto;

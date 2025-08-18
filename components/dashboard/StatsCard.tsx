@@ -1,6 +1,7 @@
 'use client'
 
 import { Card, CardContent, Typography, Box, LinearProgress } from '@mui/material'
+import { StatsCardSkeleton } from '@/components/ui/StatsCardSkeleton'
 
 interface StatsCardProps {
   title: string
@@ -14,6 +15,7 @@ interface StatsCardProps {
     label: string
     isPositive: boolean
   }
+  isLoading?: boolean
 }
 
 export function StatsCard({ 
@@ -23,7 +25,8 @@ export function StatsCard({
   icon, 
   color = 'primary',
   progress,
-  trend 
+  trend,
+  isLoading = false 
 }: StatsCardProps) {
   const getColorValue = (colorName: string) => {
     const colors = {
@@ -33,6 +36,17 @@ export function StatsCard({
       error: '#d32f2f'
     }
     return colors[colorName as keyof typeof colors] || colors.primary
+  }
+
+  // Show skeleton while loading
+  if (isLoading) {
+    return (
+      <StatsCardSkeleton 
+        showIcon={!!icon}
+        showProgress={progress !== undefined}
+        showTrend={!!trend}
+      />
+    )
   }
 
   return (
