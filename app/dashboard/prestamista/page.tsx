@@ -2,10 +2,11 @@
 
 import React from 'react';
 import { Typography, Box, Paper, Button } from '@mui/material';
-import { People, AccountBalance, TrendingUp, Add } from '@mui/icons-material';
+import { People, AccountBalance, TrendingUp } from '@mui/icons-material';
 import { useRouter } from 'next/navigation';
 import { StatsCard } from '@/components/dashboard/StatsCard';
 import { useClients } from '@/hooks/useClients';
+import { StandaloneLoanSimulator } from '@/components/loans/StandaloneLoanSimulator';
 
 export default function PrestamistaDashboard() {
   const router = useRouter();
@@ -69,40 +70,29 @@ export default function PrestamistaDashboard() {
         />
       </Box>
 
+      {/* Simulador de Préstamos */}
+      <Box sx={{ mb: 4 }}>
+        <StandaloneLoanSimulator />
+      </Box>
+
       <Paper sx={{ p: 3 }}>
-        <Box sx={{ 
-          display: 'flex', 
-          justifyContent: 'space-between', 
-          alignItems: 'flex-start',
-          mb: 2
-        }}>
-          <Box>
-            <Typography
-              variant='h6'
-              gutterBottom
-            >
-              Gestión de Clientes
-            </Typography>
-            <Typography
-              variant='body1'
-              color='text.secondary'
-              sx={{ mb: 2 }}
-            >
-              {clientsCount > 0 
-                ? `Tienes ${clientsCount} cliente${clientsCount !== 1 ? 's' : ''} registrado${clientsCount !== 1 ? 's' : ''} en tu cartera.`
-                : 'Aún no tienes clientes registrados en tu cartera.'
-              }
-            </Typography>
-          </Box>
-          
-          <Button
-            variant="contained"
-            startIcon={<Add />}
-            onClick={() => router.push('/dashboard/prestamista/clientes')}
-            size="small"
+        <Box sx={{ mb: 2 }}>
+          <Typography
+            variant='h6'
+            gutterBottom
           >
-            {clientsCount > 0 ? 'Ver Clientes' : 'Agregar Cliente'}
-          </Button>
+            Gestión de Clientes
+          </Typography>
+          <Typography
+            variant='body1'
+            color='text.secondary'
+            sx={{ mb: 2 }}
+          >
+            {clientsCount > 0 
+              ? `Tienes ${clientsCount} cliente${clientsCount !== 1 ? 's' : ''} registrado${clientsCount !== 1 ? 's' : ''} en tu cartera.`
+              : 'Aún no tienes clientes registrados en tu cartera.'
+            }
+          </Typography>
         </Box>
         
         <Button

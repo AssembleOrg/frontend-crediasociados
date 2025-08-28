@@ -2,6 +2,7 @@
 
 import { useState, useCallback, useEffect } from 'react';
 import { useClientsStore } from '@/stores/clients';
+import { useAuth } from '@/hooks/useAuth';
 import { clientsService } from '@/services/clients.service';
 import {
   apiClientToClient,
@@ -26,20 +27,20 @@ import type {
  */
 export const useClients = () => {
   const clientsStore = useClientsStore();
+  const { user: currentUser } = useAuth();
 
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const fetchClients = useCallback(
     async (params?: PaginationParams): Promise<void> => {
+      if (!currentUser) return;
+
       setIsLoading(true);
       setError(null);
 
       try {
-        // Merge with current filters
         const filters = { ...clientsStore.filters, ...params };
-
-        // Call the service
         const response = await clientsService.getClients(filters);
 
         // Transform API clients to frontend clients
@@ -56,7 +57,7 @@ export const useClients = () => {
         setIsLoading(false);
       }
     },
-    []
+    [currentUser]
   );
 
   const createClient = useCallback(
@@ -202,10 +203,11 @@ export const useClients = () => {
     }
   }, []);
 
-  // Auto-fetch clients when hook initializes
   useEffect(() => {
-    fetchClients();
-  }, []); // Only on mount - fetchClients handles filter updates
+    if (currentUser) {
+      fetchClients();
+    }
+  }, [currentUser, fetchClients]);
 
   const clearError = useCallback(() => {
     setError(null);

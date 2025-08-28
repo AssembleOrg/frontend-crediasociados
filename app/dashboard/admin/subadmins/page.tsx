@@ -27,10 +27,10 @@ import {
   Delete,
   Visibility,
 } from '@mui/icons-material';
-import { useSubadmins } from '@/hooks/useSubadmins';
-import { getRoleDisplayName } from '@/types/transforms';
-import { CreateUserModal } from '@/components/users/CreateUserModal';
-import { EditUserModal } from '@/components/users/EditUserModal';
+import { useUsers } from '@/hooks/useUsers';
+import { useMemo } from 'react';
+import { RoleUtils, type UserRole } from '@/lib/role-utils';
+import { UserFormModal } from '@/components/users/UserFormModal';
 import { DeleteUserConfirmDialog } from '@/components/users/DeleteUserConfirmDialog';
 import { TableSkeleton } from '@/components/ui/TableSkeleton';
 
@@ -42,7 +42,11 @@ export default function SubadminsPage() {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
 
-  const { subadmins, isLoading, error } = useSubadmins();
+  const { users, isLoading, error } = useUsers();
+  const subadmins = useMemo(() => 
+    users.filter(user => user.role === 'subadmin'), 
+    [users]
+  );
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('es-AR');
@@ -85,7 +89,6 @@ export default function SubadminsPage() {
 
   return (
     <Box>
-      {/* Header */}
       <Box
         sx={{
           mb: 4,
@@ -127,7 +130,6 @@ export default function SubadminsPage() {
         </Button>
       </Box>
 
-      {/* Search and Filters */}
       <Box sx={{ mb: 3 }}>
         <TextField
           fullWidth
@@ -145,7 +147,6 @@ export default function SubadminsPage() {
         />
       </Box>
 
-      {/* Error State */}
       {error && (
         <Paper
           elevation={1}
@@ -160,7 +161,6 @@ export default function SubadminsPage() {
         </Paper>
       )}
 
-      {/* Sub-Administradores Table */}
       <Paper elevation={1}>
         <TableContainer>
           <Table>
@@ -212,19 +212,18 @@ export default function SubadminsPage() {
                         >
                           {subadmin.email}
                         </Typography>
-                        {/* Info adicional en mobile */}
                         <Typography
                           variant='caption'
                           color='text.secondary'
                           sx={{ display: { xs: 'block', sm: 'none' }, mt: 0.5 }}
                         >
-                          Rol: {getRoleDisplayName(subadmin.role)} • Creado:{' '}
+                          Rol: {RoleUtils.getRoleDisplayName(subadmin.role as UserRole)} • Creado:{' '}
                           {formatDate(subadmin.createdAt.toISOString())}
                         </Typography>
                       </TableCell>
                       <TableCell align='center'>
                         <Chip
-                          label={getRoleDisplayName(subadmin.role)}
+                          label={RoleUtils.getRoleDisplayName(subadmin.role as UserRole)}
                           color='warning'
                           size='small'
                         />
@@ -297,7 +296,6 @@ export default function SubadminsPage() {
         </TableContainer>
       </Paper>
 
-      {/* Actions Menu */}
       <Menu
         anchorEl={anchorEl}
         open={Boolean(anchorEl)}
@@ -324,22 +322,20 @@ export default function SubadminsPage() {
         </MenuItem>
       </Menu>
 
-      {/* Create User Modal */}
-      <CreateUserModal
+      <UserFormModal
         open={isCreateModalOpen}
         onClose={() => setIsCreateModalOpen(false)}
         targetRole='subadmin'
-        title='Crear Sub-Administrador'
+        mode='create'
       />
 
-      {/* Edit User Modal */}
-      <EditUserModal
+      <UserFormModal
         open={isEditModalOpen}
         onClose={handleCloseModals}
         user={getSelectedUser()}
+        mode='edit'
       />
 
-      {/* Delete Confirmation Dialog */}
       <DeleteUserConfirmDialog
         open={isDeleteDialogOpen}
         onClose={handleCloseModals}

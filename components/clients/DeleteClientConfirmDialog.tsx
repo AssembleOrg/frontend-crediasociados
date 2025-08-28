@@ -1,17 +1,8 @@
 'use client'
 
-import {
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  Button,
-  Typography,
-  Alert,
-  Box,
-} from '@mui/material'
-import { Warning } from '@mui/icons-material'
+import { Box, Typography } from '@mui/material'
 import { useClients } from '@/hooks/useClients'
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import type { Client } from '@/types/auth'
 
 interface DeleteClientConfirmDialogProps {
@@ -34,77 +25,47 @@ export function DeleteClientConfirmDialog({
     
     // Use provided onConfirm or default deleteClient
     const deleteMethod = onConfirm || deleteClient
-
-    const result = await deleteMethod(client.id)
-
-    if (result) {
-      onClose()
-    }
+    await deleteMethod(client.id)
   }
 
   if (!client) return null
 
-  return (
-    <Dialog 
-      open={open} 
-      onClose={onClose}
-      maxWidth="sm"
-      fullWidth
-    >
-      <DialogTitle>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <Warning color="warning" />
-          <Typography variant="h6" component="div">
-            Confirmar Eliminación
+  const message = (
+    <>
+      <Typography variant="body1" sx={{ mb: 2 }}>
+        ¿Estás seguro que deseas eliminar al cliente <strong>{client.fullName}</strong>?
+      </Typography>
+
+      <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+        Esta acción no se puede deshacer. Se eliminarán todos los datos asociados al cliente.
+      </Typography>
+
+      {client.dni && (
+        <Box sx={{ mt: 2, p: 2, bgcolor: 'grey.50', borderRadius: 1 }}>
+          <Typography variant="body2">
+            <strong>DNI:</strong> {client.dni}
           </Typography>
-        </Box>
-      </DialogTitle>
-
-      <DialogContent>
-        {error && (
-          <Alert severity="error" sx={{ mb: 2 }}>
-            {error}
-          </Alert>
-        )}
-
-        <Typography variant="body1" sx={{ mb: 2 }}>
-          ¿Estás seguro que deseas eliminar al cliente <strong>{client.fullName}</strong>?
-        </Typography>
-
-        <Typography variant="body2" color="text.secondary">
-          Esta acción no se puede deshacer. Se eliminarán todos los datos asociados al cliente.
-        </Typography>
-
-        {client.dni && (
-          <Box sx={{ mt: 2, p: 2, bgcolor: 'grey.50', borderRadius: 1 }}>
+          {client.email && (
             <Typography variant="body2">
-              <strong>DNI:</strong> {client.dni}
+              <strong>Email:</strong> {client.email}
             </Typography>
-            {client.email && (
-              <Typography variant="body2">
-                <strong>Email:</strong> {client.email}
-              </Typography>
-            )}
-          </Box>
-        )}
-      </DialogContent>
+          )}
+        </Box>
+      )}
+    </>
+  )
 
-      <DialogActions sx={{ p: 3 }}>
-        <Button 
-          onClick={onClose}
-          disabled={isLoading}
-        >
-          Cancelar
-        </Button>
-        <Button 
-          onClick={handleConfirmDelete}
-          color="error"
-          variant="contained"
-          disabled={isLoading}
-        >
-          {isLoading ? 'Eliminando...' : 'Eliminar Cliente'}
-        </Button>
-      </DialogActions>
-    </Dialog>
+  return (
+    <ConfirmDialog
+      open={open}
+      onClose={onClose}
+      onConfirm={handleConfirmDelete}
+      title="Confirmar Eliminación"
+      message={message}
+      confirmText="Eliminar Cliente"
+      isLoading={isLoading}
+      error={error}
+      confirmColor="error"
+    />
   )
 }

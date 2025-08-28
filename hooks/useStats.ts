@@ -1,22 +1,43 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { useUsers } from './useUsers';
+import { useClients } from './useClients';
+import { useLoans } from './useLoans';
+import { StatsUtils, type DashboardStats, type ClientsStats, type LoansStats } from '@/lib/stats-utils';
 
 export const useStats = () => {
-  // Use useUsers to ensure auto-initialization
+  // Use hooks to ensure auto-initialization
   const { users, isLoading: usersLoading, error: usersError } = useUsers();
+  const { clients, isLoading: clientsLoading, error: clientsError } = useClients();
+  const { loans, isLoading: loansLoading, error: loansError } = useLoans();
 
   // Local state for loading and errors
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const calculateDashboardStats = useCallback(() => {
+  // Calculate dashboard stats using real data
+  const dashboardStats: DashboardStats = useMemo(() => {
+    return StatsUtils.calculateDashboardStats(clients, loans);
+  }, [clients, loans]);
+
+  // Calculate detailed client stats
+  const clientsStats: ClientsStats = useMemo(() => {
+    return StatsUtils.calculateClientStats(clients);
+  }, [clients]);
+
+  // Calculate detailed loan stats  
+  const loansStats: LoansStats = useMemo(() => {
+    return StatsUtils.calculateLoanStats(loans);
+  }, [loans]);
+
+  // Legacy user stats (for compatibility)
+  const userStats = useMemo(() => {
     const totalUsers = users.length;
     const adminUsers = users.filter((u) => u.role === 'admin').length;
     const subadminUsers = users.filter((u) => u.role === 'subadmin').length;
     const prestamistatUsers = users.filter(
-      (u) => u.role === 'prestamista'
+      (u) => u.role === 'prestamista' || u.role === 'manager'
     ).length;
 
     const thirtyDaysAgo = new Date();
@@ -50,43 +71,55 @@ export const useStats = () => {
   /**
    * Load and calculate stats
    */
-  const loadStats = useCallback(async (): Promise<void> => {
+  const refreshStats = useCallback(async (): Promise<void> => {
     setIsLoading(true);
     setError(null);
 
     try {
-      // Simple calculation - no API calls for now
-      calculateDashboardStats();
+      // Stats are automatically recalculated via useMemo when data changes
+      // This function exists for compatibility and manual refresh triggers
+      await new Promise(resolve => setTimeout(resolve, 100)); // Small delay for UX
     } catch (err: any) {
-      setError(err.message || 'Failed to calculate stats');
+      setError(err.message || 'Failed to refresh stats');
     } finally {
       setIsLoading(false);
     }
-  }, [calculateDashboardStats]);
-
-  const refreshStats = useCallback(() => {
-    return loadStats();
-  }, [loadStats]);
+  }, []);
 
   const clearError = useCallback(() => {
     setError(null);
   }, []);
 
-  const stats = calculateDashboardStats();
+  // Combined loading state from all data sources
+  const combinedLoading = isLoading || usersLoading || clientsLoading || loansLoading;
+
+  // Combined error state from all data sources
+  const combinedError = error || usersError || clientsError || loansError;
 
   return {
-    stats,
+    // New comprehensive stats
+    dashboardStats,
+    clientsStats,
+    loansStats,
 
-    isLoading: isLoading || usersLoading,
-    error: error || usersError,
+    // Legacy stats (for backward compatibility)
+    stats: userStats,
 
-    loadStats,
+    // Loading and error states
+    isLoading: combinedLoading,
+    error: combinedError,
+
+    // Actions
     refreshStats,
     clearError,
-    calculateDashboardStats,
 
+    // Legacy compatibility methods
     totalUsers: users.length,
     adminUsers: users.filter((u) => u.role === 'admin').length,
     usersByRole: (role: string) => users.filter((u) => u.role === role),
+
+    // Utility functions
+    formatCurrency: StatsUtils.formatCurrency,
+    formatPercentage: StatsUtils.formatPercentage,
   };
 };

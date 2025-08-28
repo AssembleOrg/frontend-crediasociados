@@ -127,8 +127,9 @@ export default function Home() {
               variant='outlined'
               size='large'
               sx={{ px: 4, py: 1.5, fontSize: '1.1rem' }}
+              onClick={() => router.push('/consulta')}
             >
-              Ver Demo
+              Consultar Préstamo
             </Button>
           </Box>
 
@@ -142,7 +143,7 @@ export default function Home() {
             }}
           >
             <Chip
-              label='Para Prestamistas Profesionales'
+              label='Para Prestamistas Nuevos y Experimentados'
               color='primary'
               variant='outlined'
             />
@@ -151,14 +152,9 @@ export default function Home() {
               color='primary'
               variant='outlined'
             />
-            <Chip
-              label='Prueba Gratis 30 Días'
-              color='primary'
-              variant='outlined'
-            />
           </Box>
 
-          {/* Hero Image - People shaking hands */}
+          {/* Hero Image */}
           <Box
             sx={{
               mt: 6,
@@ -182,11 +178,12 @@ export default function Home() {
               }}
             >
               <Image
-                src='/handshake.jpg'
+                src='/group-1600x900.png'
                 alt='Prestamistas profesionales cerrando acuerdos exitosos'
                 fill
                 style={{
                   objectFit: 'cover',
+                  objectPosition: 'center center',
                 }}
                 priority
                 sizes='(max-width: 768px) 100vw, 800px'
@@ -309,7 +306,7 @@ export default function Home() {
               <Box
                 sx={{
                   width: '100%',
-                  height: { xs: '300px', md: '400px' },
+                  aspectRatio: '1/1',
                   borderRadius: 3,
                   overflow: 'hidden',
                   position: 'relative',
@@ -317,13 +314,14 @@ export default function Home() {
                 }}
               >
                 <Image
-                  src='/group.jpg'
+                  src='/mac-dashboard-1440x1440.png'
                   alt='Equipo de prestamistas exitosos usando Prestamito'
                   fill
                   style={{
                     objectFit: 'cover',
-                    borderRadius: '12px',
+                    objectPosition: 'center center',
                   }}
+                  sizes='(max-width: 600px) 100vw, (max-width: 1280px) 50vw, 33vw'
                 />
               </Box>
 

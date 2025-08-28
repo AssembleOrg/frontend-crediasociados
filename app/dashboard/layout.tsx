@@ -3,6 +3,7 @@
 import { Box } from '@mui/material';
 import { DashboardNav } from '@/components/dashboard/DashboardNav';
 import { AuthLoadingOverlay } from '@/components/ui/AuthLoadingOverlay';
+import DolarBlueTicker from '@/components/ui/DolarBlueTicker';
 import { useAuth } from '@/hooks/useAuth';
 
 export default function DashboardLayout({
@@ -17,6 +18,7 @@ export default function DashboardLayout({
       sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}
     >
       <DashboardNav />
+      <DolarBlueTicker />
       <Box
         component='main'
         sx={{

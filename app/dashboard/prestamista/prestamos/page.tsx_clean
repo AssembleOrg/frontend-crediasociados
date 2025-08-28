@@ -13,7 +13,7 @@ import {
   FormControl,
   InputLabel,
   Select,
-  MenuItem,
+  MenuItem
 } from '@mui/material';
 import {
   Add,
@@ -23,7 +23,7 @@ import {
   MonetizationOn,
   Warning,
   Download,
-  BarChart,
+  BarChart
 } from '@mui/icons-material';
 import { useRouter } from 'next/navigation';
 import { StatsCard } from '@/components/dashboard/StatsCard';
@@ -39,34 +39,14 @@ const mockAnalyticsData = {
   monthlyTrends: [
     { month: 'Febrero 2025', prestamos: 8, monto: 150000, recuperado: 135000 },
     { month: 'Enero 2025', prestamos: 12, monto: 220000, recuperado: 198000 },
-    {
-      month: 'Diciembre 2024',
-      prestamos: 15,
-      monto: 280000,
-      recuperado: 252000,
-    },
-    {
-      month: 'Noviembre 2024',
-      prestamos: 10,
-      monto: 185000,
-      recuperado: 166500,
-    },
+    { month: 'Diciembre 2024', prestamos: 15, monto: 280000, recuperado: 252000 },
+    { month: 'Noviembre 2024', prestamos: 10, monto: 185000, recuperado: 166500 },
     { month: 'Octubre 2024', prestamos: 18, monto: 320000, recuperado: 288000 },
-    {
-      month: 'Septiembre 2024',
-      prestamos: 22,
-      monto: 410000,
-      recuperado: 369000,
-    },
+    { month: 'Septiembre 2024', prestamos: 22, monto: 410000, recuperado: 369000 },
   ],
   topClients: [
     { name: 'María González', prestamos: 3, montoTotal: 45000, pagosAlDia: 3 },
-    {
-      name: 'Carlos Rodríguez',
-      prestamos: 2,
-      montoTotal: 30000,
-      pagosAlDia: 2,
-    },
+    { name: 'Carlos Rodríguez', prestamos: 2, montoTotal: 30000, pagosAlDia: 2 },
     { name: 'Ana López', prestamos: 4, montoTotal: 60000, pagosAlDia: 3 },
     { name: 'Luis Martín', prestamos: 1, montoTotal: 15000, pagosAlDia: 1 },
     { name: 'Sofia Pérez', prestamos: 2, montoTotal: 25000, pagosAlDia: 1 },
@@ -121,8 +101,7 @@ export default function PrestamosAnalyticsPage() {
             variant='body1'
             color='text.secondary'
           >
-            Dashboard analítico con reportes históricos y métricas de
-            rendimiento
+            Dashboard analítico con reportes históricos y métricas de rendimiento
           </Typography>
         </Box>
 
@@ -143,7 +122,7 @@ export default function PrestamosAnalyticsPage() {
           </Button>
           <Button
             variant='contained'
-            color='primary'
+            color='warning'
             onClick={handleGoToCobros}
             sx={{ width: { xs: '100%', sm: 'auto' } }}
           >
@@ -200,10 +179,7 @@ export default function PrestamosAnalyticsPage() {
           </Typography>
           <Divider sx={{ mb: 3 }} />
 
-          <Alert
-            severity='info'
-            sx={{ mb: 3 }}
-          >
+          <Alert severity='info' sx={{ mb: 3 }}>
             <Typography
               variant='subtitle2'
               gutterBottom
@@ -211,20 +187,16 @@ export default function PrestamosAnalyticsPage() {
               🚧 Próximamente disponible
             </Typography>
             <Typography variant='body2'>
-              Esta sección estará disponible cuando conectemos los datos reales
-              del backend.
+              Esta sección estará disponible cuando conectemos los datos reales del backend.
             </Typography>
           </Alert>
 
           <Box sx={{ display: 'grid', gap: 2 }}>
-            {/* <Typography
-              variant='subtitle2'
-              color='primary'
-            >
-              Funcionalidades en desarrollo
-            </Typography> */}
-
-            {/* <Box component='ul' sx={{ pl: 3, m: 0 }}>
+            <Typography variant='subtitle2' color='primary'>
+              Funcionalidades en desarrollo:
+            </Typography>
+            
+            <Box component='ul' sx={{ pl: 3, m: 0 }}>
               <Typography component='li' variant='body2'>
                 📈 Análisis de rendimiento por período
               </Typography>
@@ -240,7 +212,7 @@ export default function PrestamosAnalyticsPage() {
               <Typography component='li' variant='body2'>
                 📉 Tendencias históricas y proyecciones
               </Typography>
-            </Box> */}
+            </Box>
           </Box>
         </Paper>
       </Box>

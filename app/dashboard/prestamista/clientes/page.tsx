@@ -23,8 +23,7 @@ import {
   Delete,
 } from '@mui/icons-material'
 import { useClients } from '@/hooks/useClients'
-import { CreateClientModal } from '@/components/clients/CreateClientModal'
-import { EditClientModal } from '@/components/clients/EditClientModal'
+import { ClientFormModal } from '@/components/clients/ClientFormModal'
 import { DeleteClientConfirmDialog } from '@/components/clients/DeleteClientConfirmDialog'
 import { TableSkeleton } from '@/components/ui/TableSkeleton'
 import type { Client } from '@/types/auth'
@@ -200,18 +199,19 @@ export default function ClientesPage() {
         />
       </Paper>
 
-      <CreateClientModal
+      <ClientFormModal
         open={createModalOpen}
         onClose={handleCloseModals}
-        title="Crear Cliente"
+        mode="create"
       />
 
       {selectedClient && (
         <>
-          <EditClientModal
+          <ClientFormModal
             open={editModalOpen}
             onClose={handleCloseModals}
             client={selectedClient}
+            mode="edit"
           />
           <DeleteClientConfirmDialog
             open={deleteDialogOpen}

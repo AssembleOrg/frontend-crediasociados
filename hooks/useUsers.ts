@@ -2,6 +2,7 @@
 
 import { useState, useCallback, useEffect } from 'react'
 import { useUsersStore } from '@/stores/users'
+import { useAuth } from '@/hooks/useAuth'
 import { usersService } from '@/services/users.service'
 import { apiUserToUser, userToCreateDto, userToUpdateDto } from '@/types/transforms'
 import type { 
@@ -22,25 +23,29 @@ import type {
  */
 export const useUsers = () => {
   const usersStore = useUsersStore()
+  const { user: currentUser } = useAuth()
   
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   const fetchUsers = useCallback(async (params?: PaginationParams): Promise<void> => {
+    if (!currentUser) return
+
     setIsLoading(true)
     setError(null)
 
     try {
-      // Merge with current filters
       const filters = { ...usersStore.filters, ...params }
+      let response
+
+      if (currentUser.role === 'admin' || currentUser.role === 'superadmin') {
+        response = await usersService.getUsers(filters)
+      } else {
+        response = await usersService.getCreatedUsers(currentUser.id, filters)
+      }
       
-      // Call the service
-      const response = await usersService.getUsers(filters)
-      
-      // Transform API users to frontend users
       const users = response.data.map(apiUserToUser)
       
-      // Update the store with simple actions
       usersStore.setUsers(users)
       usersStore.setPagination(response.meta)
       usersStore.setFilters(filters)
@@ -52,7 +57,7 @@ export const useUsers = () => {
     } finally {
       setIsLoading(false)
     }
-  }, []) // ✅ Sin dependencias - usersStore es estable
+  }, [currentUser])
 
   const createUser = useCallback(async (
     userData: Omit<User, 'id' | 'createdAt' | 'updatedAt'> & { password: string }
@@ -166,10 +171,11 @@ export const useUsers = () => {
     }
   }, [])
 
-  // Auto-fetch users when filters change
   useEffect(() => {
-    fetchUsers()
-  }, []) // Only on mount - fetchUsers handles filter updates
+    if (currentUser) {
+      fetchUsers()
+    }
+  }, [currentUser, fetchUsers])
 
   const clearError = useCallback(() => {
     setError(null)
@@ -179,26 +185,6 @@ export const useUsers = () => {
     usersStore.setSelectedUser(null)
   }, [])
 
-  const getCreatedUsers = useCallback(async (userId: string, params?: PaginationParams): Promise<boolean> => {
-    setIsLoading(true)
-    setError(null)
-
-    try {
-      const response = await usersService.getCreatedUsers(userId, params)
-      const users = response.data.map(apiUserToUser)
-      
-      usersStore.setUsers(users)
-      usersStore.setPagination(response.meta)
-      
-      return true
-    } catch (err) {
-      const apiError = err as ApiError
-      setError(apiError.message || 'Failed to fetch created users')
-      return false
-    } finally {
-      setIsLoading(false)
-    }
-  }, [])
 
   return {
     users: usersStore.users,
@@ -214,7 +200,6 @@ export const useUsers = () => {
     updateUser,
     deleteUser,
     getUserById,
-    getCreatedUsers,
     clearSelectedUser,
     clearError,
     

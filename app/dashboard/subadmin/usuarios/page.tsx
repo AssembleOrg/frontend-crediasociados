@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import {
   Box,
   Typography,
@@ -22,22 +22,27 @@ import {
   Edit,
   Delete,
 } from '@mui/icons-material'
-import { useManagers } from '@/hooks/useManagers'
-import { CreateUserModal } from '@/components/users/CreateUserModal'
-import { EditUserModal } from '@/components/users/EditUserModal'
+import { useUsers } from '@/hooks/useUsers'
+import { UserFormModal } from '@/components/users/UserFormModal'
 import { DeleteUserConfirmDialog } from '@/components/users/DeleteUserConfirmDialog'
 import { TableSkeleton } from '@/components/ui/TableSkeleton'
 import type { User } from '@/types/auth'
 
 export default function ManagersPage() {
   const { 
-    managers, 
-    totalManagers, 
+    users, 
     isLoading, 
     error, 
     deleteUser, 
     clearError 
-  } = useManagers()
+  } = useUsers()
+  
+  // Filter managers directly
+  const managers = useMemo(() => 
+    users.filter(user => user.role === 'manager'), 
+    [users]
+  )
+  const totalManagers = managers.length
 
   const [page, setPage] = useState(0)
   const [rowsPerPage, setRowsPerPage] = useState(10)
@@ -196,19 +201,20 @@ export default function ManagersPage() {
         />
       </Paper>
 
-      <CreateUserModal
+      <UserFormModal
         open={createModalOpen}
         onClose={handleCloseModals}
-        targetRole="prestamista"
-        title="Crear Prestamista"
+        targetRole="manager"
+        mode="create"
       />
 
       {selectedUser && (
         <>
-          <EditUserModal
+          <UserFormModal
             open={editModalOpen}
             onClose={handleCloseModals}
             user={selectedUser}
+            mode="edit"
           />
           <DeleteUserConfirmDialog
             open={deleteDialogOpen}

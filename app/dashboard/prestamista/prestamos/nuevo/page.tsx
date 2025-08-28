@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import {
   Box,
   Typography,
@@ -11,18 +11,30 @@ import {
 import { Add } from '@mui/icons-material'
 import { CreateLoanModal } from '@/components/loans/CreateLoanModal'
 import { useClients } from '@/hooks/useClients'
+import { useRouter } from 'next/navigation'
 
 export default function NuevoPrestamoPage() {
   const [modalOpen, setModalOpen] = useState(false)
   const { clients, isLoading, error } = useClients()
+  const router = useRouter()
 
-  const handleOpenModal = () => {
-    setModalOpen(true)
-  }
+  // Auto-abrir modal al cargar la página si hay clientes
+  useEffect(() => {
+    if (!isLoading && clients.length > 0) {
+      setModalOpen(true)
+    }
+  }, [isLoading, clients.length])
 
   const handleCloseModal = () => {
     setModalOpen(false)
+    // Redirigir de vuelta a la lista de préstamos al cerrar
+    router.push('/dashboard/prestamista/prestamos')
   }
+
+  // const handleLoanCreated = () => {
+  //   // Redirigir a la lista de préstamos después de crear
+  //   router.push('/dashboard/prestamista/prestamos')
+  // }
 
   return (
     <Box sx={{ p: 3 }}>
@@ -64,7 +76,7 @@ export default function NuevoPrestamoPage() {
           variant="contained"
           size="large"
           startIcon={<Add />}
-          onClick={handleOpenModal}
+          onClick={() => setModalOpen(true)}
           disabled={isLoading || clients.length === 0}
         >
           {isLoading ? 'Cargando...' : 'Abrir Simulador de Préstamos'}

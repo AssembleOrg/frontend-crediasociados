@@ -16,6 +16,7 @@ import { AccountCircle, ExitToApp } from '@mui/icons-material';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import { Logo } from '@/components/ui/Logo';
+import { RoleUtils, type UserRole } from '@/lib/role-utils';
 
 export function DashboardNav() {
   const router = useRouter();
@@ -52,25 +53,6 @@ export function DashboardNav() {
     handleClose();
   };
 
-  const getRoleDisplayName = (role: string) => {
-    const roleNames = {
-      admin: 'Administrador',
-      subadmin: 'Sub-Administrador',
-      prestamista: 'Manager',
-      cliente: 'Cliente',
-    };
-    return roleNames[role as keyof typeof roleNames] || role;
-  };
-
-  const getRoleColor = (role: string) => {
-    const roleColors = {
-      admin: '#d32f2f',
-      subadmin: '#f57c00',
-      prestamista: '#1976d2',
-      cliente: '#388e3c',
-    };
-    return roleColors[role as keyof typeof roleColors] || '#666';
-  };
 
   return (
     <AppBar
@@ -109,11 +91,11 @@ export function DashboardNav() {
             <Typography
               variant='caption'
               sx={{
-                color: getRoleColor(user?.role || ''),
+                color: RoleUtils.getRoleColor((user?.role || '') as UserRole),
                 fontWeight: 600,
               }}
             >
-              {getRoleDisplayName(user?.role || '')}
+              {RoleUtils.getRoleDisplayName((user?.role || '') as UserRole)}
             </Typography>
           </Box>
 

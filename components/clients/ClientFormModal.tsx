@@ -13,35 +13,40 @@ import {
   Alert,
 } from '@mui/material'
 import { useClients } from '@/hooks/useClients'
+import { ClientValidation } from '@/lib/validation-utils'
 import type { Client } from '@/types/auth'
 
-interface EditClientModalProps {
+interface ClientFormModalProps {
   open: boolean
   onClose: () => void
-  client: Client | null
+  client?: Client | null
+  mode: 'create' | 'edit'
 }
 
-export function EditClientModal({ 
+const INITIAL_FORM_DATA = {
+  fullName: '',
+  dni: '',
+  cuit: '',
+  phone: '',
+  email: '',
+  address: '',
+  job: ''
+}
+
+export function ClientFormModal({ 
   open, 
   onClose, 
-  client
-}: EditClientModalProps) {
-  const { updateClient, isLoading, error } = useClients()
+  client,
+  mode
+}: ClientFormModalProps) {
+  const { createClient, updateClient, isLoading, error } = useClients()
 
-  const [formData, setFormData] = useState({
-    fullName: '',
-    dni: '',
-    cuit: '',
-    phone: '',
-    email: '',
-    address: '',
-    job: ''
-  })
-
+  const [formData, setFormData] = useState(INITIAL_FORM_DATA)
   const [formErrors, setFormErrors] = useState<Record<string, string>>({})
 
+  // Initialize form data when client changes (for edit mode)
   useEffect(() => {
-    if (client) {
+    if (mode === 'edit' && client) {
       setFormData({
         fullName: client.fullName || '',
         dni: client.dni || '',
@@ -51,8 +56,10 @@ export function EditClientModal({
         address: client.address || '',
         job: client.job || ''
       })
+    } else if (mode === 'create') {
+      setFormData(INITIAL_FORM_DATA)
     }
-  }, [client])
+  }, [client, mode])
 
   const handleInputChange = (field: keyof typeof formData) => (
     event: React.ChangeEvent<HTMLInputElement>
@@ -62,6 +69,7 @@ export function EditClientModal({
       [field]: event.target.value
     }))
     
+    // Clear field error when user starts typing
     if (formErrors[field]) {
       setFormErrors(prev => ({
         ...prev,
@@ -71,24 +79,10 @@ export function EditClientModal({
   }
 
   const validateForm = () => {
-    const errors: Record<string, string> = {}
-
-    if (!formData.fullName.trim()) {
-      errors.fullName = 'El nombre completo es requerido'
-    }
-
-    if (formData.email && !/\S+@\S+\.\S+/.test(formData.email)) {
-      errors.email = 'El email no tiene un formato válido'
-    }
-
-    if (formData.dni && !/^\d+$/.test(formData.dni)) {
-      errors.dni = 'El DNI debe contener solo números'
-    }
-
-    if (formData.cuit && !/^\d{11}$/.test(formData.cuit.replace(/-/g, ''))) {
-      errors.cuit = 'El CUIT debe tener 11 dígitos'
-    }
-
+    const errors = mode === 'create' 
+      ? ClientValidation.validateCreateClient(formData)
+      : ClientValidation.validateUpdateClient(formData)
+    
     setFormErrors(errors)
     return Object.keys(errors).length === 0
   }
@@ -96,11 +90,12 @@ export function EditClientModal({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    if (!client || !validateForm()) {
+    if (!validateForm()) {
       return
     }
 
-    const updateData: Partial<Client> = {
+    // Prepare data for submission
+    const clientData: Omit<Client, 'id' | 'createdAt' | 'updatedAt'> = {
       fullName: formData.fullName,
       dni: formData.dni || undefined,
       cuit: formData.cuit || undefined,
@@ -110,7 +105,15 @@ export function EditClientModal({
       job: formData.job || undefined,
     }
 
-    const result = await updateClient(client.id, updateData)
+    let result: boolean
+
+    if (mode === 'create') {
+      result = await createClient(clientData)
+    } else if (mode === 'edit' && client) {
+      result = await updateClient(client.id, clientData)
+    } else {
+      return
+    }
 
     if (result) {
       handleClose()
@@ -118,20 +121,19 @@ export function EditClientModal({
   }
 
   const handleClose = () => {
-    setFormData({
-      fullName: '',
-      dni: '',
-      cuit: '',
-      phone: '',
-      email: '',
-      address: '',
-      job: ''
-    })
+    setFormData(INITIAL_FORM_DATA)
     setFormErrors({})
     onClose()
   }
 
-  if (!client) return null
+  // Don't render if in edit mode but no client provided
+  if (mode === 'edit' && !client) {
+    return null
+  }
+
+  const title = mode === 'create' ? 'Crear Cliente' : 'Editar Cliente'
+  const submitText = mode === 'create' ? 'Crear Cliente' : 'Guardar Cambios'
+  const loadingText = mode === 'create' ? 'Creando...' : 'Guardando...'
 
   return (
     <Dialog 
@@ -142,7 +144,7 @@ export function EditClientModal({
     >
       <DialogTitle>
         <Typography variant="h6" component="div">
-          Editar Cliente
+          {title}
         </Typography>
       </DialogTitle>
 
@@ -236,7 +238,7 @@ export function EditClientModal({
             variant="contained"
             disabled={isLoading}
           >
-            {isLoading ? 'Guardando...' : 'Guardar Cambios'}
+            {isLoading ? loadingText : submitText}
           </Button>
         </DialogActions>
       </form>

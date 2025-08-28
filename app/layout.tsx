@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { ThemeProvider } from "@/lib/ThemeProvider";
+import DolarBlueProvider from "@/components/providers/DolarBlueProvider";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -27,7 +28,9 @@ export default function RootLayout({
     <html lang="es">
       <body className={`${geistSans.variable} ${geistMono.variable}`}>
         <ThemeProvider>
-          {children}
+          <DolarBlueProvider>
+            {children}
+          </DolarBlueProvider>
         </ThemeProvider>
       </body>
     </html>

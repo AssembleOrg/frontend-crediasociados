@@ -56,7 +56,7 @@ export interface PaginatedResponse<T> {
 }
 
 // Frontend domain types - Internal representation
-export type UserRole = 'admin' | 'subadmin' | 'prestamista' | 'cliente';
+export type UserRole = 'superadmin' | 'admin' | 'subadmin' | 'manager' | 'prestamista' | 'cliente';
 
 export interface User {
   id: string;

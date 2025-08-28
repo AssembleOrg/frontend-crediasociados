@@ -15,12 +15,11 @@ import {
   InputLabel,
   Select,
   MenuItem,
-  InputAdornment
+  InputAdornment,
 } from '@mui/material'
 import { useClients } from '@/hooks/useClients'
-import type { components } from '@/types/api-generated'
+import { LoanSimulationModal } from './LoanSimulationModal'
 
-type CreateLoanDto = components['schemas']['CreateLoanDto']
 
 interface CreateLoanModalProps {
   open: boolean
@@ -52,13 +51,13 @@ export function CreateLoanModal({
     paymentDay: 'FRIDAY' as 'MONDAY' | 'TUESDAY' | 'WEDNESDAY' | 'THURSDAY' | 'FRIDAY' | 'SATURDAY' | 'SUNDAY',
     totalPayments: '',
     firstDueDate: null as Date | null,
-    loanTrack: '',
     description: ''
   })
 
   const [formErrors, setFormErrors] = useState<Record<string, string>>({})
   const [simulatedLoans, setSimulatedLoans] = useState<SubLoan[]>([])
   const [isSimulating, setIsSimulating] = useState(false)
+  const [simulationModalOpen, setSimulationModalOpen] = useState(false)
 
   // Reset form cuando se cierra el modal
   useEffect(() => {
@@ -73,11 +72,11 @@ export function CreateLoanModal({
         paymentDay: 'FRIDAY' as 'MONDAY' | 'TUESDAY' | 'WEDNESDAY' | 'THURSDAY' | 'FRIDAY' | 'SATURDAY' | 'SUNDAY',
         totalPayments: '',
         firstDueDate: null,
-        loanTrack: '',
         description: ''
       })
       setFormErrors({})
       setSimulatedLoans([])
+      setSimulationModalOpen(false)
     }
   }, [open])
 
@@ -127,9 +126,7 @@ export function CreateLoanModal({
       errors.baseInterestRate = 'La tasa de interés base debe ser 0 o mayor'
     }
 
-    if (!formData.penaltyInterestRate || parseFloat(formData.penaltyInterestRate) < 0) {
-      errors.penaltyInterestRate = 'La tasa de interés penalización debe ser 0 o mayor'
-    }
+    // Tasa de penalización temporalmente deshabilitada
 
     if (!formData.totalPayments || parseInt(formData.totalPayments) < 1) {
       errors.totalPayments = 'El número de pagos debe ser al menos 1'
@@ -193,49 +190,21 @@ export function CreateLoanModal({
     const calculated = calculateSubLoans()
     setSimulatedLoans(calculated)
     
-    // Console log para debug
-    console.log('=== SIMULACIÓN DE PRÉSTAMO ===')
-    console.log('Cliente:', clients.find(c => c.id === formData.clientId)?.fullName)
-    console.log('Monto principal:', formData.amount)
-    console.log('Tasa de interés base:', formData.baseInterestRate + '%')
-    console.log('Tasa de penalización:', formData.penaltyInterestRate + '%')
-    console.log('Frecuencia de pago:', formData.paymentFrequency)
-    console.log('Total de pagos:', formData.totalPayments)
-    console.log('Monto total con interés:', (parseFloat(formData.amount) * (1 + parseFloat(formData.baseInterestRate) / 100)).toFixed(2))
-    console.log('Sub-préstamos calculados:')
-    calculated.forEach((loan) => {
-      console.log(`  Pago ${loan.paymentNumber}: $${loan.totalAmount.toFixed(2)} (Principal: $${loan.amount.toFixed(2)}) - Vence: ${loan.dueDate.toLocaleDateString()}`)
-    })
-    console.log('================================')
-    
-    setIsSimulating(false)
+    // Abrir modal de simulación
+    setTimeout(() => {
+      setSimulationModalOpen(true)
+      setIsSimulating(false)
+    }, 500) // Pequeño delay para mejor UX
   }
 
-  const handleConfirm = () => {
-    if (!validateForm()) {
-      return
-    }
+  const handleSimulationModalClose = () => {
+    setSimulationModalOpen(false)
+    // NO cerrar el modal principal para mantener los datos
+  }
 
-    // TODO: Implementar creación real del préstamo
-    const createLoanData: CreateLoanDto = {
-      clientId: formData.clientId,
-      amount: parseFloat(formData.amount),
-      baseInterestRate: parseFloat(formData.baseInterestRate) / 100, // API espera decimal
-      penaltyInterestRate: parseFloat(formData.penaltyInterestRate) / 100,
-      currency: formData.currency,
-      paymentFrequency: formData.paymentFrequency,
-      paymentDay: formData.paymentDay,
-      totalPayments: parseInt(formData.totalPayments),
-      firstDueDate: formData.firstDueDate?.toISOString(),
-      loanTrack: formData.loanTrack || undefined,
-      description: formData.description || undefined
-    }
-
-    console.log('=== DATOS PARA ENVIAR AL BACKEND ===')
-    console.log(JSON.stringify(createLoanData, null, 2))
-    console.log('=====================================')
-
-    // Por ahora solo cerramos el modal
+  const handleLoanCreated = () => {
+    // Solo cerrar cuando se cree exitosamente el préstamo
+    setSimulationModalOpen(false)
     onClose()
   }
 
@@ -333,14 +302,17 @@ export function CreateLoanModal({
               <TextField
                 label="Tasa de Penalización"
                 type="number"
-                value={formData.penaltyInterestRate}
-                onChange={handleInputChange('penaltyInterestRate')}
-                error={!!formErrors.penaltyInterestRate}
-                helperText={formErrors.penaltyInterestRate || 'Porcentaje adicional por pagos vencidos'}
-                required
+                value="5"
+                disabled
                 fullWidth
+                helperText="Temporalmente deshabilitado - Se aplicará 5% por defecto"
                 InputProps={{
                   endAdornment: <InputAdornment position="end">%</InputAdornment>,
+                }}
+                sx={{
+                  '& .MuiInputBase-input.Mui-disabled': {
+                    WebkitTextFillColor: '#666'
+                  }
                 }}
               />
             </Box>
@@ -360,22 +332,33 @@ export function CreateLoanModal({
                   <MenuItem value="MONTHLY">Mensual</MenuItem>
                 </Select>
               </FormControl>
-              <FormControl fullWidth>
-                <InputLabel>Día de Pago</InputLabel>
-                <Select
-                  value={formData.paymentDay}
-                  onChange={(e) => handleSelectChange('paymentDay', e.target.value)}
+              
+              {formData.paymentFrequency === 'DAILY' ? (
+                <TextField
                   label="Día de Pago"
-                >
-                  <MenuItem value="MONDAY">Lunes</MenuItem>
-                  <MenuItem value="TUESDAY">Martes</MenuItem>
-                  <MenuItem value="WEDNESDAY">Miércoles</MenuItem>
-                  <MenuItem value="THURSDAY">Jueves</MenuItem>
-                  <MenuItem value="FRIDAY">Viernes</MenuItem>
-                  <MenuItem value="SATURDAY">Sábado</MenuItem>
-                  <MenuItem value="SUNDAY">Domingo</MenuItem>
-                </Select>
-              </FormControl>
+                  value="Todos los días"
+                  disabled
+                  fullWidth
+                  helperText="Cobros diarios - No requiere día específico"
+                />
+              ) : (
+                <FormControl fullWidth>
+                  <InputLabel>Día de Pago</InputLabel>
+                  <Select
+                    value={formData.paymentDay}
+                    onChange={(e) => handleSelectChange('paymentDay', e.target.value)}
+                    label="Día de Pago"
+                  >
+                    <MenuItem value="MONDAY">Lunes</MenuItem>
+                    <MenuItem value="TUESDAY">Martes</MenuItem>
+                    <MenuItem value="WEDNESDAY">Miércoles</MenuItem>
+                    <MenuItem value="THURSDAY">Jueves</MenuItem>
+                    <MenuItem value="FRIDAY">Viernes</MenuItem>
+                    <MenuItem value="SATURDAY">Sábado</MenuItem>
+                    <MenuItem value="SUNDAY">Domingo</MenuItem>
+                  </Select>
+                </FormControl>
+              )}
             </Box>
 
             {/* Total de Pagos y Fecha de Inicio */}
@@ -403,14 +386,6 @@ export function CreateLoanModal({
               />
             </Box>
 
-            {/* Código de Tracking */}
-            <TextField
-              label="Código de Tracking"
-              value={formData.loanTrack}
-              onChange={handleInputChange('loanTrack')}
-              helperText="Opcional - si no se especifica, se genera automáticamente"
-              fullWidth
-            />
 
             {/* Descripción */}
             <TextField
@@ -424,46 +399,35 @@ export function CreateLoanModal({
             />
 
 
-            {/* Resultados de Simulación */}
-            {simulatedLoans.length > 0 && (
-              <Alert severity="success">
-                <Typography variant="h6" gutterBottom>
-                  Simulación de Cuotas Calculada
-                </Typography>
-                <Typography variant="body2">
-                  <strong>Total de pagos:</strong> {simulatedLoans.length}<br />
-                  <strong>Monto total con interés:</strong> ${(simulatedLoans.reduce((sum, loan) => sum + loan.totalAmount, 0)).toFixed(2)}<br />
-                  <strong>Monto por cuota:</strong> ${simulatedLoans[0]?.totalAmount.toFixed(2)}<br />
-                </Typography>
-                <Typography variant="caption" color="text.secondary">
-                  Ver detalles completos en la consola del navegador (F12)
-                </Typography>
-              </Alert>
-            )}
           </Box>
         </DialogContent>
 
-        <DialogActions sx={{ p: 3, gap: 1 }}>
-          <Button
-            onClick={handleSimulate}
-            variant="outlined"
-            disabled={isSimulating}
-          >
-            {isSimulating ? 'Simulando...' : 'Simular'}
-          </Button>
+        <DialogActions sx={{ p: 3, gap: 2 }}>
           <Button
             onClick={handleClose}
           >
             Cancelar
           </Button>
           <Button
-            onClick={handleConfirm}
+            onClick={handleSimulate}
             variant="contained"
-            disabled={!simulatedLoans.length}
+            disabled={isSimulating}
+            size="large"
+            sx={{ minWidth: 200 }}
           >
-            Confirmar
+            {isSimulating ? 'Simulando...' : 'Simular Préstamo'}
           </Button>
         </DialogActions>
+
+        {/* Modal de Simulación */}
+        <LoanSimulationModal
+          open={simulationModalOpen}
+          onClose={handleSimulationModalClose}
+          onLoanCreated={handleLoanCreated}
+          simulatedLoans={simulatedLoans}
+          formData={formData}
+          clientName={selectedClient?.fullName}
+        />
     </Dialog>
   )
 }

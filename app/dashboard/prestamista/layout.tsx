@@ -1,7 +1,7 @@
 'use client'
 
 import { Box, Paper, List, ListItem, ListItemIcon, ListItemText } from '@mui/material'
-import { Dashboard, People, AccountBalance, Assessment } from '@mui/icons-material'
+import { Dashboard, People, AccountBalance, Assessment, Payment } from '@mui/icons-material'
 import { useRouter, usePathname } from 'next/navigation'
 import { QuickActions } from '@/components/dashboard/QuickActions'
 
@@ -9,13 +9,14 @@ const prestamistaMenuItems = [
   { label: 'Dashboard', icon: <Dashboard />, path: '/dashboard/prestamista' },
   { label: 'Clientes', icon: <People />, path: '/dashboard/prestamista/clientes' },
   { label: 'Préstamos', icon: <AccountBalance />, path: '/dashboard/prestamista/prestamos' },
-  { label: 'Reportes', icon: <Assessment />, path: '/dashboard/prestamista/reportes' },
+  { label: 'Cobros Diarios', icon: <Payment />, path: '/dashboard/prestamista/cobros' },
 ]
 
 const quickActions = [
   { label: 'Dashboard', icon: <Dashboard />, path: '/dashboard/prestamista', variant: 'contained' as const },
   { label: 'Clientes', icon: <People />, path: '/dashboard/prestamista/clientes', variant: 'outlined' as const },
   { label: 'Préstamos', icon: <AccountBalance />, path: '/dashboard/prestamista/prestamos', variant: 'outlined' as const },
+  { label: 'Cobros', icon: <Payment />, path: '/dashboard/prestamista/cobros', variant: 'outlined' as const },
 ]
 
 export default function PrestamistaLayout({

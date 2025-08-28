@@ -85,14 +85,24 @@ export function Navbar() {
                 </Button>
               </>
             ) : (
-              <Button
-                variant='contained'
-                color='primary'
-                onClick={handleLogin}
-                sx={{ px: 3, py: 1 }}
-              >
-                Iniciar Sesión
-              </Button>
+              <>
+                <Button
+                  variant='outlined'
+                  color='primary'
+                  onClick={() => router.push('/consulta')}
+                  sx={{ px: 3, py: 1 }}
+                >
+                  Consultar Préstamo
+                </Button>
+                <Button
+                  variant='contained'
+                  color='primary'
+                  onClick={handleLogin}
+                  sx={{ px: 3, py: 1 }}
+                >
+                  Iniciar Sesión
+                </Button>
+              </>
             )}
           </Box>
         </Container>

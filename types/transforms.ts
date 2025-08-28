@@ -23,8 +23,10 @@ const ROLE_MAP: Record<ApiUserRole, UserRole> = {
 };
 
 const REVERSE_ROLE_MAP: Record<UserRole, ApiUserRole> = {
-  admin: 'SUPERADMIN',
+  superadmin: 'SUPERADMIN',
+  admin: 'ADMIN',
   subadmin: 'SUBADMIN',
+  manager: 'MANAGER',
   prestamista: 'MANAGER',
   cliente: 'MANAGER',
 };
@@ -72,8 +74,10 @@ export const userToUpdateDto = (
 // Get display role name
 export const getRoleDisplayName = (role: UserRole): string => {
   const ROLE_DISPLAY: Record<UserRole, string> = {
+    superadmin: 'Super Admin',
     admin: 'Administrador',
     subadmin: 'Sub-Administrador',
+    manager: 'Manager',
     prestamista: 'Prestamista',
     cliente: 'Cliente',
   };
