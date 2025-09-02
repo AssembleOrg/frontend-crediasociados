@@ -37,9 +37,9 @@ export class ValidationUtils {
 
   static validateDNI(dni: string): string | null {
     if (!dni) return null // DNI is optional
-    if (!ValidationRules.dni.test(dni)) {
-      return ValidationMessages.dni
-    }
+    // if (!ValidationRules.dni.test(dni)) {
+    //   return ValidationMessages.dni
+    // }
     return null
   }
 

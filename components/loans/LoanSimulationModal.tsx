@@ -119,6 +119,27 @@ export function LoanSimulationModal({
   const totalPrincipal = simulatedLoans.reduce((sum, loan) => sum + loan.amount, 0)
   const totalInterest = totalWithInterest - totalPrincipal
 
+  const getDayText = (day: string) => {
+    switch (day) {
+      case 'MONDAY':
+        return 'Lunes'
+      case 'TUESDAY':
+        return 'Martes'
+      case 'WEDNESDAY':
+        return 'Miércoles'
+      case 'THURSDAY':
+        return 'Jueves'
+      case 'FRIDAY':
+        return 'Viernes'
+      case 'SATURDAY':
+        return 'Sábado'
+      case 'SUNDAY':
+        return 'Domingo'
+      default:
+        return day
+    }
+  }
+
   const getFrequencyText = (frequency: string) => {
     switch (frequency) {
       case 'DAILY':
@@ -241,7 +262,7 @@ export function LoanSimulationModal({
                     <Typography variant="h6" color="primary.main">${totalWithInterest.toLocaleString()}</Typography>
                   </Box>
                   <Box>
-                    <Typography variant="body2" color="text.secondary">Cuota:</Typography>
+                    <Typography variant="body2" color="text.secondary">Monto por Cuota:</Typography>
                     <Typography variant="h6">${simulatedLoans[0]?.totalAmount.toLocaleString()}</Typography>
                   </Box>
                 </Box>
@@ -257,11 +278,11 @@ export function LoanSimulationModal({
                     <strong>Tasa base:</strong> {formData.baseInterestRate}%
                   </Typography>
                   <Typography variant="body2">
-                    <strong>Penalización:</strong> 5% (por defecto)
+                    <strong>Penalización:</strong> 0% (por defecto)
                   </Typography>
                   <Typography variant="body2">
                     <strong>Frecuencia:</strong> {getFrequencyText(formData.paymentFrequency)}
-                    {formData.paymentFrequency !== 'DAILY' && ` (${formData.paymentDay}s)`}
+                    {formData.paymentFrequency !== 'DAILY' && ` (${getDayText(formData.paymentDay)})`}
                   </Typography>
                   <Typography variant="body2">
                     <strong>Total cuotas:</strong> {simulatedLoans.length}

@@ -57,7 +57,7 @@ export const useClients = () => {
         setIsLoading(false);
       }
     },
-    [currentUser]
+    [currentUser, clientsStore]
   );
 
   const createClient = useCallback(
@@ -204,7 +204,7 @@ export const useClients = () => {
   }, []);
 
   useEffect(() => {
-    if (currentUser) {
+    if (currentUser && clientsStore.clients.length === 0) {
       fetchClients();
     }
   }, [currentUser, fetchClients]);

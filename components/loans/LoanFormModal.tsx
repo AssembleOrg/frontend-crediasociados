@@ -19,6 +19,8 @@ import {
 } from '@mui/material'
 import { useClients } from '@/hooks/useClients'
 import { useLoans } from '@/hooks/useLoans'
+import { CustomCalendar } from '@/components/ui/CustomCalendar'
+import { useBuenosAiresDate } from '@/hooks/useBuenosAiresDate'
 import type { components } from '@/types/api-generated'
 
 type CreateLoanDto = components['schemas']['CreateLoanDto']
@@ -63,6 +65,7 @@ export function LoanFormModal({
 }: LoanFormModalProps) {
   const { clients, isLoading: clientsLoading } = useClients()
   const { createLoan, isLoading, error } = useLoans()
+  const { now } = useBuenosAiresDate()
   // TODO: Implement updateLoan in useLoans hook
   // const { updateLoan } = useLoans()
 
@@ -344,18 +347,17 @@ export function LoanFormModal({
             </Box>
 
             {/* Start Date */}
-            <TextField
+            <CustomCalendar
               label="Fecha de Inicio"
-              value={formData.startDate}
-              onChange={handleInputChange('startDate')}
+              value={formData.startDate ? new Date(formData.startDate) : null}
+              onChange={(date) => setFormData(prev => ({
+                ...prev,
+                startDate: date ? date.toISOString().split('T')[0] : ''
+              }))}
+              placeholder="dd/mm/aaaa"
               error={!!formErrors.startDate}
               helperText={formErrors.startDate}
-              required
-              type="date"
-              InputLabelProps={{
-                shrink: true,
-              }}
-              fullWidth
+              minDate={now().toJSDate()}
             />
 
             {/* Selected Client Info */}
