@@ -14,14 +14,14 @@ import type {
  * No state management, no complex logic - just API calls.
  */
 class LoansService {
-  async getLoans(params: PaginationParams = {}): Promise<PaginatedResponse<LoanResponseDto>> {
+  async getLoansPaginated(params: PaginationParams = {}): Promise<PaginatedResponse<LoanResponseDto>> {
     const searchParams = new URLSearchParams()
     
     if (params.page) searchParams.append('page', params.page.toString())
     if (params.limit) searchParams.append('limit', params.limit.toString())
 
     const queryString = searchParams.toString()
-    const url = queryString ? `/loans?${queryString}` : '/loans'
+    const url = queryString ? `/pagination?${queryString}` : '/pagination'
     
     const response = await api.get(url)
     
@@ -29,6 +29,11 @@ class LoansService {
       data: response.data.data.data,
       meta: response.data.data.meta
     }
+  }
+
+  async getAllLoans(): Promise<LoanResponseDto[]> {
+    const response = await api.get('/loans')
+    return response.data.data
   }
 
   async getLoanById(id: string): Promise<LoanResponseDto> {

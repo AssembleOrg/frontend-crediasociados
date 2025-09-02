@@ -48,8 +48,8 @@ export function useLoans() {
       setLoading(true)
       setError(null)
 
-      const response = await loansService.getLoans(params)
-      const transformedLoans = response.data.map(apiLoanToLoan)
+      const response = await loansService.getAllLoans()
+      const transformedLoans = response.map(apiLoanToLoan)
       setLoans(transformedLoans)
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Error desconocido'

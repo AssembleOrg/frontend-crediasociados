@@ -3,6 +3,8 @@
  * Do not make direct changes to the file.
  */
 
+import { Client } from "./auth";
+
 export interface paths {
     "/api/v1": {
         parameters: {
@@ -509,6 +511,15 @@ export interface components {
             description?: string;
             /** @example Client requested weekly payments on Fridays */
             notes?: string;
+            /** @example 2024-01-15T00:00:00.000Z */
+            // createdAt: string;
+            // /** @example 2024-01-15T00:00:00.000Z */
+            // updatedAt: string;
+            // /** @example 2024-01-15T00:00:00.000Z */
+            // requestDate: string;
+            // status: string;
+            // userId: string;
+            // client: Record<string, never>;
         };
         CreateLoanResponseDto: {
             /** @example loan_id_here */
@@ -518,15 +529,15 @@ export interface components {
             /** @example 100000 */
             amount: number;
             /** @example ARS */
-            currency: string;
+            currency: 'ARS';
             /** @example WEEKLY */
-            paymentFrequency: string;
+            paymentFrequency: 'DAILY' | 'WEEKLY' | 'BIWEEKLY' | 'MONTHLY';
             /** @example FRIDAY */
-            paymentDay: string;
+            paymentDay: 'MONDAY' | 'TUESDAY' | 'WEDNESDAY' | 'THURSDAY' | 'FRIDAY' | 'SATURDAY' | 'SUNDAY';
             /** @example 12 */
             totalPayments: number;
             /** @example 2024-02-02T00:00:00.000Z */
-            firstDueDate: string;
+            firstDueDate: Date;
             /** @example 15 */
             baseInterestRate: number;
             /** @example 35 */
@@ -536,7 +547,7 @@ export interface components {
             /** @example Client requested weekly payments on Fridays */
             notes: string;
             /** @example 2024-01-15T00:00:00.000Z */
-            createdAt: string;
+            createdAt: Date;
             /** @example {
              *       "id": "client_id",
              *       "fullName": "John Doe",
@@ -546,7 +557,7 @@ export interface components {
              *       "email": "client@example.com",
              *       "address": "123 Main St, Buenos Aires"
              *     } */
-            client: Record<string, never>;
+            client: Client;
             /**
              * @description SubLoans generados automáticamente basados en totalPayments
              * @example [
@@ -573,6 +584,12 @@ export interface components {
              *     ]
              */
             subLoans: string[];
+            updatedAt: Date;
+            /** @example 2024-01-15T00:00:00.000Z */
+            requestDate: Date;
+            status: 'PENDING' | 'APPROVED' | 'REJECTED' | 'ACTIVE' | 'COMPLETED' | 'DEFAULTED';
+            userId: string;
+            clientId: string;
         };
         LoanTrackingResponseDto: {
             /** @example loan_id_here */
@@ -582,7 +599,7 @@ export interface components {
             /** @example 100000 */
             amount: number;
             /** @example ARS */
-            currency: string;
+            currency: 'ARS';
             /** @example WEEKLY */
             paymentFrequency: string;
             /** @example FRIDAY */
@@ -594,7 +611,7 @@ export interface components {
             /** @example Business expansion loan */
             description: string;
             /** @example 2024-01-15T00:00:00.000Z */
-            createdAt: string;
+            createdAt: Date;
             /** @example {
              *       "id": "client_id",
              *       "fullName": "John Doe",

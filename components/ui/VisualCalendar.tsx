@@ -112,8 +112,8 @@ export function VisualCalendar({
     }
   }
 
-  const handleCalendarClick = (event: React.MouseEvent<HTMLDivElement>) => {
-    setAnchorEl(event.currentTarget)
+  const handleCalendarClick = (event: React.MouseEvent<HTMLButtonElement>) => {
+    setAnchorEl(event.currentTarget.parentElement as HTMLDivElement)
   }
 
   const handleClose = () => {
@@ -338,8 +338,13 @@ export function VisualCalendar({
               const isCurrentMonth = day.month === currentMonth.month
               const isToday = day.hasSame(today, 'day')
               const isSelected = selectedDate && day.hasSame(selectedDate, 'day')
+              // En Luxon: 1 = lunes, 2 = martes, ..., 6 = sábado, 7 = domingo
+              // Queremos bloquear domingos (weekday === 7)
+              const isSunday = day.weekday === 7
+              const isPastDate = day.toJSDate() < today.toJSDate()
               const isDisabled = (minDate && day.toJSDate() < minDate) || 
-                                (maxDate && day.toJSDate() > maxDate)
+                                (maxDate && day.toJSDate() > maxDate) ||
+                                isSunday || isPastDate 
 
               return (
                 <Box
@@ -352,13 +357,15 @@ export function VisualCalendar({
                     justifyContent: 'center',
                     fontSize: '0.875rem',
                     fontWeight: isToday || isSelected ? 600 : 400,
-                    color: isCurrentMonth ? 
-                      (isSelected ? 'white' : 
-                       isToday ? '#2563eb' : '#111827') : '#9ca3af',
-                    backgroundColor: isSelected ? 
-                      '#2563eb' :
-                      isToday ? 
-                        '#dbeafe' : 'transparent',
+                    color: isDisabled ? '#d1d5db' :
+                      isCurrentMonth ? 
+                        (isSelected ? 'white' : 
+                         isToday ? '#2563eb' : '#111827') : '#9ca3af',
+                    backgroundColor: isDisabled ? '#f9fafb' :
+                      isSelected ? 
+                        '#2563eb' :
+                        isToday ? 
+                          '#dbeafe' : 'transparent',
                     cursor: isDisabled ? 'default' : 'pointer',
                     borderRadius: 1,
                     transition: 'all 0.15s ease',

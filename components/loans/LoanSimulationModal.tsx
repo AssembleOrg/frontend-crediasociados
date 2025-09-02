@@ -26,6 +26,7 @@ import {
   Close
 } from '@mui/icons-material'
 import type { components } from '@/types/api-generated'
+import { useLoansStore } from '@/stores/loans'
 
 type CreateLoanDto = components['schemas']['CreateLoanDto']
 
@@ -67,6 +68,7 @@ export function LoanSimulationModal({
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
   const [mockLoanTrackingNumber, setMockLoanTrackingNumber] = useState<string | null>(null)
+  const { createLoan } = useLoansStore()
 
   const handleConfirmLoan = async () => {
     setIsCreating(true)
@@ -76,8 +78,8 @@ export function LoanSimulationModal({
       const createLoanData: CreateLoanDto = {
         clientId: formData.clientId,
         amount: parseFloat(formData.amount),
-        baseInterestRate: parseFloat(formData.baseInterestRate) / 100,
-        penaltyInterestRate: 0.05, // 5% fijo temporalmente
+        baseInterestRate: parseFloat(formData.baseInterestRate),
+        penaltyInterestRate: parseFloat(formData.penaltyInterestRate) || 0,
         currency: formData.currency,
         paymentFrequency: formData.paymentFrequency,
         paymentDay: formData.paymentFrequency === 'DAILY' ? undefined : formData.paymentDay as 'MONDAY' | 'TUESDAY' | 'WEDNESDAY' | 'THURSDAY' | 'FRIDAY' | 'SATURDAY' | 'SUNDAY',
@@ -87,20 +89,22 @@ export function LoanSimulationModal({
       }
 
       console.log('=== CREANDO PRÉSTAMO (MOCKUP) ===')
-      console.log(JSON.stringify(createLoanData, null, 2))
+      // console.log(JSON.stringify(createLoanData, null, 2))
       
-      // MOCKUP: Simular delay del servidor
-      await new Promise(resolve => setTimeout(resolve, 2000))
+      // // MOCKUP: Simular delay del servidor
+      // await new Promise(resolve => setTimeout(resolve, 2000))
       
-      // MOCKUP: Generar número de tracking
-      const currentYear = new Date().getFullYear()
-      const randomNum = Math.floor(Math.random() * 9000) + 1000 // Entre 1000-9999
-      const generatedTrackingNumber = `LN-${currentYear}-${randomNum}`
+      // // MOCKUP: Generar número de tracking
+      // const currentYear = new Date().getFullYear()
+      // const randomNum = Math.floor(Math.random() * 9000) + 1000 // Entre 1000-9999
+      // const generatedTrackingNumber = `LN-${currentYear}-${randomNum}`
       
-      setMockLoanTrackingNumber(generatedTrackingNumber)
+      // setMockLoanTrackingNumber(generatedTrackingNumber)
       
-      console.log('=== PRÉSTAMO CREADO (MOCKUP) ===')
-      console.log(`Número de Tracking: ${generatedTrackingNumber}`)
+      // console.log('=== PRÉSTAMO CREADO (MOCKUP) ===')
+      // console.log(`Número de Tracking: ${generatedTrackingNumber}`)
+      const loan = await createLoan(createLoanData);
+      setMockLoanTrackingNumber(loan.loanTrack)
       console.log('Cliente:', clientName)
       console.log('Monto:', `$${parseFloat(formData.amount).toLocaleString()}`)
       console.log('Cuotas:', formData.totalPayments)

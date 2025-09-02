@@ -166,22 +166,28 @@ export function CreateLoanModal({
     const startDate = formData.firstDueDate || automaticDate
     
     for (let i = 1; i <= totalPayments; i++) {
-      const dueDate = new Date(startDate)
+      let dueDate: Date
       
       // Calcular fecha según frecuencia
       switch (formData.paymentFrequency) {
         case 'DAILY':
-          dueDate.setDate(startDate.getDate() + (i - 1))
+          // Para pagos diarios, saltar domingos
+          dueDate = skipSundays(startDate, i - 1, subLoans)
           break
         case 'WEEKLY':
+          dueDate = new Date(startDate)
           dueDate.setDate(startDate.getDate() + ((i - 1) * 7))
           break
         case 'BIWEEKLY':
+          dueDate = new Date(startDate)
           dueDate.setDate(startDate.getDate() + ((i - 1) * 14))
           break
         case 'MONTHLY':
+          dueDate = new Date(startDate)
           dueDate.setMonth(startDate.getMonth() + (i - 1))
           break
+        default:
+          dueDate = new Date(startDate)
       }
 
       subLoans.push({
@@ -285,6 +291,30 @@ export function CreateLoanModal({
 
   const totalAmount = calculateTotalAmount()
   const automaticDate = calculateAutomaticDate()
+
+  // Función para saltar domingos en pagos diarios
+  const skipSundays = (date: Date, daysToAdd: number, subLoans: SubLoan[]): Date => {
+    let newDate = new Date(date)
+    newDate.setDate(date.getDate() + daysToAdd)
+    
+    // Verificar si es domingo y saltar al lunes
+    while (newDate.getDay() === 0) {
+      newDate.setDate(newDate.getDate() + 1)
+    }
+    
+    // Verificar si ya existe una fecha igual en los subpréstamos anteriores
+    while (subLoans.some(loan => 
+      loan.dueDate.getTime() === newDate.getTime()
+    )) {
+      newDate.setDate(newDate.getDate() + 1)
+      // Si al avanzar un día cae en domingo, saltar al lunes
+      while (newDate.getDay() === 0) {
+        newDate.setDate(newDate.getDate() + 1)
+      }
+    }
+    
+    return newDate
+  }
 
   return (
     <Dialog
