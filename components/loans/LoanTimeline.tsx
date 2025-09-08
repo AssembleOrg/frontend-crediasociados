@@ -8,6 +8,7 @@ interface LoanTimelineProps {
   clientName: string
   subLoans: SubLoanWithClientInfo[]
   compact?: boolean
+  onPaymentClick?: (subloan: SubLoanWithClientInfo) => void
 }
 
 interface TimelineNodeProps {
@@ -16,6 +17,7 @@ interface TimelineNodeProps {
   isLast: boolean
   getUrgencyLevel: (dueDate: string) => 'overdue' | 'today' | 'soon' | 'future'
   compact?: boolean
+  onPaymentClick?: (subloan: SubLoanWithClientInfo) => void
 }
 
 const TimelineNode: React.FC<TimelineNodeProps> = ({ 
@@ -23,7 +25,8 @@ const TimelineNode: React.FC<TimelineNodeProps> = ({
   index, 
   isLast, 
   getUrgencyLevel,
-  compact = false 
+  compact = false,
+  onPaymentClick
 }) => {
   const urgency = getUrgencyLevel(subloan.dueDate)
   const isPaid = subloan.status === 'PAID'
@@ -82,16 +85,22 @@ const TimelineNode: React.FC<TimelineNodeProps> = ({
   }
 
   const getDaysInfo = () => {
-    const today = new Date()
-    const dueDate = new Date(subloan.dueDate)
-    const diffTime = dueDate.getTime() - today.getTime()
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
-
     if (isPaid) return 'Pagada'
-    if (diffDays < 0) return `${Math.abs(diffDays)} días vencida`
+    
+    // Use only date part to avoid timezone issues
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    
+    const dueDate = new Date(subloan.dueDate)
+    dueDate.setHours(0, 0, 0, 0)
+    
+    const diffTime = dueDate.getTime() - today.getTime()
+    const diffDays = diffTime / (1000 * 60 * 60 * 24)
+
+    if (diffDays < 0) return `${Math.abs(Math.round(diffDays))} día${Math.abs(Math.round(diffDays)) === 1 ? '' : 's'} vencida`
     if (diffDays === 0) return 'Vence hoy'
     if (diffDays === 1) return 'Vence mañana'
-    return `En ${diffDays} días`
+    return `En ${Math.round(diffDays)} día${Math.round(diffDays) === 1 ? '' : 's'}`
   }
 
   return (
@@ -110,7 +119,7 @@ const TimelineNode: React.FC<TimelineNodeProps> = ({
           <Typography variant="caption" display="block" color={colors.primary}>
             {getDaysInfo()}
           </Typography>
-          {subloan.paidAmount && (
+          {subloan.paidAmount > 0 && (
             <Typography variant="caption" display="block" color="success.main">
               Pagado: ${subloan.paidAmount.toLocaleString()}
             </Typography>
@@ -126,11 +135,24 @@ const TimelineNode: React.FC<TimelineNodeProps> = ({
           alignItems: 'center',
           position: 'relative',
           minWidth: compact ? 60 : 80,
-          cursor: 'pointer',
+          cursor: !isPaid && onPaymentClick ? 'pointer' : 'default',
           '&:hover': {
-            transform: 'scale(1.05)',
+            transform: !isPaid && onPaymentClick ? 'scale(1.05)' : 'none',
           },
-          transition: 'transform 0.2s ease'
+          transition: 'transform 0.2s ease',
+          ...((!isPaid && onPaymentClick) && {
+            '&:hover': {
+              transform: 'scale(1.05)',
+              '& .payment-hint': {
+                opacity: 1
+              }
+            },
+          })
+        }}
+        onClick={() => {
+          if (!isPaid && onPaymentClick) {
+            onPaymentClick(subloan)
+          }
         }}
       >
         {/* Connection Line */}
@@ -217,6 +239,24 @@ const TimelineNode: React.FC<TimelineNodeProps> = ({
             }
           }}
         />
+        
+        {/* Payment Clickable Hint */}
+        {!isPaid && onPaymentClick && (
+          <Typography
+            className="payment-hint"
+            variant="caption"
+            sx={{
+              fontSize: '9px',
+              color: colors.primary,
+              opacity: 0,
+              transition: 'opacity 0.2s ease',
+              mt: 0.5,
+              fontWeight: 'bold'
+            }}
+          >
+            Click para pagar
+          </Typography>
+        )}
       </Box>
     </Tooltip>
   )
@@ -225,17 +265,23 @@ const TimelineNode: React.FC<TimelineNodeProps> = ({
 export const LoanTimeline: React.FC<LoanTimelineProps> = ({ 
   clientName, 
   subLoans, 
-  compact = false 
+  compact = false,
+  onPaymentClick
 }) => {
   const theme = useTheme()
   const isMobile = useMediaQuery(theme.breakpoints.down('md'))
 
   // Helper function to determine urgency based on due date
   const getUrgencyLevel = (dueDate: string): 'overdue' | 'today' | 'soon' | 'future' => {
+    // Use only date part to avoid timezone issues
     const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    
     const due = new Date(dueDate)
+    due.setHours(0, 0, 0, 0)
+    
     const diffTime = due.getTime() - today.getTime()
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+    const diffDays = diffTime / (1000 * 60 * 60 * 24)
     
     if (diffDays < 0) return 'overdue'
     if (diffDays === 0) return 'today'
@@ -319,6 +365,7 @@ export const LoanTimeline: React.FC<LoanTimelineProps> = ({
             isLast={index === sortedSubLoans.length - 1}
             getUrgencyLevel={getUrgencyLevel}
             compact={isCompactMode}
+            onPaymentClick={onPaymentClick}
           />
         ))}
       </Box>

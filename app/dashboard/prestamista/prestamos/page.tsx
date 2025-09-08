@@ -42,7 +42,6 @@ export default function PrestamosAnalyticsPage() {
   const { loans, isLoading, error, getTotalLoans } = useLoans();
   const {
     allSubLoansWithClient,
-    fetchAllSubLoansWithClientInfo,
     isLoading: subLoansLoading,
   } = useSubLoans();
 
@@ -72,8 +71,7 @@ export default function PrestamosAnalyticsPage() {
   const handleViewDetails = (loanId: string) => {
     setSelectedLoanId(loanId);
     setTimelineModalOpen(true);
-    // Load subloans data only when needed
-    fetchAllSubLoansWithClientInfo();
+    // Data is auto-loaded by useSubLoans hook
   };
 
   const handleGoToCobrosForClient = () => {
@@ -202,7 +200,7 @@ export default function PrestamosAnalyticsPage() {
             mb: 3,
           }}
         >
-          <Typography variant='h6'>📋 Tu Cartera de Préstamos</Typography>
+          <Typography variant='h6'>Tu Cartera de Préstamos</Typography>
           <Button
             variant='contained'
             startIcon={<Add />}
@@ -429,7 +427,7 @@ export default function PrestamosAnalyticsPage() {
                       color='primary.main'
                       gutterBottom
                     >
-                      💼 Gestión de Cobros
+                      Gestión de Cobros
                     </Typography>
                     <Typography
                       variant='body2'

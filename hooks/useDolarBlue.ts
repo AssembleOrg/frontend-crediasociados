@@ -21,7 +21,8 @@ export const useDolarBlue = () => {
     setError(null);
 
     try {
-      const response = await dolarBlueService.getLatest();
+      // Manual refresh should force POST + GET for fresh data
+      const response = await dolarBlueService.fetchAndUpdate();
       
       const dolarData: DolarBlueData = {
         compra: response.compra,
@@ -31,6 +32,7 @@ export const useDolarBlue = () => {
       };
 
       setCurrentRate(dolarData);
+      console.log('💰 Dólar Blue manual refresh (POST + GET):', { compra: response.compra, venta: response.venta });
       return true;
 
     } catch (error: any) {
@@ -41,7 +43,7 @@ export const useDolarBlue = () => {
     } finally {
       setLoading(false);
     }
-  }, [setCurrentRate, setLoading, setError]);
+  }, []);
 
   return {
     currentRate,

@@ -63,7 +63,7 @@ export const useDolarBlueStore = create<DolarBlueStore>()(
       const { currentRate } = get();
       if (!currentRate) return null;
 
-      const lastUpdated = formatLastUpdated(currentRate.lastFetched);
+      const lastUpdated = formatLastUpdated(currentRate.fechaActualizacion);
       const displayText = `Dólar Blue: Compra $${currentRate.compra.toFixed(0)} - Venta $${currentRate.venta.toFixed(0)} - Actualizado: ${lastUpdated}`;
 
       return {

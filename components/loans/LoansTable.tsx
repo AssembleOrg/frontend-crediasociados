@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import {
   Box,
   Typography,
@@ -29,6 +29,8 @@ import {
   Person
 } from '@mui/icons-material'
 import { useLoans } from '@/hooks/useLoans'
+import { useSubLoans } from '@/hooks/useSubLoans'
+import type { ClientResponseDto } from '@/types/auth'
 
 interface LoansTableProps {
   onViewLoan?: (loanId: string) => void
@@ -37,8 +39,19 @@ interface LoansTableProps {
 
 export function LoansTable({ onViewLoan, onViewDetails }: LoansTableProps) {
   const { loans, isLoading } = useLoans()
+  const { allSubLoansWithClient } = useSubLoans()
   const [page, setPage] = useState(0)
   const [rowsPerPage, setRowsPerPage] = useState(10)
+
+  // Get client info from provider data (no service calls needed)
+  const getClientDisplay = (loanId: string) => {
+    // Find client info from allSubLoansWithClient data
+    const subloanWithClient = allSubLoansWithClient.find(subloan => subloan.loanId === loanId)
+    return {
+      name: subloanWithClient?.clientName || subloanWithClient?.clientFullData?.fullName || `Cliente ${subloanWithClient?.clientId || 'N/A'}`,
+      id: subloanWithClient?.clientId || 'N/A'
+    }
+  }
 
   const getStatusChip = (status: string) => {
     switch (status) {
@@ -145,7 +158,7 @@ export function LoansTable({ onViewLoan, onViewDetails }: LoansTableProps) {
                         <Person color="action" />
                         <Box>
                           <Typography variant="body2" fontWeight="medium">
-                            {loan.clientId} {/* TODO: Mostrar nombre del cliente */}
+                            {getClientDisplay(loan.clientId).name}
                           </Typography>
                           <Typography variant="caption" color="text.secondary">
                             ID: {loan.clientId}
@@ -228,7 +241,7 @@ export function LoansTable({ onViewLoan, onViewDetails }: LoansTableProps) {
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
                   <Box>
                     <Typography variant="subtitle1" fontWeight="bold">
-                      Cliente {loan.clientId}
+                      {getClientDisplay(loan.clientId).name}
                     </Typography>
                     <Chip 
                       label={loan.loanTrack || loan.id} 

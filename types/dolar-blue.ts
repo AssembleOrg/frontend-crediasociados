@@ -33,8 +33,8 @@ export interface DolarBlueDisplayData {
 }
 
 export const DOLAR_BLUE_CONFIG = {
-  CACHE_DURATION_MS: 30 * 60 * 1000, // 30 minutes
-  REFRESH_INTERVAL_MS: 30 * 60 * 1000, // 30 minutes
+  CACHE_DURATION_MS: 2 * 60 * 60 * 1000, // 2 hours
+  REFRESH_INTERVAL_MS: 2 * 60 * 60 * 1000, // 2 hours
   RETRY_DELAYS: [1000, 2000, 4000, 8000], // Exponential backoff
   MAX_RETRY_DELAY: 30000
 } as const;

@@ -26,20 +26,15 @@ export default function DolarBlueProvider({ children }: DolarBlueProviderProps) 
   const isInitializedRef = useRef(false);
   const hasTokenBeenAvailableRef = useRef(false);
 
-  const fetchDolarBlue = async (isBackground = false): Promise<boolean> => {
-    if (abortControllerRef.current && !isBackground) {
-      abortControllerRef.current.abort();
-    }
-
+  // Fast initialization - only GET for login
+  const initDolarBlue = async (): Promise<boolean> => {
     const abortController = new AbortController();
     abortControllerRef.current = abortController;
 
     try {
-      if (!isBackground) {
-        setLoading(true);
-      }
+      setLoading(true);
 
-      const response = await dolarBlueService.getLatest(abortController.signal);
+      const response = await dolarBlueService.initWithoutUpdate(abortController.signal);
 
       if (abortController.signal.aborted) {
         return false;
@@ -53,6 +48,54 @@ export default function DolarBlueProvider({ children }: DolarBlueProviderProps) 
       };
 
       setCurrentRate(dolarData);
+      console.log('💰 Dólar Blue initialized (GET only):', { compra: response.compra, venta: response.venta });
+      return true;
+
+    } catch (error: unknown) {
+      if (abortController.signal.aborted) {
+        return false;
+      }
+
+      console.error('Error initializing dolar blue:', error);
+      setError((error as Error).message || 'Error al obtener cotización');
+      return false;
+
+    } finally {
+      if (!abortController.signal.aborted) {
+        setLoading(false);
+      }
+    }
+  };
+
+  // Background update - POST + GET every 2 hours
+  const fetchDolarBlue = async (isBackground = false): Promise<boolean> => {
+    if (abortControllerRef.current && !isBackground) {
+      abortControllerRef.current.abort();
+    }
+
+    const abortController = new AbortController();
+    abortControllerRef.current = abortController;
+
+    try {
+      if (!isBackground) {
+        setLoading(true);
+      }
+
+      const response = await dolarBlueService.fetchAndUpdate(abortController.signal);
+
+      if (abortController.signal.aborted) {
+        return false;
+      }
+
+      const dolarData: DolarBlueData = {
+        compra: response.compra,
+        venta: response.venta,
+        fechaActualizacion: new Date(response.fechaActualizacion),
+        lastFetched: new Date()
+      };
+
+      setCurrentRate(dolarData);
+      console.log('💰 Dólar Blue updated (POST + GET):', { compra: response.compra, venta: response.venta });
       return true;
 
     } catch (error: unknown) {
@@ -92,15 +135,12 @@ export default function DolarBlueProvider({ children }: DolarBlueProviderProps) 
       isInitializedRef.current = true;
       hasTokenBeenAvailableRef.current = true;
 
-      console.log('🪙 Inicializando Dólar Blue globalmente (una sola vez)');
+      console.log('🪙 Inicializando Dólar Blue globalmente (GET only para login rápido)');
 
-      if (isCacheValid()) {
-        scheduleBackgroundRefresh();
-        return;
-      }
-
-      const success = await fetchDolarBlue();
+      // Fast login initialization - only GET
+      const success = await initDolarBlue();
       if (success) {
+        // Schedule background refresh every 2 hours (POST + GET)
         scheduleBackgroundRefresh();
       }
     };

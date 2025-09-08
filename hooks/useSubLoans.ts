@@ -38,57 +38,10 @@ export function useSubLoans() {
     getTotalAmount,
   } = useSubLoansStore()
 
-  const initializationRef = useRef(false)
-  const abortControllerRef = useRef<AbortController | null>(null)
-
   const hasPermissions = currentUser && ['ADMIN', 'SUBADMIN', 'MANAGER', 'prestamista'].includes(currentUser.role)
 
-  const initializeSubLoans = useCallback(async (): Promise<void> => {
-    if (initializationRef.current) return
-    initializationRef.current = true
-
-    setLoading(true)
-    try {
-      if (abortControllerRef.current) {
-        abortControllerRef.current.abort()
-      }
-      abortControllerRef.current = new AbortController()
-
-      const response = await subLoansService.getTodayDueSubLoans({
-        page: 1,
-        limit: 20
-      })
-
-      setTodayDueSubLoans(response.data)
-      if (response.meta) {
-        setPagination({
-          page: response.meta.page,
-          limit: response.meta.limit,
-          total: response.meta.total,
-          totalPages: response.meta.totalPages
-        })
-      }
-    } catch (err) {
-      if (err instanceof Error && err.name !== 'AbortError') {
-        const errorMessage = err instanceof Error ? err.message : 'Error desconocido'
-        setError(`Error al cargar préstamos que vencen hoy: ${errorMessage}`)
-      }
-    } finally {
-      setLoading(false)
-    }
-  }, [setTodayDueSubLoans, setPagination, setLoading, setError])
-
-  useEffect(() => {
-    if (currentUser && hasPermissions) {
-      initializeSubLoans()
-    }
-
-    return () => {
-      if (abortControllerRef.current) {
-        abortControllerRef.current.abort()
-      }
-    }
-  }, [])
+  // Note: ALL auto-initialization removed
+  // Data is now initialized by SubLoansProvider at layout level using Enhanced Single Provider Pattern
 
   const fetchTodayDueSubLoans = useCallback(async (params?: PaginationParams) => {
     if (!hasPermissions) return
@@ -114,7 +67,7 @@ export function useSubLoans() {
     } finally {
       setLoading(false)
     }
-  }, [hasPermissions, setLoading, setError, setTodayDueSubLoans, setPagination])
+  }, [])
 
   const fetchStats = useCallback(async () => {
     if (!hasPermissions) return
@@ -131,7 +84,7 @@ export function useSubLoans() {
     } finally {
       setLoading(false)
     }
-  }, [hasPermissions, setLoading, setError, setStats])
+  }, [])
 
   const fetchAllSubLoans = useCallback(async (params?: PaginationParams) => {
     if (!hasPermissions) return
@@ -157,7 +110,7 @@ export function useSubLoans() {
     } finally {
       setLoading(false)
     }
-  }, [hasPermissions, setLoading, setError, setAllSubLoans, setPagination])
+  }, [])
 
   const fetchAllSubLoansWithClientInfo = useCallback(async (params?: PaginationParams) => {
     if (!hasPermissions) return
@@ -182,7 +135,7 @@ export function useSubLoans() {
     } finally {
       setLoading(false)
     }
-  }, [hasPermissions, setLoading, setError, setAllSubLoansWithClient, setPagination])
+  }, [])
 
   const activateOverdueSubLoans = useCallback(async () => {
     if (!currentUser || !['ADMIN', 'SUBADMIN', 'prestamista'].includes(currentUser.role)) {
@@ -208,7 +161,7 @@ export function useSubLoans() {
     } finally {
       setLoading(false)
     }
-  }, [currentUser, setLoading, setError, fetchTodayDueSubLoans, fetchStats])
+  }, [])
 
   return {
     todayDueSubLoans,

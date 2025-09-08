@@ -26,6 +26,8 @@ export interface SubLoanWithClientInfo extends SubLoanResponseDto {
 class SubLoansLookupService {
   private loansCache: Map<string, LoanListResponseDto> = new Map()
   private clientsCache: Map<string, ClientResponseDto> = new Map()
+  private isLoadingLoans: boolean = false
+  private isLoadingClients: boolean = false
   
   /**
    * Clear caches - useful for forcing fresh data
@@ -137,22 +139,31 @@ class SubLoansLookupService {
    * Load loans cache (loanId → LoanListResponseDto)
    */
   private async loadLoansCache(): Promise<void> {
+    // Anti-concurrency protection
     if (this.loansCache.size > 0) {
-      console.log('Loans cache already loaded, skipping...', this.loansCache.size, 'loans')
       return // Already loaded
     }
 
+    if (this.isLoadingLoans) {
+      // Wait for current loading to complete
+      while (this.isLoadingLoans) {
+        await new Promise(resolve => setTimeout(resolve, 10))
+      }
+      return // Loading completed by other call
+    }
+
+    this.isLoadingLoans = true
     try {
-      console.log('Loading loans cache...')
+      // Loading loans cache (initialized by SubLoansProvider)
       const loans = await loansService.getActiveLoansWithClientId()
-      console.log('Loaded loans from API:', loans.length)
       loans.forEach(loan => {
         this.loansCache.set(loan.id, loan)
       })
-      console.log('Loans cache populated:', this.loansCache.size, 'loans')
     } catch (error) {
       console.error('Error loading loans cache:', error)
       throw error
+    } finally {
+      this.isLoadingLoans = false
     }
   }
 
@@ -161,22 +172,28 @@ class SubLoansLookupService {
    * Uses pagination - loads first 20 clients, more can be loaded on demand
    */
   private async loadClientsCache(): Promise<void> {
+    // Anti-concurrency protection
     if (this.clientsCache.size > 0) {
-      console.log('Clients cache already loaded, skipping...', this.clientsCache.size, 'clients')
       return // Already loaded
     }
 
+    if (this.isLoadingClients) {
+      // Wait for current loading to complete
+      while (this.isLoadingClients) {
+        await new Promise(resolve => setTimeout(resolve, 10))
+      }
+      return // Loading completed by other call
+    }
+
+    this.isLoadingClients = true
     try {
-      console.log('Loading initial clients cache (first page)...')
+      // Loading initial clients cache (first page)
       // Load first page with sensible limit
       const clientsResponse = await clientsService.getClients({ page: 1, limit: 20 })
       const clients = clientsResponse.data
-      console.log('Loaded clients from API (page 1):', clients.length, 'of', clientsResponse.meta?.total || 'unknown total')
-      
       clients.forEach(client => {
         this.clientsCache.set(client.id, client)
       })
-      console.log('Clients cache populated:', this.clientsCache.size, 'clients')
       
       // Log if there are more clients available
       if (clientsResponse.meta && clientsResponse.meta.totalPages > 1) {
@@ -185,6 +202,8 @@ class SubLoansLookupService {
     } catch (error) {
       console.error('Error loading clients cache:', error)
       throw error
+    } finally {
+      this.isLoadingClients = false
     }
   }
 

@@ -138,7 +138,7 @@ export const clientToUpdateDto = (
 // Note: LoanResponseDto is incomplete in OpenAPI, using available fields only
 export const apiLoanToLoan = (apiLoan: LoanResponseDto): Loan => ({
   id: apiLoan.id,
-  clientId: 'client-id-placeholder', // Not available in LoanTrackingResponseDto
+  clientId: apiLoan.clientId, // Available in CreateLoanResponseDto
   amount: apiLoan.amount,
   baseInterestRate: 0.05, // Default, not available in current API response
   penaltyInterestRate: 0.05, // Default, not available in current API response  

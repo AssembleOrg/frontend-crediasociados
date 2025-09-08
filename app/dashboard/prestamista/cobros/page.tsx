@@ -42,6 +42,7 @@ import {
 import type { components } from '@/types/api-generated'
 import type { SubLoanWithClientInfo } from '@/services/subloans-lookup.service'
 import LoanTimeline from '@/components/loans/LoanTimeline'
+import PaymentModal from '@/components/loans/PaymentModal'
 
 type SubLoanResponseDto = components['schemas']['SubLoanResponseDto']
 
@@ -90,12 +91,16 @@ export default function CobrosPage() {
     getOverdueCount,
     getPendingCount,
     getPaidCount,
-    getTotalAmount,
-    fetchAllSubLoansWithClientInfo
+    getTotalAmount
   } = useSubLoans()
   const [editModalOpen, setEditModalOpen] = useState(false)
   const [selectedPayment, setSelectedPayment] = useState<SubLoanWithClientInfo | null>(null)
   const [selectedClient, setSelectedClient] = useState<string | null>(null)
+  const [showClientInfo, setShowClientInfo] = useState<string | null>(null)
+  const [paymentModalOpen, setPaymentModalOpen] = useState(false)
+  const [paymentModalMode, setPaymentModalMode] = useState<'single' | 'selector'>('single')
+  const [selectedPaymentSubloan, setSelectedPaymentSubloan] = useState<SubLoanWithClientInfo | null>(null)
+  const [selectedPaymentClient, setSelectedPaymentClient] = useState<ClientSummary | null>(null)
   const [dayLocked, setDayLocked] = useState(false)
   const [page, setPage] = useState(0)
   const [rowsPerPage, setRowsPerPage] = useState(10)
@@ -132,10 +137,7 @@ export default function CobrosPage() {
     }
   }
 
-  // Load all subloans with client info on component mount
-  useEffect(() => {
-    fetchAllSubLoansWithClientInfo()
-  }, []) // Remove the dependency to avoid infinite re-renders
+  // Data is auto-loaded by useSubLoans hook
 
   // Helper function to determine urgency based on due date
   const getUrgencyLevel = (dueDate: string) => {
@@ -233,6 +235,24 @@ export default function CobrosPage() {
     setEditStatus(payment.status)
     setEditNotes('') // TODO: backend no tiene notas aún
     setEditModalOpen(true)
+  }
+
+  // Handle payment click from timeline
+  const handlePaymentClick = (subloan: SubLoanWithClientInfo) => {
+    if (dayLocked) return
+    
+    setSelectedPaymentSubloan(subloan)
+    setPaymentModalMode('single')
+    setPaymentModalOpen(true)
+  }
+
+  // Handle payment from button (selector mode)  
+  const handleRegisterPaymentClick = (clientSummary: ClientSummary) => {
+    if (dayLocked) return
+    
+    setSelectedPaymentClient(clientSummary)
+    setPaymentModalMode('selector')
+    setPaymentModalOpen(true)
   }
 
   const handleSavePayment = () => {
@@ -1074,6 +1094,7 @@ export default function CobrosPage() {
                   clientName={clientSummary.clientName}
                   subLoans={clientSummary.subLoans}
                   compact={false}
+                  onPaymentClick={handlePaymentClick}
                 />
 
                 {/* Urgent Actions */}
@@ -1092,7 +1113,7 @@ export default function CobrosPage() {
                       color={clientSummary.urgencyLevel === 'overdue' ? 'error.main' : 'warning.main'}
                       gutterBottom
                     >
-                      ⚠️ Atención Requerida
+                      Atención Requerida
                     </Typography>
                     <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
                       Este cliente requiere seguimiento inmediato por cuotas {
@@ -1108,6 +1129,7 @@ export default function CobrosPage() {
                         variant="outlined"
                         color={clientSummary.urgencyLevel === 'overdue' ? 'error' : 'warning'}
                         size="small"
+                        onClick={() => setShowClientInfo(showClientInfo === clientSummary.clientId ? null : clientSummary.clientId)}
                       >
                         Contactar Cliente
                       </Button>
@@ -1115,17 +1137,59 @@ export default function CobrosPage() {
                         variant="outlined"
                         color={clientSummary.urgencyLevel === 'overdue' ? 'error' : 'warning'}
                         size="small"
+                        onClick={() => handleRegisterPaymentClick(clientSummary)}
                       >
                         Registrar Pago
                       </Button>
-                      <Button 
-                        variant="outlined"
-                        color={clientSummary.urgencyLevel === 'overdue' ? 'error' : 'warning'}
-                        size="small"
-                      >
-                        Agregar Nota
-                      </Button>
                     </Box>
+
+                    {/* Client Contact Information - Collapsible */}
+                    {showClientInfo === clientSummary.clientId && (
+                      <Box sx={{ 
+                        mt: 3, 
+                        p: 3, 
+                        bgcolor: '#f8f9fa',
+                        borderRadius: 2,
+                        border: 1,
+                        borderColor: 'grey.300'
+                      }}>
+                        {(() => {
+                          const clientData = clientSummary.subLoans[0]?.clientFullData
+                          const loanCreatedAt = clientSummary.subLoans[0] ? 
+                            new Date(clientSummary.subLoans.find(s => s.loanId)?.dueDate || '').toLocaleDateString('es-AR') : 'No disponible'
+
+                          return (
+                            <>
+                              <Typography variant="h6" fontWeight="bold" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                Información de Contacto - {clientSummary.clientName}
+                              </Typography>
+                              <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2 }}>
+                                <Box>
+                                  <Typography variant="body2" color="text.secondary">
+                                    <strong>Teléfono:</strong> {clientData?.phone || 'Dato no ingresado'}
+                                  </Typography>
+                                  <Typography variant="body2" color="text.secondary">
+                                    <strong>Email:</strong> {clientData?.email || 'Dato no ingresado'}
+                                  </Typography>
+                                </Box>
+                                <Box>
+                                  <Typography variant="body2" color="text.secondary">
+                                    <strong>DNI:</strong> {clientData?.dni || 'Dato no ingresado'}
+                                  </Typography>
+                                  <Typography variant="body2" color="text.secondary">
+                                    <strong>CUIT:</strong> {clientData?.cuit || 'Dato no ingresado'}
+                                  </Typography>
+                                </Box>
+                              </Box>
+                              <Divider sx={{ my: 2 }} />
+                              <Typography variant="body2" color="text.secondary">
+                                <strong>Préstamo creado:</strong> {new Date(clientSummary.subLoans[0]?.dueDate || '').toLocaleDateString('es-AR')}
+                              </Typography>
+                            </>
+                          )
+                        })()}
+                      </Box>
+                    )}
                   </Box>
                 )}
               </Box>
@@ -1143,6 +1207,22 @@ export default function CobrosPage() {
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* Payment Modal */}
+      <PaymentModal
+        open={paymentModalOpen}
+        onClose={() => setPaymentModalOpen(false)}
+        subloan={paymentModalMode === 'single' ? selectedPaymentSubloan : null}
+        subloans={paymentModalMode === 'selector' && selectedPaymentClient ? 
+          selectedPaymentClient.subLoans.filter(s => s.status !== 'PAID') : []
+        }
+        clientName={
+          paymentModalMode === 'single' && selectedPaymentSubloan 
+            ? selectedPaymentSubloan.clientName || 'Cliente'
+            : selectedPaymentClient?.clientName || 'Cliente'
+        }
+        mode={paymentModalMode}
+      />
     </Box>
   )
 }

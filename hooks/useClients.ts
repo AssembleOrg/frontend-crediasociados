@@ -207,7 +207,7 @@ export const useClients = () => {
     if (currentUser && clientsStore.clients.length === 0) {
       fetchClients();
     }
-  }, [currentUser, fetchClients]);
+  }, [currentUser]);
 
   const clearError = useCallback(() => {
     setError(null);

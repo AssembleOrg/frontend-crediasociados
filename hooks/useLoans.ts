@@ -35,11 +35,9 @@ export function useLoans() {
     getFilteredLoans,
   } = useLoansStore()
 
-  useEffect(() => {
-    if (currentUser) {
-      fetchLoans()
-    }
-  }, [currentUser])
+  // Note: Auto-initialization removed to prevent architectural drift
+  // Data is now initialized by SubLoansProvider at layout level
+  // Following "Layout Provides, Pages Consume" principle
 
   const fetchLoans = useCallback(async (params?: PaginationParams) => {
     if (!currentUser) return
@@ -58,7 +56,7 @@ export function useLoans() {
     } finally {
       setLoading(false)
     }
-  }, [currentUser, setLoading, setError, setLoans])
+  }, [])
 
   const fetchLoanById = useCallback(async (id: string) => {
     try {
@@ -84,7 +82,7 @@ export function useLoans() {
     } finally {
       setLoading(false)
     }
-  }, [setLoading, setError, getLoanById, updateLoan, addLoan])
+  }, [])
 
   const createLoan = useCallback(async (loanData: CreateLoanDto) => {
     try {
@@ -105,7 +103,7 @@ export function useLoans() {
     } finally {
       setLoading(false)
     }
-  }, [setLoading, setError, addLoan])
+  }, [])
 
   const deleteLoan = useCallback(async (id: string) => {
     try {
@@ -123,7 +121,7 @@ export function useLoans() {
     } finally {
       setLoading(false)
     }
-  }, [setLoading, setError, removeLoan])
+  }, [])
 
   return {
     loans,
