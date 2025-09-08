@@ -269,6 +269,10 @@ export default function DolarBlueTicker({
           '50%': { opacity: 0.6 },
           '100%': { opacity: 1 },
         },
+        // Pause marquee animation on hover for better UX
+        '&:hover .ticker-marquee': {
+          animationPlayState: 'paused',
+        },
         '&:hover': showRefreshButton
           ? {
               borderBottom: `2px solid ${isDataFresh ? '#4caf50' : '#ff9800'}`,
@@ -280,6 +284,7 @@ export default function DolarBlueTicker({
       onClick={showRefreshButton ? refresh : undefined}
     >
       <Box
+        className="ticker-marquee"
         sx={{
           display: 'flex',
           alignItems: 'center',

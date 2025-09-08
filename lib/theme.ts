@@ -58,8 +58,11 @@ export const theme = createTheme({
         root: {
           textTransform: 'none',
           borderRadius: 8,
-          padding: '8px 24px',
+          padding: '6px 14px',
           fontWeight: 500,
+        },
+        sizeSmall: {
+          padding: '4px 10px',
         },
       },
     },

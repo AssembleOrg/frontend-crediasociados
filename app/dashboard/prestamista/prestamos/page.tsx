@@ -14,6 +14,10 @@ import {
   InputLabel,
   Select,
   MenuItem,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
 } from '@mui/material';
 import {
   Add,
@@ -22,79 +26,59 @@ import {
   Assessment,
   MonetizationOn,
   Warning,
-  Download,
-  BarChart,
+  Payment,
 } from '@mui/icons-material';
 import { useRouter } from 'next/navigation';
 import { StatsCard } from '@/components/dashboard/StatsCard';
 import { useLoans } from '@/hooks/useLoans';
+import { useSubLoans } from '@/hooks/useSubLoans';
+import { LoansTable } from '@/components/loans/LoansTable';
+import LoanTimeline from '@/components/loans/LoanTimeline';
 
-// Mock data
-const mockAnalyticsData = {
-  portfolioHealth: {
-    tasaRecuperacion: '87.3',
-    promedioVencimientos: '12',
-    rentabilidadMensual: '15.2',
-  },
-  monthlyTrends: [
-    { month: 'Febrero 2025', prestamos: 8, monto: 150000, recuperado: 135000 },
-    { month: 'Enero 2025', prestamos: 12, monto: 220000, recuperado: 198000 },
-    {
-      month: 'Diciembre 2024',
-      prestamos: 15,
-      monto: 280000,
-      recuperado: 252000,
-    },
-    {
-      month: 'Noviembre 2024',
-      prestamos: 10,
-      monto: 185000,
-      recuperado: 166500,
-    },
-    { month: 'Octubre 2024', prestamos: 18, monto: 320000, recuperado: 288000 },
-    {
-      month: 'Septiembre 2024',
-      prestamos: 22,
-      monto: 410000,
-      recuperado: 369000,
-    },
-  ],
-  topClients: [
-    { name: 'María González', prestamos: 3, montoTotal: 45000, pagosAlDia: 3 },
-    {
-      name: 'Carlos Rodríguez',
-      prestamos: 2,
-      montoTotal: 30000,
-      pagosAlDia: 2,
-    },
-    { name: 'Ana López', prestamos: 4, montoTotal: 60000, pagosAlDia: 3 },
-    { name: 'Luis Martín', prestamos: 1, montoTotal: 15000, pagosAlDia: 1 },
-    { name: 'Sofia Pérez', prestamos: 2, montoTotal: 25000, pagosAlDia: 1 },
-  ],
-};
+// Real data will come from useLoans hook
 
 export default function PrestamosAnalyticsPage() {
   const router = useRouter();
   const { loans, isLoading, error, getTotalLoans } = useLoans();
-  // Simplified state - removed complex filters
+  const {
+    allSubLoansWithClient,
+    fetchAllSubLoansWithClientInfo,
+    isLoading: subLoansLoading,
+  } = useSubLoans();
+
+  // Modal states
+  const [selectedLoanId, setSelectedLoanId] = useState<string | null>(null);
+  const [timelineModalOpen, setTimelineModalOpen] = useState(false);
 
   const totalLoans = getTotalLoans();
   const totalAmount = loans.reduce((sum, loan) => sum + loan.amount, 0);
-  const activeLoans = loans.filter((loan) => loan.status === 'ACTIVE').length;
+  const activeLoans = loans.filter(
+    (loan) => loan.status === 'ACTIVE' || loan.status === 'APPROVED'
+  ).length;
   const completedLoans = loans.filter(
     (loan) => loan.status === 'COMPLETED'
   ).length;
-  const overdueLoans = loans.filter(
-    (loan) => loan.status === 'DEFAULTED'
-  ).length;
+  const pendingLoans = loans.filter((loan) => loan.status === 'PENDING').length;
   const avgLoanAmount = totalLoans > 0 ? totalAmount / totalLoans : 0;
-  const recoveryRate = totalLoans > 0 ? (completedLoans / totalLoans) * 100 : 0;
 
   const handleCreateLoan = () => {
     router.push('/dashboard/prestamista/prestamos/nuevo');
   };
 
   const handleGoToCobros = () => {
+    router.push('/dashboard/prestamista/cobros');
+  };
+
+  const handleViewDetails = (loanId: string) => {
+    setSelectedLoanId(loanId);
+    setTimelineModalOpen(true);
+    // Load subloans data only when needed
+    fetchAllSubLoansWithClientInfo();
+  };
+
+  const handleGoToCobrosForClient = () => {
+    // Close modal and navigate to cobros
+    setTimelineModalOpen(false);
     router.push('/dashboard/prestamista/cobros');
   };
 
@@ -134,18 +118,21 @@ export default function PrestamosAnalyticsPage() {
           }}
         >
           <Button
-            variant='outlined'
+            variant='contained'
+            size='small'
+            color='secondary'
             startIcon={<Add />}
             onClick={handleCreateLoan}
-            sx={{ width: { xs: '100%', sm: 'auto' } }}
+            sx={{ width: { xs: '100%', sm: 'auto' }, px: 1, py: 1 }}
           >
             Nuevo Préstamo
           </Button>
           <Button
             variant='contained'
+            size='small'
             color='primary'
             onClick={handleGoToCobros}
-            sx={{ width: { xs: '100%', sm: 'auto' } }}
+            sx={{ width: { xs: '100%', sm: 'auto' }, px: 2, py: 1 }}
           >
             Ir a Cobros
           </Button>
@@ -172,7 +159,7 @@ export default function PrestamosAnalyticsPage() {
         }}
       >
         <StatsCard
-          title='Cartera Total'
+          title='Total Préstamos'
           value={totalLoans}
           subtitle={`$${totalAmount.toLocaleString()} prestados`}
           icon={<AccountBalance />}
@@ -180,8 +167,24 @@ export default function PrestamosAnalyticsPage() {
           isLoading={isLoading}
         />
         <StatsCard
+          title='Préstamos Activos'
+          value={activeLoans}
+          subtitle='en proceso de pago'
+          icon={<TrendingUp />}
+          color='success'
+          isLoading={isLoading}
+        />
+        <StatsCard
+          title='Pendientes de Aprobación'
+          value={pendingLoans}
+          subtitle='esperando revisión'
+          icon={<Warning />}
+          color='warning'
+          isLoading={isLoading}
+        />
+        <StatsCard
           title='Préstamo Promedio'
-          value={`$${avgLoanAmount.toLocaleString()}`}
+          value={`$${Math.round(avgLoanAmount).toLocaleString()}`}
           subtitle='monto promedio por préstamo'
           icon={<MonetizationOn />}
           color='primary'
@@ -189,61 +192,283 @@ export default function PrestamosAnalyticsPage() {
         />
       </Box>
 
-      {/* Resumen Ejecutivo Simplificado */}
-      <Box sx={{ display: 'grid', gap: 4 }}>
-        <Paper sx={{ p: 3 }}>
-          <Typography
-            variant='h6'
-            gutterBottom
+      {/* Tabla Detallada de Préstamos */}
+      <Box>
+        <Box
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            mb: 3,
+          }}
+        >
+          <Typography variant='h6'>📋 Tu Cartera de Préstamos</Typography>
+          <Button
+            variant='contained'
+            startIcon={<Add />}
+            onClick={handleCreateLoan}
           >
-            📊 Resumen Ejecutivo - EN DESARROLLO
-          </Typography>
-          <Divider sx={{ mb: 3 }} />
+            Nuevo Préstamo
+          </Button>
+        </Box>
 
+        {error && (
           <Alert
-            severity='info'
+            severity='error'
             sx={{ mb: 3 }}
           >
-            <Typography
-              variant='subtitle2'
-              gutterBottom
-            >
-              🚧 Próximamente disponible
-            </Typography>
-            <Typography variant='body2'>
-              Esta sección estará disponible cuando conectemos los datos reales
-              del backend.
-            </Typography>
+            {error}
           </Alert>
+        )}
 
-          <Box sx={{ display: 'grid', gap: 2 }}>
-            {/* <Typography
-              variant='subtitle2'
-              color='primary'
+        <LoansTable
+          onViewLoan={(loanId) => {
+            console.log('Ver detalles del préstamo:', loanId);
+            // TODO: Navegar a página de detalles del préstamo
+          }}
+          onViewDetails={handleViewDetails}
+        />
+
+        {/* Acciones Rápidas */}
+        {totalLoans > 0 && (
+          <Box
+            sx={{ mt: 3, display: 'flex', gap: 2, justifyContent: 'center' }}
+          >
+            <Button
+              variant='outlined'
+              onClick={() => router.push('/dashboard/prestamista/cobros')}
             >
-              Funcionalidades en desarrollo
-            </Typography> */}
-
-            {/* <Box component='ul' sx={{ pl: 3, m: 0 }}>
-              <Typography component='li' variant='body2'>
-                📈 Análisis de rendimiento por período
-              </Typography>
-              <Typography component='li' variant='body2'>
-                📊 Reportes detallados de cartera
-              </Typography>
-              <Typography component='li' variant='body2'>
-                📋 Métricas avanzadas de cobros
-              </Typography>
-              <Typography component='li' variant='body2'>
-                🎯 KPIs personalizados por prestamista
-              </Typography>
-              <Typography component='li' variant='body2'>
-                📉 Tendencias históricas y proyecciones
-              </Typography>
-            </Box> */}
+              Ver Cobros del Día
+            </Button>
+            <Button
+              variant='outlined'
+              onClick={() => router.push('/dashboard/prestamista/clientes')}
+            >
+              Gestionar Clientes
+            </Button>
           </Box>
-        </Paper>
+        )}
       </Box>
+
+      {/* Loan Timeline Modal */}
+      <Dialog
+        open={timelineModalOpen}
+        onClose={() => setTimelineModalOpen(false)}
+        maxWidth='lg'
+        fullWidth
+        PaperProps={{
+          sx: {
+            width: { xs: '95vw', sm: '90vw', md: '1400px' },
+            height: { xs: '90vh', sm: 'auto' },
+            maxWidth: 'none',
+            m: { xs: 1, sm: 3 },
+            borderRadius: { xs: 2, sm: 3 },
+          },
+        }}
+      >
+        <DialogTitle>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            <Payment color='primary' />
+            <Typography variant='h6'>Detalles del Préstamo</Typography>
+          </Box>
+        </DialogTitle>
+        <DialogContent sx={{ p: { xs: 2, sm: 4 }, overflow: 'auto' }}>
+          {subLoansLoading ? (
+            <Box sx={{ textAlign: 'center', py: 4 }}>
+              <Typography
+                variant='h6'
+                color='text.secondary'
+                gutterBottom
+              >
+                Cargando detalles del préstamo...
+              </Typography>
+            </Box>
+          ) : (
+            selectedLoanId &&
+            (() => {
+              // Find loan details
+              const selectedLoan = loans.find(
+                (loan) => loan.id === selectedLoanId
+              );
+              const loanSubLoans = allSubLoansWithClient.filter(
+                (subloan) => subloan.loanId === selectedLoanId
+              );
+
+              if (!selectedLoan) {
+                return <Typography>Préstamo no encontrado</Typography>;
+              }
+
+              const clientName =
+                loanSubLoans.length > 0
+                  ? loanSubLoans[0].clientName ||
+                    `Cliente #${selectedLoan.clientId}`
+                  : `Cliente #${selectedLoan.clientId}`;
+
+              return (
+                <Box>
+                  {/* Loan Summary Header */}
+                  <Box
+                    sx={{ mb: 4, p: 3, bgcolor: '#f9f9f9', borderRadius: 2 }}
+                  >
+                    <Typography
+                      variant='h5'
+                      fontWeight='bold'
+                      gutterBottom
+                    >
+                      {clientName} - {selectedLoan.loanTrack}
+                    </Typography>
+                    <Box
+                      sx={{
+                        display: 'grid',
+                        gridTemplateColumns:
+                          'repeat(auto-fit, minmax(150px, 1fr))',
+                        gap: 3,
+                        mt: 2,
+                      }}
+                    >
+                      <Box>
+                        <Typography
+                          variant='body2'
+                          color='text.secondary'
+                        >
+                          Monto del préstamo
+                        </Typography>
+                        <Typography
+                          variant='h6'
+                          fontWeight='bold'
+                        >
+                          ${selectedLoan.amount.toLocaleString()}
+                        </Typography>
+                      </Box>
+                      <Box>
+                        <Typography
+                          variant='body2'
+                          color='text.secondary'
+                        >
+                          Estado
+                        </Typography>
+                        <Typography
+                          variant='h6'
+                          fontWeight='bold'
+                          color='success.main'
+                        >
+                          {selectedLoan.status}
+                        </Typography>
+                      </Box>
+                      <Box>
+                        <Typography
+                          variant='body2'
+                          color='text.secondary'
+                        >
+                          Total cuotas
+                        </Typography>
+                        <Typography
+                          variant='h6'
+                          fontWeight='bold'
+                        >
+                          {selectedLoan.totalPayments}
+                        </Typography>
+                      </Box>
+                      <Box>
+                        <Typography
+                          variant='body2'
+                          color='text.secondary'
+                        >
+                          Frecuencia
+                        </Typography>
+                        <Typography
+                          variant='h6'
+                          fontWeight='bold'
+                        >
+                          {selectedLoan.paymentFrequency}
+                        </Typography>
+                      </Box>
+                    </Box>
+                  </Box>
+
+                  {/* Timeline Component */}
+                  {loanSubLoans.length > 0 ? (
+                    <LoanTimeline
+                      clientName={clientName}
+                      subLoans={loanSubLoans}
+                      compact={false}
+                    />
+                  ) : (
+                    <Box sx={{ textAlign: 'center', py: 4 }}>
+                      <Typography
+                        variant='h6'
+                        color='text.secondary'
+                        gutterBottom
+                      >
+                        Sin cuotas disponibles
+                      </Typography>
+                      <Typography
+                        variant='body2'
+                        color='text.secondary'
+                      >
+                        Este préstamo aún no tiene cuotas generadas en el
+                        sistema.
+                      </Typography>
+                    </Box>
+                  )}
+
+                  {/* Action Section */}
+                  <Box
+                    sx={{
+                      mt: 4,
+                      p: 3,
+                      bgcolor: '#f0f7ff',
+                      borderRadius: 2,
+                      border: 1,
+                      borderColor: 'primary.main',
+                    }}
+                  >
+                    <Typography
+                      variant='h6'
+                      fontWeight='bold'
+                      color='primary.main'
+                      gutterBottom
+                    >
+                      💼 Gestión de Cobros
+                    </Typography>
+                    <Typography
+                      variant='body2'
+                      color='text.secondary'
+                      sx={{ mb: 2 }}
+                    >
+                      ¿Necesitas gestionar los cobros de este cliente? Ve a la
+                      sección de cobros para acciones específicas.
+                    </Typography>
+                    <Button
+                      variant='contained'
+                      color='primary'
+                      onClick={handleGoToCobrosForClient}
+                      sx={{ mr: 2 }}
+                    >
+                      Ir a Cobros de este Cliente
+                    </Button>
+                    <Button
+                      variant='outlined'
+                      color='primary'
+                      onClick={() => setTimelineModalOpen(false)}
+                    >
+                      Cerrar
+                    </Button>
+                  </Box>
+                </Box>
+              );
+            })()
+          )}
+        </DialogContent>
+        <DialogActions sx={{ p: { xs: 2, sm: 3 } }}>
+          <Button
+            onClick={() => setTimelineModalOpen(false)}
+            sx={{ width: { xs: '100%', sm: 'auto' } }}
+          >
+            Cerrar
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 }

@@ -294,7 +294,7 @@ export function CreateLoanModal({
 
   // Función para saltar domingos en pagos diarios
   const skipSundays = (date: Date, daysToAdd: number, subLoans: SubLoan[]): Date => {
-    let newDate = new Date(date)
+    const newDate = new Date(date)
     newDate.setDate(date.getDate() + daysToAdd)
     
     // Verificar si es domingo y saltar al lunes

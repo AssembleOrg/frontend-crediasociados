@@ -144,7 +144,9 @@ export const apiLoanToLoan = (apiLoan: LoanResponseDto): Loan => ({
   penaltyInterestRate: 0.05, // Default, not available in current API response  
   currency: 'ARS' as const,
   paymentFrequency: apiLoan.paymentFrequency as 'DAILY' | 'WEEKLY' | 'BIWEEKLY' | 'MONTHLY',
-  paymentDay: apiLoan.paymentDay as 'MONDAY' | 'TUESDAY' | 'WEDNESDAY' | 'THURSDAY' | 'FRIDAY' | 'SATURDAY' | 'SUNDAY' | undefined,
+  paymentDay: (['MONDAY','TUESDAY','WEDNESDAY','THURSDAY','FRIDAY','SATURDAY','SUNDAY'].includes((apiLoan as unknown as { paymentDay?: string }).paymentDay || '')
+    ? (((apiLoan as unknown as { paymentDay?: string }).paymentDay as unknown) as 'MONDAY' | 'TUESDAY' | 'WEDNESDAY' | 'THURSDAY' | 'FRIDAY' | 'SATURDAY' | 'SUNDAY')
+    : undefined),
   totalPayments: apiLoan.totalPayments,
   firstDueDate: apiLoan.firstDueDate ? new Date(apiLoan.firstDueDate) : undefined,
   loanTrack: apiLoan.loanTrack,
@@ -169,7 +171,11 @@ export const loanToCreateDto = (
   penaltyInterestRate: loan.penaltyInterestRate,
   currency: loan.currency,
   paymentFrequency: loan.paymentFrequency,
-  paymentDay: loan.paymentDay,
+  paymentDay: (loan.paymentFrequency === 'DAILY'
+    ? undefined
+    : (['MONDAY','TUESDAY','WEDNESDAY','THURSDAY','FRIDAY','SATURDAY'].includes((loan.paymentDay as string) || '')
+        ? (loan.paymentDay as 'MONDAY' | 'TUESDAY' | 'WEDNESDAY' | 'THURSDAY' | 'FRIDAY' | 'SATURDAY')
+        : undefined)),
   totalPayments: loan.totalPayments,
   firstDueDate: loan.firstDueDate?.toISOString(),
   loanTrack: loan.loanTrack,

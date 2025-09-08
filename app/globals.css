@@ -24,6 +24,14 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+/* Fix Chrome autofill yellow background: simple white bg + black text */
+input:-webkit-autofill,
+textarea:-webkit-autofill,
+select:-webkit-autofill {
+  -webkit-text-fill-color: #000000 !important;
+  box-shadow: 0 0 0 1000px #ffffff inset !important;
+}
+
 * {
   box-sizing: border-box;
   padding: 0;

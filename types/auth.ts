@@ -17,6 +17,7 @@ export type ClientResponseDto = components['schemas']['ClientResponseDto'];
 // Loan API Contract Types
 export type CreateLoanDto = components['schemas']['CreateLoanDto']
 export type CreateLoanResponseDto = components['schemas']['CreateLoanResponseDto']
+export type LoanListResponseDto = components['schemas']['LoanListResponseDto']
 export type LoanTrackingResponseDto = components['schemas']['LoanTrackingResponseDto']
 // Since getAllLoans doesn't have a specific response type, we'll use CreateLoanResponseDto
 export type LoanResponseDto = CreateLoanResponseDto

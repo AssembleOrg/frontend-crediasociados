@@ -109,13 +109,13 @@ export function CustomCalendar({
 
   // Sincronizar input con value
   useEffect(() => {
-    setInputValue(formatDateForInput(value))
+    setInputValue(formatDateForInput(value ?? null))
   }, [value])
 
   // Sincronizar currentMonth con value
   useEffect(() => {
-    if (value) {
-      const dt = dateToBuenosAires(value)
+    if (value ?? null) {
+      const dt = dateToBuenosAires((value ?? null) as Date)
       if (dt) {
         setCurrentMonth(dt.startOf('month'))
       }
@@ -149,7 +149,7 @@ export function CustomCalendar({
       onChange(parsedDate)
     } else if (inputValue.trim() !== '') {
       // Si hay texto pero no es válido, restaurar el valor anterior
-      setInputValue(formatDateForInput(value))
+      setInputValue(formatDateForInput(value ?? null))
     }
   }
 
@@ -372,7 +372,7 @@ export function CustomCalendar({
                       height: 32,
                       borderRadius: 1,
                       fontSize: '0.875rem',
-                      color: isCurrentMonth ? 'text.primary' : 'text.disabled',
+                      // color is defined below; keep one declaration only
                       backgroundColor: isSelected
                         ? 'primary.main'
                         : isTodayDate

@@ -26,7 +26,7 @@ import {
   Close
 } from '@mui/icons-material'
 import type { components } from '@/types/api-generated'
-import { useLoansStore } from '@/stores/loans'
+import { useLoans } from '@/hooks/useLoans'
 
 type CreateLoanDto = components['schemas']['CreateLoanDto']
 
@@ -67,8 +67,8 @@ export function LoanSimulationModal({
   const [isCreating, setIsCreating] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
-  const [mockLoanTrackingNumber, setMockLoanTrackingNumber] = useState<string | null>(null)
-  const { createLoan } = useLoansStore()
+  const [loanTrackingNumber, setLoanTrackingNumber] = useState<string | null>(null)
+  const { createLoan } = useLoans()
 
   const handleConfirmLoan = async () => {
     setIsCreating(true)
@@ -82,34 +82,29 @@ export function LoanSimulationModal({
         penaltyInterestRate: parseFloat(formData.penaltyInterestRate) || 0,
         currency: formData.currency,
         paymentFrequency: formData.paymentFrequency,
-        paymentDay: formData.paymentFrequency === 'DAILY' ? undefined : formData.paymentDay as 'MONDAY' | 'TUESDAY' | 'WEDNESDAY' | 'THURSDAY' | 'FRIDAY' | 'SATURDAY' | 'SUNDAY',
+        paymentDay:
+          formData.paymentFrequency === 'DAILY'
+            ? undefined
+            : (['MONDAY','TUESDAY','WEDNESDAY','THURSDAY','FRIDAY','SATURDAY'].includes(formData.paymentDay as string)
+                ? (formData.paymentDay as 'MONDAY' | 'TUESDAY' | 'WEDNESDAY' | 'THURSDAY' | 'FRIDAY' | 'SATURDAY')
+                : undefined),
         totalPayments: parseInt(formData.totalPayments),
         firstDueDate: formData.firstDueDate?.toISOString(),
         description: formData.description || undefined
       }
 
-      console.log('=== CREANDO PRÉSTAMO (MOCKUP) ===')
-      // console.log(JSON.stringify(createLoanData, null, 2))
+      console.log('=== CREANDO PRÉSTAMO ===')
+      console.log('Datos del préstamo:', {
+        cliente: clientName,
+        monto: `$${parseFloat(formData.amount).toLocaleString()}`,
+        cuotas: formData.totalPayments,
+        frecuencia: formData.paymentFrequency
+      })
       
-      // // MOCKUP: Simular delay del servidor
-      // await new Promise(resolve => setTimeout(resolve, 2000))
-      
-      // // MOCKUP: Generar número de tracking
-      // const currentYear = new Date().getFullYear()
-      // const randomNum = Math.floor(Math.random() * 9000) + 1000 // Entre 1000-9999
-      // const generatedTrackingNumber = `LN-${currentYear}-${randomNum}`
-      
-      // setMockLoanTrackingNumber(generatedTrackingNumber)
-      
-      // console.log('=== PRÉSTAMO CREADO (MOCKUP) ===')
-      // console.log(`Número de Tracking: ${generatedTrackingNumber}`)
       const loan = await createLoan(createLoanData);
-      setMockLoanTrackingNumber(loan.loanTrack)
-      console.log('Cliente:', clientName)
-      console.log('Monto:', `$${parseFloat(formData.amount).toLocaleString()}`)
-      console.log('Cuotas:', formData.totalPayments)
-      console.log('====================================')
+      setLoanTrackingNumber(loan.loanTrack)
       
+      console.log('✅ Préstamo creado exitosamente:', loan.loanTrack)
       setSuccess(true)
 
     } catch (err: unknown) {
@@ -194,7 +189,7 @@ export function LoanSimulationModal({
                 letterSpacing: 2
               }}
             >
-              {mockLoanTrackingNumber}
+              {loanTrackingNumber}
             </Typography>
           </Box>
           

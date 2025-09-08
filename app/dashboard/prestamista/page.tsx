@@ -1,16 +1,23 @@
 'use client';
 
 import React from 'react';
-import { Typography, Box, Paper, Button } from '@mui/material';
+import { Typography, Box, Paper, Button, Alert } from '@mui/material';
 import { People, AccountBalance, TrendingUp } from '@mui/icons-material';
 import { useRouter } from 'next/navigation';
 import { StatsCard } from '@/components/dashboard/StatsCard';
 import { useClients } from '@/hooks/useClients';
+import { useSubLoans } from '@/hooks/useSubLoans';
 import { StandaloneLoanSimulator } from '@/components/loans/StandaloneLoanSimulator';
 
 export default function PrestamistaDashboard() {
   const router = useRouter();
   const { getTotalClients, isLoading } = useClients();
+  const { 
+    getTotalDueToday,
+    getOverdueCount,
+    isLoading: subLoansLoading,
+    error: subLoansError 
+  } = useSubLoans();
 
   const clientsCount = getTotalClients();
 
@@ -55,20 +62,49 @@ export default function PrestamistaDashboard() {
           isLoading={isLoading}
         />
         <StatsCard
-          title='Préstamos Activos'
-          value='$0'
-          subtitle='próximamente'
+          title='Vencimientos Hoy'
+          value={getTotalDueToday()}
+          subtitle='préstamos que vencen hoy'
           icon={<AccountBalance />}
           color='warning'
+          isLoading={subLoansLoading}
         />
         <StatsCard
-          title='Ingresos del Mes'
-          value='$0'
-          subtitle='próximamente'
+          title='Vencidos'
+          value={getOverdueCount()}
+          subtitle='requieren atención'
           icon={<TrendingUp />}
-          color='success'
+          color='error'
+          isLoading={subLoansLoading}
         />
       </Box>
+
+      {/* Error de SubLoans */}
+      {subLoansError && (
+        <Alert severity="error" sx={{ mb: 4 }}>
+          <Typography variant="subtitle2">Error al cargar vencimientos:</Typography>
+          <Typography variant="body2">{subLoansError}</Typography>
+        </Alert>
+      )}
+
+      {/* Acceso Rápido a Cobros */}
+      {getTotalDueToday() > 0 && (
+        <Paper sx={{ p: 3, mb: 4, bgcolor: 'warning.light' }}>
+          <Typography variant="h6" gutterBottom>
+            ⚠️ Tienes {getTotalDueToday()} pagos que vencen hoy
+          </Typography>
+          <Typography variant="body2" sx={{ mb: 2 }}>
+            {getOverdueCount() > 0 && `${getOverdueCount()} están vencidos y requieren atención inmediata.`}
+          </Typography>
+          <Button 
+            variant="contained" 
+            color="warning"
+            onClick={() => router.push('/dashboard/prestamista/cobros')}
+          >
+            Ir a Cobros del Día
+          </Button>
+        </Paper>
+      )}
 
       {/* Simulador de Préstamos */}
       <Box sx={{ mb: 4 }}>

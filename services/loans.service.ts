@@ -1,6 +1,7 @@
 import api from './api'
 import type { 
   LoanResponseDto, 
+  LoanListResponseDto,
   CreateLoanDto,
   CreateLoanResponseDto,
   LoanTrackingResponseDto,
@@ -34,6 +35,11 @@ class LoansService {
   async getAllLoans(): Promise<LoanResponseDto[]> {
     const response = await api.get('/loans')
     return response.data.data
+  }
+
+  async getActiveLoansWithClientId(): Promise<LoanListResponseDto[]> {
+    const response = await api.get('/loans')
+    return response.data.data || response.data || [] // Handle different response structures
   }
 
   async getLoanById(id: string): Promise<LoanResponseDto> {

@@ -22,6 +22,7 @@ import {
   Divider,
 } from '@mui/material'
 import { Person, Phone, Email, Home, Work } from '@mui/icons-material'
+import type { SelectChangeEvent } from '@mui/material/Select'
 import { useClients } from '@/hooks/useClients'
 import { ClientValidation } from '@/lib/validation-utils'
 import { formatDNI, formatCUIT, unformatDNI, unformatCUIT, formatPhoneNumber, unformatPhoneNumber } from '@/lib/formatters'
@@ -115,7 +116,7 @@ export function ClientFormModal({
     }
   }
 
-  const handleCountryChange = (event: any) => {
+  const handleCountryChange = (event: SelectChangeEvent<string>) => {
     setFormData(prev => ({
       ...prev,
       countryCode: event.target.value

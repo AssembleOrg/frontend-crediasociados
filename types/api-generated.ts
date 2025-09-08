@@ -3,8 +3,6 @@
  * Do not make direct changes to the file.
  */
 
-import { Client } from "./auth";
-
 export interface paths {
     "/api/v1": {
         parameters: {
@@ -253,8 +251,8 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Obtener todos los préstamos del usuario autenticado */
-        get: operations["LoansController_getAllLoans"];
+        /** Obtener todos los préstamos activos del usuario autenticado */
+        get: operations["LoansController_getAllActiveLoans"];
         put?: never;
         /** Create a new loan */
         post: operations["LoansController_createLoan"];
@@ -273,6 +271,23 @@ export interface paths {
         };
         /** Obtener información del préstamo por DNI y código de tracking (Endpoint público) */
         get: operations["LoansController_getLoanByTracking"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/loans/pagination": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Obtener préstamos paginados del usuario autenticado */
+        get: operations["LoansController_getPaginatedLoans"];
         put?: never;
         post?: never;
         delete?: never;
@@ -352,6 +367,86 @@ export interface paths {
         patch: operations["ClientsController_update"];
         trace?: never;
     };
+    "/api/v1/sub-loans/today-due": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Obtener subloans que vencen hoy (paginado)
+         * @description Retorna todos los subloans que tienen fecha de vencimiento hoy (cualquier estado) con paginación
+         */
+        get: operations["SubLoansController_getTodayDueSubLoans"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/sub-loans/today-due/stats": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Obtener estadísticas de subloans que vencen hoy
+         * @description Retorna estadísticas agrupadas por status de los subloans que vencen hoy
+         */
+        get: operations["SubLoansController_getTodayDueSubLoansStats"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/sub-loans/activate-today-due": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Activar subloans que vencen hoy
+         * @description Cambia el status de subloans pendientes que vencen hoy a OVERDUE (solo para admins)
+         */
+        post: operations["SubLoansController_activateTodayDueSubLoans"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/scheduled-tasks/activate-today-due-subloans": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Ejecutar manualmente la activación de subloans que vencen hoy
+         * @description Ejecuta manualmente la tarea que normalmente se ejecuta a las 4:00 AM (solo para admins)
+         */
+        post: operations["ScheduledTasksController_runActivateTodayDueSubLoansManually"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -378,7 +473,7 @@ export interface components {
              * @example MANAGER
              * @enum {string}
              */
-            role: "SUPERADMIN" | "ADMIN" | "MANAGER" | "SUBADMIN";
+            role: "SUPERADMIN" | "ADMIN" | "SUBADMIN" | "MANAGER";
         };
         UserResponseDto: {
             id: string;
@@ -386,7 +481,7 @@ export interface components {
             fullName: string;
             phone?: Record<string, never> | null;
             /** @enum {string} */
-            role: "SUPERADMIN" | "ADMIN" | "MANAGER" | "SUBADMIN";
+            role: "SUPERADMIN" | "ADMIN" | "SUBADMIN" | "MANAGER";
             dni?: Record<string, never> | null;
             cuit?: Record<string, never> | null;
             /** Format: date-time */
@@ -407,7 +502,7 @@ export interface components {
              * @example MANAGER
              * @enum {string}
              */
-            role?: "SUPERADMIN" | "ADMIN" | "MANAGER" | "SUBADMIN";
+            role?: "SUPERADMIN" | "ADMIN" | "SUBADMIN" | "MANAGER";
         };
         ExternalApiResponseDto: {
             /**
@@ -497,7 +592,7 @@ export interface components {
              * @example FRIDAY
              * @enum {string}
              */
-            paymentDay?: "MONDAY" | "TUESDAY" | "WEDNESDAY" | "THURSDAY" | "FRIDAY" | "SATURDAY" | "SUNDAY";
+            paymentDay?: "MONDAY" | "TUESDAY" | "WEDNESDAY" | "THURSDAY" | "FRIDAY" | "SATURDAY";
             /** @example 12 */
             totalPayments: number;
             /** @example 2024-12-31T23:59:59.000Z */
@@ -511,15 +606,6 @@ export interface components {
             description?: string;
             /** @example Client requested weekly payments on Fridays */
             notes?: string;
-            /** @example 2024-01-15T00:00:00.000Z */
-            // createdAt: string;
-            // /** @example 2024-01-15T00:00:00.000Z */
-            // updatedAt: string;
-            // /** @example 2024-01-15T00:00:00.000Z */
-            // requestDate: string;
-            // status: string;
-            // userId: string;
-            // client: Record<string, never>;
         };
         CreateLoanResponseDto: {
             /** @example loan_id_here */
@@ -529,25 +615,39 @@ export interface components {
             /** @example 100000 */
             amount: number;
             /** @example ARS */
-            currency: 'ARS';
+            currency: string;
             /** @example WEEKLY */
-            paymentFrequency: 'DAILY' | 'WEEKLY' | 'BIWEEKLY' | 'MONTHLY';
+            paymentFrequency: string;
             /** @example FRIDAY */
-            paymentDay: 'MONDAY' | 'TUESDAY' | 'WEDNESDAY' | 'THURSDAY' | 'FRIDAY' | 'SATURDAY' | 'SUNDAY';
+            paymentDay: string;
             /** @example 12 */
             totalPayments: number;
             /** @example 2024-02-02T00:00:00.000Z */
-            firstDueDate: Date;
+            firstDueDate: string;
             /** @example 15 */
             baseInterestRate: number;
             /** @example 35 */
             penaltyInterestRate: number;
+            /** @example 100000 */
+            originalAmount: number;
             /** @example Business expansion loan */
             description: string;
             /** @example Client requested weekly payments on Fridays */
             notes: string;
             /** @example 2024-01-15T00:00:00.000Z */
-            createdAt: Date;
+            requestedDueDate: string;
+            /** @example 2024-01-15T00:00:00.000Z */
+            requestDate: string;
+            /** @example 2024-01-15T00:00:00.000Z */
+            updatedAt: string;
+            /** @example 2024-01-15T00:00:00.000Z */
+            createdAt: string;
+            /** @example 2024-01-15T00:00:00.000Z */
+            deletedAt: string;
+            /** @example client_id */
+            clientId: string;
+            /** @example PENDING */
+            status: string;
             /** @example {
              *       "id": "client_id",
              *       "fullName": "John Doe",
@@ -557,7 +657,7 @@ export interface components {
              *       "email": "client@example.com",
              *       "address": "123 Main St, Buenos Aires"
              *     } */
-            client: Client;
+            client: Record<string, never>;
             /**
              * @description SubLoans generados automáticamente basados en totalPayments
              * @example [
@@ -584,12 +684,6 @@ export interface components {
              *     ]
              */
             subLoans: string[];
-            updatedAt: Date;
-            /** @example 2024-01-15T00:00:00.000Z */
-            requestDate: Date;
-            status: 'PENDING' | 'APPROVED' | 'REJECTED' | 'ACTIVE' | 'COMPLETED' | 'DEFAULTED';
-            userId: string;
-            clientId: string;
         };
         LoanTrackingResponseDto: {
             /** @example loan_id_here */
@@ -599,7 +693,7 @@ export interface components {
             /** @example 100000 */
             amount: number;
             /** @example ARS */
-            currency: 'ARS';
+            currency: string;
             /** @example WEEKLY */
             paymentFrequency: string;
             /** @example FRIDAY */
@@ -611,7 +705,7 @@ export interface components {
             /** @example Business expansion loan */
             description: string;
             /** @example 2024-01-15T00:00:00.000Z */
-            createdAt: Date;
+            createdAt: string;
             /** @example {
              *       "id": "client_id",
              *       "fullName": "John Doe",
@@ -636,6 +730,115 @@ export interface components {
              *       }
              *     ] */
             subLoans: string[];
+        };
+        ClientBasicInfoDto: {
+            /** @example client_id */
+            id: string;
+            /** @example John Doe */
+            fullName: string;
+            /** @example 12345678 */
+            dni?: Record<string, never>;
+            /** @example 20-12345678-9 */
+            cuit?: Record<string, never>;
+        };
+        SubLoanResponseDto: {
+            /** @example subloan_id_1 */
+            id: string;
+            /** @example loan_id_1 */
+            loanId: string;
+            /** @example 1 */
+            paymentNumber: number;
+            /** @example 8333.33 */
+            amount: number;
+            /** @example 8333.33 */
+            totalAmount: number;
+            /** @example PENDING */
+            status: string;
+            /** @example 2024-02-02T00:00:00.000Z */
+            dueDate: string;
+            /** @example null */
+            paidDate?: Record<string, never>;
+            /** @example 0 */
+            paidAmount: number;
+            /** @example 0 */
+            daysOverdue: number;
+            /** @example 2024-01-15T00:00:00.000Z */
+            createdAt: string;
+            /** @example 2024-01-15T00:00:00.000Z */
+            updatedAt: string;
+            /** @example null */
+            deletedAt?: Record<string, never>;
+        };
+        LoanListResponseDto: {
+            /** @example loan_id_1 */
+            id: string;
+            /** @example client_id_1 */
+            clientId: string;
+            /** @example 100000 */
+            amount: number;
+            /** @example PENDING */
+            status: string;
+            /** @example 2024-01-15T00:00:00.000Z */
+            requestDate: string;
+            /** @example null */
+            approvedDate?: Record<string, never>;
+            /** @example null */
+            completedDate?: Record<string, never>;
+            /** @example Business expansion loan */
+            description?: Record<string, never>;
+            /** @example 2024-01-15T00:00:00.000Z */
+            createdAt: string;
+            /** @example 2024-01-15T00:00:00.000Z */
+            updatedAt: string;
+            /** @example null */
+            deletedAt?: Record<string, never>;
+            /** @example 15 */
+            baseInterestRate: number;
+            /** @example ARS */
+            currency: string;
+            /** @example 2024-02-02T00:00:00.000Z */
+            firstDueDate?: Record<string, never>;
+            /** @example Client requested weekly payments */
+            notes?: Record<string, never>;
+            /** @example FRIDAY */
+            paymentDay?: Record<string, never>;
+            /** @example WEEKLY */
+            paymentFrequency: string;
+            /** @example 35 */
+            penaltyInterestRate: number;
+            /** @example 5 */
+            totalPayments: number;
+            /** @example LOAN-2024-001 */
+            loanTrack: string;
+            /** @example CREDITO */
+            prefix: string;
+            /** @example 2024 */
+            year: number;
+            /** @example 1 */
+            sequence: number;
+            /** @example 100000 */
+            originalAmount: number;
+            client: components["schemas"]["ClientBasicInfoDto"];
+            subLoans: components["schemas"]["SubLoanResponseDto"][];
+        };
+        PaginationMetaDto: {
+            /** @example 1 */
+            page: number;
+            /** @example 10 */
+            limit: number;
+            /** @example 100 */
+            total: number;
+            /** @example 10 */
+            totalPages: number;
+            /** @example true */
+            hasNextPage: boolean;
+            /** @example false */
+            hasPreviousPage: boolean;
+        };
+        PaginatedResponseDto: {
+            /** @description Array of items */
+            data: string[];
+            meta: components["schemas"]["PaginationMetaDto"];
         };
         CreateClientDto: {
             /** @example John Doe Client */
@@ -1183,26 +1386,23 @@ export interface operations {
             };
         };
     };
-    LoansController_getAllLoans: {
+    LoansController_getAllActiveLoans: {
         parameters: {
-            query?: {
-                /** @description Número de página */
-                page?: number;
-                /** @description Elementos por página */
-                limit?: number;
-            };
+            query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
         requestBody?: never;
         responses: {
-            /** @description Préstamos obtenidos exitosamente */
+            /** @description Préstamos activos obtenidos exitosamente */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["LoanListResponseDto"][];
+                };
             };
             /** @description No autorizado */
             401: {
@@ -1290,6 +1490,38 @@ export interface operations {
             };
             /** @description Préstamo no encontrado o DNI no coincide */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    LoansController_getPaginatedLoans: {
+        parameters: {
+            query?: {
+                /** @description Número de página */
+                page?: number;
+                /** @description Elementos por página */
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Préstamos paginados obtenidos exitosamente */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaginatedResponseDto"];
+                };
+            };
+            /** @description No autorizado */
+            401: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -1599,6 +1831,125 @@ export interface operations {
             };
             /** @description Client not found */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    SubLoansController_getTodayDueSubLoans: {
+        parameters: {
+            query?: {
+                /** @description Número de página */
+                page?: number;
+                /** @description Elementos por página (mínimo 20) */
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Subloans que vencen hoy obtenidos exitosamente */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description No autorizado */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    SubLoansController_getTodayDueSubLoansStats: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Estadísticas obtenidas exitosamente */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description No autorizado */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    SubLoansController_activateTodayDueSubLoans: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Subloans activados exitosamente */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description No autorizado */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Prohibido - Solo administradores */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ScheduledTasksController_runActivateTodayDueSubLoansManually: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Tarea ejecutada exitosamente */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description No autorizado */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Prohibido - Solo administradores */
+            403: {
                 headers: {
                     [name: string]: unknown;
                 };

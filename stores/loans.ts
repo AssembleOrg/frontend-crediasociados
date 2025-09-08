@@ -1,6 +1,5 @@
 import { create } from 'zustand'
-import type { CreateLoanDto, CreateLoanResponseDto, Loan } from '@/types/auth'
-import { loansService } from '@/services/loans.service'
+import type { Loan } from '@/types/auth'
 
 interface LoansStore {
   // State
@@ -19,7 +18,6 @@ interface LoansStore {
 
   // Computed values (selectors)
   getTotalLoans: () => number
-  createLoan: (loan: CreateLoanDto) => Promise<CreateLoanResponseDto>
   getActiveLoansByStatus: () => Loan[]
   getLoanById: (id: string) => Loan | undefined
   getLoansByClient: (clientId: string) => Loan[]
@@ -43,12 +41,6 @@ export const useLoansStore = create<LoansStore>((set, get) => ({
 
   // Synchronous setters - "MUDO" store pattern
   setLoans: (loans) => set({ loans, error: null }),
-  
-  createLoan: async(loan) => {
-    const response = await loansService.createLoan(loan)
-    set({ loans: [...get().loans, response], error: null })
-    return response
-  },
   
   addLoan: (loan) => set((state) => ({ 
     loans: [...state.loans, loan],
