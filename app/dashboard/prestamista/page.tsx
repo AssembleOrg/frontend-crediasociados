@@ -1,144 +1,92 @@
-'use client';
+'use client'
 
-import React from 'react';
-import { Typography, Box, Paper, Button, Alert } from '@mui/material';
-import { People, AccountBalance, TrendingUp } from '@mui/icons-material';
-import { useRouter } from 'next/navigation';
-import { StatsCard } from '@/components/dashboard/StatsCard';
-import { useClients } from '@/hooks/useClients';
-import { useSubLoans } from '@/hooks/useSubLoans';
-import { StandaloneLoanSimulator } from '@/components/loans/StandaloneLoanSimulator';
+import React from 'react'
+import { Box, Paper, Button, Alert } from '@mui/material'
+import { People, AccountBalance } from '@mui/icons-material'
+import { useRouter } from 'next/navigation'
+import { StatsCard } from '@/components/dashboard/StatsCard'
+import { useClients } from '@/hooks/useClients'
+import { useSubLoans } from '@/hooks/useSubLoans'
+import { StandaloneLoanSimulator } from '@/components/loans/StandaloneLoanSimulator'
+import PageHeader from '@/components/ui/PageHeader'
+import StatsGrid from '@/components/ui/StatsGrid'
 
 export default function PrestamistaDashboard() {
-  const router = useRouter();
-  const { getTotalClients, isLoading } = useClients();
+  const router = useRouter()
+  const { getTotalClients, isLoading } = useClients()
   const { 
     getTotalDueToday,
     getOverdueCount,
     isLoading: subLoansLoading,
     error: subLoansError 
-  } = useSubLoans();
+  } = useSubLoans()
 
-  const clientsCount = getTotalClients();
+  const clientsCount = getTotalClients()
+  const dueToday = getTotalDueToday()
+  const overdueCount = getOverdueCount()
 
   return (
     <Box sx={{ p: 3 }}>
       {/* Header */}
-      <Box sx={{ mb: 4 }}>
-        <Typography
-          variant='h4'
-          component='h1'
-          gutterBottom
-        >
-          Dashboard Prestamista
-        </Typography>
-        <Typography
-          variant='body1'
-          color='text.secondary'
-        >
-          Gestión de clientes y préstamos de tu cartera
-        </Typography>
-      </Box>
+      <PageHeader
+        title="Dashboard Prestamista"
+        subtitle="Gestión de clientes y préstamos de tu cartera"
+      />
 
       {/* Stats Grid */}
-      <Box
-        sx={{
-          display: 'grid',
-          gridTemplateColumns: {
-            xs: '1fr',
-            sm: 'repeat(2, 1fr)',
-            lg: 'repeat(3, 1fr)',
-          },
-          gap: 3,
-          mb: 4,
-        }}
-      >
+      <StatsGrid columns={{ xs: 1, sm: 2, lg: 3 }}>
         <StatsCard
-          title='Clientes Activos'
+          title="Clientes Activos"
           value={clientsCount}
           subtitle={`cliente${clientsCount !== 1 ? 's' : ''} en tu cartera`}
           icon={<People />}
-          color='primary'
+          color="primary"
           isLoading={isLoading}
         />
         <StatsCard
-          title='Vencimientos Hoy'
-          value={getTotalDueToday()}
-          subtitle='préstamos que vencen hoy'
+          title="Vencimientos Hoy"
+          value={dueToday}
+          subtitle="préstamos que vencen hoy"
           icon={<AccountBalance />}
-          color='warning'
+          color="warning"
           isLoading={subLoansLoading}
         />
-        <StatsCard
-          title='Vencidos'
-          value={getOverdueCount()}
-          subtitle='requieren atención'
-          icon={<TrendingUp />}
-          color='error'
-          isLoading={subLoansLoading}
-        />
-      </Box>
+      </StatsGrid>
 
       {/* Error de SubLoans */}
       {subLoansError && (
         <Alert severity="error" sx={{ mb: 4 }}>
-          <Typography variant="subtitle2">Error al cargar vencimientos:</Typography>
-          <Typography variant="body2">{subLoansError}</Typography>
+          <Box sx={{ typography: 'subtitle2' }}>Error al cargar vencimientos:</Box>
+          <Box sx={{ typography: 'body2' }}>{subLoansError}</Box>
         </Alert>
       )}
 
       {/* Acceso Rápido a Cobros */}
-      {getTotalDueToday() > 0 && (
+      {dueToday > 0 && (
         <Paper sx={{ p: 3, mb: 4, bgcolor: 'warning.light' }}>
-          <Typography variant="h6" gutterBottom>
-            ⚠️ Tienes {getTotalDueToday()} pagos que vencen hoy
-          </Typography>
-          <Typography variant="body2" sx={{ mb: 2 }}>
-            {getOverdueCount() > 0 && `${getOverdueCount()} están vencidos y requieren atención inmediata.`}
-          </Typography>
+          <Box sx={{ typography: 'h6', mb: 1 }}>
+            ⚠️ Tienes {dueToday} pagos que vencen hoy
+          </Box>
+          <Box sx={{ typography: 'body2', mb: 2 }}>
+            {overdueCount > 0 && `${overdueCount} están vencidos y requieren atención inmediata.`}
+          </Box>
           <Button 
             variant="contained" 
             color="warning"
             onClick={() => router.push('/dashboard/prestamista/cobros')}
           >
-            Ir a Cobros del Día
+            Ir a Gestión de Cobros
           </Button>
         </Paper>
       )}
 
-      {/* Simulador de Préstamos */}
-      <Box sx={{ mb: 4 }}>
-        <StandaloneLoanSimulator />
-      </Box>
-
+      {/* Simulator */}
       <Paper sx={{ p: 3 }}>
-        <Box sx={{ mb: 2 }}>
-          <Typography
-            variant='h6'
-            gutterBottom
-          >
-            Gestión de Clientes
-          </Typography>
-          <Typography
-            variant='body1'
-            color='text.secondary'
-            sx={{ mb: 2 }}
-          >
-            {clientsCount > 0 
-              ? `Tienes ${clientsCount} cliente${clientsCount !== 1 ? 's' : ''} registrado${clientsCount !== 1 ? 's' : ''} en tu cartera.`
-              : 'Aún no tienes clientes registrados en tu cartera.'
-            }
-          </Typography>
+        <Box sx={{ typography: 'h6', mb: 2 }}>
+          Simulador de Préstamos
         </Box>
-        
-        <Button
-          variant="outlined"
-          fullWidth
-          onClick={() => router.push('/dashboard/prestamista/clientes')}
-        >
-          Ir a la sección de Clientes
-        </Button>
+        <StandaloneLoanSimulator />
       </Paper>
     </Box>
-  );
+  )
 }

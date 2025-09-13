@@ -3,8 +3,6 @@
 import { useState } from 'react'
 import {
   Box,
-  Typography,
-  Button,
   Paper,
   Table,
   TableBody,
@@ -26,6 +24,7 @@ import { useClients } from '@/hooks/useClients'
 import { ClientFormModal } from '@/components/clients/ClientFormModal'
 import { DeleteClientConfirmDialog } from '@/components/clients/DeleteClientConfirmDialog'
 import { TableSkeleton } from '@/components/ui/TableSkeleton'
+import PageHeader from '@/components/ui/PageHeader'
 import type { Client } from '@/types/auth'
 
 export default function ClientesPage() {
@@ -73,154 +72,128 @@ export default function ClientesPage() {
 
   return (
     <Box sx={{ p: 3 }}>
-      <Box sx={{ 
-        display: 'flex', 
-        justifyContent: 'space-between', 
-        alignItems: 'center',
-        mb: 3,
-        flexWrap: 'wrap',
-        gap: 2
-      }}>
-        <Box>
-          <Typography variant="h4" component="h1" gutterBottom>
-            Gestión de Clientes
-          </Typography>
-          <Typography variant="body1" color="text.secondary">
-            Administra los clientes de tu cartera
-          </Typography>
-        </Box>
+      {/* Header */}
+      <PageHeader
+        title="Gestión de Clientes"
+        subtitle="Administra los clientes de tu cartera"
+        actions={[
+          {
+            label: 'Crear Cliente',
+            onClick: () => setCreateModalOpen(true),
+            startIcon: <Add />,
+            variant: 'contained'
+          }
+        ]}
+      />
 
-        <Button
-          variant="contained"
-          startIcon={<Add />}
-          onClick={() => setCreateModalOpen(true)}
-        >
-          Crear Cliente
-        </Button>
-      </Box>
-
+      {/* Error Alert */}
       {error && (
         <Alert 
           severity="error" 
-          sx={{ mb: 3 }}
           onClose={clearError}
+          sx={{ mb: 3 }}
         >
           {error}
         </Alert>
       )}
 
-      <Paper sx={{ width: '100%', mb: 2 }}>
+      {/* Clients Table */}
+      <Paper>
         <TableContainer>
-          <Table>
-            <TableHead>
-              <TableRow>
-                <TableCell>Nombre</TableCell>
-                <TableCell>DNI</TableCell>
-                <TableCell>Email</TableCell>
-                <TableCell>Teléfono</TableCell>
-                <TableCell>Estado</TableCell>
-                <TableCell align="right">Acciones</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {isLoading && clients.length === 0 ? (
-                <TableSkeleton columns={6} rows={8} />
-              ) : clients.length === 0 ? (
+          {isLoading ? (
+            <TableSkeleton columns={6} />
+          ) : (
+            <Table>
+              <TableHead>
                 <TableRow>
-                  <TableCell colSpan={6} align="center" sx={{ py: 4 }}>
-                    <Typography variant="body2" color="text.secondary">
-                      No hay clientes registrados
-                    </Typography>
-                  </TableCell>
+                  <TableCell><strong>Nombre Completo</strong></TableCell>
+                  <TableCell><strong>DNI</strong></TableCell>
+                  <TableCell><strong>Email</strong></TableCell>
+                  <TableCell><strong>Teléfono</strong></TableCell>
+                  <TableCell><strong>Estado</strong></TableCell>
+                  <TableCell align="center"><strong>Acciones</strong></TableCell>
                 </TableRow>
-              ) : (
-                clients.map((client) => (
-                  <TableRow key={client.id} hover>
-                    <TableCell>
-                      <Typography variant="body2" fontWeight="medium">
-                        {client.fullName}
-                      </Typography>
-                    </TableCell>
-                    <TableCell>
-                      <Typography variant="body2">
-                        {client.dni || '-'}
-                      </Typography>
-                    </TableCell>
-                    <TableCell>
-                      <Typography variant="body2">
-                        {client.email || '-'}
-                      </Typography>
-                    </TableCell>
-                    <TableCell>
-                      <Typography variant="body2">
-                        {client.phone || '-'}
-                      </Typography>
-                    </TableCell>
-                    <TableCell>
-                      <Chip 
-                        label="Activo" 
-                        color="success" 
-                        size="small" 
-                      />
-                    </TableCell>
-                    <TableCell align="right">
-                      <IconButton
-                        size="small"
-                        onClick={() => handleEdit(client)}
-                        sx={{ mr: 1 }}
-                      >
-                        <Edit fontSize="small" />
-                      </IconButton>
-                      <IconButton
-                        size="small"
-                        onClick={() => handleDelete(client)}
-                        color="error"
-                      >
-                        <Delete fontSize="small" />
-                      </IconButton>
-                    </TableCell>
-                  </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
+              </TableHead>
+              <TableBody>
+                {clients
+                  .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
+                  .map((client) => (
+                    <TableRow key={client.id} hover>
+                      <TableCell>{client.fullName}</TableCell>
+                      <TableCell>{client.dni || 'N/A'}</TableCell>
+                      <TableCell>{client.email || 'N/A'}</TableCell>
+                      <TableCell>{client.phone || 'N/A'}</TableCell>
+                      <TableCell>
+                        <Chip
+                          label="Activo"
+                          color="success"
+                          size="small"
+                          variant="outlined"
+                        />
+                      </TableCell>
+                      <TableCell align="center">
+                        <IconButton
+                          size="small"
+                          onClick={() => handleEdit(client)}
+                          color="primary"
+                        >
+                          <Edit />
+                        </IconButton>
+                        <IconButton
+                          size="small"
+                          onClick={() => handleDelete(client)}
+                          color="error"
+                        >
+                          <Delete />
+                        </IconButton>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+              </TableBody>
+            </Table>
+          )}
         </TableContainer>
 
         <TablePagination
-          rowsPerPageOptions={[5, 10, 25]}
           component="div"
           count={getTotalClients()}
-          rowsPerPage={rowsPerPage}
           page={page}
           onPageChange={handleChangePage}
+          rowsPerPage={rowsPerPage}
           onRowsPerPageChange={handleChangeRowsPerPage}
           labelRowsPerPage="Filas por página:"
-          labelDisplayedRows={({ from, to, count }) => `${from}-${to} de ${count}`}
+          labelDisplayedRows={({ from, to, count }) => 
+            `${from}-${to} de ${count !== -1 ? count : `más de ${to}`}`
+          }
         />
       </Paper>
 
+      {/* Modals */}
       <ClientFormModal
         open={createModalOpen}
         onClose={handleCloseModals}
         mode="create"
       />
 
-      {selectedClient && (
-        <>
-          <ClientFormModal
-            open={editModalOpen}
-            onClose={handleCloseModals}
-            client={selectedClient}
-            mode="edit"
-          />
-          <DeleteClientConfirmDialog
-            open={deleteDialogOpen}
-            onClose={handleCloseModals}
-            client={selectedClient}
-            onConfirm={deleteClient}
-          />
-        </>
-      )}
+      <ClientFormModal
+        open={editModalOpen}
+        onClose={handleCloseModals}
+        mode="edit"
+        client={selectedClient}
+      />
+
+      <DeleteClientConfirmDialog
+        open={deleteDialogOpen}
+        onClose={handleCloseModals}
+        client={selectedClient}
+        onConfirm={async (id: string) => {
+          const success = await deleteClient(id)
+          if (success) {
+            handleCloseModals()
+          }
+          return success
+        }}
+      />
     </Box>
   )
 }

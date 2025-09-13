@@ -1,6 +1,7 @@
 import { useCallback } from 'react';
 import { dolarBlueService } from '@/services/dolar-blue.service';
 import { useDolarBlueStore } from '@/stores/dolar-blue';
+import { useAuthStore } from '@/stores/auth';
 import type { DolarBlueData } from '@/types/dolar-blue';
 
 export const useDolarBlue = () => {
@@ -16,13 +17,17 @@ export const useDolarBlue = () => {
     getTimeUntilRefresh
   } = useDolarBlueStore();
 
+  const { user } = useAuthStore();
+
   const refreshManually = useCallback(async () => {
     setLoading(true);
     setError(null);
 
     try {
-      // Manual refresh should force POST + GET for fresh data
-      const response = await dolarBlueService.fetchAndUpdate();
+      // Role-based refresh: ADMIN can POST + GET, others can only GET
+      const response = user?.role === 'admin' 
+        ? await dolarBlueService.fetchAndUpdate()  // POST + GET for fresh data
+        : await dolarBlueService.getLatest();      // GET only for existing data
       
       const dolarData: DolarBlueData = {
         compra: response.compra,
@@ -32,7 +37,13 @@ export const useDolarBlue = () => {
       };
 
       setCurrentRate(dolarData);
-      console.log('💰 Dólar Blue manual refresh (POST + GET):', { compra: response.compra, venta: response.venta });
+      
+      if (user?.role === 'admin') {
+        console.log('💰 Dólar Blue manual refresh (POST + GET - ADMIN):', { compra: response.compra, venta: response.venta });
+      } else {
+        console.log('📖 Dólar Blue manual refresh (GET only - READ ONLY):', { compra: response.compra, venta: response.venta });
+      }
+      
       return true;
 
     } catch (error: any) {
@@ -43,7 +54,7 @@ export const useDolarBlue = () => {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [user?.role]);
 
   return {
     currentRate,
@@ -53,5 +64,6 @@ export const useDolarBlue = () => {
     timeUntilRefresh: getTimeUntilRefresh(),
     refresh: refreshManually,
     isCacheValid: isCacheValid()
+    // isDataStale removed - should only be used by Provider, not in renders
   };
 };

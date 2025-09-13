@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { createContext, useContext, useEffect, useRef } from 'react';
 import { subLoansLookupService } from '@/services/subloans-lookup.service';
 import { subLoansService } from '@/services/sub-loans.service';
 import { loansService } from '@/services/loans.service';
@@ -13,6 +13,21 @@ import { apiLoanToLoan } from '@/types/transforms';
 interface SubLoansProviderProps {
   children: React.ReactNode;
 }
+
+// Context for refreshing data
+interface SubLoansProviderContextType {
+  refreshData: () => Promise<void>;
+}
+
+const SubLoansProviderContext = createContext<SubLoansProviderContextType | null>(null);
+
+export const useSubLoansProviderContext = () => {
+  const context = useContext(SubLoansProviderContext);
+  if (!context) {
+    throw new Error('useSubLoansProviderContext must be used within SubLoansProvider');
+  }
+  return context;
+};
 
 export default function SubLoansProvider({ children }: SubLoansProviderProps) {
   const {
@@ -167,5 +182,19 @@ export default function SubLoansProvider({ children }: SubLoansProviderProps) {
     };
   }, []);
 
-  return <>{children}</>;
+  // Wrapper function to match context type
+  const refreshData = async (): Promise<void> => {
+    await initAllSubLoansData();
+  };
+
+  // Expose refreshData method via context
+  const contextValue: SubLoansProviderContextType = {
+    refreshData
+  };
+
+  return (
+    <SubLoansProviderContext.Provider value={contextValue}>
+      {children}
+    </SubLoansProviderContext.Provider>
+  );
 }

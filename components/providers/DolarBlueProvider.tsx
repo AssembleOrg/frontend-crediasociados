@@ -15,11 +15,10 @@ export default function DolarBlueProvider({ children }: DolarBlueProviderProps) 
   const {
     setCurrentRate,
     setLoading,
-    setError,
-    isCacheValid
+    setError
   } = useDolarBlueStore();
 
-  const { token } = useAuthStore();
+  const { token, user } = useAuthStore();
 
   const abortControllerRef = useRef<AbortController | null>(null);
   const refreshIntervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -35,6 +34,9 @@ export default function DolarBlueProvider({ children }: DolarBlueProviderProps) 
       setLoading(true);
 
       const response = await dolarBlueService.initWithoutUpdate(abortController.signal);
+      
+      // DEBUG: Log full API response
+      console.log('🔍 Raw API Response:', response);
 
       if (abortController.signal.aborted) {
         return false;
@@ -49,6 +51,7 @@ export default function DolarBlueProvider({ children }: DolarBlueProviderProps) 
 
       setCurrentRate(dolarData);
       console.log('💰 Dólar Blue initialized (GET only):', { compra: response.compra, venta: response.venta });
+      console.log('📅 Fecha actualización:', response.fechaActualizacion);
       return true;
 
     } catch (error: unknown) {
@@ -120,8 +123,24 @@ export default function DolarBlueProvider({ children }: DolarBlueProviderProps) 
     }
 
     refreshIntervalRef.current = setInterval(() => {
-      if (!isCacheValid()) {
-        fetchDolarBlue(true);
+      // Fix: Get fresh store state each time instead of captured closure
+      const store = useDolarBlueStore.getState();
+      const isValid = store.isCacheValid();
+      const isStale = store.isDataStale();
+      
+      console.log('⏰ Background refresh check - isCacheValid:', isValid, 'isDataStale:', isStale);
+      
+      // Force refresh if cache expired OR if API data is stale
+      if (!isValid || isStale) {
+        // Only ADMIN users can perform background POST refresh
+        const authState = useAuthStore.getState();
+        
+        if (authState.user?.role === 'admin') {
+          console.log('🔄 Starting background refresh with POST + GET (ADMIN)...');
+          fetchDolarBlue(true);
+        } else {
+          console.log('⚠️ Background refresh needed but user is not ADMIN - skipping POST');
+        }
       }
     }, DOLAR_BLUE_CONFIG.REFRESH_INTERVAL_MS);
   };
@@ -130,16 +149,32 @@ export default function DolarBlueProvider({ children }: DolarBlueProviderProps) 
   useEffect(() => {
     const init = async () => {
       if (isInitializedRef.current) return;
-      if (!token) return;
+      if (!token) {
+        console.log('⏸️ No token available, skipping dolar blue initialization');
+        return;
+      }
 
       isInitializedRef.current = true;
       hasTokenBeenAvailableRef.current = true;
 
-      console.log('🪙 Inicializando Dólar Blue globalmente (GET only para login rápido)');
+      console.log('🪙 Inicializando Dólar Blue globalmente con token autenticado');
 
-      // Fast login initialization - only GET
-      const success = await initDolarBlue();
-      if (success) {
+      // Fast login initialization - only GET first
+      const initSuccess = await initDolarBlue();
+      
+      if (initSuccess) {
+        // Check if data is stale (older than 4 hours) - Fix: use fresh store state
+        const store = useDolarBlueStore.getState();
+        if (store.isDataStale()) {
+          // Only ADMIN users can perform POST to update external API data
+          if (user?.role === 'admin') {
+            console.log('💰 Datos del dólar blue están desactualizados (>4h), ejecutando POST + GET (ADMIN)...');
+            await fetchDolarBlue(false);
+          } else {
+            console.log('⚠️ Datos del dólar blue están desactualizados pero usuario no es ADMIN - solo lectura');
+          }
+        }
+        
         // Schedule background refresh every 2 hours (POST + GET)
         scheduleBackgroundRefresh();
       }

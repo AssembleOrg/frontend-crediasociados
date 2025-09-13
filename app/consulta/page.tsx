@@ -32,6 +32,7 @@ import {
 } from '@mui/icons-material'
 import { Navbar } from '@/components/ui/Navbar'
 import { Footer } from '@/components/ui/Footer'
+import { getFrequencyLabel, getStatusLabel, getPaymentStatusLabel } from '@/lib/formatters'
 
 interface LoanDetails {
   id: string
@@ -129,30 +130,20 @@ export default function ConsultaPublicaPage() {
   }
 
   const getPaymentStatusChip = (status: string) => {
+    const label = getPaymentStatusLabel(status)
+    
     switch (status) {
       case 'PAID':
-        return <Chip label="Pagado" color="success" size="small" />
+        return <Chip label={label} color="success" size="small" />
       case 'OVERDUE':
-        return <Chip label="Vencido" color="error" size="small" />
+        return <Chip label={label} color="error" size="small" />
       case 'PENDING':
-        return <Chip label="Pendiente" color="warning" size="small" />
+        return <Chip label={label} color="warning" size="small" />
       default:
-        return <Chip label="Desconocido" size="small" />
+        return <Chip label={label} size="small" />
     }
   }
 
-  const getFrequencyText = (frequency: string) => {
-    switch (frequency) {
-      case 'WEEKLY':
-        return 'Semanal'
-      case 'BIWEEKLY':
-        return 'Quincenal'
-      case 'MONTHLY':
-        return 'Mensual'
-      default:
-        return frequency
-    }
-  }
 
   return (
     <>
@@ -269,7 +260,7 @@ export default function ConsultaPublicaPage() {
                       </Typography>
                     </Box>
                     <Typography variant="h6">
-                      {getFrequencyText(loanDetails.paymentFrequency)}
+                      {getFrequencyLabel(loanDetails.paymentFrequency)}
                     </Typography>
                     <Typography variant="body2" color="text.secondary">
                       {loanDetails.totalPayments} cuotas totales
@@ -301,7 +292,7 @@ export default function ConsultaPublicaPage() {
                 sx={{ mb: 3 }}
               >
                 <Typography variant="subtitle2" gutterBottom>
-                  Estado del Préstamo: {loanDetails.status === 'ACTIVE' ? 'ACTIVO' : loanDetails.status}
+                  Estado del Préstamo: {getStatusLabel(loanDetails.status)}
                 </Typography>
                 <Typography variant="body2">
                   {loanDetails.status === 'ACTIVE' 

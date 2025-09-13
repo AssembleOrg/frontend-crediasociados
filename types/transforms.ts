@@ -135,13 +135,13 @@ export const clientToUpdateDto = (
 // ========================
 
 // Transform API loan response to frontend loan
-// Note: LoanResponseDto is incomplete in OpenAPI, using available fields only
+// Note: Using actual baseInterestRate and penaltyInterestRate from API response
 export const apiLoanToLoan = (apiLoan: LoanResponseDto): Loan => ({
   id: apiLoan.id,
   clientId: apiLoan.clientId, // Available in CreateLoanResponseDto
   amount: apiLoan.amount,
-  baseInterestRate: 0.05, // Default, not available in current API response
-  penaltyInterestRate: 0.05, // Default, not available in current API response  
+  baseInterestRate: (apiLoan as any).baseInterestRate || 0.05, // Use API value or fallback
+  penaltyInterestRate: (apiLoan as any).penaltyInterestRate || 0.05, // Use API value or fallback
   currency: 'ARS' as const,
   paymentFrequency: apiLoan.paymentFrequency as 'DAILY' | 'WEEKLY' | 'BIWEEKLY' | 'MONTHLY',
   paymentDay: (['MONDAY','TUESDAY','WEDNESDAY','THURSDAY','FRIDAY','SATURDAY','SUNDAY'].includes((apiLoan as unknown as { paymentDay?: string }).paymentDay || '')

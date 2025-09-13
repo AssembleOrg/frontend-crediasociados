@@ -26,13 +26,14 @@ import {
   AttachMoney, 
   Percent, 
   CalendarToday, 
-  Description,
-  TrendingUp
+  Description
 } from '@mui/icons-material'
 import { useClients } from '@/hooks/useClients'
 import { LoanSimulationModal } from './LoanSimulationModal'
 import { VisualCalendar } from '@/components/ui/VisualCalendar'
 import { useBuenosAiresDate } from '@/hooks/useBuenosAiresDate'
+import { formatAmount, unformatAmount } from '@/lib/formatters'
+import { ValidationUtils } from '@/lib/validation-utils'
 
 
 interface CreateLoanModalProps {
@@ -98,9 +99,16 @@ export function CreateLoanModal({
   const handleInputChange = (field: keyof typeof formData) => (
     event: React.ChangeEvent<HTMLInputElement>
   ) => {
+    let value = event.target.value
+    
+    // Apply formatting for amount field
+    if (field === 'amount') {
+      value = formatAmount(value)
+    }
+    
     setFormData(prev => ({
       ...prev,
-      [field]: event.target.value
+      [field]: value
     }))
     
     if (formErrors[field]) {
@@ -132,8 +140,11 @@ export function CreateLoanModal({
       errors.clientId = 'Debe seleccionar un cliente'
     }
 
-    if (!formData.amount || parseFloat(formData.amount) < 0) {
-      errors.amount = 'El monto no puede ser menor a 0'
+    // Validate amount with proper validation
+    const amountError = ValidationUtils.validateRequired(formData.amount, 'Monto del préstamo') ||
+                        ValidationUtils.validateAmount(formData.amount, 1000, 100000000) // Min $1000, Max $100M
+    if (amountError) {
+      errors.amount = amountError
     }
 
     if (!formData.baseInterestRate || parseFloat(formData.baseInterestRate) < 0) {
@@ -151,7 +162,7 @@ export function CreateLoanModal({
   }
 
   const calculateSubLoans = (): SubLoan[] => {
-    const amount = parseFloat(formData.amount)
+    const amount = parseFloat(unformatAmount(formData.amount))
     const baseRate = parseFloat(formData.baseInterestRate) / 100 // Convertir porcentaje a decimal
     const totalPayments = parseInt(formData.totalPayments)
     
@@ -284,7 +295,7 @@ export function CreateLoanModal({
 
   // Calcular total a prestar (monto + interés)
   const calculateTotalAmount = (): number => {
-    const amount = parseFloat(formData.amount) || 0
+    const amount = parseFloat(unformatAmount(formData.amount)) || 0
     const interestRate = parseFloat(formData.baseInterestRate) || 0
     return amount * (1 + interestRate / 100)
   }
@@ -405,11 +416,24 @@ export function CreateLoanModal({
                 <Box sx={{ display: 'flex', gap: 2, flexDirection: { xs: 'column', sm: 'row' } }}>
                   <TextField
                     label="Monto del Préstamo"
-                    type="number"
-                    value={formData.amount}
-                    onChange={handleInputChange('amount')}
+                    type="text"
+                    value={formatAmount(formData.amount || '')}
+                    onChange={(e) => {
+                      const unformattedValue = unformatAmount(e.target.value);
+                      setFormData(prev => ({
+                        ...prev,
+                        amount: unformattedValue
+                      }));
+                      // Clear error if exists
+                      if (formErrors.amount) {
+                        setFormErrors(prev => ({
+                          ...prev,
+                          amount: ''
+                        }));
+                      }
+                    }}
                     error={!!formErrors.amount}
-                    helperText={formErrors.amount || 'Ingresa el monto a prestar'}
+                    helperText={formErrors.amount || 'Ingresa el monto a prestar (ej: 1.000.000)'}
                     required
                     fullWidth
                     InputProps={{
@@ -463,7 +487,7 @@ export function CreateLoanModal({
                         Monto base:
                       </Typography>
                       <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                        ${parseFloat(formData.amount || '0').toLocaleString('es-AR')}
+                        ${parseFloat(unformatAmount(formData.amount) || '0').toLocaleString('es-AR')}
                       </Typography>
                     </Box>
                     <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -471,7 +495,7 @@ export function CreateLoanModal({
                         Interés ({formData.baseInterestRate}%):
                       </Typography>
                       <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                        ${(parseFloat(formData.amount || '0') * parseFloat(formData.baseInterestRate || '0') / 100).toLocaleString('es-AR')}
+                        ${(parseFloat(unformatAmount(formData.amount) || '0') * parseFloat(formData.baseInterestRate || '0') / 100).toLocaleString('es-AR')}
                       </Typography>
                     </Box>
                     <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 1, pt: 1, borderTop: '1px solid', borderColor: 'primary.200' }}>
@@ -579,13 +603,13 @@ export function CreateLoanModal({
                     </Select>
                   </FormControl>
                   
-                  {formData.paymentFrequency === 'DAILY' ? (
+                  {formData.paymentFrequency === 'DAILY' || formData.paymentFrequency === 'BIWEEKLY' ? (
                     <TextField
                       label="Día de Pago"
-                      value="Todos los días"
+                      value={formData.paymentFrequency === 'DAILY' ? "Todos los días" : "Sin día específico"}
                       disabled
                       fullWidth
-                      helperText="Cobros diarios - No requiere día específico"
+                      helperText={formData.paymentFrequency === 'DAILY' ? "Cobros diarios - No requiere día específico" : "Cobros quincenales - No requiere día específico"}
                       sx={{
                         '& .MuiOutlinedInput-root': {
                           borderRadius: 2,

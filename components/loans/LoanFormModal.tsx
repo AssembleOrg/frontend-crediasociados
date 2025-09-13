@@ -21,6 +21,8 @@ import { useClients } from '@/hooks/useClients'
 import { useLoans } from '@/hooks/useLoans'
 import { CustomCalendar } from '@/components/ui/CustomCalendar'
 import { useBuenosAiresDate } from '@/hooks/useBuenosAiresDate'
+import { formatAmount, unformatAmount } from '@/lib/formatters'
+import { ValidationUtils } from '@/lib/validation-utils'
 import type { components } from '@/types/api-generated'
 
 type CreateLoanDto = components['schemas']['CreateLoanDto']
@@ -94,9 +96,16 @@ export function LoanFormModal({
   const handleInputChange = (field: keyof typeof formData) => (
     event: React.ChangeEvent<HTMLInputElement>
   ) => {
+    let value = event.target.value
+    
+    // Apply formatting for amount field
+    if (field === 'amount') {
+      value = formatAmount(value)
+    }
+    
     setFormData(prev => ({
       ...prev,
-      [field]: event.target.value
+      [field]: value
     }))
     
     // Clear field error when user starts typing
@@ -132,8 +141,11 @@ export function LoanFormModal({
       errors.clientId = 'Debe seleccionar un cliente'
     }
 
-    if (!formData.amount || isNaN(Number(formData.amount)) || Number(formData.amount) <= 0) {
-      errors.amount = 'El monto debe ser un número mayor a 0'
+    // Validate amount with proper validation
+    const amountError = ValidationUtils.validateRequired(formData.amount, 'Monto del préstamo') ||
+                        ValidationUtils.validateAmount(formData.amount, 1000, 100000000) // Min $1000, Max $100M
+    if (amountError) {
+      errors.amount = amountError
     }
 
     if (!formData.baseInterestRate || isNaN(Number(formData.baseInterestRate)) || Number(formData.baseInterestRate) < 0) {
@@ -166,7 +178,7 @@ export function LoanFormModal({
     // Prepare data for submission
     const loanData = {
       clientId: formData.clientId,
-      amount: Number(formData.amount),
+      amount: Number(unformatAmount(formData.amount)),
       baseInterestRate: Number(formData.baseInterestRate),
       penaltyInterestRate: Number(formData.penaltyInterestRate),
       currency: formData.currency as 'ARS' | 'USD',
@@ -258,12 +270,25 @@ export function LoanFormModal({
             <Box sx={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 2 }}>
               <TextField
                 label="Monto del Préstamo"
-                value={formData.amount}
-                onChange={handleInputChange('amount')}
+                value={formatAmount(formData.amount || '')}
+                onChange={(e) => {
+                  const unformattedValue = unformatAmount(e.target.value);
+                  setFormData(prev => ({
+                    ...prev,
+                    amount: unformattedValue
+                  }));
+                  // Clear error if exists
+                  if (formErrors.amount) {
+                    setFormErrors(prev => ({
+                      ...prev,
+                      amount: ''
+                    }));
+                  }
+                }}
                 error={!!formErrors.amount}
-                helperText={formErrors.amount}
+                helperText={formErrors.amount || 'Ingresa el monto a prestar (ej: 1.000.000)'}
                 required
-                type="number"
+                type="text"
                 InputProps={{
                   startAdornment: <InputAdornment position="start">$</InputAdornment>,
                 }}

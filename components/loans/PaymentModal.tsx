@@ -18,6 +18,7 @@ import {
   InputAdornment
 } from '@mui/material'
 import { Payment, CalendarToday, AttachMoney } from '@mui/icons-material'
+import { formatAmount, unformatAmount } from '@/lib/formatters'
 import type { SubLoanWithClientInfo } from '@/services/subloans-lookup.service'
 
 interface PaymentModalProps {
@@ -64,13 +65,13 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
   }, [open, subloan, subloans, mode])
 
   const handleAmountChange = (value: string) => {
-    setPaymentAmount(value)
+    setPaymentAmount(formatAmount(value))
   }
 
   const handlePayFullAmount = () => {
     if (currentSubloan) {
       const pendingAmount = currentSubloan.totalAmount - (currentSubloan.paidAmount || 0)
-      setPaymentAmount(pendingAmount.toString())
+      setPaymentAmount(formatAmount(pendingAmount.toString()))
     }
   }
 
@@ -110,7 +111,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
   }
 
   const pendingSubloans = subloans.filter(s => s.status !== 'PAID')
-  const canRegister = currentSubloan && paymentAmount && parseFloat(paymentAmount) > 0
+  const canRegister = currentSubloan && paymentAmount && parseFloat(unformatAmount(paymentAmount)) > 0
 
   if (!currentSubloan && mode === 'single') {
     return null
@@ -240,9 +241,12 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
               />
               <TextField
                 label="Monto a Registrar"
-                type="number"
-                value={paymentAmount}
-                onChange={(e) => handleAmountChange(e.target.value)}
+                type="text"
+                value={formatAmount(paymentAmount || '')}
+                onChange={(e) => {
+                  const unformattedValue = unformatAmount(e.target.value);
+                  handleAmountChange(unformattedValue);
+                }}
                 InputProps={{
                   startAdornment: (
                     <InputAdornment position="start">

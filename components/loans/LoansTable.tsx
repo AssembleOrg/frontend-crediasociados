@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import {
   Box,
   Typography,
@@ -21,51 +21,105 @@ import {
 } from '@mui/material'
 import {
   Visibility,
-  Edit,
   MonetizationOn,
-  Schedule,
-  CheckCircle,
-  Warning,
-  Person
+  Person,
+  PictureAsPdf
 } from '@mui/icons-material'
 import { useLoans } from '@/hooks/useLoans'
 import { useSubLoans } from '@/hooks/useSubLoans'
-import type { ClientResponseDto } from '@/types/auth'
+import { useExport } from '@/hooks/useExport'
+import { useClients } from '@/hooks/useClients'
+import { getFrequencyLabel, getStatusLabel } from '@/lib/formatters'
+import type { Loan } from '@/types/auth'
 
 interface LoansTableProps {
-  onViewLoan?: (loanId: string) => void
+  loans?: Loan[] // Optional external loans data (for filtering)
   onViewDetails?: (loanId: string) => void
 }
 
-export function LoansTable({ onViewLoan, onViewDetails }: LoansTableProps) {
-  const { loans, isLoading } = useLoans()
+export function LoansTable({ loans: externalLoans, onViewDetails }: LoansTableProps) {
+  const { loans: hookLoans, isLoading } = useLoans()
   const { allSubLoansWithClient } = useSubLoans()
+  const { exportLoanToPDF, canExport } = useExport()
+  const { clients } = useClients()
+  
+  // Use external loans if provided (for filtering), otherwise use hook loans
+  const loans = externalLoans || hookLoans
   const [page, setPage] = useState(0)
   const [rowsPerPage, setRowsPerPage] = useState(10)
 
-  // Get client info from provider data (no service calls needed)
+  // Get client info from multiple sources (supports both new and existing loans)
   const getClientDisplay = (loanId: string) => {
-    // Find client info from allSubLoansWithClient data
+    // First, try to get loan to find clientId
+    const loan = loans.find(l => l.id === loanId)
+    const clientId = loan?.clientId
+    
+    // Strategy 1: Find client info from allSubLoansWithClient data (for existing loans with subloans)
     const subloanWithClient = allSubLoansWithClient.find(subloan => subloan.loanId === loanId)
+    if (subloanWithClient?.clientName || subloanWithClient?.clientFullData?.fullName) {
+      return {
+        name: subloanWithClient.clientName || subloanWithClient.clientFullData?.fullName || 'Cliente',
+        id: subloanWithClient.clientId || clientId || 'N/A'
+      }
+    }
+    
+    // Strategy 2: Find client in clients list using clientId (for new loans without subloans)
+    if (clientId) {
+      const client = clients.find(c => c.id === clientId)
+      if (client) {
+        return {
+          name: client.fullName,
+          id: client.id
+        }
+      }
+    }
+    
+    // Fallback: Show client ID if no name found
     return {
-      name: subloanWithClient?.clientName || subloanWithClient?.clientFullData?.fullName || `Cliente ${subloanWithClient?.clientId || 'N/A'}`,
-      id: subloanWithClient?.clientId || 'N/A'
+      name: clientId ? `Cliente ${clientId}` : 'Cliente N/A',
+      id: clientId || 'N/A'
     }
   }
 
+  // Calculate interest rate - Uses same logic as StandaloneLoanSimulator
+  const getInterestRate = (loan: Loan) => {
+    // Primary source: Use baseInterestRate directly from loan (from API)
+    if (loan.baseInterestRate && loan.baseInterestRate > 0) {
+      // If baseInterestRate is already a percentage (> 1), use as-is
+      // If it's a decimal (< 1), convert to percentage
+      return loan.baseInterestRate > 1 ? loan.baseInterestRate : loan.baseInterestRate * 100;
+    }
+    
+    // Fallback: Calculate from subloans if baseInterestRate is not available
+    const loanSubLoans = allSubLoansWithClient.filter(subloan => subloan.loanId === loan.id)
+    if (loanSubLoans.length > 0) {
+      const totalAmount = loanSubLoans.reduce((sum, sl) => sum + sl.totalAmount, 0)
+      const totalInterest = totalAmount - loan.amount
+      
+      if (totalInterest > 0 && loan.amount > 0) {
+        return (totalInterest / loan.amount) * 100;
+      }
+    }
+    
+    // Default: 0% for legitimate zero-interest loans
+    return 0;
+  }
+
   const getStatusChip = (status: string) => {
+    const label = getStatusLabel(status)
+    
     switch (status) {
       case 'ACTIVE':
       case 'APPROVED':
-        return <Chip label="Activo" color="success" size="small" />
+        return <Chip label={label} color="success" size="small" />
       case 'PENDING':
-        return <Chip label="Pendiente" color="warning" size="small" />
+        return <Chip label={label} color="warning" size="small" />
       case 'COMPLETED':
-        return <Chip label="Completado" color="info" size="small" />
+        return <Chip label={label} color="info" size="small" />
       case 'DEFAULTED':
-        return <Chip label="Mora" color="error" size="small" />
+        return <Chip label={label} color="error" size="small" />
       default:
-        return <Chip label={status} size="small" />
+        return <Chip label={label} size="small" />
     }
   }
 
@@ -138,6 +192,7 @@ export function LoansTable({ onViewLoan, onViewDetails }: LoansTableProps) {
                 <TableCell><strong>Cliente</strong></TableCell>
                 <TableCell><strong>Préstamo</strong></TableCell>
                 <TableCell align="right"><strong>Monto</strong></TableCell>
+                <TableCell align="center"><strong>Tasa %</strong></TableCell>
                 <TableCell align="center"><strong>Estado</strong></TableCell>
                 <TableCell align="center"><strong>Progreso</strong></TableCell>
                 <TableCell align="center"><strong>Creado</strong></TableCell>
@@ -158,7 +213,7 @@ export function LoansTable({ onViewLoan, onViewDetails }: LoansTableProps) {
                         <Person color="action" />
                         <Box>
                           <Typography variant="body2" fontWeight="medium">
-                            {getClientDisplay(loan.clientId).name}
+                            {getClientDisplay(loan.id).name}
                           </Typography>
                           <Typography variant="caption" color="text.secondary">
                             ID: {loan.clientId}
@@ -181,7 +236,16 @@ export function LoansTable({ onViewLoan, onViewDetails }: LoansTableProps) {
                         {formatCurrency(loan.amount)}
                       </Typography>
                       <Typography variant="caption" color="text.secondary">
-                        {loan.paymentFrequency?.toLowerCase()}
+                        {getFrequencyLabel(loan.paymentFrequency)}
+                      </Typography>
+                    </TableCell>
+                    
+                    <TableCell align="center">
+                      <Typography variant="body2" fontWeight="bold" color="primary.main">
+                        {getInterestRate(loan).toFixed(1)}%
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        interés
                       </Typography>
                     </TableCell>
                     
@@ -220,6 +284,20 @@ export function LoansTable({ onViewLoan, onViewDetails }: LoansTableProps) {
                         >
                           <Visibility fontSize="small" />
                         </IconButton>
+                        <IconButton 
+                          size="small" 
+                          onClick={() => exportLoanToPDF(loan.id)}
+                          disabled={!canExport(loan.id)}
+                          title="Exportar PDF"
+                          sx={{
+                            color: 'error.main',
+                            '&:hover': {
+                              backgroundColor: 'error.50'
+                            }
+                          }}
+                        >
+                          <PictureAsPdf fontSize="small" />
+                        </IconButton>
                       </Box>
                     </TableCell>
                   </TableRow>
@@ -241,7 +319,7 @@ export function LoansTable({ onViewLoan, onViewDetails }: LoansTableProps) {
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
                   <Box>
                     <Typography variant="subtitle1" fontWeight="bold">
-                      {getClientDisplay(loan.clientId).name}
+                      {getClientDisplay(loan.id).name}
                     </Typography>
                     <Chip 
                       label={loan.loanTrack || loan.id} 
@@ -260,6 +338,9 @@ export function LoansTable({ onViewLoan, onViewDetails }: LoansTableProps) {
                     </Typography>
                     <Typography variant="h6">
                       {formatCurrency(loan.amount)}
+                    </Typography>
+                    <Typography variant="caption" color="primary.main">
+                      Tasa: {getInterestRate(loan).toFixed(1)}%
                     </Typography>
                   </Box>
                   <Box>
@@ -285,10 +366,26 @@ export function LoansTable({ onViewLoan, onViewDetails }: LoansTableProps) {
                     variant="outlined"
                     startIcon={<Visibility />}
                     onClick={() => onViewDetails?.(loan.id)}
-                    sx={{ borderRadius: 2 }}
+                    sx={{ borderRadius: 2, flex: 1 }}
                   >
                     Ver Detalles
                   </Button>
+                  <IconButton 
+                    size="small" 
+                    onClick={() => exportLoanToPDF(loan.id)}
+                    disabled={!canExport(loan.id)}
+                    title="Exportar PDF"
+                    sx={{
+                      color: 'error.main',
+                      border: 1,
+                      borderColor: 'error.main',
+                      '&:hover': {
+                        backgroundColor: 'error.50'
+                      }
+                    }}
+                  >
+                    <PictureAsPdf fontSize="small" />
+                  </IconButton>
                 </Box>
               </CardContent>
             </Card>

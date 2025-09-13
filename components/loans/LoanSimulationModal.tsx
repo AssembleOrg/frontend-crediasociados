@@ -27,6 +27,8 @@ import {
 } from '@mui/icons-material'
 import type { components } from '@/types/api-generated'
 import { useLoans } from '@/hooks/useLoans'
+import { SimulationExportButtons } from '@/components/loans/SimulationExportButtons'
+import { getFrequencyLabel } from '@/lib/formatters'
 
 type CreateLoanDto = components['schemas']['CreateLoanDto']
 
@@ -139,20 +141,6 @@ export function LoanSimulationModal({
     }
   }
 
-  const getFrequencyText = (frequency: string) => {
-    switch (frequency) {
-      case 'DAILY':
-        return 'Diario'
-      case 'WEEKLY':
-        return 'Semanal'
-      case 'BIWEEKLY':
-        return 'Quincenal'
-      case 'MONTHLY':
-        return 'Mensual'
-      default:
-        return frequency
-    }
-  }
 
   if (success) {
     return (
@@ -231,7 +219,7 @@ export function LoanSimulationModal({
               Simulación de Préstamo
             </Typography>
             <Typography variant="subtitle1" color="text.secondary">
-              {clientName} • {getFrequencyText(formData.paymentFrequency)}
+              {clientName} • {getFrequencyLabel(formData.paymentFrequency)}
             </Typography>
           </Box>
         </Box>
@@ -280,7 +268,7 @@ export function LoanSimulationModal({
                     <strong>Penalización:</strong> 0% (por defecto)
                   </Typography>
                   <Typography variant="body2">
-                    <strong>Frecuencia:</strong> {getFrequencyText(formData.paymentFrequency)}
+                    <strong>Frecuencia:</strong> {getFrequencyLabel(formData.paymentFrequency)}
                     {formData.paymentFrequency !== 'DAILY' && ` (${getDayText(formData.paymentDay)})`}
                   </Typography>
                   <Typography variant="body2">
@@ -295,6 +283,20 @@ export function LoanSimulationModal({
               </Box>
             </Box>
           </Paper>
+
+          {/* Export Options */}
+          <Box sx={{ mb: 3 }}>
+            <Typography variant="h6" gutterBottom color="primary.main">
+              Exportar Presupuesto
+            </Typography>
+            <SimulationExportButtons 
+              simulatedLoans={simulatedLoans}
+              formData={formData}
+              clientName={clientName}
+              variant="default"
+              showLabels={true}
+            />
+          </Box>
 
           {/* Tabla de Cuotas */}
           <Typography variant="h6" gutterBottom sx={{ mb: 2 }}>

@@ -1,6 +1,7 @@
 import { useCallback, useEffect } from 'react'
 import { useLoansStore } from '@/stores/loans'
 import { useAuth } from '@/hooks/useAuth'
+import { useSubLoansProviderContext } from '@/components/providers/SubLoansProvider'
 import { loansService } from '@/services/loans.service'
 import { apiLoanToLoan, loanToCreateDto } from '@/types/transforms'
 import type { Loan, PaginationParams, CreateLoanDto } from '@/types/auth'
@@ -16,6 +17,16 @@ import type { Loan, PaginationParams, CreateLoanDto } from '@/types/auth'
  */
 export function useLoans() {
   const { user: currentUser } = useAuth()
+  // Make SubLoansProvider context optional for admin users
+  const subLoansContext = (() => {
+    try {
+      return useSubLoansProviderContext()
+    } catch (error) {
+      // Admin users don't have SubLoansProvider, return null context
+      return { refreshData: () => {} }
+    }
+  })()
+  const { refreshData } = subLoansContext
   const {
     loans,
     isLoading,
@@ -95,6 +106,11 @@ export function useLoans() {
       const newLoan = apiLoanToLoan(apiLoan)
       
       addLoan(newLoan)
+      
+      // ✅ ARCHITECTURAL FIX: Trigger provider refresh to update all related data
+      // Following "Layout Provides, Pages Consume" - provider is single source of truth
+      await refreshData()
+      
       return newLoan
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Error desconocido'
@@ -103,7 +119,7 @@ export function useLoans() {
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [refreshData])
 
   const deleteLoan = useCallback(async (id: string) => {
     try {

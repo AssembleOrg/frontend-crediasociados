@@ -4,7 +4,8 @@ export const ValidationRules = {
   email: /\S+@\S+\.\S+/,
   dni: /^\d+$/,
   cuit: /^\d{11}$/,
-  phone: /^[\d\s\-\+\(\)]+$/
+  phone: /^[\d\s\-\+\(\)]+$/,
+  amount: /^[\d.,]+$/ // Allows digits, dots and commas for formatted amounts
 } as const
 
 export type ValidationResult = Record<string, string>
@@ -15,6 +16,9 @@ export const ValidationMessages = {
   dni: 'El DNI debe contener solo números',
   cuit: 'El CUIT debe tener 11 dígitos',
   phone: 'El teléfono no tiene un formato válido',
+  amount: 'El monto debe ser un número válido',
+  amountMin: (min: number) => `El monto mínimo es $${min.toLocaleString('es-AR')}`,
+  amountMax: (max: number) => `El monto máximo es $${max.toLocaleString('es-AR')}`,
   minLength: (min: number) => `Debe tener al menos ${min} caracteres`,
   maxLength: (max: number) => `No puede tener más de ${max} caracteres`
 } as const
@@ -37,9 +41,10 @@ export class ValidationUtils {
 
   static validateDNI(dni: string): string | null {
     if (!dni) return null // DNI is optional
-    // if (!ValidationRules.dni.test(dni)) {
-    //   return ValidationMessages.dni
-    // }
+    const cleanDni = dni.replace(/[.\s]/g, '') // Remove dots and spaces
+    if (!ValidationRules.dni.test(cleanDni)) {
+      return ValidationMessages.dni
+    }
     return null
   }
 
@@ -64,6 +69,34 @@ export class ValidationUtils {
     if (value && value.length < min) {
       return ValidationMessages.minLength(min)
     }
+    return null
+  }
+
+  static validateAmount(amount: string, min?: number, max?: number): string | null {
+    if (!amount) return null // Amount validation is optional - required check done separately
+    
+    // Check format (allow formatted amounts with dots and commas)
+    if (!ValidationRules.amount.test(amount)) {
+      return ValidationMessages.amount
+    }
+    
+    // Convert to number for min/max validation
+    const numericValue = parseFloat(amount.replace(/[.,]/g, ''))
+    
+    if (isNaN(numericValue)) {
+      return ValidationMessages.amount
+    }
+    
+    // Validate minimum amount (default: $1000 for Argentine pesos)
+    if (min !== undefined && numericValue < min) {
+      return ValidationMessages.amountMin(min)
+    }
+    
+    // Validate maximum amount (default: $100,000,000 for Argentine pesos)
+    if (max !== undefined && numericValue > max) {
+      return ValidationMessages.amountMax(max)
+    }
+    
     return null
   }
 }

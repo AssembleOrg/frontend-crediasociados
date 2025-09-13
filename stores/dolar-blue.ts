@@ -13,6 +13,7 @@ interface DolarBlueStore {
   setError: (error: string | null) => void;
   
   isCacheValid: () => boolean;
+  isDataStale: () => boolean;
   getDisplayData: () => DolarBlueDisplayData | null;
   getTimeUntilRefresh: () => number;
 }
@@ -36,6 +37,7 @@ export const useDolarBlueStore = create<DolarBlueStore>()(
 
     setCurrentRate: (data: DolarBlueData) =>
       set((state) => {
+        console.log('🏪 STORE: Updating currentRate:', { compra: data.compra, venta: data.venta, fechaActualizacion: data.fechaActualizacion });
         state.currentRate = data;
         state.error = null;
       }),
@@ -57,6 +59,17 @@ export const useDolarBlueStore = create<DolarBlueStore>()(
       const now = new Date();
       const cacheAge = now.getTime() - currentRate.lastFetched.getTime();
       return cacheAge < DOLAR_BLUE_CONFIG.CACHE_DURATION_MS;
+    },
+
+    // Check if the original data from API is stale (older than 4 hours)
+    isDataStale: () => {
+      const { currentRate } = get();
+      if (!currentRate) return true;
+      
+      const now = new Date();
+      const dataAge = now.getTime() - currentRate.fechaActualizacion.getTime();
+      const STALE_DATA_THRESHOLD = 4 * 60 * 60 * 1000; // 4 hours - más agresivo
+      return dataAge > STALE_DATA_THRESHOLD;
     },
 
     getDisplayData: (): DolarBlueDisplayData | null => {
