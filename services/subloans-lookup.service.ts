@@ -81,8 +81,8 @@ class SubLoansLookupService {
       return enrichedSubLoans
 
     } catch (error) {
-      console.error('Error enriching subloans with client info:', error)
-      throw new Error('Failed to load subloans with client information')
+      console.error('Error al enriquecer subpréstamos con información del cliente:', error)
+      throw new Error('No se pudieron cargar los datos de cuotas. Por favor, intente nuevamente.')
     }
   }
 
@@ -130,8 +130,8 @@ class SubLoansLookupService {
       return enrichedSubLoans
 
     } catch (error) {
-      console.error('Error enriching today due subloans with client info:', error)
-      throw new Error('Failed to load today due subloans with client information')
+      console.error('Error al enriquecer subpréstamos vencidos hoy con información del cliente:', error)
+      throw new Error('No se pudieron cargar los datos de cuotas vencidas. Por favor, intente nuevamente.')
     }
   }
 
@@ -160,7 +160,7 @@ class SubLoansLookupService {
         this.loansCache.set(loan.id, loan)
       })
     } catch (error) {
-      console.error('Error loading loans cache:', error)
+      console.error('Error al cargar caché de préstamos:', error)
       throw error
     } finally {
       this.isLoadingLoans = false
@@ -200,7 +200,7 @@ class SubLoansLookupService {
         console.log(`Note: ${clientsResponse.meta.totalPages - 1} more pages available (${clientsResponse.meta.total - clients.length} more clients)`)
       }
     } catch (error) {
-      console.error('Error loading clients cache:', error)
+      console.error('Error al cargar caché de clientes:', error)
       throw error
     } finally {
       this.isLoadingClients = false
@@ -223,7 +223,7 @@ class SubLoansLookupService {
       console.log('Client loaded and cached:', client.fullName)
       return client
     } catch (error) {
-      console.error('Error loading specific client:', clientId, error)
+      console.error('Error al cargar cliente específico:', clientId, error)
       return null
     }
   }

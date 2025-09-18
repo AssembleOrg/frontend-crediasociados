@@ -37,7 +37,7 @@ api.interceptors.response.use(
   (response: AxiosResponse) => response,
   (error) => {
     const apiError: ApiError = {
-      message: 'An unexpected error occurred',
+      message: 'Ocurrió un error inesperado',
       statusCode: 500,
     };
 
@@ -47,11 +47,11 @@ api.interceptors.response.use(
         error.response.data?.message || error.response.statusText;
       apiError.error = error.response.data?.error;
     } else if (error.request) {
-      apiError.message = 'Network error - please check your connection';
+      apiError.message = 'Error de conexión - por favor verifique su conexión a internet';
       apiError.statusCode = 0;
     } else {
       // Something else happened
-      apiError.message = error.message || 'Request failed';
+      apiError.message = error.message || 'Error en la solicitud';
     }
 
     return Promise.reject(apiError);

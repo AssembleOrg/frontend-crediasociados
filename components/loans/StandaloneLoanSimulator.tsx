@@ -21,7 +21,11 @@ import {
   Alert,
 } from '@mui/material';
 import { Calculate, TrendingUp } from '@mui/icons-material';
-import { formatAmount, unformatAmount, getFrequencyLabel } from '@/lib/formatters';
+import {
+  formatAmount,
+  unformatAmount,
+  getFrequencyLabel,
+} from '@/lib/formatters';
 // Note: calculateLoanPayments function needs to be implemented in loan-calculator
 
 interface SimulationResult {
@@ -116,7 +120,6 @@ export function StandaloneLoanSimulator() {
   );
   const totalInterest = totalWithInterest - totalPrincipal;
 
-
   // Calcular total en tiempo real (igual que CreateLoanModal)
   const calculateRealtimeTotal = (): number => {
     const principalAmount = parseFloat(unformatAmount(amount)) || 0;
@@ -134,17 +137,17 @@ export function StandaloneLoanSimulator() {
         color: 'primary.contrastText',
         borderRadius: 3,
         boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
-        '& .MuiInputLabel-root': { 
+        '& .MuiInputLabel-root': {
           color: 'rgba(255,255,255,0.9)',
-          fontWeight: 500
+          fontWeight: 500,
         },
-        '& .MuiInputLabel-root.Mui-focused': { 
-          color: 'common.white' 
+        '& .MuiInputLabel-root.Mui-focused': {
+          color: 'common.white',
         },
-        '& .MuiInputBase-root': { 
+        '& .MuiInputBase-root': {
           color: 'common.white',
           backgroundColor: 'rgba(255,255,255,0.1)',
-          borderRadius: 2
+          borderRadius: 2,
         },
         '& .MuiOutlinedInput-notchedOutline': {
           borderColor: 'rgba(255,255,255,0.3)',
@@ -152,26 +155,27 @@ export function StandaloneLoanSimulator() {
         '& .MuiOutlinedInput-root:hover .MuiOutlinedInput-notchedOutline': {
           borderColor: 'rgba(255,255,255,0.6)',
         },
-        '& .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline': {
-          borderColor: 'common.white',
-          borderWidth: 2
-        },
+        '& .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline':
+          {
+            borderColor: 'common.white',
+            borderWidth: 2,
+          },
         '& .MuiInputBase-input': {
-          color: 'common.white'
+          color: 'common.white',
         },
-        '& .MuiSelect-icon': { 
-          color: 'rgba(255,255,255,0.8)' 
+        '& .MuiSelect-icon': {
+          color: 'rgba(255,255,255,0.8)',
         },
-        '& .MuiButton-root': { 
+        '& .MuiButton-root': {
           color: 'primary.contrastText',
-          fontWeight: 600
+          fontWeight: 600,
         },
-        '& .MuiButton-outlined': { 
+        '& .MuiButton-outlined': {
           borderColor: 'rgba(255,255,255,0.7)',
           '&:hover': {
             borderColor: 'common.white',
             backgroundColor: 'rgba(255,255,255,0.15)',
-          }
+          },
         },
       }}
     >
@@ -211,7 +215,7 @@ export function StandaloneLoanSimulator() {
         />
 
         <TextField
-          label='Cantidad de Cuotas'
+          label='N° de Cuotas'
           type='number'
           value={totalPayments}
           onChange={(e) => setTotalPayments(e.target.value)}
@@ -251,37 +255,89 @@ export function StandaloneLoanSimulator() {
 
       {/* Resumen en tiempo real */}
       {amount && baseInterestRate && (
-        <Box sx={{ 
-          p: 2, 
-          bgcolor: 'rgba(255,255,255,0.1)', 
-          borderRadius: 2, 
-          border: '1px solid rgba(255,255,255,0.2)',
-          mb: 3
-        }}>
-          <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1, color: '#ffffff' }}>
+        <Box
+          sx={{
+            p: 2,
+            bgcolor: 'rgba(255,255,255,0.1)',
+            borderRadius: 2,
+            border: '1px solid rgba(255,255,255,0.2)',
+            mb: 3,
+          }}
+        >
+          <Typography
+            variant='subtitle2'
+            sx={{ fontWeight: 600, mb: 1, color: '#ffffff' }}
+          >
             Resumen del Préstamo
           </Typography>
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.85)' }}>
+          <Box
+            sx={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+            }}
+          >
+            <Typography
+              variant='body2'
+              sx={{ color: 'rgba(255,255,255,0.85)' }}
+            >
               Monto base:
             </Typography>
-            <Typography variant="body2" sx={{ fontWeight: 500, color: '#ffffff' }}>
-              ${parseFloat(unformatAmount(amount) || '0').toLocaleString('es-AR')}
+            <Typography
+              variant='body2'
+              sx={{ fontWeight: 500, color: '#ffffff' }}
+            >
+              $
+              {parseFloat(unformatAmount(amount) || '0').toLocaleString(
+                'es-AR'
+              )}
             </Typography>
           </Box>
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.85)' }}>
+          <Box
+            sx={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+            }}
+          >
+            <Typography
+              variant='body2'
+              sx={{ color: 'rgba(255,255,255,0.85)' }}
+            >
               Interés ({baseInterestRate}%):
             </Typography>
-            <Typography variant="body2" sx={{ fontWeight: 500, color: '#ffffff' }}>
-              ${(parseFloat(unformatAmount(amount) || '0') * parseFloat(baseInterestRate || '0') / 100).toLocaleString('es-AR')}
+            <Typography
+              variant='body2'
+              sx={{ fontWeight: 500, color: '#ffffff' }}
+            >
+              $
+              {(
+                (parseFloat(unformatAmount(amount) || '0') *
+                  parseFloat(baseInterestRate || '0')) /
+                100
+              ).toLocaleString('es-AR')}
             </Typography>
           </Box>
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 1, pt: 1, borderTop: '1px solid rgba(255,255,255,0.2)' }}>
-            <Typography variant="subtitle1" sx={{ fontWeight: 600, color: '#ffffff' }}>
+          <Box
+            sx={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              mt: 1,
+              pt: 1,
+              borderTop: '1px solid rgba(255,255,255,0.2)',
+            }}
+          >
+            <Typography
+              variant='subtitle1'
+              sx={{ fontWeight: 600, color: '#ffffff' }}
+            >
               Total a prestar:
             </Typography>
-            <Typography variant="h6" sx={{ fontWeight: 700, color: '#ffffff' }}>
+            <Typography
+              variant='h6'
+              sx={{ fontWeight: 700, color: '#ffffff' }}
+            >
               ${realtimeTotal.toLocaleString('es-AR')}
             </Typography>
           </Box>
