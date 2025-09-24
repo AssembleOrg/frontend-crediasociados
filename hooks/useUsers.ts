@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback, useEffect } from 'react'
+import { useState, useCallback, useEffect, useRef } from 'react'
 import { useUsersStore } from '@/stores/users'
 import { useAuth } from '@/hooks/useAuth'
 import { usersService } from '@/services/users.service'
@@ -24,40 +24,59 @@ import type {
 export const useUsers = () => {
   const usersStore = useUsersStore()
   const { user: currentUser } = useAuth()
-  
+
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
+  // Refs to prevent race conditions and duplicate requests
+  const initializationRef = useRef(false)
+  const abortControllerRef = useRef<AbortController | null>(null)
+
   const fetchUsers = useCallback(async (params?: PaginationParams): Promise<void> => {
     if (!currentUser) return
+
+    // Prevent duplicate initialization
+    if (initializationRef.current) return
+    initializationRef.current = true
 
     setIsLoading(true)
     setError(null)
 
     try {
+      // Cancel previous requests
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort()
+      }
+      abortControllerRef.current = new AbortController()
+
       const filters = { ...usersStore.filters, ...params }
       let response
 
-      if (currentUser.role === 'admin' || currentUser.role === 'superadmin') {
+      if (currentUser.role === 'superadmin') {
+        // Only SUPERADMIN can see ALL users
         response = await usersService.getUsers(filters)
       } else {
+        // ADMIN and SUBADMIN see only users they created (hierarchical access)
+        // This enforces proper role-based security as documented in adminlogs.md
         response = await usersService.getCreatedUsers(currentUser.id, filters)
       }
-      
+
       const users = response.data.map(apiUserToUser)
-      
+
       usersStore.setUsers(users)
       usersStore.setPagination(response.meta)
       usersStore.setFilters(filters)
-      
+
     } catch (err) {
-      const apiError = err as ApiError
-      setError(apiError.message || 'Failed to fetch users')
-      
+      if ((err as Error).name !== 'AbortError') {
+        const apiError = err as ApiError
+        setError(apiError.message || 'Failed to fetch users')
+      }
     } finally {
       setIsLoading(false)
+      initializationRef.current = false
     }
-  }, [currentUser])
+  }, [])
 
   const createUser = useCallback(async (
     userData: Omit<User, 'id' | 'createdAt' | 'updatedAt'> & { password: string }
@@ -175,7 +194,13 @@ export const useUsers = () => {
     if (currentUser) {
       fetchUsers()
     }
-  }, [currentUser, fetchUsers])
+
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort()
+      }
+    }
+  }, [currentUser])
 
   const clearError = useCallback(() => {
     setError(null)

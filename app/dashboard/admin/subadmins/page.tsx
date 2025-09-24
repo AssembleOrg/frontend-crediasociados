@@ -25,7 +25,6 @@ import {
   MoreVert,
   Edit,
   Delete,
-  Visibility,
 } from '@mui/icons-material';
 import { useUsers } from '@/hooks/useUsers';
 import { useMemo } from 'react';
@@ -42,7 +41,7 @@ export default function SubadminsPage() {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
 
-  const { users, isLoading, error } = useUsers();
+  const { users, isLoading, error, createUser, updateUser, deleteUser } = useUsers();
   const subadmins = useMemo(() => 
     users.filter(user => user.role === 'subadmin'), 
     [users]
@@ -305,10 +304,6 @@ export default function SubadminsPage() {
           sx: { minWidth: 160 },
         }}
       >
-        <MenuItem onClick={handleMenuClose}>
-          <Visibility sx={{ mr: 1, fontSize: 20 }} />
-          Ver Detalle
-        </MenuItem>
         <MenuItem onClick={handleEdit}>
           <Edit sx={{ mr: 1, fontSize: 20 }} />
           Editar
@@ -327,6 +322,10 @@ export default function SubadminsPage() {
         onClose={() => setIsCreateModalOpen(false)}
         targetRole='subadmin'
         mode='create'
+        createUser={createUser}
+        updateUser={updateUser}
+        isLoading={isLoading}
+        error={error}
       />
 
       <UserFormModal
@@ -334,12 +333,19 @@ export default function SubadminsPage() {
         onClose={handleCloseModals}
         user={getSelectedUser()}
         mode='edit'
+        createUser={createUser}
+        updateUser={updateUser}
+        isLoading={isLoading}
+        error={error}
       />
 
       <DeleteUserConfirmDialog
         open={isDeleteDialogOpen}
         onClose={handleCloseModals}
         user={getSelectedUser()}
+        deleteUser={deleteUser}
+        isLoading={isLoading}
+        error={error}
       />
     </Box>
   );

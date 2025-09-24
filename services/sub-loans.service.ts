@@ -22,21 +22,9 @@ interface ActivationResultDto {
  * Simple, testable functions that only communicate with the API.
  */
 class SubLoansService {
-  async getTodayDueSubLoans(params: PaginationParams = {}): Promise<PaginatedResponse<SubLoanResponseDto>> {
-    const searchParams = new URLSearchParams()
-    
-    if (params.page) searchParams.append('page', params.page.toString())
-    if (params.limit) searchParams.append('limit', params.limit.toString())
-
-    const queryString = searchParams.toString()
-    const url = queryString ? `/sub-loans/today-due?${queryString}` : '/sub-loans/today-due'
-    
-    const response = await api.get(url)
-    
-    return {
-      data: response.data.data.data || response.data.data,
-      meta: response.data.data.meta || response.data.meta
-    }
+  async getTodayDueSubLoans(): Promise<SubLoanResponseDto[]> {
+    const response = await api.get('/sub-loans/today-due')
+    return response.data.data.data || response.data.data || []
   }
 
   async getTodayDueSubLoansStats(): Promise<SubLoanStatsResponseDto> {
@@ -49,33 +37,22 @@ class SubLoansService {
     return response.data.data || response.data
   }
 
-  // Para cobros: obtener TODOS los subloans (no solo today-due)  
-  async getAllSubLoans(params: PaginationParams = {}): Promise<PaginatedResponse<SubLoanResponseDto>> {
-    const searchParams = new URLSearchParams()
-    
-    if (params.page) searchParams.append('page', params.page.toString())
-    if (params.limit) searchParams.append('limit', params.limit.toString())
+  // Para cobros: obtener TODOS los subloans (no solo today-due)
+  async getAllSubLoans(): Promise<SubLoanResponseDto[]> {
+    // Usar loans sin paginación para extraer todos los subloans
+    const response = await api.get('/loans')
 
-    const queryString = searchParams.toString()
-    // TODO: Verificar si existe endpoint para todos los subloans, por ahora usar loans
-    const url = queryString ? `/loans/pagination?${queryString}` : '/loans/pagination'
-    
-    const response = await api.get(url)
-    
     // Extraer subloans de todos los préstamos
-    const loans = response.data.data.data || []
+    const loans = response.data.data || []
     const allSubLoans: SubLoanResponseDto[] = []
-    
+
     loans.forEach((loan: any) => {
       if (loan.subLoans && Array.isArray(loan.subLoans)) {
         allSubLoans.push(...loan.subLoans)
       }
     })
-    
-    return {
-      data: allSubLoans,
-      meta: response.data.data.meta || response.data.meta
-    }
+
+    return allSubLoans
   }
 }
 

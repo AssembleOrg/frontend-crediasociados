@@ -28,7 +28,7 @@ import {
 import type { components } from '@/types/api-generated'
 import { useLoans } from '@/hooks/useLoans'
 import { SimulationExportButtons } from '@/components/loans/SimulationExportButtons'
-import { getFrequencyLabel } from '@/lib/formatters'
+import { getFrequencyLabel, unformatAmount } from '@/lib/formatters'
 
 type CreateLoanDto = components['schemas']['CreateLoanDto']
 
@@ -79,9 +79,9 @@ export function LoanSimulationModal({
     try {
       const createLoanData: CreateLoanDto = {
         clientId: formData.clientId,
-        amount: parseFloat(formData.amount),
-        baseInterestRate: parseFloat(formData.baseInterestRate),
-        penaltyInterestRate: parseFloat(formData.penaltyInterestRate) || 0,
+        amount: parseFloat(unformatAmount(formData.amount)), // Desformatear el monto primero
+        baseInterestRate: parseFloat(formData.baseInterestRate) / 100, // Convertir % a decimal: 5 → 0.05
+        penaltyInterestRate: (parseFloat(formData.penaltyInterestRate) || 0) / 100, // Convertir % a decimal
         currency: formData.currency,
         paymentFrequency: formData.paymentFrequency,
         paymentDay:
@@ -92,7 +92,9 @@ export function LoanSimulationModal({
                 : undefined),
         totalPayments: parseInt(formData.totalPayments),
         firstDueDate: formData.firstDueDate?.toISOString(),
-        description: formData.description || undefined
+        description: formData.description || undefined,
+        notes: undefined, // Optional field - backend will handle if needed
+        loanTrack: undefined // Optional field - backend will auto-generate
       }
 
       console.log('=== CREANDO PRÉSTAMO ===')

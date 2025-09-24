@@ -2,10 +2,47 @@
 
 import { useState, useCallback, useRef } from 'react'
 import { analyticsService } from '@/services/analytics.service'
-import { loansService } from '@/services/loans.service'
-import { clientsService } from '@/services/clients.service'
+import { managerService } from '@/services/manager.service'
 import { useAuth } from '@/hooks/useAuth'
 import type { SubadminAnalytics, ManagerAnalytics } from '@/services/analytics.service'
+import type { ClientChartDataDto, LoanChartDataDto } from '@/services/manager.service'
+
+/**
+ * Helper function to calculate manager analytics from chart data
+ * Uses pre-calculated metrics from backend chart endpoints
+ */
+const calculateManagerAnalyticsFromChartData = (
+  manager: { managerId: string; managerName: string; managerEmail: string; createdAt: string },
+  clientsChart: ClientChartDataDto[],
+  loansChart: LoanChartDataDto[]
+): ManagerAnalytics => {
+  // Total clients with active loans (from clients chart data)
+  const totalClients = clientsChart.filter(client => client.activeLoans > 0).length
+
+  // Total active loans (from loans chart data)
+  const activeLoans = loansChart.filter(loan => loan.status === 'ACTIVE')
+  const totalLoans = activeLoans.length
+
+  // Total amounts from loans chart (pre-calculated by backend)
+  const totalAmountLent = activeLoans.reduce((sum, loan) => sum + loan.originalAmount, 0)
+  const totalAmountPending = activeLoans.reduce((sum, loan) => sum + loan.remainingAmount, 0)
+
+  // Collection rate calculation
+  const totalPaid = activeLoans.reduce((sum, loan) => sum + loan.paidAmount, 0)
+  const collectionRate = totalAmountLent > 0 ? (totalPaid / totalAmountLent) * 100 : 0
+
+  return {
+    managerId: manager.managerId,
+    managerName: manager.managerName,
+    managerEmail: manager.managerEmail,
+    totalClients,
+    totalLoans,
+    totalAmountLent,
+    totalAmountPending,
+    collectionRate,
+    createdAt: manager.createdAt
+  }
+}
 
 interface AnalyticsState {
   isLoading: boolean
@@ -56,11 +93,11 @@ export const useSubadminAnalytics = () => {
       abortControllerRef.current = new AbortController()
 
       // Step 1: Get basic analytics structure (managers created by this subadmin)
-      console.log('🔍 [DEBUG] Analytics - Fetching data for subadmin:', user.id)
+      console.log('🔍 [DEBUG] Analytics - Fetching managers for subadmin:', user.id)
       const basicAnalytics = await analyticsService.getSubadminAnalytics(user.id)
       console.log('🔍 [DEBUG] Analytics - Basic analytics received:', basicAnalytics)
 
-      if (!basicAnalytics.managers) {
+      if (!basicAnalytics.managers || basicAnalytics.managers.length === 0) {
         setState(prev => ({
           ...prev,
           analytics: {
@@ -78,34 +115,35 @@ export const useSubadminAnalytics = () => {
         return
       }
 
-      // Step 2: For each manager, get their detailed analytics
+      // Step 2: Use new backend endpoints to get real manager analytics
       const managersWithAnalytics: ManagerAnalytics[] = []
 
       for (const manager of basicAnalytics.managers) {
         try {
-          console.log('🔍 [DEBUG] Analytics - Processing manager:', manager.managerName, manager.managerId)
-
-          // Note: For now we only show basic manager info since we can't access manager-specific data
-          // The /clients endpoint only returns clients for the authenticated user (subadmin)
-          // We need a backend endpoint like /users/{managerId}/clients to get accurate data
-
-          console.log('🔍 [DEBUG] Analytics - Processing manager with basic info:', {
+          console.log('🔍 [DEBUG] Analytics - Fetching chart data for manager:', {
             managerId: manager.managerId,
-            managerName: manager.managerName,
-            note: 'Cannot fetch manager-specific clients/loans with current endpoints'
+            managerName: manager.managerName
           })
 
-          const managerAnalytics: ManagerAnalytics = {
+          // Use new chart endpoints for pre-calculated metrics
+          const [clientsChart, loansChart] = await Promise.all([
+            managerService.getManagerClientsChart(manager.managerId, {}),
+            managerService.getManagerLoansChart(manager.managerId, {})
+          ])
+
+          // Calculate analytics from chart data
+          const managerAnalytics = calculateManagerAnalyticsFromChartData(
+            manager,
+            clientsChart,
+            loansChart
+          )
+
+          console.log('🔍 [DEBUG] Analytics - Manager analytics calculated:', {
             managerId: manager.managerId,
-            managerName: manager.managerName,
-            managerEmail: manager.managerEmail,
-            totalClients: 0, // Cannot fetch - need /users/{managerId}/clients endpoint
-            totalLoans: 0, // Cannot fetch - need /users/{managerId}/loans endpoint
-            totalAmountLent: 0, // Cannot calculate without loans data
-            totalAmountPending: 0, // Cannot calculate without loans data
-            collectionRate: 0, // Cannot calculate without loans data
-            createdAt: manager.createdAt
-          }
+            totalClients: managerAnalytics.totalClients,
+            totalLoans: managerAnalytics.totalLoans,
+            totalAmountLent: managerAnalytics.totalAmountLent
+          })
 
           managersWithAnalytics.push(managerAnalytics)
         } catch (error) {
@@ -125,7 +163,7 @@ export const useSubadminAnalytics = () => {
         }
       }
 
-      // Step 3: Calculate totals
+      // Step 3: Calculate totals from all managers
       const totals = analyticsService.calculateSubadminTotals(managersWithAnalytics)
 
       const completeAnalytics: SubadminAnalytics = {

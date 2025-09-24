@@ -1,8 +1,9 @@
 import { useCallback, useMemo } from 'react'
 import { useSubLoans } from '@/hooks/useSubLoans'
-import { useClientsStore } from '@/stores/clients' 
+import { useClientsStore } from '@/stores/clients'
 import { useFiltersStore, type CobrosFilters } from '@/stores/filters'
 import type { SubLoanWithClientInfo } from '@/services/subloans-lookup.service'
+import { getUrgencyLevel } from '@/lib/cobros/urgencyHelpers'
 
 /**
  * THE CONDUCTOR - useCobrosFilters Hook
@@ -30,18 +31,6 @@ export function useCobrosFilters() {
     return notifiedClients.has(clientId)
   }, [notifiedClients])
 
-  // Helper function to determine urgency based on due date
-  const getUrgencyLevel = useCallback((dueDate: string): 'OVERDUE' | 'TODAY' | 'SOON' | 'UPCOMING' => {
-    const today = new Date()
-    const due = new Date(dueDate)
-    const diffTime = due.getTime() - today.getTime()
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
-    
-    if (diffDays < 0) return 'OVERDUE' // Ya vencido
-    if (diffDays === 0) return 'TODAY' // Vence hoy
-    if (diffDays <= 2) return 'SOON' // Vence pronto (1-2 días)
-    return 'UPCOMING' // Futuro (más de 2 días)
-  }, [])
 
   // Filter subloans based on current filters
   const filteredSubLoans = useMemo(() => {
@@ -49,7 +38,16 @@ export function useCobrosFilters() {
 
     // Status filter (urgency-based) - skip urgency filtering for NOTIFIED
     if (cobrosFilters.status && cobrosFilters.status !== 'ALL' && cobrosFilters.status !== 'NOTIFIED') {
-      filtered = filtered.filter(subloan => getUrgencyLevel(subloan.dueDate) === cobrosFilters.status)
+      const statusMapping = {
+        'OVERDUE': 'overdue' as const,
+        'TODAY': 'today' as const,
+        'SOON': 'soon' as const,
+        'UPCOMING': 'future' as const
+      }
+      const mappedStatus = statusMapping[cobrosFilters.status as keyof typeof statusMapping]
+      if (mappedStatus) {
+        filtered = filtered.filter(subloan => getUrgencyLevel(subloan.dueDate) === mappedStatus)
+      }
     }
 
     // Client filter by ID
@@ -58,7 +56,7 @@ export function useCobrosFilters() {
     }
 
     return filtered
-  }, [allSubLoansWithClient, cobrosFilters, getUrgencyLevel])
+  }, [allSubLoansWithClient, cobrosFilters])
 
   // Group filtered subloans by client with summary stats and handle notification filtering
   const filteredClientsSummary = useMemo(() => {
@@ -96,17 +94,17 @@ export function useCobrosFilters() {
       const firstSubloan = subLoans[0]
       const clientName = firstSubloan.clientName || `Cliente #${firstSubloan.loanId}`
       
-      // Calculate stats
-      const overdueCount = subLoans.filter(s => getUrgencyLevel(s.dueDate) === 'OVERDUE').length
-      const todayCount = subLoans.filter(s => getUrgencyLevel(s.dueDate) === 'TODAY').length
-      const soonCount = subLoans.filter(s => getUrgencyLevel(s.dueDate) === 'SOON').length
+      // Calculate stats (using imported getUrgencyLevel which returns lowercase)
+      const overdueCount = subLoans.filter(s => getUrgencyLevel(s.dueDate) === 'overdue').length
+      const todayCount = subLoans.filter(s => getUrgencyLevel(s.dueDate) === 'today').length
+      const soonCount = subLoans.filter(s => getUrgencyLevel(s.dueDate) === 'soon').length
       const paidCount = subLoans.filter(s => s.status === 'PAID').length
-      
-      // Determine overall urgency level (worst case)
-      let urgencyLevel: 'OVERDUE' | 'TODAY' | 'SOON' | 'UPCOMING' = 'UPCOMING'
-      if (overdueCount > 0) urgencyLevel = 'OVERDUE'
-      else if (todayCount > 0) urgencyLevel = 'TODAY'
-      else if (soonCount > 0) urgencyLevel = 'SOON'
+
+      // Determine overall urgency level (worst case) - use lowercase for consistency
+      let urgencyLevel: 'overdue' | 'today' | 'soon' | 'future' = 'future'
+      if (overdueCount > 0) urgencyLevel = 'overdue'
+      else if (todayCount > 0) urgencyLevel = 'today'
+      else if (soonCount > 0) urgencyLevel = 'soon'
       
       return {
         clientId: firstSubloan.clientId || clientKey,
@@ -125,35 +123,32 @@ export function useCobrosFilters() {
       }
     }).sort((a, b) => {
       // Sort by urgency level first
-      const urgencyOrder = { OVERDUE: 0, TODAY: 1, SOON: 2, UPCOMING: 3 }
+      const urgencyOrder = { overdue: 0, today: 1, soon: 2, future: 3 }
       if (a.urgencyLevel !== b.urgencyLevel) {
         return urgencyOrder[a.urgencyLevel] - urgencyOrder[b.urgencyLevel]
       }
       // Then by client name
       return a.clientName.localeCompare(b.clientName)
     })
-  }, [filteredSubLoans, cobrosFilters.status, getUrgencyLevel, notifiedClients, isClientNotified])
+  }, [filteredSubLoans, cobrosFilters.status, notifiedClients, isClientNotified])
 
   // Global statistics (for filter buttons - shows all available data)
   const globalStats = useMemo(() => {
-    // Count unique clients with active loans (not just subloans) excluding notified clients
-    const uniqueClientsWithLoans = new Set(
-      allSubLoansWithClient
-        .filter(s => s.status !== 'PAID')  // Only active (unpaid) subloans
-        .filter(s => s.clientId && !isClientNotified(s.clientId))  // Exclude notified clients from "Todos" count
-        .map(s => s.clientId)
-        .filter((id): id is string => id !== undefined)
-    ).size;
+    // For "Todos" button: count active/pending loans (not PAID or CANCELLED)
+    const activeSubLoans = allSubLoansWithClient.filter(s =>
+      s.status !== 'PAID' && s.status !== 'CANCELLED' &&
+      (!s.clientId || !isClientNotified(s.clientId))  // Exclude notified clients
+    );
 
     return {
-      overdue: allSubLoansWithClient.filter(s => getUrgencyLevel(s.dueDate) === 'OVERDUE').length,
-      today: allSubLoansWithClient.filter(s => getUrgencyLevel(s.dueDate) === 'TODAY').length,
-      soon: allSubLoansWithClient.filter(s => getUrgencyLevel(s.dueDate) === 'SOON').length,
-      upcoming: allSubLoansWithClient.filter(s => getUrgencyLevel(s.dueDate) === 'UPCOMING').length,
+      overdue: allSubLoansWithClient.filter(s => getUrgencyLevel(s.dueDate) === 'overdue').length,
+      today: allSubLoansWithClient.filter(s => getUrgencyLevel(s.dueDate) === 'today').length,
+      soon: allSubLoansWithClient.filter(s => getUrgencyLevel(s.dueDate) === 'soon').length,
+      upcoming: allSubLoansWithClient.filter(s => getUrgencyLevel(s.dueDate) === 'future').length,
       paid: allSubLoansWithClient.filter(s => s.status === 'PAID').length,
-      totalClients: uniqueClientsWithLoans  // Count of unique clients with pending payments (excluding notified)
+      totalClients: activeSubLoans.length  // Count active loans for "Todos" button
     }
-  }, [allSubLoansWithClient, getUrgencyLevel, isClientNotified, notifiedClients])
+  }, [allSubLoansWithClient, isClientNotified, notifiedClients])
 
   // Filter statistics (for filtered results display)
   const filterStats = useMemo(() => {
@@ -161,16 +156,16 @@ export function useCobrosFilters() {
       total: filteredClientsSummary.length, // Count clients, not subloans
       totalAmount: filteredSubLoans.reduce((sum, s) => sum + s.totalAmount, 0),
       byStatus: {
-        overdue: filteredSubLoans.filter(s => getUrgencyLevel(s.dueDate) === 'OVERDUE').length,
-        today: filteredSubLoans.filter(s => getUrgencyLevel(s.dueDate) === 'TODAY').length,
-        soon: filteredSubLoans.filter(s => getUrgencyLevel(s.dueDate) === 'SOON').length,
-        upcoming: filteredSubLoans.filter(s => getUrgencyLevel(s.dueDate) === 'UPCOMING').length,
+        overdue: filteredSubLoans.filter(s => getUrgencyLevel(s.dueDate) === 'overdue').length,
+        today: filteredSubLoans.filter(s => getUrgencyLevel(s.dueDate) === 'today').length,
+        soon: filteredSubLoans.filter(s => getUrgencyLevel(s.dueDate) === 'soon').length,
+        upcoming: filteredSubLoans.filter(s => getUrgencyLevel(s.dueDate) === 'future').length,
         paid: filteredSubLoans.filter(s => s.status === 'PAID').length
       },
       notifiedCount: notifiedClients.size
     }
     return stats
-  }, [filteredClientsSummary, filteredSubLoans, getUrgencyLevel, notifiedClients])
+  }, [filteredClientsSummary, filteredSubLoans, notifiedClients])
 
   // Update a specific filter
   const updateFilter = useCallback(<K extends keyof CobrosFilters>(
@@ -220,11 +215,11 @@ export function useCobrosFilters() {
       color: 'success' as const,
       count: notifiedClients.size 
     },
-    { 
-      key: 'ALL' as const, 
-      label: 'Todos', 
+    {
+      key: 'ALL' as const,
+      label: 'Todos',
       color: 'primary' as const,
-      count: globalStats.totalClients  // Count of unique clients with pending payments
+      count: globalStats.totalClients  // Count of ALL subloans
     }
   ] as const, [globalStats, notifiedClients])
 

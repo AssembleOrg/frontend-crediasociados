@@ -6,6 +6,7 @@ import type { SubLoanWithClientInfo } from '@/services/subloans-lookup.service'
 
 interface CobrosHeaderProps {
   overduePayments: SubLoanWithClientInfo[]
+  totalClients: number
   selectedDate: string
   dayLocked: boolean
   onOverdueClick: () => void
@@ -15,12 +16,16 @@ interface CobrosHeaderProps {
 
 export default function CobrosHeader({
   overduePayments,
+  totalClients,
   selectedDate,
   dayLocked,
   onOverdueClick,
   onDateChange,
   onLockDay
 }: CobrosHeaderProps) {
+  // Calculate unique clients with overdue payments
+  const uniqueOverdueClients = new Set(overduePayments.map(payment => payment.clientId)).size
+
   return (
     <Box
       sx={{
@@ -36,7 +41,7 @@ export default function CobrosHeader({
           Gestión de Cobros
         </Typography>
         <Typography variant="body1" color="text.secondary">
-          Todas las cuotas con énfasis en las que están cerca de vencer, vencen hoy o ya vencieron
+          Vista agrupada por cliente ({totalClients} clientes con pagos pendientes)
         </Typography>
       </Box>
       
@@ -69,7 +74,7 @@ export default function CobrosHeader({
               whiteSpace: 'nowrap',
             }}
           >
-            Fuera de Término ({overduePayments.length})
+{overduePayments.length} Cuotas, {uniqueOverdueClients} Clientes
           </Button>
         )}
         

@@ -11,7 +11,6 @@ import {
   Box,
 } from '@mui/material'
 import { Warning } from '@mui/icons-material'
-import { useUsers } from '@/hooks/useUsers'
 import type { User } from '@/types/auth'
 import { getRoleDisplayName } from '@/types/transforms'
 
@@ -20,26 +19,34 @@ interface DeleteUserConfirmDialogProps {
   onClose: () => void
   user: User | null
   onConfirm?: (id: string) => Promise<boolean>
+  // Functions passed from parent to avoid duplicate useUsers hooks
+  deleteUser?: (id: string) => Promise<boolean>
+  isLoading?: boolean
+  error?: string | null
 }
 
-export function DeleteUserConfirmDialog({ 
-  open, 
-  onClose, 
+export function DeleteUserConfirmDialog({
+  open,
+  onClose,
   user,
-  onConfirm
+  onConfirm,
+  deleteUser,
+  isLoading = false,
+  error = null
 }: DeleteUserConfirmDialogProps) {
-  const { deleteUser, isLoading, error } = useUsers()
 
   const handleConfirmDelete = async () => {
     if (!user) return
-    
+
     // Use provided onConfirm or default deleteUser
     const deleteMethod = onConfirm || deleteUser
 
-    const result = await deleteMethod(user.id)
+    if (deleteMethod) {
+      const result = await deleteMethod(user.id)
 
-    if (result) {
-      onClose()
+      if (result) {
+        onClose()
+      }
     }
   }
 

@@ -48,8 +48,45 @@ class LoansService {
   }
 
   async createLoan(loanData: CreateLoanDto): Promise<CreateLoanResponseDto> {
-    const response = await api.post('/loans', loanData)
-    return response.data.data
+    // DEBUG: Log COMPLETO de datos para diagnosticar error 500
+    console.log('🔍 [DEBUG] loans.service - Datos COMPLETOS enviados al backend:', {
+      completePayload: loanData,
+      fieldsBreakdown: {
+        clientId: loanData.clientId,
+        amount: { value: loanData.amount, type: typeof loanData.amount },
+        baseInterestRate: { value: loanData.baseInterestRate, type: typeof loanData.baseInterestRate },
+        penaltyInterestRate: { value: loanData.penaltyInterestRate, type: typeof loanData.penaltyInterestRate },
+        currency: loanData.currency,
+        paymentFrequency: loanData.paymentFrequency,
+        paymentDay: loanData.paymentDay,
+        totalPayments: { value: loanData.totalPayments, type: typeof loanData.totalPayments },
+        firstDueDate: loanData.firstDueDate,
+        description: loanData.description
+      },
+      timestamp: new Date().toISOString()
+    })
+
+    try {
+      const response = await api.post('/loans', loanData)
+
+      // DEBUG: Log respuesta exitosa
+      console.log('🔍 [DEBUG] loans.service - Préstamo creado exitosamente:', {
+        loanId: response.data.data.id,
+        clientId: response.data.data.clientId,
+        status: response.status,
+        fullResponse: response.data.data
+      })
+
+      return response.data.data
+    } catch (error: any) {
+      // DEBUG: Log error completo
+      console.error('🚨 [DEBUG] loans.service - ERROR 500 creando préstamo:', {
+        error: error.response?.data || error.message,
+        status: error.response?.status,
+        sentData: loanData
+      })
+      throw error
+    }
   }
 
   async updateLoan(id: string, loanData: Partial<CreateLoanDto>): Promise<LoanResponseDto> {

@@ -1,60 +1,71 @@
 'use client'
 
 import React from 'react'
-import { Box, Paper, Typography } from '@mui/material'
-import { People, Assessment } from '@mui/icons-material'
-import { useStats } from '@/hooks/useStats'
-import { StatsCard } from '@/components/dashboard/StatsCard'
+import { Box, Grid, Alert } from '@mui/material'
+import { useAdminDashboard } from '@/hooks/useAdminDashboard'
 import PageHeader from '@/components/ui/PageHeader'
-import StatsGrid from '@/components/ui/StatsGrid'
+import ManagersPerSubadminChart from '@/components/charts/ManagersPerSubadminChart'
+import AmountPerSubadminChart from '@/components/charts/AmountPerSubadminChart'
+import ClientsEvolutionChart from '@/components/charts/ClientsEvolutionChart'
 
 export default function AdminDashboard() {
-  const { stats, totalUsers } = useStats()
+  const {
+    chartData,
+    isBasicLoading,
+    isDetailedLoading,
+    error
+  } = useAdminDashboard()
+
+  const isLoading = isBasicLoading || isDetailedLoading
+
+  if (error) {
+    return (
+      <Box sx={{ p: 3 }}>
+        <PageHeader
+          title="Dashboard Principal"
+          subtitle="Gestión de red y análisis"
+        />
+        <Alert severity="error" sx={{ mt: 2 }}>
+          {error}
+        </Alert>
+      </Box>
+    )
+  }
 
   return (
     <Box sx={{ p: 3 }}>
       {/* Header */}
       <PageHeader
         title="Dashboard Principal"
-        subtitle="Vista global del sistema y gestión de usuarios"
+        subtitle="Gestión de red y análisis"
       />
 
-      {/* Stats Grid */}
-      <StatsGrid columns={{ xs: 1, sm: 2, lg: 3 }}>
-        <StatsCard
-          title="Total Usuarios"
-          value={totalUsers}
-          subtitle="en toda la plataforma"
-          icon={<People />}
-          color="primary"
-        />
 
-        <StatsCard
-          title="Sub-Administradores"
-          value={stats?.users?.subadmin || 0}
-          subtitle="gestores regionales"
-          icon={<People />}
-          color="success"
-        />
+      {/* Main Charts Row 1 */}
+      <Grid container spacing={3} sx={{ mb: 3 }}>
+        <Grid item xs={12} md={6}>
+          <ManagersPerSubadminChart
+            data={chartData.managersPerSubadmin}
+            isLoading={isLoading}
+          />
+        </Grid>
+        <Grid item xs={12} md={6}>
+          <AmountPerSubadminChart
+            data={chartData.amountPerSubadmin}
+            isLoading={isLoading}
+          />
+        </Grid>
+      </Grid>
 
-        <StatsCard
-          title="Prestamistas"
-          value={stats?.users?.prestamista || 0}
-          subtitle="gestores de préstamos"
-          icon={<Assessment />}
-          color="warning"
-        />
-      </StatsGrid>
-
-      <Paper sx={{ p: 3 }}>
-        <Typography variant="h6" gutterBottom>
-          Gestión de Usuarios
-        </Typography>
-        <Typography variant="body1" color="text.secondary">
-          Para gestionar sub-administradores, visita la sección
-          &ldquo;Sub-Admins&rdquo; en el menú lateral.
-        </Typography>
-      </Paper>
+      {/* Main Charts Row 2 */}
+      <Grid container spacing={3}>
+        <Grid item xs={12}>
+          <ClientsEvolutionChart
+            data={chartData.clientsEvolution}
+            isLoading={isLoading}
+          />
+        </Grid>
+      </Grid>
     </Box>
   )
 }

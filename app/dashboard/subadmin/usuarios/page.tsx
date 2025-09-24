@@ -29,19 +29,23 @@ import { TableSkeleton } from '@/components/ui/TableSkeleton'
 import type { User } from '@/types/auth'
 
 export default function ManagersPage() {
-  const { 
-    users, 
-    isLoading, 
-    error, 
-    deleteUser, 
-    clearError 
+  const {
+    users,
+    isLoading,
+    error,
+    createUser,
+    updateUser,
+    deleteUser,
+    clearError
   } = useUsers()
   
-  // Filter managers directly
-  const managers = useMemo(() => 
-    users.filter(user => user.role === 'manager'), 
-    [users]
-  )
+  // Filter prestamistas directly (MANAGER from API becomes 'prestamista' in frontend)
+  const managers = useMemo(() => {
+    console.log('🔍 [DEBUG] All users received:', users.map(u => ({ id: u.id, name: u.fullName, role: u.role })))
+    const filtered = users.filter(user => user.role === 'prestamista')
+    console.log('🔍 [DEBUG] Filtered prestamistas:', filtered.map(u => ({ id: u.id, name: u.fullName, role: u.role })))
+    return filtered
+  }, [users])
   const totalManagers = managers.length
 
   const [page, setPage] = useState(0)
@@ -206,6 +210,10 @@ export default function ManagersPage() {
         onClose={handleCloseModals}
         targetRole="manager"
         mode="create"
+        createUser={createUser}
+        updateUser={updateUser}
+        isLoading={isLoading}
+        error={error}
       />
 
       {selectedUser && (
@@ -215,11 +223,18 @@ export default function ManagersPage() {
             onClose={handleCloseModals}
             user={selectedUser}
             mode="edit"
+            createUser={createUser}
+            updateUser={updateUser}
+            isLoading={isLoading}
+            error={error}
           />
           <DeleteUserConfirmDialog
             open={deleteDialogOpen}
             onClose={handleCloseModals}
             user={selectedUser}
+            deleteUser={deleteUser}
+            isLoading={isLoading}
+            error={error}
             onConfirm={deleteUser}
           />
         </>

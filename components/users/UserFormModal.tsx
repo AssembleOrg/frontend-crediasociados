@@ -16,7 +16,6 @@ import {
   FormControl,
   InputLabel,
 } from '@mui/material'
-import { useUsers } from '@/hooks/useUsers'
 import { UserValidation } from '@/lib/validation-utils'
 import { RoleUtils, type UserRole, ROLE_DISPLAY_NAMES } from '@/lib/role-utils'
 import type { User } from '@/types/auth'
@@ -28,6 +27,11 @@ interface UserFormModalProps {
   mode: 'create' | 'edit'
   targetRole?: UserRole // For create mode
   allowRoleChange?: boolean // For edit mode
+  // Functions passed from parent to avoid duplicate useUsers hooks
+  createUser?: (userData: Omit<User, 'id' | 'createdAt' | 'updatedAt'> & { password: string }) => Promise<boolean>
+  updateUser?: (id: string, userData: Partial<User> & { password?: string }) => Promise<boolean>
+  isLoading?: boolean
+  error?: string | null
 }
 
 const INITIAL_FORM_DATA = {
@@ -40,15 +44,18 @@ const INITIAL_FORM_DATA = {
   role: 'manager' as UserRole
 }
 
-export function UserFormModal({ 
-  open, 
-  onClose, 
+export function UserFormModal({
+  open,
+  onClose,
   user,
   mode,
   targetRole = 'manager',
-  allowRoleChange = false
+  allowRoleChange = false,
+  createUser,
+  updateUser,
+  isLoading = false,
+  error = null
 }: UserFormModalProps) {
-  const { createUser, updateUser, isLoading, error } = useUsers()
 
   const [formData, setFormData] = useState(INITIAL_FORM_DATA)
   const [formErrors, setFormErrors] = useState<Record<string, string>>({})

@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useContext, useEffect, useRef } from 'react';
+import { createContext, useContext, useEffect, useRef, useState } from 'react';
 import { subLoansLookupService } from '@/services/subloans-lookup.service';
 import { subLoansService } from '@/services/sub-loans.service';
 import { loansService } from '@/services/loans.service';
@@ -9,6 +9,7 @@ import { useLoansStore } from '@/stores/loans';
 import { useAuthStore } from '@/stores/auth';
 import { useAuth } from '@/hooks/useAuth';
 import { apiLoanToLoan } from '@/types/transforms';
+import { AuthLoadingOverlay } from '@/components/ui/AuthLoadingOverlay';
 
 interface SubLoansProviderProps {
   children: React.ReactNode;
@@ -17,6 +18,7 @@ interface SubLoansProviderProps {
 // Context for refreshing data
 interface SubLoansProviderContextType {
   refreshData: () => Promise<void>;
+  isInitialLoading: boolean;
 }
 
 const SubLoansProviderContext = createContext<SubLoansProviderContextType | null>(null);
@@ -56,6 +58,9 @@ export default function SubLoansProvider({ children }: SubLoansProviderProps) {
   const isInitializedRef = useRef(false);
   const hasTokenBeenAvailableRef = useRef(false);
 
+  // Estado local para el loading inicial
+  const [isInitialLoading, setIsInitialLoading] = useState(true);
+
   // Global initialization - ALL SubLoans data types in parallel
   const initAllSubLoansData = async (): Promise<boolean> => {
     if (!currentUser || !['ADMIN', 'SUBADMIN', 'MANAGER', 'prestamista'].includes(currentUser.role)) {
@@ -83,10 +88,10 @@ export default function SubLoansProvider({ children }: SubLoansProviderProps) {
         subLoansLookupService.getAllSubLoansWithClientInfo(),
         
         // 2. Today Due SubLoans
-        subLoansService.getTodayDueSubLoans({ page: 1, limit: 20 }),
-        
+        subLoansService.getTodayDueSubLoans(),
+
         // 3. All SubLoans (basic)
-        subLoansService.getAllSubLoans({ page: 1, limit: 50 }),
+        subLoansService.getAllSubLoans(),
         
         // 4. Stats
         subLoansService.getTodayDueSubLoansStats(),
@@ -101,28 +106,26 @@ export default function SubLoansProvider({ children }: SubLoansProviderProps) {
 
       // Update ALL store data
       setAllSubLoansWithClient(enrichedSubLoans);
-      setTodayDueSubLoans(todayDueResponse.data);
-      setAllSubLoans(allSubLoansResponse.data);
+      setTodayDueSubLoans(todayDueResponse);
+      setAllSubLoans(allSubLoansResponse);
       setStats(statsResponse);
-      
+
       // Transform and set loans data
       const transformedLoans = loansResponse.map(apiLoanToLoan);
       setLoans(transformedLoans);
 
-      // Set pagination from todayDue response
-      if (todayDueResponse.meta) {
-        setPagination({
-          page: todayDueResponse.meta.page,
-          limit: todayDueResponse.meta.limit,
-          total: todayDueResponse.meta.total,
-          totalPages: todayDueResponse.meta.totalPages
-        });
-      }
+      // Set default pagination (since we're not using paginated responses anymore)
+      setPagination({
+        page: 1,
+        limit: 20,
+        total: todayDueResponse.length,
+        totalPages: Math.ceil(todayDueResponse.length / 20)
+      });
 
       console.log('🔄 SubLoans + Loans data initialized globally (Consolidated):', {
         enrichedSubLoans: enrichedSubLoans.length,
-        todayDue: todayDueResponse.data.length,
-        allSubLoans: allSubLoansResponse.data.length,
+        todayDue: todayDueResponse.length,
+        allSubLoans: allSubLoansResponse.length,
         loans: transformedLoans.length,
         stats: !!statsResponse
       });
@@ -141,6 +144,7 @@ export default function SubLoansProvider({ children }: SubLoansProviderProps) {
     } finally {
       if (!abortController.signal.aborted) {
         setLoading(false);
+        setIsInitialLoading(false);
       }
     }
   };
@@ -187,13 +191,18 @@ export default function SubLoansProvider({ children }: SubLoansProviderProps) {
     await initAllSubLoansData();
   };
 
-  // Expose refreshData method via context
+  // Expose refreshData method and isInitialLoading via context
   const contextValue: SubLoansProviderContextType = {
-    refreshData
+    refreshData,
+    isInitialLoading
   };
 
   return (
     <SubLoansProviderContext.Provider value={contextValue}>
+      <AuthLoadingOverlay
+        open={isInitialLoading}
+        message="Cargando datos del sistema..."
+      />
       {children}
     </SubLoansProviderContext.Provider>
   );

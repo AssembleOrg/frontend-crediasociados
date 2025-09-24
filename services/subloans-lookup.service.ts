@@ -43,8 +43,7 @@ class SubLoansLookupService {
   async getAllSubLoansWithClientInfo(params?: PaginationParams): Promise<SubLoanWithClientInfo[]> {
     try {
       // 1. Get all subloans
-      const subLoansResponse = await subLoansService.getAllSubLoans(params)
-      const subLoans = subLoansResponse.data
+      const subLoans = await subLoansService.getAllSubLoans()
 
       if (subLoans.length === 0) {
         return []
@@ -92,8 +91,7 @@ class SubLoansLookupService {
   async getTodayDueSubLoansWithClientInfo(params?: PaginationParams): Promise<SubLoanWithClientInfo[]> {
     try {
       // 1. Get today due subloans
-      const subLoansResponse = await subLoansService.getTodayDueSubLoans(params)
-      const subLoans = subLoansResponse.data
+      const subLoans = await subLoansService.getTodayDueSubLoans()
 
       if (subLoans.length === 0) {
         return []

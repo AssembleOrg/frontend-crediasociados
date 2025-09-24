@@ -120,6 +120,30 @@ export function useSubLoans() {
       setError(null)
 
       const enrichedSubLoans = await subLoansLookupService.getAllSubLoansWithClientInfo(params)
+
+      // DEBUG: Log estructura de datos para analizar múltiples préstamos por cliente
+      console.log('🔍 [DEBUG] useSubLoans - Estructura completa de enrichedSubLoans:', {
+        total: enrichedSubLoans.length,
+        data: enrichedSubLoans
+      })
+
+      // DEBUG: Agrupar por cliente para ver distribución
+      const clientsMap = new Map()
+      enrichedSubLoans.forEach(subloan => {
+        const clientKey = subloan.clientId || subloan.loanId
+        if (!clientsMap.has(clientKey)) {
+          clientsMap.set(clientKey, [])
+        }
+        clientsMap.get(clientKey).push({
+          loanId: subloan.loanId,
+          paymentNumber: subloan.paymentNumber,
+          dueDate: subloan.dueDate,
+          status: subloan.status
+        })
+      })
+
+      console.log('🔍 [DEBUG] useSubLoans - Agrupación por cliente:', Object.fromEntries(clientsMap))
+
       setAllSubLoansWithClient(enrichedSubLoans)
       
       // Set basic pagination info (we'll use the length as total for now)

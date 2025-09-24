@@ -103,6 +103,25 @@ export default function CobrosPage() {
 
   const overduePayments = allSubLoansWithClient.filter(p => getUrgencyLevel(p.dueDate) === 'overdue')
 
+  // DEBUG: Log agrupación de cobros para analizar múltiples préstamos
+  console.log('🔍 [DEBUG] Cobros - allSubLoansWithClient raw data:', {
+    total: allSubLoansWithClient.length,
+    overduePayments: overduePayments.length,
+    data: allSubLoansWithClient.slice(0, 3) // Solo primeros 3 para no saturar
+  })
+
+  console.log('🔍 [DEBUG] Cobros - displayClientsSummary agrupado:', {
+    totalClients: displayClientsSummary.length,
+    clients: displayClientsSummary.map(client => ({
+      clientId: client.clientId,
+      clientName: client.clientName,
+      totalSubLoans: client.subLoans.length,
+      loanIds: [...new Set(client.subLoans.map(s => s.loanId))], // IDs únicos de préstamos
+      overdueCount: client.stats.overdue,
+      urgencyLevel: client.urgencyLevel
+    }))
+  })
+
   // Use filtered stats when filters are active, otherwise use all data
   const displayStats = hasActiveFilters ? filterStats : getStatusStats(allSubLoansWithClient)
 
@@ -163,6 +182,7 @@ export default function CobrosPage() {
       {/* Header */}
       <CobrosHeader
         overduePayments={overduePayments}
+        totalClients={displayClientsSummary.length}
         selectedDate={selectedDate}
         dayLocked={dayLocked}
         onOverdueClick={() => setOverdueModalOpen(true)}

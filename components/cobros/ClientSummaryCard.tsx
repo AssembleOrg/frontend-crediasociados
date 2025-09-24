@@ -68,13 +68,15 @@ export default function ClientSummaryCard({
             </Box>
             <Chip
               label={
-                client.urgencyLevel === 'overdue'
+                client.urgencyLevel === 'overdue' || client.urgencyLevel === 'OVERDUE'
                   ? `${client.stats.overdue} vencidas`
-                  : client.urgencyLevel === 'today'
+                  : client.urgencyLevel === 'today' || client.urgencyLevel === 'TODAY'
                   ? `${client.stats.today} hoy`
-                  : client.urgencyLevel === 'soon'
+                  : client.urgencyLevel === 'soon' || client.urgencyLevel === 'SOON'
                   ? `${client.stats.soon} pronto`
-                  : 'Al día'
+                  : client.urgencyLevel === 'future' || client.urgencyLevel === 'UPCOMING'
+                  ? 'Al día'
+                  : `${client.stats.total} cuotas`
               }
               sx={{
                 bgcolor: colors.primary,
