@@ -78,3 +78,99 @@ export interface ExcelLoanData {
 
 export type ExportFormat = 'pdf' | 'excel';
 export type ExportStatus = 'idle' | 'generating' | 'downloading' | 'completed' | 'error';
+
+// Admin Reports Types
+export interface AdminReportsData {
+  totalUsers: number;
+  totalClients: number;
+  totalLoans: number;
+  totalAmountLent: number;
+  totalAmountPending: number;
+  averageCollectionRate: number;
+  subadmins: {
+    userId: string;
+    userName: string;
+    userEmail: string;
+    userRole: string;
+    totalClients: number;
+    totalLoans: number;
+    totalAmountLent: number;
+    totalAmountPending: number;
+    collectionRate: number;
+    createdAt: string;
+  }[];
+}
+
+export interface AdminReportsPDFData {
+  // Report Information
+  reportTitle: string;
+  reportType: string;
+  generatedAt: string;
+  generatedBy: string;
+
+  // Summary
+  summary: {
+    totalSubadmins: number;
+    totalManagers: number;
+    totalClients: number;
+    totalLoans: number;
+    totalAmountLent: number;
+    averagePerSubadmin: number;
+  };
+
+  // Subadmins data
+  subadmins: {
+    name: string;
+    email: string;
+    managersCount: number;
+    clientsCount: number;
+    loansCount: number;
+    totalAmount: number;
+    createdAt: string;
+  }[];
+}
+
+// Subadmin Reports Types
+export interface SubadminReportsData {
+  totalManagers: number;
+  totalClients: number;
+  totalLoans: number;
+  totalAmountLent: number;
+  managers: {
+    id: string;
+    name: string;
+    email: string;
+    totalClients: number;
+    totalLoans: number;
+    totalAmountLent: number;
+    createdAt: string;
+  }[];
+}
+
+export interface SubadminReportsPDFData {
+  // Report Information
+  reportTitle: string;
+  reportType: string;
+  generatedAt: string;
+  generatedBy: string;
+  subadminName: string;
+
+  // Summary
+  summary: {
+    totalManagers: number;
+    totalClients: number;
+    totalLoans: number;
+    totalAmountLent: number;
+    averagePerManager: number;
+  };
+
+  // Managers data
+  managers: {
+    name: string;
+    email: string;
+    clientsCount: number;
+    loansCount: number;
+    totalAmount: number;
+    createdAt: string;
+  }[];
+}

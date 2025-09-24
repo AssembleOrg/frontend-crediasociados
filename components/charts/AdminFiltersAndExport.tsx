@@ -15,7 +15,7 @@ import {
   Divider,
   Chip
 } from '@mui/material'
-import { FileDownload, FilterList, Clear } from '@mui/icons-material'
+import { FileDownload, FilterList, Clear, PictureAsPdf } from '@mui/icons-material'
 import type { TimeFilter } from '@/hooks/useOptimizedAdminDashboard'
 
 interface AdminFiltersAndExportProps {
@@ -31,7 +31,8 @@ interface AdminFiltersAndExportProps {
   onSubadminChange: (subadminId: string | null) => void
 
   // Actions
-  onExport: () => void
+  onExportExcel: () => void
+  onExportPdf: () => void
 
   // State
   isLoading?: boolean
@@ -57,7 +58,8 @@ export default function AdminFiltersAndExport({
   selectedSubadmin,
   subadminOptions,
   onSubadminChange,
-  onExport,
+  onExportExcel,
+  onExportPdf,
   isLoading = false,
   dataCount
 }: AdminFiltersAndExportProps) {
@@ -255,20 +257,33 @@ export default function AdminFiltersAndExport({
           <Typography variant="subtitle2" color="text.secondary">
             Exportación
           </Typography>
-          <Button
-            variant="contained"
-            size="small"
-            onClick={onExport}
-            disabled={isLoading}
-            startIcon={<FileDownload />}
-            sx={{ minWidth: 150 }}
-          >
-            Exportar Excel
-          </Button>
+          <Box sx={{ display: 'flex', gap: 1 }}>
+            <Button
+              variant="contained"
+              size="small"
+              onClick={onExportExcel}
+              disabled={isLoading}
+              startIcon={<FileDownload />}
+              sx={{ minWidth: 110 }}
+            >
+              Excel
+            </Button>
+            <Button
+              variant="contained"
+              size="small"
+              onClick={onExportPdf}
+              disabled={isLoading}
+              startIcon={<PictureAsPdf />}
+              color="secondary"
+              sx={{ minWidth: 110 }}
+            >
+              PDF
+            </Button>
+          </Box>
           <Typography variant="caption" color="text.secondary" sx={{ textAlign: 'center' }}>
             {selectedSubadmin
-              ? 'Excel: Solo datos del sub-admin seleccionado'
-              : 'Excel: Todos los datos detallados'
+              ? 'Solo datos del sub-admin seleccionado'
+              : 'Todos los datos detallados'
             }
           </Typography>
         </Box>

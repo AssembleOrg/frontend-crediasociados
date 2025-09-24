@@ -1,17 +1,23 @@
 'use client'
 
 import React, { useEffect } from 'react'
-import { Box, Alert, CircularProgress, Typography } from '@mui/material'
+import { Box, Alert, CircularProgress, Typography, Paper, Button, ButtonGroup } from '@mui/material'
 import {
-  People
+  People,
+  FileDownload,
+  PictureAsPdf
 } from '@mui/icons-material'
 import { useSubadminAnalytics } from '@/hooks/useSubadminAnalytics'
+import { useAuth } from '@/hooks/useAuth'
 import { StatsCard } from '@/components/dashboard/StatsCard'
 import PageHeader from '@/components/ui/PageHeader'
 import StatsGrid from '@/components/ui/StatsGrid'
 import ManagerStatsTable from '@/components/analytics/ManagerStatsTable'
+import { exportService } from '@/services/export.service'
+import type { SubadminReportsData } from '@/types/export'
 
 export default function SubadminAnalyticsPage() {
+  const { user } = useAuth()
   const {
     analytics,
     isLoading,
@@ -21,6 +27,83 @@ export default function SubadminAnalyticsPage() {
     refreshAnalytics,
     clearError
   } = useSubadminAnalytics()
+
+  // Export service instance (already instantiated)
+  // const exportService is imported
+
+  // Excel Export function
+  const handleExcelExport = () => {
+    if (!analytics) {
+      alert('No hay datos disponibles para exportar')
+      return
+    }
+
+    // Create CSV content
+    const csvRows = []
+
+    // Headers
+    csvRows.push('Manager,Email,Clientes,Prestamos,Monto Total,Fecha Registro')
+
+    // Data rows
+    analytics.managers.forEach(manager => {
+      csvRows.push([
+        manager.managerName,
+        manager.managerEmail,
+        manager.totalClients,
+        manager.totalLoans,
+        manager.totalAmountLent,
+        new Date(manager.createdAt).toLocaleDateString('es-AR')
+      ].join(','))
+    })
+
+    const csvContent = csvRows.join('\n')
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+    const url = window.URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `subadmin-reportes-${new Date().toISOString().split('T')[0]}.csv`
+    link.click()
+    window.URL.revokeObjectURL(url)
+  }
+
+  // PDF Export function
+  const handlePdfExport = async () => {
+    if (!analytics || !user) {
+      alert('No hay datos disponibles para exportar')
+      return
+    }
+
+    try {
+      // Transform data to match SubadminReportsData format
+      const reportsData: SubadminReportsData = {
+        totalManagers: analytics.totalManagers,
+        totalClients: analytics.totalClients,
+        totalLoans: analytics.totalLoans,
+        totalAmountLent: analytics.totalAmountLent,
+        managers: analytics.managers.map(manager => ({
+          id: manager.managerId,
+          name: manager.managerName,
+          email: manager.managerEmail,
+          totalClients: manager.totalClients,
+          totalLoans: manager.totalLoans,
+          totalAmountLent: manager.totalAmountLent,
+          createdAt: manager.createdAt
+        }))
+      }
+
+      const pdfBlob = await exportService.generateSubadminReportsPDF(reportsData, user.fullName || user.email)
+
+      const url = window.URL.createObjectURL(pdfBlob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = `subadmin-reportes-${new Date().toISOString().split('T')[0]}.pdf`
+      link.click()
+      window.URL.revokeObjectURL(url)
+    } catch (error) {
+      console.error('Error generating PDF:', error)
+      alert('Error al generar el PDF. Por favor, inténtelo de nuevo.')
+    }
+  }
 
   // Auto-initialize analytics on mount
   useEffect(() => {
@@ -89,6 +172,39 @@ export default function SubadminAnalyticsPage() {
         title="Reportes"
         subtitle="Panel de métricas de tus managers"
       />
+
+      {/* Export Section */}
+      {analytics && analytics.managers.length > 0 && (
+        <Paper elevation={1} sx={{ p: 3, mb: 3 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <Typography variant="h6" sx={{ color: 'text.secondary' }}>
+              Exportación de Datos
+            </Typography>
+            <ButtonGroup variant="contained">
+              <Button
+                onClick={handleExcelExport}
+                startIcon={<FileDownload />}
+                disabled={isLoading}
+                sx={{ minWidth: 120 }}
+              >
+                Excel
+              </Button>
+              <Button
+                onClick={handlePdfExport}
+                startIcon={<PictureAsPdf />}
+                color="secondary"
+                disabled={isLoading}
+                sx={{ minWidth: 120 }}
+              >
+                PDF
+              </Button>
+            </ButtonGroup>
+          </Box>
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+            Exporta los datos de tus {analytics.managers.length} {analytics.managers.length === 1 ? 'prestamista' : 'prestamistas'}
+          </Typography>
+        </Paper>
+      )}
 
       {/* Loading overlay for refresh */}
       {isLoading && isInitialized && (

@@ -74,7 +74,7 @@ export const useAdminReportsWithFilters = () => {
     const csvRows = []
 
     // Headers
-    csvRows.push('Subadmin,Email,Managers,Clientes,Préstamos,Monto Total,Manager,Manager Email,Clientes Manager,Préstamos Manager')
+    csvRows.push('Subadmin,Email,Managers,Clientes,Prestamos,Monto Total,Manager,Manager Email,Clientes Manager,Prestamos Manager')
 
     // Data rows
     dataToExport.forEach(subadmin => {

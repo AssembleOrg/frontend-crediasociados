@@ -6,6 +6,8 @@ import { useAdminReportsWithFilters } from '@/hooks/useAdminReportsWithFilters'
 import BaseReportLayout from '@/components/reports/BaseReportLayout'
 import BaseReportCard from '@/components/reports/BaseReportCard'
 import AdminFiltersAndExport from '@/components/charts/AdminFiltersAndExport'
+import { exportService } from '@/services/export.service'
+import type { AdminReportsData } from '@/types/export'
 
 export default function AdminReportsPage() {
   const {
@@ -35,6 +37,43 @@ export default function AdminReportsPage() {
   } = useAdminReportsWithFilters()
 
   // Provider auto-initializes data - no useEffect needed
+
+  // Export service instance (already instantiated)
+  // const exportService is imported
+
+  // PDF Export function
+  const handlePdfExport = async () => {
+    if (!reports) {
+      alert('No hay datos disponibles para exportar')
+      return
+    }
+
+    try {
+      // Filter data if a subadmin is selected
+      const dataToExport: AdminReportsData = selectedSubadmin
+        ? {
+            ...reports,
+            subadmins: reports.subadmins.filter(subadmin => subadmin.userId === selectedSubadmin),
+            totalUsers: 1,
+            totalClients: reports.subadmins.find(s => s.userId === selectedSubadmin)?.totalClients || 0,
+            totalLoans: reports.subadmins.find(s => s.userId === selectedSubadmin)?.totalLoans || 0,
+            totalAmountLent: reports.subadmins.find(s => s.userId === selectedSubadmin)?.totalAmountLent || 0,
+          }
+        : reports
+
+      const pdfBlob = await exportService.generateAdminReportsPDF(dataToExport)
+
+      const url = window.URL.createObjectURL(pdfBlob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = `admin-reportes-${selectedSubadmin ? 'filtrado-' : ''}${new Date().toISOString().split('T')[0]}.pdf`
+      link.click()
+      window.URL.revokeObjectURL(url)
+    } catch (error) {
+      console.error('Error generating PDF:', error)
+      alert('Error al generar el PDF. Por favor, inténtelo de nuevo.')
+    }
+  }
 
 
 
@@ -87,7 +126,8 @@ export default function AdminReportsPage() {
         selectedSubadmin={selectedSubadmin}
         subadminOptions={subadminOptions}
         onSubadminChange={setSelectedSubadmin}
-        onExport={exportDetailedData}
+        onExportExcel={exportDetailedData}
+        onExportPdf={handlePdfExport}
         isLoading={isAnyLoading}
         dataCount={isInitialized ? dataCount : undefined}
       />
