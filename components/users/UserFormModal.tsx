@@ -19,6 +19,7 @@ import {
 import { UserValidation } from '@/lib/validation-utils'
 import { RoleUtils, type UserRole, ROLE_DISPLAY_NAMES } from '@/lib/role-utils'
 import type { User } from '@/types/auth'
+import type { SelectChangeEvent } from '@mui/material/Select'
 
 interface UserFormModalProps {
   open: boolean
@@ -97,8 +98,7 @@ export function UserFormModal({
     }
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const handleRoleChange = (event: any) => {
+  const handleRoleChange = (event: SelectChangeEvent) => {
     setFormData(prev => ({
       ...prev,
       role: event.target.value as UserRole
@@ -150,13 +150,13 @@ export function UserFormModal({
     if (mode === 'create') {
       // For create mode, password is required
       const createData = { ...userData, password: formData.password }
-      result = await createUser(createData)
+      result = await createUser?.(createData) ?? false
     } else if (mode === 'edit' && user) {
       // For edit mode, password is optional
-      const updateData = formData.password 
+      const updateData = formData.password
         ? { ...userData, password: formData.password }
         : userData
-      result = await updateUser(user.id, updateData)
+      result = await updateUser?.(user.id, updateData) ?? false
     } else {
       return
     }

@@ -24,7 +24,7 @@ interface BaseReportLayoutProps {
   error: string | null
 
   // Actions
-  onRefresh: () => void
+  onRefresh?: () => void
   onClearError: () => void
 
   // Optional customization

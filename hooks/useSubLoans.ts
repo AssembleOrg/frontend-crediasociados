@@ -50,17 +50,16 @@ export function useSubLoans() {
       setLoading(true)
       setError(null)
 
-      const response = await subLoansService.getTodayDueSubLoans(params)
-      setTodayDueSubLoans(response.data)
-      
-      if (response.meta) {
-        setPagination({
-          page: response.meta.page,
-          limit: response.meta.limit,
-          total: response.meta.total,
-          totalPages: response.meta.totalPages
-        })
-      }
+      const response = await subLoansService.getTodayDueSubLoans()
+      setTodayDueSubLoans(response as any)
+
+      // Meta information is not available for this endpoint
+      setPagination({
+        page: 1,
+        limit: 50,
+        total: (response as any).length || 0,
+        totalPages: 1
+      })
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Error desconocido'
       setError(`Error al cargar préstamos que vencen hoy: ${errorMessage}`)
@@ -93,17 +92,16 @@ export function useSubLoans() {
       setLoading(true)
       setError(null)
 
-      const response = await subLoansService.getAllSubLoans(params)
-      setAllSubLoans(response.data)
-      
-      if (response.meta) {
-        setPagination({
-          page: response.meta.page,
-          limit: response.meta.limit,
-          total: response.meta.total,
-          totalPages: response.meta.totalPages
-        })
-      }
+      const response = await subLoansService.getAllSubLoans()
+      setAllSubLoans(response as any)
+
+      // Meta information is not available for this endpoint
+      setPagination({
+        page: 1,
+        limit: 50,
+        total: (response as any).length || 0,
+        totalPages: 1
+      })
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Error desconocido'
       setError(`Error al cargar todos los préstamos: ${errorMessage}`)

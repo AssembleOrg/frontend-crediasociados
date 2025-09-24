@@ -1,9 +1,8 @@
 'use client'
 
 import { useState, useCallback, useMemo } from 'react'
-import { useProgressiveAdminDashboard } from './useProgressiveAdminDashboard'
-import { useAdminReports } from './useAdminReports'
-import type { TimeFilter } from './useProgressiveAdminDashboard'
+import { useAdminDashboard } from './useAdminDashboard'
+import type { TimeFilter } from '@/stores/admin'
 
 interface DateRange {
   from: Date
@@ -11,28 +10,55 @@ interface DateRange {
 }
 
 export const useAdminReportsWithFilters = () => {
-  // Use existing hooks
-  const progressiveDashboard = useProgressiveAdminDashboard()
-  const adminReports = useAdminReports()
+  // Use only unified dashboard - no separate reports hook needed
+  const adminDashboard = useAdminDashboard()
+
+  // Transform detailed data into reports format
+  const reports = useMemo(() => {
+    if (!adminDashboard.detailedData.length) return null
+
+    const subadmins = adminDashboard.detailedData.map(subadmin => ({
+      userId: subadmin.id,
+      userName: subadmin.name,
+      userEmail: subadmin.email,
+      userRole: 'subadmin',
+      totalClients: subadmin.totalClients,
+      totalLoans: subadmin.totalLoans,
+      totalAmountLent: subadmin.totalAmount,
+      totalAmountPending: 0, // This would need to be calculated if needed
+      collectionRate: 0, // This would need to be calculated if needed
+      createdAt: new Date().toISOString() // Placeholder
+    }))
+
+    return {
+      totalUsers: subadmins.length,
+      totalClients: subadmins.reduce((sum, s) => sum + s.totalClients, 0),
+      totalLoans: subadmins.reduce((sum, s) => sum + s.totalLoans, 0),
+      totalAmountLent: subadmins.reduce((sum, s) => sum + s.totalAmountLent, 0),
+      totalAmountPending: 0,
+      averageCollectionRate: 0,
+      subadmins
+    }
+  }, [adminDashboard.detailedData])
 
   // Local filter state
   const [selectedSubadmin, setSelectedSubadmin] = useState<string | null>(null)
 
-  // Get subadmin options from the progressive dashboard
+  // Get subadmin options from the unified dashboard
   const subadminOptions = useMemo(() => {
-    const data = progressiveDashboard.detailedData.length > 0
-      ? progressiveDashboard.detailedData
-      : progressiveDashboard.basicData
+    const data = adminDashboard.detailedData.length > 0
+      ? adminDashboard.detailedData
+      : adminDashboard.basicData
 
     return data.map(subadmin => ({
       id: subadmin.id,
       name: subadmin.name
     }))
-  }, [progressiveDashboard.basicData, progressiveDashboard.detailedData])
+  }, [adminDashboard.basicData, adminDashboard.detailedData])
 
   // Enhanced export function that includes all detailed data
   const exportDetailedData = useCallback(() => {
-    const detailedData = progressiveDashboard.detailedData
+    const detailedData = adminDashboard.detailedData
 
     if (!detailedData.length) {
       alert('No hay datos detallados disponibles para exportar')
@@ -95,33 +121,31 @@ export const useAdminReportsWithFilters = () => {
     link.download = `admin-reportes-detallado-${new Date().toISOString().split('T')[0]}.csv`
     link.click()
     window.URL.revokeObjectURL(url)
-  }, [progressiveDashboard.detailedData, selectedSubadmin])
+  }, [adminDashboard.detailedData, selectedSubadmin])
 
   return {
-    // Progressive dashboard data (specific properties to avoid conflicts)
-    basicData: progressiveDashboard.basicData,
-    detailedData: progressiveDashboard.detailedData,
-    isBasicLoading: progressiveDashboard.isBasicLoading,
-    isDetailedLoading: progressiveDashboard.isDetailedLoading,
-    isInitialized: progressiveDashboard.isInitialized,
-    chartData: progressiveDashboard.chartData,
-    timeFilter: progressiveDashboard.timeFilter,
-    dateRange: progressiveDashboard.dateRange,
-    setTimeFilter: progressiveDashboard.setTimeFilter,
-    setCustomDateRange: progressiveDashboard.setCustomDateRange,
-    refreshData: progressiveDashboard.refreshData,
-    hasDetailedData: progressiveDashboard.hasDetailedData,
-    cleanup: progressiveDashboard.cleanup,
-    // Dashboard error renamed to avoid conflict
-    dashboardError: progressiveDashboard.error,
+    // Unified dashboard data
+    basicData: adminDashboard.basicData,
+    detailedData: adminDashboard.detailedData,
+    isBasicLoading: adminDashboard.isBasicLoading,
+    isDetailedLoading: adminDashboard.isDetailedLoading,
+    isInitialized: adminDashboard.isInitialized,
+    chartData: adminDashboard.chartData,
+    timeFilter: adminDashboard.timeFilter,
+    dateRange: adminDashboard.dateRange,
+    setTimeFilter: adminDashboard.setTimeFilter,
+    setCustomDateRange: adminDashboard.setCustomDateRange,
+    refreshData: adminDashboard.refreshData,
+    hasDetailedData: adminDashboard.hasDetailedData,
+    aggregatedTotals: adminDashboard.aggregatedTotals,
 
-    // Admin reports data
-    reports: adminReports.reports,
-    reportsLoading: adminReports.isLoading,
-    reportsError: adminReports.error,
-    initializeReports: adminReports.initializeReports,
-    refreshReports: adminReports.refreshReports,
-    clearReportsError: adminReports.clearError,
+    // Admin reports data (transformed from unified data)
+    reports,
+    reportsLoading: adminDashboard.isDetailedLoading,
+    reportsError: null, // Provider handles errors gracefully
+    initializeReports: () => {}, // No-op, provider auto-initializes
+    refreshReports: adminDashboard.refreshData,
+    clearReportsError: () => {}, // No-op, no error state
 
     // Filter state
     selectedSubadmin,
@@ -132,6 +156,6 @@ export const useAdminReportsWithFilters = () => {
     exportDetailedData,
 
     // Combined loading state
-    isAnyLoading: progressiveDashboard.isBasicLoading || progressiveDashboard.isDetailedLoading || adminReports.isLoading
+    isAnyLoading: adminDashboard.isBasicLoading || adminDashboard.isDetailedLoading
   }
 }

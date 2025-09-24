@@ -74,7 +74,7 @@ export default function BaseReportCard({
     >
       {/* Header */}
       <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', mb: 2 }}>
-        <Typography variant="subtitle2" sx={{ color: colors.text, fontWeight: 600 }}>
+        <Typography variant="subtitle2" sx={{ color: 'primary.main', fontWeight: 600 }}>
           {title}
         </Typography>
         {icon && (

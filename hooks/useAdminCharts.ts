@@ -102,8 +102,10 @@ interface DetailedSubadminData {
 }
 
 /**
- * Process clients evolution data with temporal filtering
- * Separated for clarity and testability
+ * Process clients evolution data with intelligent temporal grouping
+ * - Daily: periods ≤ 30 days
+ * - Weekly: periods > 30 days and ≤ 90 days
+ * - Monthly: periods > 90 days
  */
 function processClientsEvolution(
   detailedData: DetailedSubadminData[],
@@ -135,11 +137,29 @@ function processClientsEvolution(
     }]
   }
 
-  // Group clients by date
-  const clientsByDate = filteredClients.reduce((acc, client) => {
+  // Determine grouping strategy based on date range
+  const daysDiff = Math.ceil((dateRange.to.getTime() - dateRange.from.getTime()) / (1000 * 3600 * 24))
+
+  if (daysDiff <= 30) {
+    // DAILY: Group by individual days
+    return groupClientsByDays(filteredClients)
+  } else if (daysDiff <= 90) {
+    // WEEKLY: Group by weeks
+    return groupClientsByWeeks(filteredClients, dateRange)
+  } else {
+    // MONTHLY: Group by months
+    return groupClientsByMonths(filteredClients, dateRange)
+  }
+}
+
+/**
+ * Group clients by individual days
+ */
+function groupClientsByDays(clients: any[]): Array<{ date: string; clients: number }> {
+  const clientsByDate = clients.reduce((acc, client) => {
     const dateKey = client.createdAt
       ? new Date(client.createdAt).toISOString().split('T')[0]
-      : new Date().toISOString().split('T')[0] // Use today for clients without date
+      : new Date().toISOString().split('T')[0]
 
     acc[dateKey] = (acc[dateKey] || 0) + 1
     return acc
@@ -147,6 +167,53 @@ function processClientsEvolution(
 
   return Object.entries(clientsByDate)
     .map(([date, clients]) => ({ date, clients: Number(clients) }))
+    .sort((a, b) => a.date.localeCompare(b.date))
+}
+
+/**
+ * Group clients by weeks (Monday to Sunday)
+ */
+function groupClientsByWeeks(clients: any[], dateRange: { from: Date; to: Date }): Array<{ date: string; clients: number }> {
+  const clientsByWeek = clients.reduce((acc, client) => {
+    const clientDate = client.createdAt ? new Date(client.createdAt) : new Date()
+
+    // Get Monday of the week
+    const weekStart = new Date(clientDate)
+    weekStart.setDate(clientDate.getDate() - clientDate.getDay() + 1) // Monday = 1
+    const weekKey = weekStart.toISOString().split('T')[0]
+
+    acc[weekKey] = (acc[weekKey] || 0) + 1
+    return acc
+  }, {} as Record<string, number>)
+
+  return Object.entries(clientsByWeek)
+    .map(([date, clients]) => ({
+      date: `${date} (Semana)`, // Show it's a week grouping
+      clients: Number(clients)
+    }))
+    .sort((a, b) => a.date.localeCompare(b.date))
+}
+
+/**
+ * Group clients by months
+ */
+function groupClientsByMonths(clients: any[], dateRange: { from: Date; to: Date }): Array<{ date: string; clients: number }> {
+  const clientsByMonth = clients.reduce((acc, client) => {
+    const clientDate = client.createdAt ? new Date(client.createdAt) : new Date()
+
+    // Get first day of month
+    const monthStart = new Date(clientDate.getFullYear(), clientDate.getMonth(), 1)
+    const monthKey = monthStart.toISOString().split('T')[0]
+
+    acc[monthKey] = (acc[monthKey] || 0) + 1
+    return acc
+  }, {} as Record<string, number>)
+
+  return Object.entries(clientsByMonth)
+    .map(([date, clients]) => ({
+      date: `${date.substring(0, 7)} (Mes)`, // YYYY-MM format with label
+      clients: Number(clients)
+    }))
     .sort((a, b) => a.date.localeCompare(b.date))
 }
 

@@ -41,15 +41,15 @@ export default function AdminDashboard() {
       />
 
 
-      {/* Main Charts Row 1 */}
-      <Grid container spacing={3} sx={{ mb: 3 }}>
-        <Grid item xs={12} md={6}>
+      {/* Main Charts Row 1 - Larger charts for desktop */}
+      <Grid container spacing={4} sx={{ mb: 4 }}>
+        <Grid size={{ xs: 12, lg: 6 }}>
           <ManagersPerSubadminChart
             data={chartData.managersPerSubadmin}
             isLoading={isLoading}
           />
         </Grid>
-        <Grid item xs={12} md={6}>
+        <Grid size={{ xs: 12, lg: 6 }}>
           <AmountPerSubadminChart
             data={chartData.amountPerSubadmin}
             isLoading={isLoading}
@@ -57,9 +57,9 @@ export default function AdminDashboard() {
         </Grid>
       </Grid>
 
-      {/* Main Charts Row 2 */}
-      <Grid container spacing={3}>
-        <Grid item xs={12}>
+      {/* Main Charts Row 2 - Full width evolution chart */}
+      <Grid container spacing={4}>
+        <Grid size={12}>
           <ClientsEvolutionChart
             data={chartData.clientsEvolution}
             isLoading={isLoading}

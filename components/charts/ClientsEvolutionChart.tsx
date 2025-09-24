@@ -1,8 +1,8 @@
 'use client'
 
-import React from 'react'
+import React, { useMemo } from 'react'
 import { Paper, Typography, Box } from '@mui/material'
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 
 interface ClientsEvolutionData {
   date: string
@@ -14,31 +14,33 @@ interface ClientsEvolutionChartProps {
   isLoading?: boolean
 }
 
+interface WeeklyData {
+  week: string
+  clients: number
+  period: string
+}
+
 interface TooltipProps {
   active?: boolean
-  payload?: Array<{ value: number }>
+  payload?: Array<{ value: number, payload?: WeeklyData }>
   label?: string
 }
 
-const CustomTooltip = ({ active, payload, label }: TooltipProps) => {
+const CustomTooltip = ({ active, payload }: TooltipProps) => {
   if (active && payload && payload.length) {
-    const data = payload[0]
-    const formattedDate = new Date(label).toLocaleDateString('es-AR', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric'
-    })
+    const weekData = payload[0].payload
+    const clientCount = payload[0].value
 
     return (
-      <Paper elevation={3} sx={{ p: 2, minWidth: 180 }}>
+      <Paper elevation={3} sx={{ p: 2, minWidth: 200 }}>
         <Typography variant="subtitle2" fontWeight={600}>
-          {formattedDate}
+          {weekData?.week}
         </Typography>
         <Typography variant="body2" color="primary.main" fontWeight={600}>
-          {data.value} {data.value === 1 ? 'cliente' : 'clientes'}
+          {clientCount} {clientCount === 1 ? 'cliente nuevo' : 'clientes nuevos'}
         </Typography>
         <Typography variant="caption" color="text.secondary">
-          Creados en esta fecha
+          {weekData?.period}
         </Typography>
       </Paper>
     )
@@ -46,27 +48,63 @@ const CustomTooltip = ({ active, payload, label }: TooltipProps) => {
   return null
 }
 
-const formatXAxis = (value: string) => {
-  const date = new Date(value)
-  return date.toLocaleDateString('es-AR', {
-    day: '2-digit',
-    month: '2-digit'
-  })
-}
+// Function to group daily data into weekly data
+const groupDataByWeeks = (dailyData: ClientsEvolutionData[]): WeeklyData[] => {
+  if (!dailyData.length) return []
 
-const formatYAxis = (value: number) => {
-  return value.toString()
+  const weeklyMap = new Map<string, { clients: number, dates: Date[] }>()
+
+  dailyData.forEach(item => {
+    const date = new Date(item.date)
+    // Get the Monday of the week (ISO week)
+    const monday = new Date(date)
+    const day = monday.getDay()
+    const diff = monday.getDate() - day + (day === 0 ? -6 : 1)
+    monday.setDate(diff)
+
+    const weekKey = monday.toISOString().split('T')[0]
+
+    if (!weeklyMap.has(weekKey)) {
+      weeklyMap.set(weekKey, { clients: 0, dates: [] })
+    }
+
+    const week = weeklyMap.get(weekKey)!
+    week.clients += item.clients
+    week.dates.push(date)
+  })
+
+  return Array.from(weeklyMap.entries())
+    .map(([weekStart, data]) => {
+      const startDate = new Date(weekStart)
+      const endDate = new Date(Math.max(...data.dates.map(d => d.getTime())))
+
+      return {
+        week: `Sem. ${startDate.toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit' })}`,
+        clients: data.clients,
+        period: `${startDate.toLocaleDateString('es-AR', {
+          day: '2-digit',
+          month: '2-digit'
+        })} - ${endDate.toLocaleDateString('es-AR', {
+          day: '2-digit',
+          month: '2-digit'
+        })}`
+      }
+    })
+    .sort((a, b) => a.week.localeCompare(b.week))
 }
 
 export default function ClientsEvolutionChart({ data, isLoading = false }: ClientsEvolutionChartProps) {
-  const chartHeight = { xs: 480, sm: 520, md: 520 }
-  const containerHeight = { xs: 280, sm: 320, md: 320 }
+  const chartHeight = { xs: 480, sm: 520, md: 600, lg: 680 }
+  const containerHeight = { xs: 280, sm: 320, md: 400, lg: 480 }
+
+  // Group daily data into weekly data
+  const weeklyData = useMemo(() => groupDataByWeeks(data), [data])
 
   if (isLoading) {
     return (
       <Paper elevation={1} sx={{ p: 3, height: chartHeight }}>
         <Typography variant="h6" gutterBottom>
-          Evolución de Clientes por Fecha
+          Clientes Nuevos por Semana
         </Typography>
         <Box sx={{
           height: containerHeight,
@@ -75,17 +113,17 @@ export default function ClientsEvolutionChart({ data, isLoading = false }: Clien
           justifyContent: 'center',
           color: 'text.secondary'
         }}>
-          Cargando evolución...
+          Cargando datos semanales...
         </Box>
       </Paper>
     )
   }
 
-  if (!data.length) {
+  if (!weeklyData.length) {
     return (
       <Paper elevation={1} sx={{ p: 3, height: chartHeight }}>
         <Typography variant="h6" gutterBottom>
-          Evolución de Clientes por Fecha
+          Clientes Nuevos por Semana
         </Typography>
         <Box sx={{
           height: containerHeight,
@@ -100,18 +138,19 @@ export default function ClientsEvolutionChart({ data, isLoading = false }: Clien
     )
   }
 
-  const totalClients = data.reduce((sum, item) => sum + item.clients, 0)
-  const maxDay = Math.max(...data.map(item => item.clients))
+  const totalClients = weeklyData.reduce((sum, item) => sum + item.clients, 0)
+  const maxWeek = Math.max(...weeklyData.map(item => item.clients))
+  const avgPerWeek = weeklyData.length > 0 ? Math.round(totalClients / weeklyData.length) : 0
 
   return (
     <Paper elevation={1} sx={{ p: 3, height: chartHeight }}>
       <Typography variant="h6" gutterBottom>
-        Evolución de Clientes por Fecha
+        Clientes Nuevos por Semana
       </Typography>
 
       <ResponsiveContainer width="100%" height="60%">
-        <LineChart
-          data={data}
+        <BarChart
+          data={weeklyData}
           margin={{
             top: 5,
             right: 30,
@@ -121,24 +160,23 @@ export default function ClientsEvolutionChart({ data, isLoading = false }: Clien
         >
           <CartesianGrid strokeDasharray="3 3" />
           <XAxis
-            dataKey="date"
-            tickFormatter={formatXAxis}
+            dataKey="week"
             fontSize={11}
+            interval={0}
+            angle={-45}
+            textAnchor="end"
+            height={60}
           />
           <YAxis
-            tickFormatter={formatYAxis}
             fontSize={11}
           />
           <Tooltip content={<CustomTooltip />} />
-          <Line
-            type="monotone"
+          <Bar
             dataKey="clients"
-            stroke="#2e7d32"
-            strokeWidth={2}
-            dot={{ r: 4, fill: '#2e7d32' }}
-            activeDot={{ r: 6, fill: '#1b5e20' }}
+            fill="#2e7d32"
+            radius={[4, 4, 0, 0]}
           />
-        </LineChart>
+        </BarChart>
       </ResponsiveContainer>
 
       {/* Summary - Responsive Grid */}
@@ -160,18 +198,18 @@ export default function ClientsEvolutionChart({ data, isLoading = false }: Clien
         </Box>
         <Box>
           <Typography variant="body2" color="text.secondary" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>
-            Día Pico
+            Mejor Semana
           </Typography>
           <Typography variant="h6" color="success.main" sx={{ fontSize: { xs: '1rem', sm: '1.25rem' } }}>
-            {maxDay}
+            {maxWeek}
           </Typography>
         </Box>
         <Box>
           <Typography variant="body2" color="text.secondary" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>
-            Promedio/Día
+            Promedio/Semana
           </Typography>
           <Typography variant="h6" color="info.main" sx={{ fontSize: { xs: '1rem', sm: '1.25rem' } }}>
-            {data.length > 0 ? Math.round(totalClients / data.length) : 0}
+            {avgPerWeek}
           </Typography>
         </Box>
       </Box>

@@ -3,31 +3,18 @@
 import React from 'react'
 import { Paper, Typography, Box } from '@mui/material'
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts'
+import type { ManagersChartData, ChartTooltipProps, BaseChartProps } from '@/types/charts'
 
-interface ManagersPerSubadminData {
-  name: string
-  value: number
-  subadminId: string
-}
-
-interface ManagersPerSubadminChartProps {
-  data: ManagersPerSubadminData[]
-  isLoading?: boolean
-}
+type ManagersPerSubadminChartProps = BaseChartProps<ManagersChartData>
 
 const COLORS = [
   '#2e7d32', '#1976d2', '#d32f2f', '#ff9800', '#9c27b0',
   '#00796b', '#5d4037', '#455a64', '#e91e63', '#3f51b5'
 ]
 
-interface TooltipProps {
-  active?: boolean
-  payload?: Array<{ payload: ManagersPerSubadminData }>
-}
-
-const CustomTooltip = ({ active, payload }: TooltipProps) => {
+const CustomTooltip = ({ active, payload }: ChartTooltipProps) => {
   if (active && payload && payload.length) {
-    const data = payload[0].payload
+    const data = payload[0].payload as ManagersChartData
     return (
       <Paper elevation={3} sx={{ p: 2, minWidth: 200 }}>
         <Typography variant="subtitle2" fontWeight={600}>
@@ -45,21 +32,23 @@ const CustomTooltip = ({ active, payload }: TooltipProps) => {
   return null
 }
 
-interface LabelProps {
+// Custom label component for showing numbers in pie slices
+interface CustomLabelProps {
   cx: number
   cy: number
   midAngle: number
   innerRadius: number
   outerRadius: number
-  percent: number
   value: number
+  percent: number
 }
 
-const CustomLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent, value }: LabelProps) => {
-  if (percent < 0.05) return null // Don't show labels for slices smaller than 5%
+const CustomLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, value, percent }: CustomLabelProps) => {
+  // Only show labels for slices larger than 5% to avoid clutter
+  if (percent < 0.05) return null
 
   const RADIAN = Math.PI / 180
-  const radius = innerRadius + (outerRadius - innerRadius) * 0.5
+  const radius = innerRadius + (outerRadius - innerRadius) * 0.7
   const x = cx + radius * Math.cos(-midAngle * RADIAN)
   const y = cy + radius * Math.sin(-midAngle * RADIAN)
 
@@ -70,17 +59,22 @@ const CustomLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent, valu
       fill="white"
       textAnchor={x > cx ? 'start' : 'end'}
       dominantBaseline="central"
-      fontSize={12}
-      fontWeight={600}
+      fontSize={13}
+      fontWeight={700}
+      style={{
+        textShadow: '1px 1px 2px rgba(0,0,0,0.8)',
+        filter: 'drop-shadow(1px 1px 1px rgba(0,0,0,0.8))'
+      }}
     >
       {value}
     </text>
   )
 }
 
+
 export default function ManagersPerSubadminChart({ data, isLoading = false }: ManagersPerSubadminChartProps) {
-  const chartHeight = { xs: 380, sm: 420, md: 420 }
-  const containerHeight = { xs: 280, sm: 320, md: 320 }
+  const chartHeight = { xs: 380, sm: 420, md: 520, lg: 580 }
+  const containerHeight = { xs: 280, sm: 320, md: 420, lg: 480 }
 
   if (isLoading) {
     return (
@@ -135,7 +129,8 @@ export default function ManagersPerSubadminChart({ data, isLoading = false }: Ma
             cx="50%"
             cy="50%"
             labelLine={false}
-            label={CustomLabel}
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            label={CustomLabel as any}
             outerRadius={90}
             fill="#8884d8"
             dataKey="value"
@@ -150,9 +145,6 @@ export default function ManagersPerSubadminChart({ data, isLoading = false }: Ma
           <Tooltip content={<CustomTooltip />} />
           <Legend
             wrapperStyle={{ fontSize: '12px' }}
-            formatter={(value, entry: { payload: ManagersPerSubadminData }) =>
-              `${value} (${entry.payload.value} ${entry.payload.value === 1 ? 'manager' : 'managers'})`
-            }
           />
         </PieChart>
       </ResponsiveContainer>

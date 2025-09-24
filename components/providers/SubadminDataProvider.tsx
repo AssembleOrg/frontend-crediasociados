@@ -133,7 +133,8 @@ export default function SubadminDataProvider({ children }: SubadminDataProviderP
   })
 
   return (
-    <SubadminHierarchicalProvider config={providerConfig}>
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    <SubadminHierarchicalProvider config={providerConfig as any}>
       {children}
     </SubadminHierarchicalProvider>
   )

@@ -4,72 +4,41 @@ import { useCallback } from 'react'
 import { useAdminStore } from '@/stores/admin'
 import { useAdminCharts } from '@/hooks/useAdminCharts'
 
-/**
- * useAdminDashboard - Pure Consumer Hook (Layer 4)
- *
- * Follows ARCHITECTURE_PATTERNS.md:
- * - NO auto-initialization (Provider handles that)
- * - NO useEffect with API calls
- * - Only consumes data from store
- * - Manual methods available for specific operations
- * - useCallback with empty dependencies (store methods are stable)
- */
 export const useAdminDashboard = () => {
   const adminStore = useAdminStore()
-  const chartData = useAdminCharts() // ✅ Layer 4: Complex processing in hook
+  const chartData = useAdminCharts()
 
-  // Manual refresh method (for specific use cases)
   const refreshData = useCallback(() => {
-    // ✅ KISS: Direct store invalidation - provider will detect and refetch
     adminStore.invalidateCache()
-  }, [adminStore]) // ✅ Store reference is stable
+  }, [adminStore])
 
-  // Loading states - derived from store data
+  // Loading states
   const isBasicLoading = !adminStore.isBasicDataFresh() && adminStore.basicData.length === 0
   const isDetailedLoading = adminStore.basicData.length > 0 && !adminStore.hasDetailedData() && !adminStore.isDetailedDataFresh()
   const isInitialized = adminStore.basicData.length > 0 || adminStore.isBasicDataFresh()
 
   return {
-    // Chart data (processed by Layer 4 hook)
     chartData,
-
-    // Aggregated totals (unfiltered - true totals)
     aggregatedTotals: adminStore.getAggregatedTotals(),
-
-    // Raw data access
     basicData: adminStore.basicData,
     detailedData: adminStore.detailedData,
-
-    // Loading states
     isBasicLoading,
     isDetailedLoading,
     isInitialized,
     hasDetailedData: adminStore.hasDetailedData(),
-
-    // Filter state
     timeFilter: adminStore.timeFilter,
     dateRange: adminStore.dateRange,
-
-    // Filter methods
     setTimeFilter: adminStore.setTimeFilter,
     setCustomDateRange: adminStore.setDateRange,
-
-    // Manual refresh (rarely needed since provider auto-manages)
     refreshData,
-
-    // No error state - provider handles errors gracefully with fallbacks
     error: null
   }
 }
 
-/**
- * Enhanced hook for components that need filter capabilities
- */
 export const useAdminDashboardWithFilters = () => {
   const dashboardData = useAdminDashboard()
   const adminStore = useAdminStore()
 
-  // Export detailed data as CSV
   const exportDetailedData = useCallback(() => {
     const detailedData = adminStore.detailedData
 
@@ -77,8 +46,6 @@ export const useAdminDashboardWithFilters = () => {
       alert('No hay datos detallados disponibles para exportar')
       return
     }
-
-    // Filter data if a subadmin is selected
     const selectedSubadmin = adminStore.selectedSubadmin
     const dataToExport = selectedSubadmin
       ? detailedData.filter(subadmin => subadmin.id === selectedSubadmin)
@@ -153,5 +120,3 @@ export const useAdminDashboardWithFilters = () => {
   }
 }
 
-// Re-export for backward compatibility
-export const useProgressiveAdminDashboard = useAdminDashboard

@@ -329,7 +329,7 @@ export const useOptimizedAdminDashboard = () => {
         manager.clients.forEach(client => {
           const activeLoans = client.activeLoans || 0
           const totalAmount = client.totalAmount || 0
-          csvRows.push(`${subadmin.name},${manager.name},${client.fullName},${client.email || 'N/A'},${activeLoans},${totalAmount}`)
+          csvRows.push(`${subadmin.name},${manager.name},${client.fullName},${(client as any).email || 'N/A'},${activeLoans},${totalAmount}`)
         })
       })
     })

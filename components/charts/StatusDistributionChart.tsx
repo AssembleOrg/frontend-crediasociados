@@ -3,17 +3,9 @@
 import React from 'react'
 import { Paper, Typography, Box } from '@mui/material'
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts'
+import type { StatusChartData, ChartTooltipProps, BaseChartProps } from '@/types/charts'
 
-interface StatusDistributionData {
-  name: string
-  value: number
-  amount: number
-}
-
-interface StatusDistributionChartProps {
-  data: StatusDistributionData[]
-  isLoading?: boolean
-}
+type StatusDistributionChartProps = BaseChartProps<StatusChartData>
 
 const STATUS_COLORS = {
   ACTIVE: '#2e7d32',      // Green
@@ -31,9 +23,9 @@ const STATUS_LABELS = {
   DRAFT: 'Borradores'
 }
 
-const CustomTooltip = ({ active, payload }: any) => {
+const CustomTooltip = ({ active, payload }: ChartTooltipProps) => {
   if (active && payload && payload.length) {
-    const data = payload[0].payload
+    const data = payload[0].payload as StatusChartData
     return (
       <Paper elevation={3} sx={{ p: 2, minWidth: 200 }}>
         <Typography variant="subtitle2" fontWeight={600}>
@@ -51,28 +43,6 @@ const CustomTooltip = ({ active, payload }: any) => {
   return null
 }
 
-const CustomLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent }: any) => {
-  if (percent < 0.05) return null // Don't show labels for slices smaller than 5%
-
-  const RADIAN = Math.PI / 180
-  const radius = innerRadius + (outerRadius - innerRadius) * 0.5
-  const x = cx + radius * Math.cos(-midAngle * RADIAN)
-  const y = cy + radius * Math.sin(-midAngle * RADIAN)
-
-  return (
-    <text
-      x={x}
-      y={y}
-      fill="white"
-      textAnchor={x > cx ? 'start' : 'end'}
-      dominantBaseline="central"
-      fontSize={12}
-      fontWeight={600}
-    >
-      {`${(percent * 100).toFixed(0)}%`}
-    </text>
-  )
-}
 
 export default function StatusDistributionChart({ data, isLoading = false }: StatusDistributionChartProps) {
   if (isLoading) {
@@ -126,7 +96,7 @@ export default function StatusDistributionChart({ data, isLoading = false }: Sta
             cx="50%"
             cy="50%"
             labelLine={false}
-            label={CustomLabel}
+            label={false}
             outerRadius={80}
             fill="#8884d8"
             dataKey="value"

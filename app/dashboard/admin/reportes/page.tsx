@@ -2,7 +2,7 @@
 
 import React from 'react'
 import { Box, Typography } from '@mui/material'
-import { useAdminReportsWithFilters } from '@/hooks/useAdminReportsConsumer'
+import { useAdminReportsWithFilters } from '@/hooks/useAdminReportsWithFilters'
 import BaseReportLayout from '@/components/reports/BaseReportLayout'
 import BaseReportCard from '@/components/reports/BaseReportCard'
 import AdminFiltersAndExport from '@/components/charts/AdminFiltersAndExport'
@@ -13,7 +13,6 @@ export default function AdminReportsPage() {
     reports,
     reportsLoading,
     reportsError,
-    refreshReports,
     clearReportsError,
 
     // Progressive dashboard data for filtering
@@ -37,12 +36,6 @@ export default function AdminReportsPage() {
 
   // Provider auto-initializes data - no useEffect needed
 
-  const getInfoMessage = () => {
-    if (reports && reports.totalLoans > 0) {
-      return "✅ Datos consolidados: Se muestran las métricas de tus subadministradores y prestamistas."
-    }
-    return "📊 Vista de gestión: Panel de control administrativo con métricas consolidadas."
-  }
 
 
   // Calculate data counts for filters component
@@ -94,7 +87,6 @@ export default function AdminReportsPage() {
         selectedSubadmin={selectedSubadmin}
         subadminOptions={subadminOptions}
         onSubadminChange={setSelectedSubadmin}
-        onRefresh={refreshReports}
         onExport={exportDetailedData}
         isLoading={isAnyLoading}
         dataCount={isInitialized ? dataCount : undefined}
@@ -109,9 +101,7 @@ export default function AdminReportsPage() {
         isLoading={reportsLoading}
         isInitialized={!!reports}
         error={reportsError}
-        onRefresh={refreshReports}
         onClearError={clearReportsError}
-        infoMessage={getInfoMessage()}
         successCondition={reports ? reports.totalLoans > 0 : false}
         additionalCards={additionalCards}
       />

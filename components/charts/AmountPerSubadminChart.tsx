@@ -57,8 +57,8 @@ const formatXAxis = (value: string) => {
 }
 
 export default function AmountPerSubadminChart({ data, isLoading = false }: AmountPerSubadminChartProps) {
-  const chartHeight = { xs: 380, sm: 420, md: 420 }
-  const containerHeight = { xs: 280, sm: 320, md: 320 }
+  const chartHeight = { xs: 380, sm: 420, md: 520, lg: 580 }
+  const containerHeight = { xs: 280, sm: 320, md: 420, lg: 480 }
 
   if (isLoading) {
     return (

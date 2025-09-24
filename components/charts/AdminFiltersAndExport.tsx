@@ -15,7 +15,7 @@ import {
   Divider,
   Chip
 } from '@mui/material'
-import { Refresh, FileDownload, FilterList, Clear } from '@mui/icons-material'
+import { FileDownload, FilterList, Clear } from '@mui/icons-material'
 import type { TimeFilter } from '@/hooks/useOptimizedAdminDashboard'
 
 interface AdminFiltersAndExportProps {
@@ -31,7 +31,6 @@ interface AdminFiltersAndExportProps {
   onSubadminChange: (subadminId: string | null) => void
 
   // Actions
-  onRefresh: () => void
   onExport: () => void
 
   // State
@@ -58,7 +57,6 @@ export default function AdminFiltersAndExport({
   selectedSubadmin,
   subadminOptions,
   onSubadminChange,
-  onRefresh,
   onExport,
   isLoading = false,
   dataCount
@@ -255,28 +253,18 @@ export default function AdminFiltersAndExport({
         {/* Actions */}
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, ml: { lg: 'auto' } }}>
           <Typography variant="subtitle2" color="text.secondary">
-            Acciones
+            Exportación
           </Typography>
-          <Box sx={{ display: 'flex', gap: 1 }}>
-            <Button
-              variant="outlined"
-              size="small"
-              onClick={onRefresh}
-              disabled={isLoading}
-              startIcon={<Refresh />}
-            >
-              Actualizar
-            </Button>
-            <Button
-              variant="contained"
-              size="small"
-              onClick={onExport}
-              disabled={isLoading}
-              startIcon={<FileDownload />}
-            >
-              Exportar Excel
-            </Button>
-          </Box>
+          <Button
+            variant="contained"
+            size="small"
+            onClick={onExport}
+            disabled={isLoading}
+            startIcon={<FileDownload />}
+            sx={{ minWidth: 150 }}
+          >
+            Exportar Excel
+          </Button>
           <Typography variant="caption" color="text.secondary" sx={{ textAlign: 'center' }}>
             {selectedSubadmin
               ? 'Excel: Solo datos del sub-admin seleccionado'

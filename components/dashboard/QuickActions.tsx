@@ -53,6 +53,13 @@ export function QuickActions({
               fontSize: '0.75rem',
               '& .MuiButton-startIcon': {
                 mr: 0.5
+              },
+              // Fix hover state on touch devices
+              '@media (hover: none) and (pointer: coarse)': {
+                '&:hover': {
+                  backgroundColor: 'transparent',
+                  boxShadow: 'none'
+                }
               }
             }}
           >
