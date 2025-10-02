@@ -59,11 +59,16 @@ export default function SubadminDataProvider({ children }: SubadminDataProviderP
 
   // Initialize detailed data (full manager data with clients/loans)
   const initializeDetailedData = async (subadminId: string): Promise<void> => {
+    console.time('🏢 Subadmin Init - Total Time')
     console.log('🚀 [SUBADMIN PROVIDER] Loading detailed manager data...')
 
     try {
+      console.time('🏢 Step 1: Get Managers')
       const managers = await reportsService.getCreatedUsers(subadminId)
+      console.timeEnd('🏢 Step 1: Get Managers')
+      console.log(`🏢 Found ${managers.length} managers`)
 
+      console.time('🏢 Step 2: Get Charts for All Managers (N*2)')
       // For each manager, get their detailed data in parallel
       const detailedManagerData = await Promise.all(
         managers.map(async (manager) => {
@@ -107,10 +112,12 @@ export default function SubadminDataProvider({ children }: SubadminDataProviderP
           }
         })
       )
+      console.timeEnd('🏢 Step 2: Get Charts for All Managers (N*2)')
 
       // Update store with detailed data
       subadminStore.setDetailedManagers(detailedManagerData)
 
+      console.timeEnd('🏢 Subadmin Init - Total Time')
       console.log('✅ [SUBADMIN PROVIDER] Detailed manager data loaded')
 
     } catch (error) {

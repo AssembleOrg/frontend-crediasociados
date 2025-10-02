@@ -22,6 +22,7 @@ export interface UserReportData {
   userName: string
   userEmail: string
   userRole: string
+  totalManagers?: number // For admin view: number of managers under this subadmin
   totalClients: number
   totalLoans: number
   totalAmountLent: number
@@ -48,7 +49,7 @@ class ReportsService {
    */
   async getCreatedUsers(userId: string): Promise<UserResponseDto[]> {
     const response = await api.get(`/users/${userId}/created-users`, {
-      params: { limit: 20 } // Maximum limit allowed by backend
+      params: { limit: 100 } // Increased from 20 to support more managers/subadmins
     })
 
     return response.data.data?.data || response.data.data || []
@@ -182,6 +183,7 @@ class ReportsService {
           userName: subadmin.fullName,
           userEmail: subadmin.email,
           userRole: subadmin.role,
+          totalManagers: 0,
           totalClients: 0,
           totalLoans: 0,
           totalAmountLent: 0,
@@ -225,6 +227,9 @@ class ReportsService {
       // Step 3: Aggregate all managers' metrics for this subadmin
       const aggregatedMetrics = this.aggregateManagersMetrics(subadmin, managersMetrics)
 
+      // Add managers count for admin reports
+      aggregatedMetrics.totalManagers = managersMetrics.length
+
       console.log('🔍 [DEBUG] Reports - Subadmin aggregated totals:', {
         subadminId: subadmin.id,
         totalManagers: managersMetrics.length,
@@ -244,6 +249,7 @@ class ReportsService {
         userName: subadmin.fullName,
         userEmail: subadmin.email,
         userRole: subadmin.role,
+        totalManagers: 0,
         totalClients: 0,
         totalLoans: 0,
         totalAmountLent: 0,

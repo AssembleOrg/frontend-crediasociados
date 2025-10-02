@@ -41,14 +41,11 @@ export const useAuth = () => {
       }
       
       const user = apiUserToUser(response.user)
-      
+
       authStore.setUser(user)
       authStore.setTokens(response.token, response.refreshToken)
       authStore.setAuthentication(true)
-      
-      // Small delay to ensure persistence has completed
-      await new Promise(resolve => setTimeout(resolve, 100));
-      
+
       return true
       
     } catch (err) {
@@ -107,15 +104,10 @@ export const useAuth = () => {
     }
   }, [authStore, router])
 
-  const navigateToDashboard = useCallback(async () => {
-    // Small delay to ensure smooth navigation
-    await new Promise(resolve => setTimeout(resolve, 100));
-    
+  const navigateToDashboard = useCallback(() => {
     const dashboardRoute = authStore.getDashboardRoute()
-    
-    // Use window.location.href for a hard navigation to ensure middleware runs
-    window.location.href = dashboardRoute;
-  }, [authStore])
+    router.push(dashboardRoute)
+  }, [authStore, router])
 
   const clearError = useCallback(() => {
     setError(null)

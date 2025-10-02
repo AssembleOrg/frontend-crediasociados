@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useMemo } from 'react'
+import React, { useMemo, memo } from 'react'
 import { Paper, Typography, Box } from '@mui/material'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 
@@ -55,8 +55,11 @@ const groupDataByWeeks = (dailyData: ClientsEvolutionData[]): WeeklyData[] => {
   const weeklyMap = new Map<string, { clients: number, dates: Date[] }>()
 
   dailyData.forEach(item => {
+    if (!item.date) return
+
     const date = new Date(item.date)
-    // Get the Monday of the week (ISO week)
+    if (isNaN(date.getTime())) return
+
     const monday = new Date(date)
     const day = monday.getDay()
     const diff = monday.getDate() - day + (day === 0 ? -6 : 1)
@@ -93,9 +96,9 @@ const groupDataByWeeks = (dailyData: ClientsEvolutionData[]): WeeklyData[] => {
     .sort((a, b) => a.week.localeCompare(b.week))
 }
 
-export default function ClientsEvolutionChart({ data, isLoading = false }: ClientsEvolutionChartProps) {
-  const chartHeight = { xs: 480, sm: 520, md: 600, lg: 680 }
-  const containerHeight = { xs: 280, sm: 320, md: 400, lg: 480 }
+const ClientsEvolutionChart = memo(function ClientsEvolutionChart({ data, isLoading = false }: ClientsEvolutionChartProps) {
+  const chartHeight = { xs: 500, sm: 520, md: 600, lg: 680 }
+  const containerHeight = { xs: 340, sm: 320, md: 400, lg: 480 }
 
   // Group daily data into weekly data
   const weeklyData = useMemo(() => groupDataByWeeks(data), [data])
@@ -157,6 +160,7 @@ export default function ClientsEvolutionChart({ data, isLoading = false }: Clien
             left: 20,
             bottom: 20,
           }}
+          barCategoryGap="20%"
         >
           <CartesianGrid strokeDasharray="3 3" />
           <XAxis
@@ -169,12 +173,15 @@ export default function ClientsEvolutionChart({ data, isLoading = false }: Clien
           />
           <YAxis
             fontSize={11}
+            allowDecimals={false}
           />
           <Tooltip content={<CustomTooltip />} />
           <Bar
             dataKey="clients"
             fill="#2e7d32"
             radius={[4, 4, 0, 0]}
+            maxBarSize={60}
+            isAnimationActive={false}
           />
         </BarChart>
       </ResponsiveContainer>
@@ -213,6 +220,14 @@ export default function ClientsEvolutionChart({ data, isLoading = false }: Clien
           </Typography>
         </Box>
       </Box>
+
+      {weeklyData.length === 1 && (
+        <Typography variant="caption" color="text.secondary" sx={{ textAlign: 'center', display: 'block', mt: 2 }}>
+          Todos los clientes fueron creados en la misma semana
+        </Typography>
+      )}
     </Paper>
   )
-}
+})
+
+export default ClientsEvolutionChart

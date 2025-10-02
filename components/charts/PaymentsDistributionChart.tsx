@@ -3,28 +3,34 @@
 import React, { memo } from 'react'
 import { Paper, Typography, Box } from '@mui/material'
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts'
-import type { ManagersChartData, ChartTooltipProps, BaseChartProps } from '@/types/charts'
 
-type ManagersPerSubadminChartProps = BaseChartProps<ManagersChartData>
+interface PaymentsDistributionData {
+  name: string
+  value: number
+  color: string
+  [key: string]: string | number
+}
 
-const COLORS = [
-  '#2e7d32', '#1976d2', '#d32f2f', '#ff9800', '#9c27b0',
-  '#00796b', '#5d4037', '#455a64', '#e91e63', '#3f51b5'
-]
+interface PaymentsDistributionChartProps {
+  data: PaymentsDistributionData[]
+  isLoading?: boolean
+}
 
-const CustomTooltip = ({ active, payload }: ChartTooltipProps) => {
+interface TooltipProps {
+  active?: boolean
+  payload?: Array<{ value: number; payload: PaymentsDistributionData }>
+}
+
+const CustomTooltip = ({ active, payload }: TooltipProps) => {
   if (active && payload && payload.length) {
-    const data = payload[0].payload as ManagersChartData
+    const data = payload[0].payload
     return (
       <Paper elevation={3} sx={{ p: 2, minWidth: 200 }}>
         <Typography variant="subtitle2" fontWeight={600}>
           {data.name}
         </Typography>
         <Typography variant="body2" color="text.secondary">
-          Managers: {data.value}
-        </Typography>
-        <Typography variant="caption" color="text.secondary">
-          {data.value === 1 ? 'manager' : 'managers'} bajo gestión
+          Cuotas: {data.value}
         </Typography>
       </Paper>
     )
@@ -32,7 +38,6 @@ const CustomTooltip = ({ active, payload }: ChartTooltipProps) => {
   return null
 }
 
-// Custom label component for showing numbers in pie slices
 interface CustomLabelProps {
   cx: number
   cy: number
@@ -44,7 +49,6 @@ interface CustomLabelProps {
 }
 
 const CustomLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, value, percent }: CustomLabelProps) => {
-  // Only show labels for slices larger than 5% to avoid clutter
   if (percent < 0.05) return null
 
   const RADIAN = Math.PI / 180
@@ -71,8 +75,7 @@ const CustomLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, value, percen
   )
 }
 
-
-const ManagersPerSubadminChart = memo(function ManagersPerSubadminChart({ data, isLoading = false }: ManagersPerSubadminChartProps) {
+const PaymentsDistributionChart = memo(function PaymentsDistributionChart({ data, isLoading = false }: PaymentsDistributionChartProps) {
   const chartHeight = { xs: 380, sm: 420, md: 520, lg: 580 }
   const containerHeight = { xs: 280, sm: 320, md: 420, lg: 480 }
 
@@ -80,7 +83,7 @@ const ManagersPerSubadminChart = memo(function ManagersPerSubadminChart({ data, 
     return (
       <Paper elevation={1} sx={{ p: 3, height: chartHeight }}>
         <Typography variant="h6" gutterBottom>
-          Managers por Sub-Administrador
+          Distribución de Pagos
         </Typography>
         <Box sx={{
           height: containerHeight,
@@ -99,7 +102,7 @@ const ManagersPerSubadminChart = memo(function ManagersPerSubadminChart({ data, 
     return (
       <Paper elevation={1} sx={{ p: 3, height: chartHeight }}>
         <Typography variant="h6" gutterBottom>
-          Managers por Sub-Administrador
+          Distribución de Pagos
         </Typography>
         <Box sx={{
           height: containerHeight,
@@ -108,18 +111,18 @@ const ManagersPerSubadminChart = memo(function ManagersPerSubadminChart({ data, 
           justifyContent: 'center',
           color: 'text.secondary'
         }}>
-          No hay datos disponibles
+          No hay pagos registrados
         </Box>
       </Paper>
     )
   }
 
-  const totalManagers = data.reduce((sum, item) => sum + item.value, 0)
+  const totalPayments = data.reduce((sum, item) => sum + item.value, 0)
 
   return (
     <Paper elevation={1} sx={{ p: 3, height: chartHeight }}>
       <Typography variant="h6" gutterBottom>
-        Managers por Sub-Administrador
+        Distribución de Pagos por Estado
       </Typography>
 
       <ResponsiveContainer width="100%" height="75%">
@@ -139,7 +142,7 @@ const ManagersPerSubadminChart = memo(function ManagersPerSubadminChart({ data, 
             {data.map((entry, index) => (
               <Cell
                 key={`cell-${index}`}
-                fill={COLORS[index % COLORS.length]}
+                fill={entry.color}
               />
             ))}
           </Pie>
@@ -150,14 +153,13 @@ const ManagersPerSubadminChart = memo(function ManagersPerSubadminChart({ data, 
         </PieChart>
       </ResponsiveContainer>
 
-      {/* Summary with better spacing */}
       <Box sx={{ mt: 3, textAlign: 'center' }}>
         <Typography variant="body2" color="text.secondary">
-          Total: {totalManagers} {totalManagers === 1 ? 'manager' : 'managers'} en {data.length} {data.length === 1 ? 'sub-admin' : 'sub-admins'}
+          Total: {totalPayments} {totalPayments === 1 ? 'cuota' : 'cuotas'}
         </Typography>
       </Box>
     </Paper>
   )
 })
 
-export default ManagersPerSubadminChart
+export default PaymentsDistributionChart

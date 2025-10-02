@@ -1,20 +1,32 @@
 'use client'
 
-import React, { memo } from 'react'
+import React from 'react'
 import { Paper, Typography, Box } from '@mui/material'
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts'
-import type { ManagersChartData, ChartTooltipProps, BaseChartProps } from '@/types/charts'
+import type { ManagerAnalytics } from '@/services/analytics.service'
 
-type ManagersPerSubadminChartProps = BaseChartProps<ManagersChartData>
+interface CollectionRateData {
+  name: string
+  value: number
+  color: string
+  rate: number
+  [key: string]: string | number // Index signature for recharts compatibility
+}
 
-const COLORS = [
-  '#2e7d32', '#1976d2', '#d32f2f', '#ff9800', '#9c27b0',
-  '#00796b', '#5d4037', '#455a64', '#e91e63', '#3f51b5'
-]
+interface ManagerCollectionChartProps {
+  managers: ManagerAnalytics[]
+  isLoading?: boolean
+}
 
-const CustomTooltip = ({ active, payload }: ChartTooltipProps) => {
+interface TooltipProps {
+  active?: boolean
+  payload?: Array<{ value: number; payload: CollectionRateData }>
+  label?: string
+}
+
+const CustomTooltip = ({ active, payload }: TooltipProps) => {
   if (active && payload && payload.length) {
-    const data = payload[0].payload as ManagersChartData
+    const data = payload[0].payload
     return (
       <Paper elevation={3} sx={{ p: 2, minWidth: 200 }}>
         <Typography variant="subtitle2" fontWeight={600}>
@@ -24,7 +36,7 @@ const CustomTooltip = ({ active, payload }: ChartTooltipProps) => {
           Managers: {data.value}
         </Typography>
         <Typography variant="caption" color="text.secondary">
-          {data.value === 1 ? 'manager' : 'managers'} bajo gestión
+          Tasa de cobranza: {data.rate.toFixed(1)}%
         </Typography>
       </Paper>
     )
@@ -71,16 +83,43 @@ const CustomLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, value, percen
   )
 }
 
-
-const ManagersPerSubadminChart = memo(function ManagersPerSubadminChart({ data, isLoading = false }: ManagersPerSubadminChartProps) {
+export default function ManagerCollectionChart({ managers, isLoading = false }: ManagerCollectionChartProps) {
   const chartHeight = { xs: 380, sm: 420, md: 520, lg: 580 }
   const containerHeight = { xs: 280, sm: 320, md: 420, lg: 480 }
+
+  // Categorize managers by collection rate
+  const getCollectionCategory = (rate: number) => {
+    if (rate >= 80) return { name: 'Excelente (≥80%)', color: '#2e7d32', minRate: 80 }
+    if (rate >= 60) return { name: 'Buena (60-79%)', color: '#1976d2', minRate: 60 }
+    if (rate >= 40) return { name: 'Regular (40-59%)', color: '#ff9800', minRate: 40 }
+    return { name: 'Baja (<40%)', color: '#d32f2f', minRate: 0 }
+  }
+
+  // Group managers by collection rate categories
+  const categories = managers.reduce((acc, manager) => {
+    const category = getCollectionCategory(manager.collectionRate)
+    const existing = acc.find(item => item.name === category.name)
+
+    if (existing) {
+      existing.value += 1
+      existing.rate = (existing.rate + manager.collectionRate) / 2 // Average rate
+    } else {
+      acc.push({
+        name: category.name,
+        value: 1,
+        color: category.color,
+        rate: manager.collectionRate
+      })
+    }
+
+    return acc
+  }, [] as CollectionRateData[])
 
   if (isLoading) {
     return (
       <Paper elevation={1} sx={{ p: 3, height: chartHeight }}>
         <Typography variant="h6" gutterBottom>
-          Managers por Sub-Administrador
+          Distribución por Tasa de Cobranza
         </Typography>
         <Box sx={{
           height: containerHeight,
@@ -95,11 +134,11 @@ const ManagersPerSubadminChart = memo(function ManagersPerSubadminChart({ data, 
     )
   }
 
-  if (!data.length) {
+  if (!categories.length) {
     return (
       <Paper elevation={1} sx={{ p: 3, height: chartHeight }}>
         <Typography variant="h6" gutterBottom>
-          Managers por Sub-Administrador
+          Distribución por Tasa de Cobranza
         </Typography>
         <Box sx={{
           height: containerHeight,
@@ -114,18 +153,18 @@ const ManagersPerSubadminChart = memo(function ManagersPerSubadminChart({ data, 
     )
   }
 
-  const totalManagers = data.reduce((sum, item) => sum + item.value, 0)
+  const totalManagers = categories.reduce((sum, item) => sum + item.value, 0)
 
   return (
     <Paper elevation={1} sx={{ p: 3, height: chartHeight }}>
       <Typography variant="h6" gutterBottom>
-        Managers por Sub-Administrador
+        Distribución por Tasa de Cobranza
       </Typography>
 
       <ResponsiveContainer width="100%" height="75%">
         <PieChart>
           <Pie
-            data={data}
+            data={categories}
             cx="50%"
             cy="50%"
             labelLine={false}
@@ -134,12 +173,11 @@ const ManagersPerSubadminChart = memo(function ManagersPerSubadminChart({ data, 
             outerRadius={90}
             fill="#8884d8"
             dataKey="value"
-            isAnimationActive={false}
           >
-            {data.map((entry, index) => (
+            {categories.map((entry, index) => (
               <Cell
                 key={`cell-${index}`}
-                fill={COLORS[index % COLORS.length]}
+                fill={entry.color}
               />
             ))}
           </Pie>
@@ -153,11 +191,9 @@ const ManagersPerSubadminChart = memo(function ManagersPerSubadminChart({ data, 
       {/* Summary with better spacing */}
       <Box sx={{ mt: 3, textAlign: 'center' }}>
         <Typography variant="body2" color="text.secondary">
-          Total: {totalManagers} {totalManagers === 1 ? 'manager' : 'managers'} en {data.length} {data.length === 1 ? 'sub-admin' : 'sub-admins'}
+          Total: {totalManagers} {totalManagers === 1 ? 'manager' : 'managers'} evaluados
         </Typography>
       </Box>
     </Paper>
   )
-})
-
-export default ManagersPerSubadminChart
+}

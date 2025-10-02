@@ -3,14 +3,14 @@
 import { useMemo } from 'react'
 import { DateTime } from 'luxon'
 import { ensureLuxonConfigured } from '@/lib/luxon-config'
-import { useAdminStore } from '@/stores/admin'
-import type { ClientChartDataDto, LoanChartDataDto } from '@/services/manager.service'
+import { useSubadminStore } from '@/stores/subadmin'
+import type { ClientChartDataDto } from '@/services/manager.service'
 
-export interface ProcessedChartData {
-  managersPerSubadmin: Array<{
+export interface ProcessedSubadminChartData {
+  clientesPerManager: Array<{
     name: string
-    value: number
-    subadminId: string
+    clientCount: number
+    asociadoId: string
   }>
   clientsEvolution: Array<{
     date: string
@@ -18,79 +18,64 @@ export interface ProcessedChartData {
   }>
 }
 
+interface DetailedManagerData {
+  id: string
+  name: string
+  email: string
+  clientsCount: number
+  totalAmount: number
+  totalClients: number
+  totalLoans: number
+  clients: ClientChartDataDto[]
+  loans: any[]
+}
+
 /**
- * useAdminCharts - Chart Processing Hook (Layer 4)
+ * useSubadminCharts - Chart Processing Hook for Subadmin
  *
- * Follows ARCHITECTURE_PATTERNS.md:
- * - Complex processing logic belongs in hooks (Layer 4)
- * - Store stays "dumb" with only simple getters (Layer 3)
- * - useMemo for expensive calculations
- * - Clear separation of aggregated vs individual data filtering
+ * Equivalent to useAdminCharts but for managers data
+ * - Processes detailedManagers from store
+ * - Generates chart data with date range filters
  */
-export const useAdminCharts = (): ProcessedChartData => {
+export const useSubadminCharts = (): ProcessedSubadminChartData => {
   // Ensure Luxon is configured (lazy loaded)
   ensureLuxonConfigured()
 
-  const adminStore = useAdminStore()
+  const subadminStore = useSubadminStore()
 
-  // Get raw data from store
   const {
-    basicData,
-    detailedData,
+    detailedManagers,
     dateRange
-  } = adminStore
+  } = subadminStore
 
-  // Process chart data (expensive operation) - memoized
-  return useMemo((): ProcessedChartData => {
-    const dataToUse = detailedData.length > 0 ? detailedData : basicData
-
-    if (!dataToUse.length) {
+  return useMemo((): ProcessedSubadminChartData => {
+    if (!detailedManagers.length) {
       return {
-        managersPerSubadmin: [],
+        clientesPerManager: [],
         clientsEvolution: []
       }
     }
 
-    const managersPerSubadmin = dataToUse.map(subadmin => ({
-      name: subadmin.name,
-      value: subadmin.managersCount,
-      subadminId: subadmin.id
+    const clientesPerManager = detailedManagers.map(manager => ({
+      name: manager.name,
+      clientCount: manager.totalClients,
+      asociadoId: manager.id
     }))
 
-    const clientsEvolution = detailedData.length > 0
-      ? processClientsEvolution(detailedData, dateRange)
-      : []
+    const clientsEvolution = processClientsEvolution(detailedManagers, dateRange)
 
     return {
-      managersPerSubadmin,
+      clientesPerManager,
       clientsEvolution
     }
-  }, [basicData, detailedData, dateRange])
-}
-
-interface DetailedSubadminData {
-  id: string
-  name: string
-  email: string
-  managersCount: number
-  totalClients: number
-  totalLoans: number
-  managers: Array<{
-    id: string
-    name: string
-    email: string
-    clients: ClientChartDataDto[]
-    loans: LoanChartDataDto[]
-  }>
+  }, [detailedManagers, dateRange])
 }
 
 function processClientsEvolution(
-  detailedData: DetailedSubadminData[],
+  detailedManagers: DetailedManagerData[],
   dateRange: { from: Date; to: Date }
 ): Array<{ date: string; clients: number }> {
-  const allClients = detailedData.flatMap(subadmin =>
-    subadmin.managers.flatMap(manager => manager.clients || [])
-  )
+  const allClients = detailedManagers.flatMap(manager => manager.clients || [])
 
   const filteredClients = allClients.filter(client => {
     if (!client.createdAt) return true
@@ -177,16 +162,4 @@ function groupClientsByMonths(clients: any[], dateRange: { from: Date; to: Date 
       clients: Number(clients)
     }))
     .sort((a, b) => a.date.localeCompare(b.date))
-}
-
-export const useAdminChartsWithMetadata = () => {
-  const chartData = useAdminCharts()
-  const adminStore = useAdminStore()
-
-  return {
-    chartData,
-    hasDetailedData: adminStore.hasDetailedData(),
-    aggregatedTotals: adminStore.getAggregatedTotals(),
-    isDataFresh: adminStore.isBasicDataFresh(),
-  }
 }

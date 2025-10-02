@@ -1,5 +1,4 @@
 import { useState, useCallback } from 'react';
-import { exportService } from '@/services/export.service';
 import { useLoans } from '@/hooks/useLoans';
 import { useClients } from '@/hooks/useClients';
 import { useSubLoans } from '@/hooks/useSubLoans';
@@ -25,6 +24,7 @@ export function useExport() {
 
   /**
    * Export single loan as PDF presupuesto
+   * Lazy loads export service and PDF libraries only when needed
    */
   const exportLoanToPDF = useCallback(async (loanId: string, filename?: string): Promise<boolean> => {
     try {
@@ -52,15 +52,15 @@ export function useExport() {
       const baseRate = loan.baseInterestRate && loan.baseInterestRate > 0
         ? (loan.baseInterestRate > 1 ? loan.baseInterestRate / 100 : loan.baseInterestRate)
         : 0;
-      
+
       // Calculate total amount like simulator
       const calculatedTotalAmount = loan.amount * (1 + baseRate);
       const calculatedTotalInterest = calculatedTotalAmount - loan.amount;
-      
+
       // Use calculated values instead of subloans values
       const totalAmount = calculatedTotalAmount;
       const totalInterest = calculatedTotalInterest;
-      
+
       // Keep loan as-is, no need to modify baseInterestRate
       const loanWithCorrectRate = loan;
 
@@ -74,14 +74,17 @@ export function useExport() {
       };
 
       setExportStatus('downloading');
-      
+
+      // Lazy load export service (includes @react-pdf/renderer)
+      const { exportService } = await import('@/services/export.service');
+
       // Generate PDF
       const pdfBlob = await exportService.generateLoanPDF(exportData);
-      
+
       // Download file
       const defaultFilename = `prestamo-${loan.loanTrack || loan.id}-presupuesto`;
       exportService.downloadFile(pdfBlob, filename || defaultFilename, 'pdf');
-      
+
       setExportStatus('completed');
       return true;
 
@@ -96,6 +99,7 @@ export function useExport() {
 
   /**
    * Export multiple loans to Excel
+   * Lazy loads export service and XLSX library only when needed
    */
   const exportLoansToExcel = useCallback(async (loanIds: string[], filename?: string): Promise<boolean> => {
     try {
@@ -113,20 +117,20 @@ export function useExport() {
         if (!client) continue;
 
         const subLoans = allSubLoans.filter(sl => sl.loanId === loanId);
-        
+
         // Use same logic as simulator and modal: amount * (1 + rate)
         const baseRate = loan.baseInterestRate && loan.baseInterestRate > 0
           ? (loan.baseInterestRate > 1 ? loan.baseInterestRate / 100 : loan.baseInterestRate)
           : 0;
-        
+
         // Calculate total amount like simulator
         const calculatedTotalAmount = loan.amount * (1 + baseRate);
         const calculatedTotalInterest = calculatedTotalAmount - loan.amount;
-        
+
         // Use calculated values
         const totalAmount = calculatedTotalAmount;
         const totalInterest = calculatedTotalInterest;
-        
+
         // Keep loan as-is
         const loanWithCorrectRate = loan;
 
@@ -146,13 +150,16 @@ export function useExport() {
 
       setExportStatus('downloading');
 
+      // Lazy load export service (includes xlsx library)
+      const { exportService } = await import('@/services/export.service');
+
       // Generate Excel
       const excelBlob = await exportService.generateLoansExcel(exportDataArray);
-      
+
       // Download file
       const defaultFilename = `prestamos-${new Date().toISOString().split('T')[0]}`;
       exportService.downloadFile(excelBlob, filename || defaultFilename, 'excel');
-      
+
       setExportStatus('completed');
       return true;
 
@@ -176,6 +183,7 @@ export function useExport() {
   /**
    * Export loan simulation as PDF presupuesto
    * For use with simulation data before loan creation
+   * Lazy loads export service and PDF libraries only when needed
    */
   const exportSimulationToPDF = useCallback(async (
     simulatedLoans: { paymentNumber: number; amount: number; totalAmount: number; dueDate: Date }[],
@@ -240,14 +248,17 @@ export function useExport() {
       };
 
       setExportStatus('downloading');
-      
+
+      // Lazy load export service (includes @react-pdf/renderer)
+      const { exportService } = await import('@/services/export.service');
+
       // Generate PDF
       const pdfBlob = await exportService.generateLoanPDF(exportData);
-      
+
       // Download file
       const defaultFilename = `presupuesto-${client.fullName.replace(/\s+/g, '-')}-${new Date().toISOString().split('T')[0]}`;
       exportService.downloadFile(pdfBlob, filename || defaultFilename, 'pdf');
-      
+
       setExportStatus('completed');
       return true;
 

@@ -51,13 +51,19 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
     if (open) {
       if (mode === 'single' && subloan) {
         setSelectedSubloanId(subloan.id)
-        setPaymentAmount('')
+        // Auto-fill with pending amount (no partial payments)
+        const pendingAmount = subloan.totalAmount - (subloan.paidAmount || 0)
+        setPaymentAmount(formatAmount(pendingAmount.toString()))
       } else if (mode === 'selector' && subloans.length > 0) {
         const firstPending = subloans.find(s => s.status !== 'PAID')
         if (firstPending) {
           setSelectedSubloanId(firstPending.id)
+          // Auto-fill with pending amount (no partial payments)
+          const pendingAmount = firstPending.totalAmount - (firstPending.paidAmount || 0)
+          setPaymentAmount(formatAmount(pendingAmount.toString()))
+        } else {
+          setPaymentAmount('')
         }
-        setPaymentAmount('')
       }
       setPaymentDate(new Date().toISOString().split('T')[0])
       setNotes('')
@@ -68,12 +74,13 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
     setPaymentAmount(formatAmount(value))
   }
 
-  const handlePayFullAmount = () => {
-    if (currentSubloan) {
+  // Auto-fill payment amount when subloan selection changes in selector mode
+  useEffect(() => {
+    if (open && mode === 'selector' && selectedSubloanId && currentSubloan) {
       const pendingAmount = currentSubloan.totalAmount - (currentSubloan.paidAmount || 0)
       setPaymentAmount(formatAmount(pendingAmount.toString()))
     }
-  }
+  }, [selectedSubloanId, currentSubloan, open, mode])
 
   const handleRegisterPayment = () => {
     if (!currentSubloan) return
@@ -256,17 +263,6 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
                 }}
                 fullWidth
               />
-            </Box>
-
-            <Box sx={{ mb: 3 }}>
-              <Button
-                variant="outlined"
-                size="small"
-                onClick={handlePayFullAmount}
-                sx={{ mb: 2 }}
-              >
-                Pagar Monto Completo ({formatCurrency(currentSubloan.totalAmount - (currentSubloan.paidAmount || 0))})
-              </Button>
             </Box>
 
             <TextField

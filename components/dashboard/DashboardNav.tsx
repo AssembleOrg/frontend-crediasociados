@@ -99,15 +99,25 @@ export function DashboardNav() {
             </Typography>
           </Box>
 
-          <Typography
-            variant='body2'
-            sx={{
-              fontWeight: 500,
-              display: { xs: 'block', sm: 'none' },
-            }}
+          <Box
+            sx={{ textAlign: 'right', display: { xs: 'block', sm: 'none' } }}
           >
-            Hola, {user?.fullName?.split(' ')[0]}
-          </Typography>
+            <Typography
+              variant='body2'
+              sx={{ fontWeight: 500 }}
+            >
+              Hola, {user?.fullName?.split(' ')[0]}
+            </Typography>
+            <Typography
+              variant='caption'
+              sx={{
+                color: RoleUtils.getRoleColor((user?.role || '') as UserRole),
+                fontWeight: 600,
+              }}
+            >
+              {RoleUtils.getRoleDisplayName((user?.role || '') as UserRole)}
+            </Typography>
+          </Box>
 
           <IconButton
             size='medium'

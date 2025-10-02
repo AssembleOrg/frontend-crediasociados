@@ -1,6 +1,6 @@
 'use client'
 
-import React from 'react'
+import React, { memo } from 'react'
 import { Box, Alert, CircularProgress, Typography } from '@mui/material'
 import PageHeader from '@/components/ui/PageHeader'
 import StatsGrid from '@/components/ui/StatsGrid'
@@ -31,13 +31,15 @@ interface BaseReportLayoutProps {
   additionalCards?: React.ReactNode
   infoMessage?: string
   successCondition?: boolean
+  hideAmounts?: boolean
+  showManagers?: boolean // For admin view: show managers count
 }
 
 /**
  * Base Report Layout Component
  * Reusable layout for admin and subadmin reports
  */
-export default function BaseReportLayout({
+const BaseReportLayout = memo(function BaseReportLayout({
   title,
   subtitle,
   metrics,
@@ -50,7 +52,9 @@ export default function BaseReportLayout({
   onClearError,
   additionalCards,
   infoMessage,
-  successCondition = false
+  successCondition = false,
+  hideAmounts = false,
+  showManagers = false
 }: BaseReportLayoutProps) {
 
   // Loading state
@@ -150,7 +154,7 @@ export default function BaseReportLayout({
         />
 
         {/* Show additional financial metrics only if there's loan data */}
-        {metrics.totalLoans > 0 && (
+        {metrics.totalLoans > 0 && metrics.totalAmountLent > 0 && (
           <BaseReportCard
             title="Dinero Prestado"
             value={`$${metrics.totalAmountLent.toLocaleString()}`}
@@ -182,6 +186,8 @@ export default function BaseReportLayout({
           users={users}
           userTypeLabel={userTypeLabel}
           isLoading={isLoading}
+          hideAmounts={hideAmounts}
+          showManagers={showManagers}
         />
       </Box>
 
@@ -206,4 +212,6 @@ export default function BaseReportLayout({
       </Box>
     </Box>
   )
-}
+})
+
+export default BaseReportLayout

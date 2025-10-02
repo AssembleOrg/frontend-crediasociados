@@ -36,12 +36,6 @@ export default function AdminReportsPage() {
     isAnyLoading
   } = useAdminReportsWithFilters()
 
-  // Provider auto-initializes data - no useEffect needed
-
-  // Export service instance (already instantiated)
-  // const exportService is imported
-
-  // PDF Export function
   const handlePdfExport = async () => {
     if (!reports) {
       alert('No hay datos disponibles para exportar')
@@ -49,7 +43,6 @@ export default function AdminReportsPage() {
     }
 
     try {
-      // Filter data if a subadmin is selected
       const dataToExport: AdminReportsData = selectedSubadmin
         ? {
             ...reports,
@@ -57,7 +50,7 @@ export default function AdminReportsPage() {
             totalUsers: 1,
             totalClients: reports.subadmins.find(s => s.userId === selectedSubadmin)?.totalClients || 0,
             totalLoans: reports.subadmins.find(s => s.userId === selectedSubadmin)?.totalLoans || 0,
-            totalAmountLent: reports.subadmins.find(s => s.userId === selectedSubadmin)?.totalAmountLent || 0,
+            totalAmountLent: 0,
           }
         : reports
 
@@ -75,39 +68,16 @@ export default function AdminReportsPage() {
     }
   }
 
-
-
-  // Calculate data counts for filters component
   const dataCount = {
     totalSubadmins: detailedData.length > 0 ? detailedData.length : basicData.length,
     totalManagers: (detailedData.length > 0 ? detailedData : basicData).reduce((sum, s) => sum + s.managersCount, 0),
     totalClients: detailedData.reduce((sum, s) => sum + (s.totalClients || 0), 0)
   }
 
-  // Additional real data cards for admin reports
-  const additionalCards = reports && reports.totalLoans > 0 ? (
-    <>
-      <BaseReportCard
-        title="Promedio por Sub-Admin"
-        value={`$${reports.totalUsers > 0 ? Math.round(reports.totalAmountLent / reports.totalUsers).toLocaleString() : 0}`}
-        subtitle="monto promedio gestionado"
-        color="info"
-        isLoading={reportsLoading}
-      />
-
-      <BaseReportCard
-        title="Dinero Pendiente"
-        value={`$${reports.totalAmountPending.toLocaleString()}`}
-        subtitle="monto por cobrar"
-        color="warning"
-        isLoading={reportsLoading}
-      />
-    </>
-  ) : null
+  const additionalCards = null
 
   return (
     <Box sx={{ p: 3 }}>
-      {/* Header */}
       <Box sx={{ mb: 3 }}>
         <Typography variant="h4" component="h1" gutterBottom>
           Reportes Administrativos
@@ -117,7 +87,6 @@ export default function AdminReportsPage() {
         </Typography>
       </Box>
 
-      {/* Filters and Export */}
       <AdminFiltersAndExport
         currentFilter={timeFilter}
         dateRange={dateRange}
@@ -144,6 +113,8 @@ export default function AdminReportsPage() {
         onClearError={clearReportsError}
         successCondition={reports ? reports.totalLoans > 0 : false}
         additionalCards={additionalCards}
+        hideAmounts={true}
+        showManagers={true}
       />
     </Box>
   )

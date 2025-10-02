@@ -7,16 +7,25 @@ import { Settings } from 'luxon'
 export const configureLuxon = () => {
   // Establecer timezone por defecto a Buenos Aires
   Settings.defaultZone = 'America/Argentina/Buenos_Aires'
-  
+
   // Configurar locale en español
   Settings.defaultLocale = 'es'
-  
+
   // Configurar formato de números
   Settings.defaultNumberingSystem = 'latn'
-  
+
   // Configurar formato de salida por defecto
   Settings.defaultOutputCalendar = 'gregory'
 }
 
-// Ejecutar configuración al importar el módulo
-configureLuxon()
+/**
+ * Ensure Luxon is configured before using it
+ * Call this in components that use Luxon to lazy load configuration
+ */
+let configured = false
+export const ensureLuxonConfigured = () => {
+  if (!configured) {
+    configureLuxon()
+    configured = true
+  }
+}

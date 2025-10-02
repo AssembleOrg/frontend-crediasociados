@@ -96,9 +96,8 @@ export function createHierarchicalDataProvider<TStore>() {
 
         console.log(`✅ [${role.toUpperCase()} PROVIDER] Basic data loaded and cached`)
 
-        // Auto-trigger detailed data loading if available
         if (initializeDetailedData) {
-          setTimeout(() => initializeDetailed(), 200)
+          initializeDetailed()
         }
 
       } catch (error: unknown) {

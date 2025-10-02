@@ -1,6 +1,6 @@
 'use client'
 
-import React from 'react'
+import React, { memo } from 'react'
 import { Paper, Typography, Box, Skeleton } from '@mui/material'
 import type { SvgIconComponent } from '@mui/icons-material'
 
@@ -22,7 +22,7 @@ interface BaseReportCardProps {
  * Base Report Card Component
  * Reusable card component for displaying metrics in reports
  */
-export default function BaseReportCard({
+const BaseReportCard = memo(function BaseReportCard({
   title,
   value,
   subtitle,
@@ -135,4 +135,6 @@ export default function BaseReportCard({
 
     </Paper>
   )
-}
+})
+
+export default BaseReportCard

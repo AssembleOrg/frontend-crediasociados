@@ -1,7 +1,7 @@
 'use client'
 
 import { Box, Paper, List, ListItem, ListItemIcon, ListItemText } from '@mui/material'
-import { Dashboard, People, AccountBalance, Assessment, Payment } from '@mui/icons-material'
+import { Dashboard, People, AccountBalance, Payment } from '@mui/icons-material'
 import { useRouter, usePathname } from 'next/navigation'
 import { QuickActions } from '@/components/dashboard/QuickActions'
 import SubLoansProvider from '@/components/providers/SubLoansProvider'
@@ -14,10 +14,10 @@ const prestamistaMenuItems = [
 ]
 
 const quickActions = [
-  { label: 'Dashboard', icon: <Dashboard />, path: '/dashboard/prestamista', variant: 'contained' as const },
-  { label: 'Clientes', icon: <People />, path: '/dashboard/prestamista/clientes', variant: 'outlined' as const },
-  { label: 'Préstamos', icon: <AccountBalance />, path: '/dashboard/prestamista/prestamos', variant: 'outlined' as const },
-  { label: 'Cobros', icon: <Payment />, path: '/dashboard/prestamista/cobros', variant: 'outlined' as const },
+  { label: 'Dashboard', icon: <Dashboard />, path: '/dashboard/prestamista' },
+  { label: 'Clientes', icon: <People />, path: '/dashboard/prestamista/clientes' },
+  { label: 'Préstamos', icon: <AccountBalance />, path: '/dashboard/prestamista/prestamos' },
+  { label: 'Cobros', icon: <Payment />, path: '/dashboard/prestamista/cobros' },
 ]
 
 export default function PrestamistaLayout({
@@ -30,17 +30,17 @@ export default function PrestamistaLayout({
 
   return (
     <SubLoansProvider>
-      <Box sx={{ 
-        display: 'flex', 
+      <Box sx={{
+        display: 'flex',
         flexDirection: { xs: 'column', md: 'row' },
-        gap: { xs: 0, md: 3 }, 
-        height: '100%' 
+        gap: { xs: 0, md: 3 },
+        height: '100%'
       }}>
         {/* Sidebar - Solo Desktop */}
-        <Paper 
+        <Paper
           elevation={1}
-          sx={{ 
-            width: 280, 
+          sx={{
+            width: 280,
             p: 2,
             height: 'fit-content',
             position: 'sticky',
@@ -64,7 +64,7 @@ export default function PrestamistaLayout({
                   }
                 }}
               >
-                <ListItemIcon sx={{ 
+                <ListItemIcon sx={{
                   color: pathname === item.path ? 'white' : 'inherit'
                 }}>
                   {item.icon}
@@ -76,13 +76,14 @@ export default function PrestamistaLayout({
         </Paper>
 
         {/* Content */}
-        <Box sx={{ 
+        <Box sx={{
           flexGrow: 1,
-          minWidth: 0
+          minWidth: 0,
+          minHeight: 'calc(100vh - 80px)'
         }}>
           {/* QuickActions - Solo Mobile */}
           <QuickActions actions={quickActions} />
-          
+
           {children}
         </Box>
       </Box>

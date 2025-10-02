@@ -1,30 +1,40 @@
 'use client'
 
-import React, { memo } from 'react'
+import React from 'react'
 import { Paper, Typography, Box } from '@mui/material'
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts'
-import type { ManagersChartData, ChartTooltipProps, BaseChartProps } from '@/types/charts'
 
-type ManagersPerSubadminChartProps = BaseChartProps<ManagersChartData>
+interface AsociadosStatusData {
+  name: string
+  value: number
+  color: string
+  [key: string]: string | number // Index signature for recharts compatibility
+}
 
-const COLORS = [
-  '#2e7d32', '#1976d2', '#d32f2f', '#ff9800', '#9c27b0',
-  '#00796b', '#5d4037', '#455a64', '#e91e63', '#3f51b5'
-]
+interface AsociadosStatusChartProps {
+  data: AsociadosStatusData[]
+  isLoading?: boolean
+}
 
-const CustomTooltip = ({ active, payload }: ChartTooltipProps) => {
+interface TooltipProps {
+  active?: boolean
+  payload?: Array<{ value: number; payload: AsociadosStatusData }>
+  label?: string
+}
+
+const CustomTooltip = ({ active, payload }: TooltipProps) => {
   if (active && payload && payload.length) {
-    const data = payload[0].payload as ManagersChartData
+    const data = payload[0].payload
     return (
       <Paper elevation={3} sx={{ p: 2, minWidth: 200 }}>
         <Typography variant="subtitle2" fontWeight={600}>
           {data.name}
         </Typography>
         <Typography variant="body2" color="text.secondary">
-          Managers: {data.value}
+          Asociados: {data.value}
         </Typography>
         <Typography variant="caption" color="text.secondary">
-          {data.value === 1 ? 'manager' : 'managers'} bajo gestión
+          {data.value === 1 ? 'asociado' : 'asociados'} en este estado
         </Typography>
       </Paper>
     )
@@ -71,8 +81,7 @@ const CustomLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, value, percen
   )
 }
 
-
-const ManagersPerSubadminChart = memo(function ManagersPerSubadminChart({ data, isLoading = false }: ManagersPerSubadminChartProps) {
+export default function AsociadosStatusChart({ data, isLoading = false }: AsociadosStatusChartProps) {
   const chartHeight = { xs: 380, sm: 420, md: 520, lg: 580 }
   const containerHeight = { xs: 280, sm: 320, md: 420, lg: 480 }
 
@@ -80,7 +89,7 @@ const ManagersPerSubadminChart = memo(function ManagersPerSubadminChart({ data, 
     return (
       <Paper elevation={1} sx={{ p: 3, height: chartHeight }}>
         <Typography variant="h6" gutterBottom>
-          Managers por Sub-Administrador
+          Status de Asociados
         </Typography>
         <Box sx={{
           height: containerHeight,
@@ -99,7 +108,7 @@ const ManagersPerSubadminChart = memo(function ManagersPerSubadminChart({ data, 
     return (
       <Paper elevation={1} sx={{ p: 3, height: chartHeight }}>
         <Typography variant="h6" gutterBottom>
-          Managers por Sub-Administrador
+          Status de Asociados
         </Typography>
         <Box sx={{
           height: containerHeight,
@@ -114,12 +123,12 @@ const ManagersPerSubadminChart = memo(function ManagersPerSubadminChart({ data, 
     )
   }
 
-  const totalManagers = data.reduce((sum, item) => sum + item.value, 0)
+  const totalAsociados = data.reduce((sum, item) => sum + item.value, 0)
 
   return (
     <Paper elevation={1} sx={{ p: 3, height: chartHeight }}>
       <Typography variant="h6" gutterBottom>
-        Managers por Sub-Administrador
+        Status de Asociados
       </Typography>
 
       <ResponsiveContainer width="100%" height="75%">
@@ -134,12 +143,11 @@ const ManagersPerSubadminChart = memo(function ManagersPerSubadminChart({ data, 
             outerRadius={90}
             fill="#8884d8"
             dataKey="value"
-            isAnimationActive={false}
           >
             {data.map((entry, index) => (
               <Cell
                 key={`cell-${index}`}
-                fill={COLORS[index % COLORS.length]}
+                fill={entry.color}
               />
             ))}
           </Pie>
@@ -153,11 +161,9 @@ const ManagersPerSubadminChart = memo(function ManagersPerSubadminChart({ data, 
       {/* Summary with better spacing */}
       <Box sx={{ mt: 3, textAlign: 'center' }}>
         <Typography variant="body2" color="text.secondary">
-          Total: {totalManagers} {totalManagers === 1 ? 'manager' : 'managers'} en {data.length} {data.length === 1 ? 'sub-admin' : 'sub-admins'}
+          Total: {totalAsociados} {totalAsociados === 1 ? 'asociado' : 'asociados'} registrados
         </Typography>
       </Box>
     </Paper>
   )
-})
-
-export default ManagersPerSubadminChart
+}

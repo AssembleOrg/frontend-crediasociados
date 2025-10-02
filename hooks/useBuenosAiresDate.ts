@@ -1,9 +1,13 @@
 import { DateTime } from 'luxon'
+import { ensureLuxonConfigured } from '@/lib/luxon-config'
 
 /**
  * Hook para manejar fechas con timezone de Buenos Aires
  */
 export const useBuenosAiresDate = () => {
+  // Ensure Luxon is configured (lazy loaded)
+  ensureLuxonConfigured()
+
   const TIMEZONE = 'America/Argentina/Buenos_Aires'
 
   // Obtener fecha actual en Buenos Aires

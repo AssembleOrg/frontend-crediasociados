@@ -77,8 +77,6 @@ export const useStats = () => {
 
     try {
       // Stats are automatically recalculated via useMemo when data changes
-      // This function exists for compatibility and manual refresh triggers
-      await new Promise(resolve => setTimeout(resolve, 100)); // Small delay for UX
     } catch (err: any) {
       setError(err.message || 'Failed to refresh stats');
     } finally {

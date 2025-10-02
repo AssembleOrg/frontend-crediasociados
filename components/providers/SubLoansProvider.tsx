@@ -74,8 +74,10 @@ export default function SubLoansProvider({ children }: SubLoansProviderProps) {
       setLoading(true);
       setError(null);
 
+      console.time('🏦 SubLoans Init - Total Time');
       console.log('🏦 Inicializando TODOS los datos de SubLoans + Loans globalmente (Consolidated Provider Pattern)');
 
+      console.time('🏦 API Calls (Parallel)');
       // Initialize ALL data types in parallel
       const [
         enrichedSubLoans,
@@ -99,11 +101,13 @@ export default function SubLoansProvider({ children }: SubLoansProviderProps) {
         // 5. Basic Loans (consolidated to prevent architectural drift)
         loansService.getAllLoans(),
       ]);
+      console.timeEnd('🏦 API Calls (Parallel)');
 
       if (abortController.signal.aborted) {
         return false;
       }
 
+      console.time('🏦 Data Transform & Store Update');
       // Update ALL store data
       setAllSubLoansWithClient(enrichedSubLoans);
       setTodayDueSubLoans(todayDueResponse);
@@ -122,6 +126,8 @@ export default function SubLoansProvider({ children }: SubLoansProviderProps) {
         totalPages: Math.ceil(todayDueResponse.length / 20)
       });
 
+      console.timeEnd('🏦 Data Transform & Store Update');
+
       console.log('🔄 SubLoans + Loans data initialized globally (Consolidated):', {
         enrichedSubLoans: enrichedSubLoans.length,
         todayDue: todayDueResponse.length,
@@ -130,6 +136,7 @@ export default function SubLoansProvider({ children }: SubLoansProviderProps) {
         stats: !!statsResponse
       });
 
+      console.timeEnd('🏦 SubLoans Init - Total Time');
       return true;
 
     } catch (error: unknown) {

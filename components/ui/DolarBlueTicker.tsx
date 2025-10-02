@@ -1,11 +1,11 @@
 'use client';
 
+import { memo } from 'react';
 import { Box, Typography, CircularProgress, Chip } from '@mui/material';
 import {
   TrendingUp,
   DollarSign,
   Clock,
-  Wifi,
   AlertCircle,
   RefreshCw,
 } from 'lucide-react';
@@ -16,7 +16,7 @@ interface DolarBlueTickerProps {
   className?: string;
 }
 
-export default function DolarBlueTicker({
+const DolarBlueTicker = memo(function DolarBlueTicker({
   showRefreshButton = false,
   className,
 }: DolarBlueTickerProps) {
@@ -48,10 +48,11 @@ export default function DolarBlueTicker({
             gap: 2,
             px: 4,
             whiteSpace: 'nowrap',
-            animation: 'seamless-marquee 15s linear infinite',
+            animation: 'seamless-marquee 20s linear infinite',
+            willChange: 'transform',
             '@keyframes seamless-marquee': {
-              '0%': { transform: 'translateX(100%)' },
-              '100%': { transform: 'translateX(-100%)' },
+              '0%': { transform: 'translate3d(100%, 0, 0)' },
+              '100%': { transform: 'translate3d(-100%, 0, 0)' },
             },
           }}
         >
@@ -291,10 +292,11 @@ export default function DolarBlueTicker({
           gap: 60, // Espacio amplio entre las dos instancias
           px: 4,
           whiteSpace: 'nowrap',
-          animation: 'seamless-marquee 15s linear infinite',
+          animation: 'seamless-marquee 20s linear infinite',
+          willChange: 'transform',
           '@keyframes seamless-marquee': {
-            '0%': { transform: 'translateX(100%)' },
-            '100%': { transform: 'translateX(-100%)' },
+            '0%': { transform: 'translate3d(100%, 0, 0)' },
+            '100%': { transform: 'translate3d(-100%, 0, 0)' },
           },
         }}
       >
@@ -306,4 +308,6 @@ export default function DolarBlueTicker({
       </Box>
     </Box>
   );
-}
+})
+
+export default DolarBlueTicker

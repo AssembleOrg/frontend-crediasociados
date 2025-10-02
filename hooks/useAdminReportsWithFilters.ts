@@ -1,7 +1,10 @@
 'use client'
 
-import { useState, useCallback, useMemo } from 'react'
-import { useAdminDashboard } from './useAdminDashboard'
+import { useState, useCallback, useMemo, useEffect, useRef } from 'react'
+import { useAdminStore } from '@/stores/admin'
+import { useAuth } from '@/hooks/useAuth'
+import { reportsService } from '@/services/reports.service'
+import { managerService } from '@/services/manager.service'
 import type { TimeFilter } from '@/stores/admin'
 
 interface DateRange {
@@ -10,73 +13,184 @@ interface DateRange {
 }
 
 export const useAdminReportsWithFilters = () => {
-  // Use only unified dashboard - no separate reports hook needed
-  const adminDashboard = useAdminDashboard()
+  const adminStore = useAdminStore()
+  const { user: currentUser } = useAuth()
 
-  // Transform detailed data into reports format
+  const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [selectedSubadmin, setSelectedSubadmin] = useState<string | null>(null)
+
+  const initializationRef = useRef(false)
+  const abortControllerRef = useRef<AbortController | null>(null)
+
+  const fetchReportsData = useCallback(async (): Promise<void> => {
+    if (!currentUser || currentUser.role !== 'admin') return
+
+    if (adminStore.hasDetailedData() && adminStore.isDetailedDataFresh()) {
+      console.log('📦 [REPORTS] Using fresh cached data')
+      return
+    }
+
+    if (initializationRef.current) return
+    initializationRef.current = true
+
+    setIsLoading(true)
+    setError(null)
+
+    try {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort()
+      }
+      abortControllerRef.current = new AbortController()
+
+      console.log('[REPORTS] Loading reports data...')
+
+      const subadmins = await reportsService.getCreatedUsers(currentUser.id)
+
+      const detailedSubadminsData = await Promise.all(
+        subadmins.map(async (subadmin) => {
+          try {
+            const managers = await reportsService.getCreatedUsers(subadmin.id)
+
+            const managersWithData = await Promise.all(
+              managers.map(async (manager) => {
+                try {
+                  const [clientsData, loansData] = await Promise.all([
+                    managerService.getManagerClientsChart(manager.id, {}),
+                    managerService.getManagerLoansChart(manager.id, {})
+                  ])
+
+                  return {
+                    id: manager.id,
+                    name: manager.fullName,
+                    email: manager.email,
+                    clients: clientsData,
+                    loans: loansData
+                  }
+                } catch (error) {
+                  console.warn(`Error loading data for manager ${manager.fullName}:`, error)
+                  return {
+                    id: manager.id,
+                    name: manager.fullName,
+                    email: manager.email,
+                    clients: [],
+                    loans: []
+                  }
+                }
+              })
+            )
+
+            const totalClients = managersWithData.reduce((sum, manager) =>
+              sum + manager.clients.length, 0
+            )
+
+            const totalLoans = managersWithData.reduce((sum, manager) =>
+              sum + manager.loans.length, 0
+            )
+
+            return {
+              id: subadmin.id,
+              name: subadmin.fullName,
+              email: subadmin.email,
+              managersCount: managers.length,
+              totalClients,
+              totalLoans,
+              managers: managersWithData
+            }
+
+          } catch (error) {
+            console.warn(`Error loading data for ${subadmin.fullName}:`, error)
+            return {
+              id: subadmin.id,
+              name: subadmin.fullName,
+              email: subadmin.email,
+              managersCount: 0,
+              totalClients: 0,
+              totalLoans: 0,
+              managers: []
+            }
+          }
+        })
+      )
+
+      adminStore.setDetailedData(detailedSubadminsData)
+
+      console.log('[REPORTS] Reports data loaded successfully')
+
+    } catch (err) {
+      if ((err as Error).name !== 'AbortError') {
+        const errorMessage = err instanceof Error ? err.message : 'Failed to load reports data'
+        setError(errorMessage)
+        console.error('Error loading reports data:', err)
+      }
+    } finally {
+      setIsLoading(false)
+      initializationRef.current = false
+    }
+  }, [currentUser, adminStore])
+
+  useEffect(() => {
+    if (currentUser && currentUser.role === 'admin') {
+      fetchReportsData()
+    }
+
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort()
+      }
+    }
+  }, [currentUser, fetchReportsData])
+
   const reports = useMemo(() => {
-    if (!adminDashboard.detailedData.length) return null
+    if (!adminStore.detailedData.length) return null
 
-    const subadmins = adminDashboard.detailedData.map(subadmin => ({
+    const subadmins = adminStore.detailedData.map(subadmin => ({
       userId: subadmin.id,
       userName: subadmin.name,
       userEmail: subadmin.email,
       userRole: 'subadmin',
       totalClients: subadmin.totalClients,
       totalLoans: subadmin.totalLoans,
-      totalAmountLent: subadmin.totalAmount,
-      totalAmountPending: 0, // This would need to be calculated if needed
-      collectionRate: 0, // This would need to be calculated if needed
-      createdAt: new Date().toISOString() // Placeholder
+      totalAmountLent: 0,
+      totalAmountPending: 0,
+      collectionRate: 0,
+      createdAt: new Date().toISOString()
     }))
 
     return {
       totalUsers: subadmins.length,
       totalClients: subadmins.reduce((sum, s) => sum + s.totalClients, 0),
       totalLoans: subadmins.reduce((sum, s) => sum + s.totalLoans, 0),
-      totalAmountLent: subadmins.reduce((sum, s) => sum + s.totalAmountLent, 0),
+      totalAmountLent: 0,
       totalAmountPending: 0,
       averageCollectionRate: 0,
       subadmins
     }
-  }, [adminDashboard.detailedData])
+  }, [adminStore.detailedData])
 
-  // Local filter state
-  const [selectedSubadmin, setSelectedSubadmin] = useState<string | null>(null)
-
-  // Get subadmin options from the unified dashboard
   const subadminOptions = useMemo(() => {
-    const data = adminDashboard.detailedData.length > 0
-      ? adminDashboard.detailedData
-      : adminDashboard.basicData
-
-    return data.map(subadmin => ({
+    return adminStore.detailedData.map(subadmin => ({
       id: subadmin.id,
       name: subadmin.name
     }))
-  }, [adminDashboard.basicData, adminDashboard.detailedData])
+  }, [adminStore.detailedData])
 
-  // Enhanced export function that includes all detailed data
   const exportDetailedData = useCallback(() => {
-    const detailedData = adminDashboard.detailedData
+    const detailedData = adminStore.detailedData
 
     if (!detailedData.length) {
       alert('No hay datos detallados disponibles para exportar')
       return
     }
 
-    // Filter data if a subadmin is selected
     const dataToExport = selectedSubadmin
       ? detailedData.filter(subadmin => subadmin.id === selectedSubadmin)
       : detailedData
 
-    // Create comprehensive CSV content
     const csvRows = []
 
-    // Headers
-    csvRows.push('Subadmin,Email,Managers,Clientes,Prestamos,Monto Total,Manager,Manager Email,Clientes Manager,Prestamos Manager')
+    csvRows.push('Subadmin,Email,Managers,Clientes,Prestamos,Manager,Manager Email,Clientes Manager,Prestamos Manager')
 
-    // Data rows
     dataToExport.forEach(subadmin => {
       if (subadmin.managers && subadmin.managers.length > 0) {
         subadmin.managers.forEach(manager => {
@@ -89,7 +203,6 @@ export const useAdminReportsWithFilters = () => {
             subadmin.managersCount,
             subadmin.totalClients,
             subadmin.totalLoans,
-            subadmin.totalAmount,
             manager.name,
             manager.email,
             managerClients,
@@ -104,7 +217,6 @@ export const useAdminReportsWithFilters = () => {
           subadmin.managersCount,
           subadmin.totalClients || 0,
           subadmin.totalLoans || 0,
-          subadmin.totalAmount || 0,
           '',
           '',
           '',
@@ -121,41 +233,46 @@ export const useAdminReportsWithFilters = () => {
     link.download = `admin-reportes-detallado-${new Date().toISOString().split('T')[0]}.csv`
     link.click()
     window.URL.revokeObjectURL(url)
-  }, [adminDashboard.detailedData, selectedSubadmin])
+  }, [adminStore.detailedData, selectedSubadmin])
+
+  const refreshData = useCallback(() => {
+    adminStore.invalidateCache()
+    fetchReportsData()
+  }, [adminStore, fetchReportsData])
+
+  const clearError = useCallback(() => {
+    setError(null)
+  }, [])
+
+  const dataCount = useMemo(() => {
+    const detailedData = adminStore.detailedData
+    return {
+      totalSubadmins: detailedData.length,
+      totalManagers: detailedData.reduce((sum, s) => sum + s.managersCount, 0),
+      totalClients: detailedData.reduce((sum, s) => sum + (s.totalClients || 0), 0)
+    }
+  }, [adminStore.detailedData])
 
   return {
-    // Unified dashboard data
-    basicData: adminDashboard.basicData,
-    detailedData: adminDashboard.detailedData,
-    isBasicLoading: adminDashboard.isBasicLoading,
-    isDetailedLoading: adminDashboard.isDetailedLoading,
-    isInitialized: adminDashboard.isInitialized,
-    chartData: adminDashboard.chartData,
-    timeFilter: adminDashboard.timeFilter,
-    dateRange: adminDashboard.dateRange,
-    setTimeFilter: adminDashboard.setTimeFilter,
-    setCustomDateRange: adminDashboard.setCustomDateRange,
-    refreshData: adminDashboard.refreshData,
-    hasDetailedData: adminDashboard.hasDetailedData,
-    aggregatedTotals: adminDashboard.aggregatedTotals,
-
-    // Admin reports data (transformed from unified data)
+    basicData: adminStore.basicData,
+    detailedData: adminStore.detailedData,
+    isBasicLoading: isLoading,
+    isDetailedLoading: false,
+    isInitialized: adminStore.detailedData.length > 0,
+    timeFilter: adminStore.timeFilter,
+    dateRange: adminStore.dateRange,
+    setTimeFilter: adminStore.setTimeFilter,
+    setCustomDateRange: adminStore.setDateRange,
+    refreshData,
     reports,
-    reportsLoading: adminDashboard.isDetailedLoading,
-    reportsError: null, // Provider handles errors gracefully
-    initializeReports: () => {}, // No-op, provider auto-initializes
-    refreshReports: adminDashboard.refreshData,
-    clearReportsError: () => {}, // No-op, no error state
-
-    // Filter state
+    reportsLoading: isLoading,
+    reportsError: error,
+    clearReportsError: clearError,
     selectedSubadmin,
     setSelectedSubadmin,
     subadminOptions,
-
-    // Enhanced export
     exportDetailedData,
-
-    // Combined loading state
-    isAnyLoading: adminDashboard.isBasicLoading || adminDashboard.isDetailedLoading
+    isAnyLoading: isLoading,
+    dataCount
   }
 }

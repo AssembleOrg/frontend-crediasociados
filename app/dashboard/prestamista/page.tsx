@@ -1,92 +1,134 @@
 'use client'
 
-import React from 'react'
-import { Box, Paper, Button, Alert } from '@mui/material'
-import { People, AccountBalance } from '@mui/icons-material'
-import { useRouter } from 'next/navigation'
-import { StatsCard } from '@/components/dashboard/StatsCard'
-import { useClients } from '@/hooks/useClients'
-import { useSubLoans } from '@/hooks/useSubLoans'
-import { StandaloneLoanSimulator } from '@/components/loans/StandaloneLoanSimulator'
+import React, { useState } from 'react'
+import dynamic from 'next/dynamic'
+import { Box, Grid, CircularProgress, Typography, Button, useMediaQuery } from '@mui/material'
+import { ExpandMore, ExpandLess } from '@mui/icons-material'
 import PageHeader from '@/components/ui/PageHeader'
-import StatsGrid from '@/components/ui/StatsGrid'
+import { usePrestamistaDashboardData } from '@/hooks/usePrestamistaDashboardData'
+import { usePrestamistaCharts } from '@/hooks/usePrestamistaCharts'
+import { ChartSkeleton, BarChartSkeleton } from '@/components/ui/ChartSkeleton'
+
+// Lazy load charts to reduce initial bundle size
+const ClientsEvolutionChart = dynamic(
+  () => import('@/components/charts/ClientsEvolutionChart'),
+  {
+    ssr: false,
+    loading: () => <BarChartSkeleton title="Clientes Nuevos por Semana" />
+  }
+)
+
+const LoansEvolutionChart = dynamic(
+  () => import('@/components/charts/LoansEvolutionChart'),
+  {
+    ssr: false,
+    loading: () => <BarChartSkeleton title="Préstamos Nuevos por Semana" />
+  }
+)
+
+const PaymentsDistributionChart = dynamic(
+  () => import('@/components/charts/PaymentsDistributionChart'),
+  {
+    ssr: false,
+    loading: () => <ChartSkeleton title="Distribución de Pagos" />
+  }
+)
 
 export default function PrestamistaDashboard() {
-  const router = useRouter()
-  const { getTotalClients, isLoading } = useClients()
-  const { 
-    getTotalDueToday,
-    getOverdueCount,
-    isLoading: subLoansLoading,
-    error: subLoansError 
-  } = useSubLoans()
+  const {
+    clients,
+    loans,
+    subLoans,
+    isLoading
+  } = usePrestamistaDashboardData()
 
-  const clientsCount = getTotalClients()
-  const dueToday = getTotalDueToday()
-  const overdueCount = getOverdueCount()
+  const chartData = usePrestamistaCharts(clients, loans, subLoans)
+
+  // Responsive logic for mobile
+  const isMobile = useMediaQuery('(max-width:600px)')
+  const [showAllCharts, setShowAllCharts] = useState(false)
+
+  if (isLoading && clients.length === 0) {
+    return (
+      <Box sx={{ p: 3, display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 400 }}>
+        <Box sx={{ textAlign: 'center' }}>
+          <CircularProgress size={40} sx={{ mb: 2 }} />
+          <Typography variant="body1" color="text.secondary">
+            Cargando dashboard...
+          </Typography>
+        </Box>
+      </Box>
+    )
+  }
 
   return (
     <Box sx={{ p: 3 }}>
-      {/* Header */}
       <PageHeader
         title="Dashboard Prestamista"
         subtitle="Gestión de clientes y préstamos de tu cartera"
       />
 
-      {/* Stats Grid */}
-      <StatsGrid columns={{ xs: 1, sm: 2, lg: 3 }}>
-        <StatsCard
-          title="Clientes Activos"
-          value={clientsCount}
-          subtitle={`cliente${clientsCount !== 1 ? 's' : ''} en tu cartera`}
-          icon={<People />}
-          color="primary"
-          isLoading={isLoading}
-        />
-        <StatsCard
-          title="Vencimientos Hoy"
-          value={dueToday}
-          subtitle="préstamos que vencen hoy"
-          icon={<AccountBalance />}
-          color="warning"
-          isLoading={subLoansLoading}
-        />
-      </StatsGrid>
+      <Grid container spacing={4}>
+        {/* Mobile: PaymentsDistribution first (always visible) */}
+        {isMobile && (
+          <Grid size={{ xs: 12 }}>
+            <PaymentsDistributionChart
+              data={chartData.paymentsDistribution}
+              isLoading={isLoading}
+            />
+          </Grid>
+        )}
 
-      {/* Error de SubLoans */}
-      {subLoansError && (
-        <Alert severity="error" sx={{ mb: 4 }}>
-          <Box sx={{ typography: 'subtitle2' }}>Error al cargar vencimientos:</Box>
-          <Box sx={{ typography: 'body2' }}>{subLoansError}</Box>
-        </Alert>
-      )}
+        {/* Mobile: "Ver Más" button */}
+        {isMobile && (
+          <Grid size={{ xs: 12 }}>
+            <Box sx={{
+              display: 'flex',
+              justifyContent: 'center',
+              mt: 1,
+              mb: 1
+            }}>
+              <Button
+                variant={showAllCharts ? 'outlined' : 'contained'}
+                onClick={() => setShowAllCharts(!showAllCharts)}
+                startIcon={showAllCharts ? <ExpandLess /> : <ExpandMore />}
+                fullWidth
+                sx={{ maxWidth: 400 }}
+              >
+                {showAllCharts ? 'Ocultar Estadísticas' : 'Ver Más Estadísticas'}
+              </Button>
+            </Box>
+          </Grid>
+        )}
 
-      {/* Acceso Rápido a Cobros */}
-      {dueToday > 0 && (
-        <Paper sx={{ p: 3, mb: 4, bgcolor: 'warning.light' }}>
-          <Box sx={{ typography: 'h6', mb: 1 }}>
-            ⚠️ Tienes {dueToday} pagos que vencen hoy
-          </Box>
-          <Box sx={{ typography: 'body2', mb: 2 }}>
-            {overdueCount > 0 && `${overdueCount} están vencidos y requieren atención inmediata.`}
-          </Box>
-          <Button 
-            variant="contained" 
-            color="warning"
-            onClick={() => router.push('/dashboard/prestamista/cobros')}
-          >
-            Ir a Gestión de Cobros
-          </Button>
-        </Paper>
-      )}
+        {/* Desktop or Mobile with showAllCharts: ClientsEvolution and LoansEvolution */}
+        {(!isMobile || showAllCharts) && (
+          <>
+            <Grid size={{ xs: 12, lg: 6 }}>
+              <ClientsEvolutionChart
+                data={chartData.clientsEvolution}
+                isLoading={isLoading}
+              />
+            </Grid>
+            <Grid size={{ xs: 12, lg: 6 }}>
+              <LoansEvolutionChart
+                data={chartData.loansEvolution}
+                isLoading={isLoading}
+              />
+            </Grid>
+          </>
+        )}
 
-      {/* Simulator */}
-      <Paper sx={{ p: 3 }}>
-        <Box sx={{ typography: 'h6', mb: 2 }}>
-          Simulador de Préstamos
-        </Box>
-        <StandaloneLoanSimulator />
-      </Paper>
+        {/* Desktop: PaymentsDistribution last */}
+        {!isMobile && (
+          <Grid size={{ xs: 12 }}>
+            <PaymentsDistributionChart
+              data={chartData.paymentsDistribution}
+              isLoading={isLoading}
+            />
+          </Grid>
+        )}
+      </Grid>
     </Box>
   )
 }

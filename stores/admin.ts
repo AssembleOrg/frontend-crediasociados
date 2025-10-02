@@ -3,6 +3,8 @@
 import { create } from 'zustand'
 import { immer } from 'zustand/middleware/immer'
 import { persist } from 'zustand/middleware'
+import { DateTime } from 'luxon'
+import { ensureLuxonConfigured } from '@/lib/luxon-config'
 import type { AdminReportData } from '@/services/reports.service'
 import type { ClientChartDataDto, LoanChartDataDto } from '@/services/manager.service'
 
@@ -29,7 +31,6 @@ interface ManagerData {
 }
 
 interface DetailedSubadminData extends BasicSubadminData {
-  totalAmount: number
   totalClients: number
   totalLoans: number
   managers: ManagerData[]
@@ -39,11 +40,6 @@ interface ProcessedChartData {
   managersPerSubadmin: Array<{
     name: string
     value: number
-    subadminId: string
-  }>
-  amountPerSubadmin: Array<{
-    name: string
-    amount: number
     subadminId: string
   }>
   clientsEvolution: Array<{
@@ -77,50 +73,47 @@ interface AdminStore {
   setDateRange: (range: DateRange) => void
   setSelectedSubadmin: (id: string | null) => void
 
-  // Simple calculations only (Layer 3 - "dumb" store)
   isBasicDataFresh: () => boolean
   isDetailedDataFresh: () => boolean
   hasDetailedData: () => boolean
-  getAggregatedTotals: () => { totalClients: number; totalAmount: number; totalLoans: number }
+  getAggregatedTotals: () => { totalClients: number; totalLoans: number }
   getSubadminOptions: () => Array<{ id: string; name: string }>
 
-  // Clear methods
   clearAllData: () => void
   clearDetailedData: () => void
 
-  // Invalidation methods
   invalidateCache: () => void
 }
 
 const getDateRangeForFilter = (filter: TimeFilter): DateRange => {
-  const now = new Date()
-  const to = new Date(now)
+  // Ensure Luxon is configured (lazy loaded)
+  ensureLuxonConfigured()
+
+  const now = DateTime.now()
+  const to = now.toJSDate()
 
   switch (filter) {
     case 'week':
-      const from = new Date(now)
-      from.setDate(from.getDate() - 7)
+      const from = now.minus({ days: 7 }).toJSDate()
       return { from, to }
 
     case 'month':
-      const monthFrom = new Date(now)
-      monthFrom.setMonth(monthFrom.getMonth() - 1)
+      const monthFrom = now.minus({ months: 1 }).toJSDate()
       return { from: monthFrom, to }
 
     case 'quarter':
-      const quarterFrom = new Date(now)
-      quarterFrom.setMonth(quarterFrom.getMonth() - 3)
+      const quarterFrom = now.minus({ months: 3 }).toJSDate()
       return { from: quarterFrom, to }
 
     default:
-      return { from: new Date(now.getFullYear(), 0, 1), to }
+      const yearStart = now.startOf('year').toJSDate()
+      return { from: yearStart, to }
   }
 }
 
 export const useAdminStore = create<AdminStore>()(
   persist(
     immer((set, get) => ({
-      // Initial state
       reports: null,
       basicData: [],
       detailedData: [],
@@ -130,7 +123,6 @@ export const useAdminStore = create<AdminStore>()(
       dateRange: getDateRangeForFilter('month'),
       selectedSubadmin: null,
 
-      // Simple synchronous setters
       setReports: (reports) => {
         set((state) => {
           state.reports = reports
@@ -184,7 +176,6 @@ export const useAdminStore = create<AdminStore>()(
         })
       },
 
-      // Centralized calculations
       isBasicDataFresh: () => {
         const lastFetch = get().lastFetch
         if (!lastFetch) return false
@@ -207,12 +198,11 @@ export const useAdminStore = create<AdminStore>()(
         const { detailedData } = get()
 
         if (detailedData.length === 0) {
-          return { totalClients: 0, totalAmount: 0, totalLoans: 0 }
+          return { totalClients: 0, totalLoans: 0 }
         }
 
         return {
           totalClients: detailedData.reduce((sum, subadmin) => sum + (subadmin.totalClients || 0), 0),
-          totalAmount: detailedData.reduce((sum, subadmin) => sum + (subadmin.totalAmount || 0), 0),
           totalLoans: detailedData.reduce((sum, subadmin) => sum + (subadmin.totalLoans || 0), 0)
         }
       },
@@ -227,8 +217,6 @@ export const useAdminStore = create<AdminStore>()(
         }))
       },
 
-
-      // Clear methods
       clearAllData: () => {
         set((state) => {
           state.reports = null
@@ -246,19 +234,43 @@ export const useAdminStore = create<AdminStore>()(
         })
       },
 
-      // Cache invalidation method - provider will detect and refetch
       invalidateCache: () => {
         set((state) => {
           state.lastFetch = null
           state.lastDetailedFetch = null
-          // Keep data but invalidate timestamps - provider will refetch
         })
       },
     })),
     {
       name: 'admin-session-storage',
+      storage: {
+        getItem: (name) => {
+          if (typeof window === 'undefined') return null
+          const str = sessionStorage.getItem(name)
+          if (!str) return null
+          const { state } = JSON.parse(str)
+          if (state.dateRange) {
+            state.dateRange.from = new Date(state.dateRange.from)
+            state.dateRange.to = new Date(state.dateRange.to)
+          }
+          if (state.lastFetch) {
+            state.lastFetch = new Date(state.lastFetch)
+          }
+          if (state.lastDetailedFetch) {
+            state.lastDetailedFetch = new Date(state.lastDetailedFetch)
+          }
+          return { state }
+        },
+        setItem: (name, value) => {
+          if (typeof window === 'undefined') return
+          sessionStorage.setItem(name, JSON.stringify(value))
+        },
+        removeItem: (name) => {
+          if (typeof window === 'undefined') return
+          sessionStorage.removeItem(name)
+        },
+      },
       partialize: (state) => ({
-        // Persist critical session data
         reports: state.reports,
         basicData: state.basicData,
         detailedData: state.detailedData,
@@ -268,11 +280,9 @@ export const useAdminStore = create<AdminStore>()(
         dateRange: state.dateRange,
         selectedSubadmin: state.selectedSubadmin,
       }),
-      // Handle hydration gracefully
       onRehydrateStorage: () => (state, error) => {
         if (error) {
           console.error('Failed to rehydrate admin store:', error)
-          // Reset to safe defaults on error
           state?.clearAllData()
         }
       },

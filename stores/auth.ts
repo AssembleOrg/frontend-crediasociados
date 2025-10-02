@@ -12,13 +12,7 @@ const cookieStorage = {
   },
   setItem: (key: string, value: string): void => {
     if (typeof window === 'undefined') return;
-    console.log('🍪 Cookie Storage - Setting cookie:', key, 'value length:', value.length);
-    // Set cookie with appropriate flags for Next.js middleware
     document.cookie = `${key}=${encodeURIComponent(value)}; path=/; max-age=86400; SameSite=Lax`;
-    
-    // Verify the cookie was set
-    const verification = document.cookie.split(';').find(c => c.trim().startsWith(`${key}=`));
-    console.log('🍪 Cookie Storage - Cookie set verification:', !!verification);
   },
   removeItem: (key: string): void => {
     if (typeof window === 'undefined') return;
@@ -62,12 +56,10 @@ export const useAuthStore = create<AuthStore>()(
         set({ isAuthenticated })
       },
 
-      // Complete authentication setup
       clearAuth: () => {
-        console.log('🔄 Auth Store - Clearing auth state');
-        set({ 
-          user: null, 
-          token: null, 
+        set({
+          user: null,
+          token: null,
           refreshToken: null,
           isAuthenticated: false
         })
@@ -98,9 +90,7 @@ export const useAuthStore = create<AuthStore>()(
       skipHydration: false,
       onRehydrateStorage: () => (state, error) => {
         if (error) {
-          console.error('🔄 Zustand rehydration error:', error);
-        } else {
-          console.log('🔄 Zustand rehydrated state:', state);
+          console.error('Zustand rehydration error:', error);
         }
       },
     }

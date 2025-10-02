@@ -2,6 +2,8 @@
 
 import { useState, useCallback, useEffect } from 'react';
 import { useClientsStore } from '@/stores/clients';
+import { useAdminStore } from '@/stores/admin';
+import { useSubadminStore } from '@/stores/subadmin';
 import { useAuth } from '@/hooks/useAuth';
 import { clientsService } from '@/services/clients.service';
 import {
@@ -27,7 +29,19 @@ import type {
  */
 export const useClients = () => {
   const clientsStore = useClientsStore();
+  const adminStore = useAdminStore();
+  const subadminStore = useSubadminStore();
   const { user: currentUser } = useAuth();
+
+  // Safely access SubLoansProvider context (may not be available in all routes)
+  let refreshData: () => Promise<void>;
+  try {
+    const { useSubLoansProviderContext } = require('@/components/providers/SubLoansProvider');
+    const context = useSubLoansProviderContext();
+    refreshData = context.refreshData;
+  } catch {
+    refreshData = async () => {};
+  }
 
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -92,6 +106,11 @@ export const useClients = () => {
           clientsStore.addClient(newClient);
         }
 
+        // Invalidate related caches to ensure other views refresh
+        adminStore.invalidateCache();
+        subadminStore.invalidateCache();
+        await refreshData();
+
         return true;
       } catch (err) {
         const apiError = err as ApiError;
@@ -122,6 +141,11 @@ export const useClients = () => {
         // Update the store
         clientsStore.updateClient(updatedClient);
 
+        // Invalidate related caches to ensure other views refresh
+        adminStore.invalidateCache();
+        subadminStore.invalidateCache();
+        await refreshData();
+
         return true;
       } catch (err) {
         const apiError = err as ApiError;
@@ -144,6 +168,11 @@ export const useClients = () => {
 
       // Update the store
       clientsStore.removeClient(id);
+
+      // Invalidate related caches to ensure other views refresh
+      adminStore.invalidateCache();
+      subadminStore.invalidateCache();
+      await refreshData();
 
       return true;
     } catch (err) {

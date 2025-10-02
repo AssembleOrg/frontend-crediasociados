@@ -1,6 +1,5 @@
 'use client'
 
-import { memo } from 'react'
 import {
   Table,
   TableBody,
@@ -13,36 +12,23 @@ import {
   Box,
   Card,
   CardContent,
-  Chip,
   Avatar
 } from '@mui/material'
-import { Person, AccountBalance, Schedule } from '@mui/icons-material'
-import { formatAmount } from '@/lib/formatters'
+import { Person, AccountBalance } from '@mui/icons-material'
 import type { ManagerAnalytics } from '@/services/analytics.service'
 
-interface ManagerStatsTableProps {
+interface AdminManagerStatsTableProps {
   managers: ManagerAnalytics[]
   isLoading?: boolean
 }
 
-const ManagerStatsTable = memo(function ManagerStatsTable({ managers, isLoading = false }: ManagerStatsTableProps) {
-  const getCollectionRateColor = (rate: number) => {
-    if (rate >= 90) return 'success'
-    if (rate >= 70) return 'warning'
-    return 'error'
-  }
-
-  const getCollectionRateLabel = (rate: number) => {
-    if (rate >= 90) return 'Excelente'
-    if (rate >= 70) return 'Bueno'
-    return 'Necesita atención'
-  }
+export default function AdminManagerStatsTable({ managers, isLoading = false }: AdminManagerStatsTableProps) {
 
   if (isLoading) {
     return (
       <Paper sx={{ p: 3 }}>
         <Typography variant="h6" gutterBottom>
-          Cargando datos de managers...
+          Cargando datos de prestamistas...
         </Typography>
       </Paper>
     )
@@ -53,10 +39,10 @@ const ManagerStatsTable = memo(function ManagerStatsTable({ managers, isLoading 
       <Paper sx={{ p: 3, textAlign: 'center' }}>
         <Person sx={{ fontSize: 48, color: 'text.secondary', mb: 2 }} />
         <Typography variant="h6" color="text.secondary" gutterBottom>
-          No hay managers registrados
+          No hay prestamistas registrados
         </Typography>
         <Typography variant="body2" color="text.secondary">
-          Los managers que crees aparecerán aquí con sus métricas.
+          Los prestamistas que se creen aparecerán aquí con métricas operativas.
         </Typography>
       </Paper>
     )
@@ -70,12 +56,9 @@ const ManagerStatsTable = memo(function ManagerStatsTable({ managers, isLoading 
           <Table>
             <TableHead>
               <TableRow>
-                <TableCell>Manager</TableCell>
+                <TableCell>Prestamista</TableCell>
                 <TableCell align="center">Clientes</TableCell>
                 <TableCell align="center">Préstamos</TableCell>
-                <TableCell align="right">Dinero Prestado</TableCell>
-                <TableCell align="right">Por Cobrar</TableCell>
-                <TableCell align="center">Cobros</TableCell>
                 <TableCell align="center">Desde</TableCell>
               </TableRow>
             </TableHead>
@@ -113,28 +96,6 @@ const ManagerStatsTable = memo(function ManagerStatsTable({ managers, isLoading 
                       </Typography>
                     </Box>
                   </TableCell>
-                  <TableCell align="right">
-                    <Typography variant="body2" fontWeight={600} color="primary.main">
-                      ${formatAmount(manager.totalAmountLent.toString())}
-                    </Typography>
-                  </TableCell>
-                  <TableCell align="right">
-                    <Typography
-                      variant="body2"
-                      fontWeight={600}
-                      color={manager.totalAmountPending > 0 ? 'warning.main' : 'text.secondary'}
-                    >
-                      ${formatAmount(manager.totalAmountPending.toString())}
-                    </Typography>
-                  </TableCell>
-                  <TableCell align="center">
-                    <Chip
-                      label={`${manager.collectionRate.toFixed(0)}% - ${getCollectionRateLabel(manager.collectionRate)}`}
-                      color={getCollectionRateColor(manager.collectionRate)}
-                      size="small"
-                      variant="outlined"
-                    />
-                  </TableCell>
                   <TableCell align="center">
                     <Typography variant="caption" color="text.secondary">
                       {new Date(manager.createdAt).toLocaleDateString('es-AR')}
@@ -165,66 +126,33 @@ const ManagerStatsTable = memo(function ManagerStatsTable({ managers, isLoading 
                       {manager.managerEmail}
                     </Typography>
                   </Box>
-                  <Chip
-                    label={`${manager.collectionRate.toFixed(0)}%`}
-                    color={getCollectionRateColor(manager.collectionRate)}
-                    size="small"
-                  />
                 </Box>
 
                 <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2 }}>
                   <Box>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.5 }}>
-                      <Person sx={{ fontSize: 16, color: 'text.secondary' }} />
-                      <Typography variant="caption" color="text.secondary">
-                        Clientes
-                      </Typography>
-                    </Box>
+                    <Typography variant="caption" color="text.secondary" gutterBottom display="block">
+                      Clientes
+                    </Typography>
                     <Typography variant="h6" fontWeight={600}>
                       {manager.totalClients}
                     </Typography>
                   </Box>
 
                   <Box>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.5 }}>
-                      <AccountBalance sx={{ fontSize: 16, color: 'text.secondary' }} />
-                      <Typography variant="caption" color="text.secondary">
-                        Préstamos
-                      </Typography>
-                    </Box>
+                    <Typography variant="caption" color="text.secondary" gutterBottom display="block">
+                      Préstamos
+                    </Typography>
                     <Typography variant="h6" fontWeight={600}>
                       {manager.totalLoans}
                     </Typography>
                   </Box>
 
                   <Box>
-                    <Typography variant="caption" color="text.secondary">
-                      Dinero Prestado
+                    <Typography variant="caption" color="text.secondary" gutterBottom display="block">
+                      Desde
                     </Typography>
-                    <Typography variant="body2" fontWeight={600} color="primary.main">
-                      ${formatAmount(manager.totalAmountLent.toString())}
-                    </Typography>
-                  </Box>
-
-                  <Box>
-                    <Typography variant="caption" color="text.secondary">
-                      Por Cobrar
-                    </Typography>
-                    <Typography
-                      variant="body2"
-                      fontWeight={600}
-                      color={manager.totalAmountPending > 0 ? 'warning.main' : 'text.secondary'}
-                    >
-                      ${formatAmount(manager.totalAmountPending.toString())}
-                    </Typography>
-                  </Box>
-                </Box>
-
-                <Box sx={{ mt: 2, pt: 2, borderTop: 1, borderColor: 'divider' }}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                    <Schedule sx={{ fontSize: 16, color: 'text.secondary' }} />
-                    <Typography variant="caption" color="text.secondary">
-                      Manager desde {new Date(manager.createdAt).toLocaleDateString('es-AR')}
+                    <Typography variant="body2" fontWeight={600}>
+                      {new Date(manager.createdAt).toLocaleDateString('es-AR')}
                     </Typography>
                   </Box>
                 </Box>
@@ -235,6 +163,4 @@ const ManagerStatsTable = memo(function ManagerStatsTable({ managers, isLoading 
       </Box>
     </>
   )
-})
-
-export default ManagerStatsTable
+}

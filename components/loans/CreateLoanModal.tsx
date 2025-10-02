@@ -165,20 +165,25 @@ export function CreateLoanModal({
     const amount = parseFloat(unformatAmount(formData.amount))
     const baseRate = parseFloat(formData.baseInterestRate) / 100 // Convertir porcentaje a decimal
     const totalPayments = parseInt(formData.totalPayments)
-    
+
     if (!amount || !totalPayments || isNaN(baseRate)) {
       return []
     }
 
     const totalAmountWithInterest = amount * (1 + baseRate)
     const amountPerPayment = totalAmountWithInterest / totalPayments
-    
+    const principalPerPayment = amount / totalPayments
+
     const subLoans: SubLoan[] = []
     const startDate = formData.firstDueDate || automaticDate
-    
+
+    // Track accumulated amounts for precision correction
+    let accumulatedTotal = 0
+    let accumulatedPrincipal = 0
+
     for (let i = 1; i <= totalPayments; i++) {
       let dueDate: Date
-      
+
       // Calcular fecha según frecuencia
       switch (formData.paymentFrequency) {
         case 'DAILY':
@@ -201,10 +206,26 @@ export function CreateLoanModal({
           dueDate = new Date(startDate)
       }
 
+      // For the last payment, calculate remainder to avoid floating-point accumulation errors
+      let paymentTotal: number
+      let paymentPrincipal: number
+
+      if (i === totalPayments) {
+        // Last payment = remaining amount to ensure exact total
+        paymentTotal = totalAmountWithInterest - accumulatedTotal
+        paymentPrincipal = amount - accumulatedPrincipal
+      } else {
+        // Regular payment
+        paymentTotal = Math.round(amountPerPayment * 100) / 100 // Round to 2 decimals
+        paymentPrincipal = Math.round(principalPerPayment * 100) / 100
+        accumulatedTotal += paymentTotal
+        accumulatedPrincipal += paymentPrincipal
+      }
+
       subLoans.push({
         paymentNumber: i,
-        amount: amount / totalPayments, // Monto principal sin interés
-        totalAmount: amountPerPayment, // Monto con interés
+        amount: paymentPrincipal, // Monto principal sin interés
+        totalAmount: paymentTotal, // Monto con interés
         dueDate
       })
     }
@@ -220,12 +241,8 @@ export function CreateLoanModal({
     setIsSimulating(true)
     const calculated = calculateSubLoans()
     setSimulatedLoans(calculated)
-    
-    // Abrir modal de simulación
-    setTimeout(() => {
-      setSimulationModalOpen(true)
-      setIsSimulating(false)
-    }, 500) // Pequeño delay para mejor UX
+    setSimulationModalOpen(true)
+    setIsSimulating(false)
   }
 
   const handleSimulationModalClose = () => {

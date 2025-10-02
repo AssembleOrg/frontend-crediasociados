@@ -8,29 +8,29 @@ import {
   ButtonGroup,
   TextField,
   Typography,
+  Divider,
+  Chip,
   FormControl,
   InputLabel,
   Select,
-  MenuItem,
-  Divider,
-  Chip
+  MenuItem
 } from '@mui/material'
-import { FileDownload, FilterList, Clear, PictureAsPdf } from '@mui/icons-material'
+import { FileDownload, FilterList, PictureAsPdf, Clear } from '@mui/icons-material'
 import { DateTime } from 'luxon'
 import { ensureLuxonConfigured } from '@/lib/luxon-config'
-import type { TimeFilter } from '@/hooks/useOptimizedAdminDashboard'
+import type { TimeFilter } from '@/stores/subadmin'
 
-interface AdminFiltersAndExportProps {
+interface SubadminFiltersAndExportProps {
   // Time filters
   currentFilter: TimeFilter
   dateRange: { from: Date; to: Date }
   onFilterChange: (filter: TimeFilter) => void
   onCustomDateChange: (dateRange: { from: Date; to: Date }) => void
 
-  // Subadmin filter
-  selectedSubadmin: string | null
-  subadminOptions: Array<{ id: string; name: string }>
-  onSubadminChange: (subadminId: string | null) => void
+  // Manager filter
+  selectedManager: string | null
+  managerOptions: Array<{ id: string; name: string }>
+  onManagerChange: (managerId: string | null) => void
 
   // Actions
   onExportExcel: () => void
@@ -39,7 +39,6 @@ interface AdminFiltersAndExportProps {
   // State
   isLoading?: boolean
   dataCount?: {
-    totalSubadmins: number
     totalManagers: number
     totalClients: number
   }
@@ -52,19 +51,19 @@ const FILTER_LABELS = {
   custom: 'Personalizado'
 }
 
-const AdminFiltersAndExport = memo(function AdminFiltersAndExport({
+const SubadminFiltersAndExport = memo(function SubadminFiltersAndExport({
   currentFilter,
   dateRange,
   onFilterChange,
   onCustomDateChange,
-  selectedSubadmin,
-  subadminOptions,
-  onSubadminChange,
+  selectedManager,
+  managerOptions,
+  onManagerChange,
   onExportExcel,
   onExportPdf,
   isLoading = false,
   dataCount
-}: AdminFiltersAndExportProps) {
+}: SubadminFiltersAndExportProps) {
   // Ensure Luxon is configured (lazy loaded)
   ensureLuxonConfigured()
 
@@ -92,10 +91,6 @@ const AdminFiltersAndExport = memo(function AdminFiltersAndExport({
     onCustomDateChange({ from: fromDt.toJSDate(), to: toDt.toJSDate() })
   }
 
-  const clearSubadminFilter = () => {
-    onSubadminChange(null)
-  }
-
   const formatDateRange = () => {
     const fromDt = DateTime.fromJSDate(dateRange.from)
     const toDt = DateTime.fromJSDate(dateRange.to)
@@ -109,9 +104,13 @@ const AdminFiltersAndExport = memo(function AdminFiltersAndExport({
     return `${from} - ${to}`
   }
 
-  const getSelectedSubadminName = () => {
-    const subadmin = subadminOptions.find(s => s.id === selectedSubadmin)
-    return subadmin?.name || ''
+  const clearManagerFilter = () => {
+    onManagerChange(null)
+  }
+
+  const getSelectedManagerName = () => {
+    const manager = managerOptions.find(m => m.id === selectedManager)
+    return manager?.name || ''
   }
 
   return (
@@ -133,7 +132,7 @@ const AdminFiltersAndExport = memo(function AdminFiltersAndExport({
             ml: { md: 'auto' }
           }}>
             <Chip
-              label={`${dataCount.totalSubadmins} sub-admins | ${dataCount.totalManagers} managers | ${dataCount.totalClients} clientes`}
+              label={`${dataCount.totalManagers} managers | ${dataCount.totalClients} clientes`}
               size="small"
               color="primary"
               variant="outlined"
@@ -239,34 +238,34 @@ const AdminFiltersAndExport = memo(function AdminFiltersAndExport({
 
         <Divider orientation="vertical" flexItem sx={{ display: { xs: 'none', lg: 'block' } }} />
 
-        {/* Subadmin Filter */}
+        {/* Manager Filter */}
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, minWidth: 200 }}>
           <Typography variant="subtitle2" color="text.secondary">
-            Filtrar por Sub-Admin
+            Filtrar por Manager
           </Typography>
           <Box sx={{ display: 'flex', gap: 1 }}>
             <FormControl size="small" sx={{ minWidth: 200 }}>
-              <InputLabel>Sub-Admin</InputLabel>
+              <InputLabel>Manager</InputLabel>
               <Select
-                value={selectedSubadmin || ''}
-                onChange={(e) => onSubadminChange(e.target.value || null)}
-                label="Sub-Admin"
+                value={selectedManager || ''}
+                onChange={(e) => onManagerChange(e.target.value || null)}
+                label="Manager"
                 disabled={isLoading}
               >
                 <MenuItem value="">
                   <em>Todos</em>
                 </MenuItem>
-                {subadminOptions.map((subadmin) => (
-                  <MenuItem key={subadmin.id} value={subadmin.id}>
-                    {subadmin.name}
+                {managerOptions.map((manager) => (
+                  <MenuItem key={manager.id} value={manager.id}>
+                    {manager.name}
                   </MenuItem>
                 ))}
               </Select>
             </FormControl>
-            {selectedSubadmin && (
+            {selectedManager && (
               <Button
                 size="small"
-                onClick={clearSubadminFilter}
+                onClick={clearManagerFilter}
                 startIcon={<Clear />}
                 disabled={isLoading}
               >
@@ -274,12 +273,12 @@ const AdminFiltersAndExport = memo(function AdminFiltersAndExport({
               </Button>
             )}
           </Box>
-          {selectedSubadmin && (
+          {selectedManager && (
             <Chip
-              label={`Filtrado: ${getSelectedSubadminName()}`}
+              label={`Filtrado: ${getSelectedManagerName()}`}
               size="small"
               color="primary"
-              onDelete={clearSubadminFilter}
+              onDelete={clearManagerFilter}
             />
           )}
         </Box>
@@ -315,8 +314,8 @@ const AdminFiltersAndExport = memo(function AdminFiltersAndExport({
             </Button>
           </Box>
           <Typography variant="caption" color="text.secondary" sx={{ textAlign: 'center' }}>
-            {selectedSubadmin
-              ? 'Solo datos del sub-admin seleccionado'
+            {selectedManager
+              ? 'Solo datos del manager seleccionado'
               : 'Todos los datos detallados'
             }
           </Typography>
@@ -326,4 +325,4 @@ const AdminFiltersAndExport = memo(function AdminFiltersAndExport({
   )
 })
 
-export default AdminFiltersAndExport
+export default SubadminFiltersAndExport

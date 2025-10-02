@@ -1,22 +1,40 @@
 'use client'
 
-import React from 'react'
-import { Box, Grid, Alert } from '@mui/material'
-import { useAdminDashboard } from '@/hooks/useAdminDashboard'
+import React, { useState } from 'react'
+import dynamic from 'next/dynamic'
+import { Box, Grid, Alert, Button, useMediaQuery } from '@mui/material'
+import { ExpandMore, ExpandLess } from '@mui/icons-material'
+import { useAdminDashboardData } from '@/hooks/useAdminDashboardData'
 import PageHeader from '@/components/ui/PageHeader'
-import ManagersPerSubadminChart from '@/components/charts/ManagersPerSubadminChart'
-import AmountPerSubadminChart from '@/components/charts/AmountPerSubadminChart'
-import ClientsEvolutionChart from '@/components/charts/ClientsEvolutionChart'
+import { ChartSkeleton, BarChartSkeleton } from '@/components/ui/ChartSkeleton'
+
+// Lazy load charts to reduce initial bundle size
+const ManagersPerSubadminChart = dynamic(
+  () => import('@/components/charts/ManagersPerSubadminChart'),
+  {
+    ssr: false,
+    loading: () => <ChartSkeleton title="Managers por Sub-Administrador" />
+  }
+)
+
+const ClientsEvolutionChart = dynamic(
+  () => import('@/components/charts/ClientsEvolutionChart'),
+  {
+    ssr: false,
+    loading: () => <BarChartSkeleton title="Clientes Nuevos por Semana" />
+  }
+)
 
 export default function AdminDashboard() {
   const {
     chartData,
-    isBasicLoading,
-    isDetailedLoading,
+    isLoading,
     error
-  } = useAdminDashboard()
+  } = useAdminDashboardData()
 
-  const isLoading = isBasicLoading || isDetailedLoading
+  // Responsive logic for mobile
+  const isMobile = useMediaQuery('(max-width:600px)')
+  const [showAllCharts, setShowAllCharts] = useState(false)
 
   if (error) {
     return (
@@ -41,30 +59,59 @@ export default function AdminDashboard() {
       />
 
 
-      {/* Main Charts Row 1 - Larger charts for desktop */}
-      <Grid container spacing={4} sx={{ mb: 4 }}>
-        <Grid size={{ xs: 12, lg: 6 }}>
-          <ManagersPerSubadminChart
-            data={chartData.managersPerSubadmin}
-            isLoading={isLoading}
-          />
-        </Grid>
-        <Grid size={{ xs: 12, lg: 6 }}>
-          <AmountPerSubadminChart
-            data={chartData.amountPerSubadmin}
-            isLoading={isLoading}
-          />
-        </Grid>
-      </Grid>
-
-      {/* Main Charts Row 2 - Full width evolution chart */}
+      {/* Main Charts - Responsive Grid */}
       <Grid container spacing={4}>
-        <Grid size={12}>
-          <ClientsEvolutionChart
-            data={chartData.clientsEvolution}
-            isLoading={isLoading}
-          />
-        </Grid>
+        {/* Mobile: ManagersPerSubadmin first (always visible) */}
+        {isMobile && (
+          <Grid size={{ xs: 12 }}>
+            <ManagersPerSubadminChart
+              data={chartData.managersPerSubadmin}
+              isLoading={isLoading}
+            />
+          </Grid>
+        )}
+
+        {/* Mobile: "Ver Más" button */}
+        {isMobile && (
+          <Grid size={{ xs: 12 }}>
+            <Box sx={{
+              display: 'flex',
+              justifyContent: 'center',
+              mt: 1,
+              mb: 1
+            }}>
+              <Button
+                variant={showAllCharts ? 'outlined' : 'contained'}
+                onClick={() => setShowAllCharts(!showAllCharts)}
+                startIcon={showAllCharts ? <ExpandLess /> : <ExpandMore />}
+                fullWidth
+                sx={{ maxWidth: 400 }}
+              >
+                {showAllCharts ? 'Ocultar Estadísticas' : 'Ver Más Estadísticas'}
+              </Button>
+            </Box>
+          </Grid>
+        )}
+
+        {/* Desktop or Mobile with showAllCharts */}
+        {(!isMobile || showAllCharts) && (
+          <>
+            {!isMobile && (
+              <Grid size={{ xs: 12, lg: 6 }}>
+                <ManagersPerSubadminChart
+                  data={chartData.managersPerSubadmin}
+                  isLoading={isLoading}
+                />
+              </Grid>
+            )}
+            <Grid size={{ xs: 12, lg: 6 }}>
+              <ClientsEvolutionChart
+                data={chartData.clientsEvolution}
+                isLoading={isLoading}
+              />
+            </Grid>
+          </>
+        )}
       </Grid>
     </Box>
   )

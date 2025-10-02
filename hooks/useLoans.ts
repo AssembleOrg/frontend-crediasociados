@@ -1,5 +1,7 @@
 import { useCallback, useEffect } from 'react'
 import { useLoansStore } from '@/stores/loans'
+import { useAdminStore } from '@/stores/admin'
+import { useSubadminStore } from '@/stores/subadmin'
 import { useAuth } from '@/hooks/useAuth'
 import { useSubLoansProviderContext } from '@/components/providers/SubLoansProvider'
 import { loansService } from '@/services/loans.service'
@@ -17,6 +19,9 @@ import type { Loan, PaginationParams, CreateLoanDto } from '@/types/auth'
  */
 export function useLoans() {
   const { user: currentUser } = useAuth()
+  const adminStore = useAdminStore()
+  const subadminStore = useSubadminStore()
+
   // Make SubLoansProvider context optional for admin users
   const subLoansContext = (() => {
     try {
@@ -104,13 +109,17 @@ export function useLoans() {
       // const createDto = loanToCreateDto(loanData)
       const apiLoan = await loansService.createLoan(loanData)
       const newLoan = apiLoanToLoan(apiLoan)
-      
+
       addLoan(newLoan)
-      
+
+      // Invalidate related caches to ensure other views refresh
+      adminStore.invalidateCache()
+      subadminStore.invalidateCache()
+
       // ✅ ARCHITECTURAL FIX: Trigger provider refresh to update all related data
       // Following "Layout Provides, Pages Consume" - provider is single source of truth
       await refreshData()
-      
+
       return newLoan
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Error desconocido'
@@ -128,7 +137,12 @@ export function useLoans() {
 
       await loansService.deleteLoan(id)
       removeLoan(id)
-      
+
+      // Invalidate related caches to ensure other views refresh
+      adminStore.invalidateCache()
+      subadminStore.invalidateCache()
+      await refreshData()
+
       return true
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Error desconocido'
@@ -137,7 +151,7 @@ export function useLoans() {
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [refreshData])
 
   return {
     loans,

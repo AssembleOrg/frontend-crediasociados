@@ -1,6 +1,7 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
+import dynamic from 'next/dynamic'
 import { useSubLoans } from '@/hooks/useSubLoans'
 import {
   Box,
@@ -12,7 +13,6 @@ import {
 import { Payment } from '@mui/icons-material'
 
 import type { SubLoanWithClientInfo } from '@/services/subloans-lookup.service'
-import PaymentModal from '@/components/loans/PaymentModal'
 import { CobrosFilterPanel } from '@/components/filters/CobrosFilterPanel'
 import { useCobrosFilters } from '@/hooks/useCobrosFilters'
 
@@ -21,9 +21,12 @@ import CobrosHeader from '@/components/cobros/CobrosHeader'
 import StatsCards from '@/components/cobros/StatsCards'
 import UrgencyLegend from '@/components/cobros/UrgencyLegend'
 import ClientSummaryCard from '@/components/cobros/ClientSummaryCard'
-import EditPaymentModal from '@/components/cobros/modals/EditPaymentModal'
-import OverduePaymentsModal from '@/components/cobros/modals/OverduePaymentsModal'
-import ClientTimelineModal from '@/components/cobros/modals/ClientTimelineModal'
+
+// Lazy load heavy modals (only load when needed)
+const PaymentModal = dynamic(() => import('@/components/loans/PaymentModal'), { ssr: false })
+const EditPaymentModal = dynamic(() => import('@/components/cobros/modals/EditPaymentModal'), { ssr: false })
+const OverduePaymentsModal = dynamic(() => import('@/components/cobros/modals/OverduePaymentsModal'), { ssr: false })
+const ClientTimelineModal = dynamic(() => import('@/components/cobros/modals/ClientTimelineModal'), { ssr: false })
 
 // Extracted utilities
 import { getUrgencyLevel } from '@/lib/cobros/urgencyHelpers'
@@ -97,11 +100,21 @@ export default function CobrosPage() {
     setPage(0)
   }
 
-  // Use filtered data when filters are active
-  const displayClientsSummary = hasActiveFilters ? filteredClientsSummary : getClientsSummary(allSubLoansWithClient)
-  const paginatedClients = displayClientsSummary.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
+  // Use filtered data when filters are active (memoized)
+  const displayClientsSummary = useMemo(() =>
+    hasActiveFilters ? filteredClientsSummary : getClientsSummary(allSubLoansWithClient),
+    [hasActiveFilters, filteredClientsSummary, allSubLoansWithClient]
+  )
 
-  const overduePayments = allSubLoansWithClient.filter(p => getUrgencyLevel(p.dueDate) === 'overdue')
+  const paginatedClients = useMemo(() =>
+    displayClientsSummary.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage),
+    [displayClientsSummary, page, rowsPerPage]
+  )
+
+  const overduePayments = useMemo(() =>
+    allSubLoansWithClient.filter(p => getUrgencyLevel(p.dueDate) === 'overdue'),
+    [allSubLoansWithClient]
+  )
 
   // DEBUG: Log agrupación de cobros para analizar múltiples préstamos
   console.log('🔍 [DEBUG] Cobros - allSubLoansWithClient raw data:', {
@@ -122,8 +135,11 @@ export default function CobrosPage() {
     }))
   })
 
-  // Use filtered stats when filters are active, otherwise use all data
-  const displayStats = hasActiveFilters ? filterStats : getStatusStats(allSubLoansWithClient)
+  // Use filtered stats when filters are active, otherwise use all data (memoized)
+  const displayStats = useMemo(() =>
+    hasActiveFilters ? filterStats : getStatusStats(allSubLoansWithClient),
+    [hasActiveFilters, filterStats, allSubLoansWithClient]
+  )
 
   // Event handlers
   const handleViewClientDetails = (clientSummary: ClientSummary) => {
@@ -178,7 +194,7 @@ export default function CobrosPage() {
   }
 
   return (
-    <Box sx={{ p: { xs: 2, sm: 3 } }}>
+    <Box sx={{ p: { xs: 2, sm: 3 }, minHeight: '100vh' }}>
       {/* Header */}
       <CobrosHeader
         overduePayments={overduePayments}

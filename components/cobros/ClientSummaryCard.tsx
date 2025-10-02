@@ -1,5 +1,6 @@
 'use client'
 
+import { memo } from 'react'
 import { Box, Card, CardContent, Typography, Chip, Button } from '@mui/material'
 import type { ClientSummary } from '@/lib/cobros/clientSummaryHelpers'
 import { getUrgencyColor } from '@/lib/cobros/urgencyHelpers'
@@ -11,7 +12,7 @@ interface ClientSummaryCardProps {
   onToggleNotification: () => void
 }
 
-export default function ClientSummaryCard({ 
+const ClientSummaryCard = memo(function ClientSummaryCard({ 
   client, 
   isNotified, 
   onViewDetails, 
@@ -247,4 +248,6 @@ export default function ClientSummaryCard({
       </CardContent>
     </Card>
   )
-}
+})
+
+export default ClientSummaryCard

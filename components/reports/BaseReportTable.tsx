@@ -1,6 +1,6 @@
 'use client'
 
-import React from 'react'
+import React, { memo } from 'react'
 import {
   Table,
   TableBody,
@@ -25,6 +25,8 @@ interface BaseReportTableProps {
   userTypeLabel: string // "Subadmin" or "Prestamista"
   isLoading?: boolean
   emptyMessage?: string
+  hideAmounts?: boolean
+  showManagers?: boolean // For admin view: show managers count instead of just clients
 }
 
 /**
@@ -32,11 +34,13 @@ interface BaseReportTableProps {
  * Responsive table for displaying user report data
  * Shows table on desktop, cards on mobile
  */
-export default function BaseReportTable({
+const BaseReportTable = memo(function BaseReportTable({
   users,
   userTypeLabel,
   isLoading = false,
-  emptyMessage = `No hay ${userTypeLabel.toLowerCase()}s para mostrar`
+  emptyMessage = `No hay ${userTypeLabel.toLowerCase()}s para mostrar`,
+  hideAmounts = false,
+  showManagers = false
 }: BaseReportTableProps) {
   const theme = useTheme()
   const isMobile = useMediaQuery(theme.breakpoints.down('md'))
@@ -94,32 +98,57 @@ export default function BaseReportTable({
               </Box>
 
               <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2, mb: 2 }}>
-                <Box>
-                  <Typography variant="caption" color="text.secondary" display="block">
-                    Clientes
-                  </Typography>
-                  <Typography variant="body1" fontWeight="bold">
-                    {user.totalClients}
-                  </Typography>
-                </Box>
-                <Box>
-                  <Typography variant="caption" color="text.secondary" display="block">
-                    Préstamos
-                  </Typography>
-                  <Typography variant="body1" fontWeight="bold">
-                    {user.totalLoans}
-                  </Typography>
-                </Box>
+                {showManagers && user.totalManagers !== undefined ? (
+                  <>
+                    <Box>
+                      <Typography variant="caption" color="text.secondary" display="block">
+                        Prestamistas
+                      </Typography>
+                      <Typography variant="body1" fontWeight="bold">
+                        {user.totalManagers}
+                      </Typography>
+                    </Box>
+                    <Box>
+                      <Typography variant="caption" color="text.secondary" display="block">
+                        Clientes
+                      </Typography>
+                      <Typography variant="body1" fontWeight="bold">
+                        {user.totalClients}
+                      </Typography>
+                    </Box>
+                  </>
+                ) : (
+                  <>
+                    <Box>
+                      <Typography variant="caption" color="text.secondary" display="block">
+                        Clientes
+                      </Typography>
+                      <Typography variant="body1" fontWeight="bold">
+                        {user.totalClients}
+                      </Typography>
+                    </Box>
+                    <Box>
+                      <Typography variant="caption" color="text.secondary" display="block">
+                        Préstamos
+                      </Typography>
+                      <Typography variant="body1" fontWeight="bold">
+                        {user.totalLoans}
+                      </Typography>
+                    </Box>
+                  </>
+                )}
               </Box>
 
-              <Box sx={{ mb: 2 }}>
-                <Typography variant="caption" color="text.secondary" display="block">
-                  Monto Prestado
-                </Typography>
-                <Typography variant="body1" fontWeight="bold" color="success.main">
-                  {formatCurrency(user.totalAmountLent)}
-                </Typography>
-              </Box>
+              {!hideAmounts && (
+                <Box sx={{ mb: 2 }}>
+                  <Typography variant="caption" color="text.secondary" display="block">
+                    Monto Prestado
+                  </Typography>
+                  <Typography variant="body1" fontWeight="bold" color="success.main">
+                    {formatCurrency(user.totalAmountLent)}
+                  </Typography>
+                </Box>
+              )}
 
               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <Box>
@@ -150,9 +179,12 @@ export default function BaseReportTable({
         <TableHead>
           <TableRow sx={{ bgcolor: 'grey.50' }}>
             <TableCell sx={{ fontWeight: 'bold' }}>{userTypeLabel}</TableCell>
+            {showManagers && (
+              <TableCell align="center" sx={{ fontWeight: 'bold' }}>Prestamistas</TableCell>
+            )}
             <TableCell align="center" sx={{ fontWeight: 'bold' }}>Clientes</TableCell>
             <TableCell align="center" sx={{ fontWeight: 'bold' }}>Préstamos</TableCell>
-            <TableCell align="right" sx={{ fontWeight: 'bold' }}>Monto Prestado</TableCell>
+            {!hideAmounts && <TableCell align="right" sx={{ fontWeight: 'bold' }}>Monto Prestado</TableCell>}
             <TableCell align="center" sx={{ fontWeight: 'bold' }}>Tasa Cobro</TableCell>
             <TableCell align="center" sx={{ fontWeight: 'bold' }}>Desde</TableCell>
           </TableRow>
@@ -176,6 +208,13 @@ export default function BaseReportTable({
                   </Typography>
                 </Box>
               </TableCell>
+              {showManagers && (
+                <TableCell align="center">
+                  <Typography variant="body2" fontWeight="bold">
+                    {user.totalManagers || 0}
+                  </Typography>
+                </TableCell>
+              )}
               <TableCell align="center">
                 <Typography variant="body2" fontWeight="bold">
                   {user.totalClients}
@@ -186,11 +225,13 @@ export default function BaseReportTable({
                   {user.totalLoans}
                 </Typography>
               </TableCell>
-              <TableCell align="right">
-                <Typography variant="body2" fontWeight="bold" color="success.main">
-                  {formatCurrency(user.totalAmountLent)}
-                </Typography>
-              </TableCell>
+              {!hideAmounts && (
+                <TableCell align="right">
+                  <Typography variant="body2" fontWeight="bold" color="success.main">
+                    {formatCurrency(user.totalAmountLent)}
+                  </Typography>
+                </TableCell>
+              )}
               <TableCell align="center">
                 <Chip
                   label={`${user.collectionRate.toFixed(1)}%`}
@@ -209,4 +250,6 @@ export default function BaseReportTable({
       </Table>
     </TableContainer>
   )
-}
+})
+
+export default BaseReportTable

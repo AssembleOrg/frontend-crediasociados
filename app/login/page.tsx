@@ -38,7 +38,7 @@ export default function LoginPage() {
     const success = await login(formData);
 
     if (success) {
-      await navigateToDashboard();
+      navigateToDashboard();
     }
   };
 

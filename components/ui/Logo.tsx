@@ -39,6 +39,7 @@ export function Logo({
         alt='Prestamito - Sistema de Gestión de Préstamos'
         fill
         priority={priority}
+        fetchPriority={priority ? 'high' : 'auto'}
         style={{
           objectFit: 'contain',
         }}

@@ -17,6 +17,7 @@ import {
   ChevronRight,
 } from '@mui/icons-material'
 import { DateTime } from 'luxon'
+import { ensureLuxonConfigured } from '@/lib/luxon-config'
 
 interface VisualCalendarProps {
   label: string
@@ -46,6 +47,9 @@ export function VisualCalendar({
   minDate,
   maxDate,
 }: VisualCalendarProps) {
+  // Ensure Luxon is configured (lazy loaded)
+  ensureLuxonConfigured()
+
   const [anchorEl, setAnchorEl] = useState<HTMLDivElement | null>(null)
   const [inputValue, setInputValue] = useState('')
   const [currentMonth, setCurrentMonth] = useState(DateTime.now().setZone('America/Argentina/Buenos_Aires'))
@@ -158,17 +162,31 @@ export function VisualCalendar({
   const generateDays = () => {
     const startOfMonth = currentMonth.startOf('month')
     const endOfMonth = currentMonth.endOf('month')
-    const startOfWeek = startOfMonth.startOf('week')
-    const endOfWeek = endOfMonth.endOf('week')
-    
+
+    // Get the weekday of first day (1 = Monday, 7 = Sunday)
+    const firstWeekday = startOfMonth.weekday
+    // Calculate days to subtract to reach Sunday (weekday 7)
+    // If Monday (1), subtract 1 day to get Sunday
+    // If Sunday (7), subtract 0 days
+    const daysToSunday = firstWeekday === 7 ? 0 : firstWeekday
+    const startOfWeek = startOfMonth.minus({ days: daysToSunday })
+
+    // Get the weekday of last day
+    const lastWeekday = endOfMonth.weekday
+    // Calculate days to add to reach Saturday (weekday 6)
+    // If Saturday (6), add 0 days
+    // If Sunday (7), add 6 days to reach next Saturday
+    const daysToSaturday = lastWeekday === 7 ? 6 : 6 - lastWeekday
+    const endOfWeek = endOfMonth.plus({ days: daysToSaturday })
+
     const days = []
     let current = startOfWeek
-    
+
     while (current <= endOfWeek) {
       days.push(current)
       current = current.plus({ days: 1 })
     }
-    
+
     return days
   }
 

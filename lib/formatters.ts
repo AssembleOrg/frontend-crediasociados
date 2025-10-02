@@ -59,33 +59,68 @@ export const unformatPhoneNumber = (value: string): string => {
   return value.replace(/\D/g, '')
 }
 
-// Amount formatting with thousands separator: 1000000 -> 1.000.000
+// Amount formatting with thousands separator and decimal support
+// Argentine format: 1.234.567,89 (dots for thousands, comma for decimals)
 export const formatAmount = (value: string): string => {
-  // Remove all non-numeric characters
-  const numbers = value.replace(/\D/g, '')
-  
   // Handle empty string
-  if (!numbers) return ''
-  
-  // Apply thousands separator using reverse and manual placement
-  // More reliable than complex regex for large numbers
-  const reversed = numbers.split('').reverse()
-  const formatted = []
-  
-  for (let i = 0; i < reversed.length; i++) {
-    // Add dot every 3 digits (except at the beginning)
-    if (i > 0 && i % 3 === 0) {
-      formatted.push('.')
+  if (!value) return ''
+
+  // Check if input contains comma (decimal separator)
+  const hasDecimal = value.includes(',')
+
+  if (hasDecimal) {
+    // Split by comma to separate integer and decimal parts
+    const parts = value.split(',')
+    const integerPart = parts[0].replace(/\D/g, '') // Remove all non-numeric from integer
+    const decimalPart = parts[1] ? parts[1].replace(/\D/g, '').slice(0, 2) : '' // Max 2 decimal places
+
+    // Format integer part with thousands separator
+    if (!integerPart) return decimalPart ? `,${decimalPart}` : ''
+
+    const reversed = integerPart.split('').reverse()
+    const formatted = []
+
+    for (let i = 0; i < reversed.length; i++) {
+      if (i > 0 && i % 3 === 0) {
+        formatted.push('.')
+      }
+      formatted.push(reversed[i])
     }
-    formatted.push(reversed[i])
+
+    const formattedInteger = formatted.reverse().join('')
+
+    // Return formatted with decimal part
+    return decimalPart ? `${formattedInteger},${decimalPart}` : `${formattedInteger},`
+  } else {
+    // No decimal - format as integer only
+    const numbers = value.replace(/\D/g, '')
+
+    if (!numbers) return ''
+
+    const reversed = numbers.split('').reverse()
+    const formatted = []
+
+    for (let i = 0; i < reversed.length; i++) {
+      if (i > 0 && i % 3 === 0) {
+        formatted.push('.')
+      }
+      formatted.push(reversed[i])
+    }
+
+    return formatted.reverse().join('')
   }
-  
-  return formatted.reverse().join('')
 }
 
-// Remove formatting from amounts
+// Remove formatting from amounts and convert to parseFloat-compatible format
+// Converts Argentine format (1.234.567,89) to JavaScript format (1234567.89)
 export const unformatAmount = (value: string): string => {
-  return value.replace(/\D/g, '')
+  // Remove thousands separators (dots)
+  let cleaned = value.replace(/\./g, '')
+  // Convert decimal comma to dot for parseFloat
+  cleaned = cleaned.replace(/,/g, '.')
+  // Remove any other non-numeric characters except dot
+  cleaned = cleaned.replace(/[^\d.]/g, '')
+  return cleaned
 }
 
 // Payment frequency localization - Centralizes all frequency translations

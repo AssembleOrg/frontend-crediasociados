@@ -26,8 +26,8 @@ export interface SubLoanWithClientInfo extends SubLoanResponseDto {
 class SubLoansLookupService {
   private loansCache: Map<string, LoanListResponseDto> = new Map()
   private clientsCache: Map<string, ClientResponseDto> = new Map()
-  private isLoadingLoans: boolean = false
-  private isLoadingClients: boolean = false
+  private loansLoadingPromise: Promise<void> | null = null
+  private clientsLoadingPromise: Promise<void> | null = null
   
   /**
    * Clear caches - useful for forcing fresh data
@@ -137,32 +137,30 @@ class SubLoansLookupService {
    * Load loans cache (loanId → LoanListResponseDto)
    */
   private async loadLoansCache(): Promise<void> {
-    // Anti-concurrency protection
     if (this.loansCache.size > 0) {
-      return // Already loaded
+      return
     }
 
-    if (this.isLoadingLoans) {
-      // Wait for current loading to complete
-      while (this.isLoadingLoans) {
-        await new Promise(resolve => setTimeout(resolve, 10))
+    if (this.loansLoadingPromise) {
+      await this.loansLoadingPromise
+      return
+    }
+
+    this.loansLoadingPromise = (async () => {
+      try {
+        const loans = await loansService.getActiveLoansWithClientId()
+        loans.forEach(loan => {
+          this.loansCache.set(loan.id, loan)
+        })
+      } catch (error) {
+        console.error('Error al cargar caché de préstamos:', error)
+        throw error
+      } finally {
+        this.loansLoadingPromise = null
       }
-      return // Loading completed by other call
-    }
+    })()
 
-    this.isLoadingLoans = true
-    try {
-      // Loading loans cache (initialized by SubLoansProvider)
-      const loans = await loansService.getActiveLoansWithClientId()
-      loans.forEach(loan => {
-        this.loansCache.set(loan.id, loan)
-      })
-    } catch (error) {
-      console.error('Error al cargar caché de préstamos:', error)
-      throw error
-    } finally {
-      this.isLoadingLoans = false
-    }
+    await this.loansLoadingPromise
   }
 
   /**
@@ -170,39 +168,35 @@ class SubLoansLookupService {
    * Uses pagination - loads first 20 clients, more can be loaded on demand
    */
   private async loadClientsCache(): Promise<void> {
-    // Anti-concurrency protection
     if (this.clientsCache.size > 0) {
-      return // Already loaded
+      return
     }
 
-    if (this.isLoadingClients) {
-      // Wait for current loading to complete
-      while (this.isLoadingClients) {
-        await new Promise(resolve => setTimeout(resolve, 10))
-      }
-      return // Loading completed by other call
+    if (this.clientsLoadingPromise) {
+      await this.clientsLoadingPromise
+      return
     }
 
-    this.isLoadingClients = true
-    try {
-      // Loading initial clients cache (first page)
-      // Load first page with sensible limit
-      const clientsResponse = await clientsService.getClients({ page: 1, limit: 20 })
-      const clients = clientsResponse.data
-      clients.forEach(client => {
-        this.clientsCache.set(client.id, client)
-      })
-      
-      // Log if there are more clients available
-      if (clientsResponse.meta && clientsResponse.meta.totalPages > 1) {
-        console.log(`Note: ${clientsResponse.meta.totalPages - 1} more pages available (${clientsResponse.meta.total - clients.length} more clients)`)
+    this.clientsLoadingPromise = (async () => {
+      try {
+        const clientsResponse = await clientsService.getClients({ page: 1, limit: 20 })
+        const clients = clientsResponse.data
+        clients.forEach(client => {
+          this.clientsCache.set(client.id, client)
+        })
+
+        if (clientsResponse.meta && clientsResponse.meta.totalPages > 1) {
+          console.log(`Note: ${clientsResponse.meta.totalPages - 1} more pages available (${clientsResponse.meta.total - clients.length} more clients)`)
+        }
+      } catch (error) {
+        console.error('Error al cargar caché de clientes:', error)
+        throw error
+      } finally {
+        this.clientsLoadingPromise = null
       }
-    } catch (error) {
-      console.error('Error al cargar caché de clientes:', error)
-      throw error
-    } finally {
-      this.isLoadingClients = false
-    }
+    })()
+
+    await this.clientsLoadingPromise
   }
 
   /**

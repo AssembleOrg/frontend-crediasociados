@@ -2,15 +2,17 @@
 
 import { useState, useCallback, useEffect, useRef } from 'react'
 import { useUsersStore } from '@/stores/users'
+import { useAdminStore } from '@/stores/admin'
+import { useSubadminStore } from '@/stores/subadmin'
 import { useAuth } from '@/hooks/useAuth'
 import { usersService } from '@/services/users.service'
 import { apiUserToUser, userToCreateDto, userToUpdateDto } from '@/types/transforms'
-import type { 
-  User, 
-  CreateUserDto, 
-  UpdateUserDto, 
-  PaginationParams, 
-  ApiError 
+import type {
+  User,
+  CreateUserDto,
+  UpdateUserDto,
+  PaginationParams,
+  ApiError
 } from '@/types/auth'
 
 /**
@@ -23,6 +25,8 @@ import type {
  */
 export const useUsers = () => {
   const usersStore = useUsersStore()
+  const adminStore = useAdminStore()
+  const subadminStore = useSubadminStore()
   const { user: currentUser } = useAuth()
 
   const [isLoading, setIsLoading] = useState(false)
@@ -93,15 +97,32 @@ export const useUsers = () => {
       
       // Transform back to frontend format
       const newUser = apiUserToUser(apiUser)
-      
+
       // Update the store
       usersStore.addUser(newUser)
-      
+
+      // Invalidate related caches to ensure other views refresh
+      adminStore.invalidateCache()
+      subadminStore.invalidateCache()
+
       return true
       
     } catch (err) {
       const apiError = err as ApiError
-      setError(apiError.message || 'Failed to create user')
+      let errorMessage = apiError.message || 'Error al crear usuario'
+
+      // Translate common backend error messages
+      if (errorMessage.includes('You have reached the maximum limit')) {
+        const match = errorMessage.match(/maximum limit of (\d+) SUBADMIN/)
+        if (match) {
+          const limit = match[1]
+          const countMatch = errorMessage.match(/Current count: (\d+)/)
+          const count = countMatch ? countMatch[1] : limit
+          errorMessage = `Has alcanzado el límite máximo de ${limit} cuentas de SUB-ADMIN. Cantidad actual: ${count}`
+        }
+      }
+
+      setError(errorMessage)
       return false
       
     } finally {
@@ -125,10 +146,14 @@ export const useUsers = () => {
       
       // Transform back to frontend format
       const updatedUser = apiUserToUser(apiUser)
-      
+
       // Update the store
       usersStore.updateUser(updatedUser)
-      
+
+      // Invalidate related caches to ensure other views refresh
+      adminStore.invalidateCache()
+      subadminStore.invalidateCache()
+
       return true
       
     } catch (err) {
@@ -148,10 +173,14 @@ export const useUsers = () => {
     try {
       // Call the service
       await usersService.deleteUser(id)
-      
+
       // Update the store
       usersStore.removeUser(id)
-      
+
+      // Invalidate related caches to ensure other views refresh
+      adminStore.invalidateCache()
+      subadminStore.invalidateCache()
+
       return true
       
     } catch (err) {

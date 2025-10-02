@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import {
   Box,
   Typography,
@@ -20,7 +20,6 @@ import {
   TableHead,
   TableRow,
   Chip,
-  CircularProgress,
 } from '@mui/material'
 import {
   Download,
@@ -31,20 +30,53 @@ import {
   DateRange,
 } from '@mui/icons-material'
 import { useClients } from '@/hooks/useClients'
-import { useStats } from '@/hooks/useStats'
+import { useLoans } from '@/hooks/useLoans'
+import { useSubLoans } from '@/hooks/useSubLoans'
+import { getUrgencyLevel } from '@/lib/cobros/urgencyHelpers'
 
 type ReportType = 'clients' | 'loans' | 'payments' | 'performance'
 type DateRange = 'week' | 'month' | 'quarter' | 'year' | 'custom'
 
 export default function ReportesPage() {
   const { clients } = useClients()
-  const { dashboardStats } = useStats()
+  const { loans } = useLoans()
+  const { allSubLoansWithClient } = useSubLoans()
 
   const [selectedReport, setSelectedReport] = useState<ReportType>('clients')
   const [dateRange, setDateRange] = useState<DateRange>('month')
   const [startDate, setStartDate] = useState('')
   const [endDate, setEndDate] = useState('')
-  const [isGenerating, setIsGenerating] = useState(false)
+
+  const realStats = useMemo(() => {
+    const totalActiveLoans = loans.length
+    const totalLoanAmount = loans.reduce((sum, loan) => sum + (loan.amount || 0), 0)
+
+    const paidSubLoans = allSubLoansWithClient.filter(s => s.status === 'PAID')
+    const overdueSubLoans = allSubLoansWithClient.filter(s => getUrgencyLevel(s.dueDate) === 'overdue')
+    const partialSubLoans = allSubLoansWithClient.filter(s => s.status === 'PARTIAL')
+
+    const totalSubLoans = allSubLoansWithClient.length
+    const paymentsOnTimeRate = totalSubLoans > 0 ? Math.round((paidSubLoans.length / totalSubLoans) * 100) : 0
+    const overdueRate = totalSubLoans > 0 ? Math.round((overdueSubLoans.length / totalSubLoans) * 100) : 0
+    const partialRate = totalSubLoans > 0 ? Math.round((partialSubLoans.length / totalSubLoans) * 100) : 0
+
+    const totalCollected = paidSubLoans.reduce((sum, s) => sum + (s.amount || 0), 0)
+    const totalPending = allSubLoansWithClient.reduce((sum, s) => sum + (s.amount || 0), 0) - totalCollected
+
+    const collectionEfficiency = totalSubLoans > 0 ? Math.round(((paidSubLoans.length + partialSubLoans.length) / totalSubLoans) * 100) : 0
+
+    return {
+      totalActiveLoans,
+      totalLoanAmount,
+      paymentsOnTimeRate,
+      overdueRate,
+      partialRate,
+      totalCollected,
+      totalPending,
+      collectionEfficiency,
+      totalClients: clients.length
+    }
+  }, [clients, loans, allSubLoansWithClient])
 
   const reportTypes = [
     { value: 'clients', label: 'Reporte de Clientes', icon: <Assessment /> },
@@ -61,13 +93,8 @@ export default function ReportesPage() {
     { value: 'custom', label: 'Rango Personalizado' },
   ]
 
-  const handleGenerateReport = async () => {
-    setIsGenerating(true)
-    
-    // Simulate report generation
-    await new Promise(resolve => setTimeout(resolve, 2000))
-    
-    setIsGenerating(false)
+  const handleGenerateReport = () => {
+    // Report is already generated with real data
   }
 
   const handleDownloadReport = (format: 'pdf' | 'excel') => {
@@ -124,7 +151,7 @@ export default function ReportesPage() {
                     Total Préstamos Activos
                   </Typography>
                   <Typography variant="h4">
-                    {dashboardStats?.totalActiveLoans || 0}
+                    {realStats.totalActiveLoans}
                   </Typography>
                 </CardContent>
               </Card>
@@ -134,7 +161,7 @@ export default function ReportesPage() {
                     Monto Total Prestado
                   </Typography>
                   <Typography variant="h4">
-                    ${dashboardStats?.totalLoanAmount?.toLocaleString() || 0}
+                    ${realStats.totalLoanAmount.toLocaleString()}
                   </Typography>
                 </CardContent>
               </Card>
@@ -144,7 +171,7 @@ export default function ReportesPage() {
                     Tasa de Pago Promedio
                   </Typography>
                   <Typography variant="h4" color="success.main">
-                    {dashboardStats?.averagePaymentRate || 0}%
+                    {realStats.paymentsOnTimeRate}%
                   </Typography>
                 </CardContent>
               </Card>
@@ -162,7 +189,7 @@ export default function ReportesPage() {
               <Card>
                 <CardContent sx={{ textAlign: 'center' }}>
                   <Typography color="success.main" variant="h4">
-                    85%
+                    {realStats.paymentsOnTimeRate}%
                   </Typography>
                   <Typography color="textSecondary">
                     Pagos a Tiempo
@@ -172,30 +199,30 @@ export default function ReportesPage() {
               <Card>
                 <CardContent sx={{ textAlign: 'center' }}>
                   <Typography color="warning.main" variant="h4">
-                    10%
+                    {realStats.partialRate}%
                   </Typography>
                   <Typography color="textSecondary">
-                    Pagos Atrasados
+                    Pagos Parciales
                   </Typography>
                 </CardContent>
               </Card>
               <Card>
                 <CardContent sx={{ textAlign: 'center' }}>
                   <Typography color="error.main" variant="h4">
-                    5%
+                    {realStats.overdueRate}%
                   </Typography>
                   <Typography color="textSecondary">
-                    En Mora
+                    Vencidos
                   </Typography>
                 </CardContent>
               </Card>
               <Card>
                 <CardContent sx={{ textAlign: 'center' }}>
                   <Typography variant="h4">
-                    $125,000
+                    ${realStats.totalCollected.toLocaleString()}
                   </Typography>
                   <Typography color="textSecondary">
-                    Cobrado Este Mes
+                    Cobrado Total
                   </Typography>
                 </CardContent>
               </Card>
@@ -217,12 +244,12 @@ export default function ReportesPage() {
                   </Typography>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                     <Typography variant="h4" color="success.main">
-                      92%
+                      {realStats.collectionEfficiency}%
                     </Typography>
                     <TrendingUp color="success" />
                   </Box>
                   <Typography variant="body2" color="textSecondary">
-                    +5% respecto al mes anterior
+                    Tasa de éxito en cobros
                   </Typography>
                 </CardContent>
               </Card>
@@ -328,20 +355,10 @@ export default function ReportesPage() {
             <Button
               variant="contained"
               onClick={handleGenerateReport}
-              disabled={isGenerating}
               sx={{ flexGrow: 1 }}
             >
-              {isGenerating ? (
-                <>
-                  <CircularProgress size={20} sx={{ mr: 1 }} />
-                  Generando...
-                </>
-              ) : (
-                <>
-                  <Assessment sx={{ mr: 1 }} />
-                  Generar
-                </>
-              )}
+              <Assessment sx={{ mr: 1 }} />
+              Generar
             </Button>
           </Box>
         </Box>

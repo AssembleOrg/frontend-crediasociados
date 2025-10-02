@@ -13,9 +13,9 @@ export const useAdminDashboard = () => {
   }, [adminStore])
 
   // Loading states
-  const isBasicLoading = !adminStore.isBasicDataFresh() && adminStore.basicData.length === 0
-  const isDetailedLoading = adminStore.basicData.length > 0 && !adminStore.hasDetailedData() && !adminStore.isDetailedDataFresh()
-  const isInitialized = adminStore.basicData.length > 0 || adminStore.isBasicDataFresh()
+  const isBasicLoading = adminStore.detailedData.length === 0 && !adminStore.isDetailedDataFresh()
+  const isDetailedLoading = false
+  const isInitialized = adminStore.detailedData.length > 0 || adminStore.isDetailedDataFresh()
 
   return {
     chartData,
@@ -51,13 +51,10 @@ export const useAdminDashboardWithFilters = () => {
       ? detailedData.filter(subadmin => subadmin.id === selectedSubadmin)
       : detailedData
 
-    // Create comprehensive CSV content
     const csvRows = []
 
-    // Headers
-    csvRows.push('Subadmin,Email,Managers,Clientes,Préstamos,Monto Total,Manager,Manager Email,Clientes Manager,Préstamos Manager')
+    csvRows.push('Subadmin,Email,Managers,Clientes,Préstamos,Manager,Manager Email,Clientes Manager,Préstamos Manager')
 
-    // Data rows
     dataToExport.forEach(subadmin => {
       if (subadmin.managers && subadmin.managers.length > 0) {
         subadmin.managers.forEach(manager => {
@@ -70,7 +67,6 @@ export const useAdminDashboardWithFilters = () => {
             subadmin.managersCount,
             subadmin.totalClients,
             subadmin.totalLoans,
-            subadmin.totalAmount,
             manager.name,
             manager.email,
             managerClients,
@@ -85,7 +81,6 @@ export const useAdminDashboardWithFilters = () => {
           subadmin.managersCount,
           subadmin.totalClients || 0,
           subadmin.totalLoans || 0,
-          subadmin.totalAmount || 0,
           '',
           '',
           '',
@@ -102,20 +97,14 @@ export const useAdminDashboardWithFilters = () => {
     link.download = `admin-dashboard-detallado-${new Date().toISOString().split('T')[0]}.csv`
     link.click()
     window.URL.revokeObjectURL(url)
-  }, [adminStore]) // ✅ Store reference is stable
+  }, [adminStore])
 
   return {
     ...dashboardData,
-
-    // Additional filter state
     selectedSubadmin: adminStore.selectedSubadmin,
     setSelectedSubadmin: adminStore.setSelectedSubadmin,
     subadminOptions: adminStore.getSubadminOptions(),
-
-    // Export functionality
     exportDetailedData,
-
-    // Combined loading state
     isAnyLoading: dashboardData.isBasicLoading || dashboardData.isDetailedLoading
   }
 }
