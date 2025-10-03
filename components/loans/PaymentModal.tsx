@@ -19,6 +19,7 @@ import {
 } from '@mui/material'
 import { Payment, CalendarToday, AttachMoney } from '@mui/icons-material'
 import { formatAmount, unformatAmount } from '@/lib/formatters'
+import { useOperativa } from '@/hooks/useOperativa'
 import type { SubLoanWithClientInfo } from '@/services/subloans-lookup.service'
 
 interface PaymentModalProps {
@@ -38,12 +39,14 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
   clientName,
   mode = 'single'
 }) => {
+  const { createIngresoFromPago } = useOperativa()
+
   const [selectedSubloanId, setSelectedSubloanId] = useState<string>('')
   const [paymentAmount, setPaymentAmount] = useState<string>('')
   const [paymentDate, setPaymentDate] = useState<string>(new Date().toISOString().split('T')[0])
   const [notes, setNotes] = useState<string>('')
-  
-  const currentSubloan = mode === 'single' ? subloan : 
+
+  const currentSubloan = mode === 'single' ? subloan :
     subloans.find(s => s.id === selectedSubloanId)
 
   // Reset form when modal opens/closes or subloan changes
@@ -70,10 +73,6 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
     }
   }, [open, subloan, subloans, mode])
 
-  const handleAmountChange = (value: string) => {
-    setPaymentAmount(formatAmount(value))
-  }
-
   // Auto-fill payment amount when subloan selection changes in selector mode
   useEffect(() => {
     if (open && mode === 'selector' && selectedSubloanId && currentSubloan) {
@@ -82,27 +81,35 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
     }
   }, [selectedSubloanId, currentSubloan, open, mode])
 
-  const handleRegisterPayment = () => {
+  const handleRegisterPayment = async () => {
     if (!currentSubloan) return
 
-    const paymentData = {
-      subloanId: currentSubloan.id,
-      amount: parseFloat(paymentAmount),
-      date: paymentDate,
-      notes: notes.trim() || undefined
+    const amountValue = parseFloat(unformatAmount(paymentAmount))
+
+    // Create ingreso in operativa system
+    const ingreso = await createIngresoFromPago(
+      currentSubloan.id,
+      amountValue,
+      clientName,
+      currentSubloan.paymentNumber,
+      new Date(paymentDate)
+    )
+
+    if (ingreso) {
+      // Show success feedback
+      alert(
+        `✅ Pago registrado exitosamente!\n\n` +
+        `Cliente: ${clientName}\n` +
+        `Cuota #${currentSubloan.paymentNumber}\n` +
+        `Monto: $${formatAmount(amountValue.toString())}\n` +
+        `Fecha: ${new Date(paymentDate).toLocaleDateString('es-AR')}\n\n` +
+        `💰 El ingreso ha sido registrado en Operativa`
+      )
+
+      onClose()
+    } else {
+      alert('❌ Error al registrar el pago. Por favor intenta nuevamente.')
     }
-
-    // Simulate payment registration (without backend)
-    console.log('Registrar Pago:', {
-      client: clientName,
-      cuota: `#${currentSubloan.paymentNumber}`,
-      ...paymentData
-    })
-
-    // Show success feedback
-    alert(`Pago registrado exitosamente!\n\nCliente: ${clientName}\nCuota #${currentSubloan.paymentNumber}\nMonto: $${paymentAmount}\nFecha: ${new Date(paymentDate).toLocaleDateString('es-AR')}`)
-
-    onClose()
   }
 
   const formatCurrency = (amount: number) => {
@@ -250,10 +257,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
                 label="Monto a Registrar"
                 type="text"
                 value={formatAmount(paymentAmount || '')}
-                onChange={(e) => {
-                  const unformattedValue = unformatAmount(e.target.value);
-                  handleAmountChange(unformattedValue);
-                }}
+                disabled
                 InputProps={{
                   startAdornment: (
                     <InputAdornment position="start">
@@ -261,6 +265,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
                     </InputAdornment>
                   ),
                 }}
+                helperText="Solo se permite pago completo de la cuota"
                 fullWidth
               />
             </Box>

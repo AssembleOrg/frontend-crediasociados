@@ -63,7 +63,8 @@ export default function SubLoansProvider({ children }: SubLoansProviderProps) {
 
   // Global initialization - ALL SubLoans data types in parallel
   const initAllSubLoansData = async (): Promise<boolean> => {
-    if (!currentUser || !['ADMIN', 'SUBADMIN', 'MANAGER', 'prestamista'].includes(currentUser.role)) {
+    if (!currentUser || !['admin', 'subadmin', 'manager', 'prestamista'].includes(currentUser.role)) {
+      setIsInitialLoading(false);
       return false;
     }
 
@@ -176,6 +177,7 @@ export default function SubLoansProvider({ children }: SubLoansProviderProps) {
         await initAllSubLoansData();
       } else {
         console.log('🔄 SubLoans data already available, skipping initialization');
+        setIsInitialLoading(false);
       }
     };
 
@@ -207,7 +209,7 @@ export default function SubLoansProvider({ children }: SubLoansProviderProps) {
   return (
     <SubLoansProviderContext.Provider value={contextValue}>
       <AuthLoadingOverlay
-        open={isInitialLoading}
+        open={isInitialLoading && !!currentUser}
         message="Cargando datos del sistema..."
       />
       {children}
