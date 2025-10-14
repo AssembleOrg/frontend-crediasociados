@@ -116,7 +116,7 @@ export default function SubadminFinanzasPage() {
             value={`$${
               financialSummary?.capitalAsignado.toLocaleString('es-AR') || 0
             }`}
-            subtitle='total asignado a prestamistas'
+            subtitle='total asignado a cobradores'
             icon={<AttachMoney />}
             color='primary'
             isLoading={isLoading}

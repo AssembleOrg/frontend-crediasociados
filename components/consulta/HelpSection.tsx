@@ -13,7 +13,7 @@ export default function HelpSection() {
       </Typography>
       <Typography variant="body2">
         El código de seguimiento te fue proporcionado al momento de generar el préstamo.
-        Si no lo tienes, contacta con tu prestamista para obtenerlo.
+        Si no lo tienes, contacta con tu cobrador para obtenerlo.
       </Typography>
     </Alert>
   )

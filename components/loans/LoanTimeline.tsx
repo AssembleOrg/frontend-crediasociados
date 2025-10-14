@@ -30,6 +30,7 @@ const TimelineNode: React.FC<TimelineNodeProps> = ({
 }) => {
   const urgency = getUrgencyLevel(subloan.dueDate)
   const isPaid = subloan.status === 'PAID'
+  const isPartial = subloan.status === 'PARTIAL'
 
   // Get colors based on status
   const getNodeColors = () => {
@@ -39,6 +40,15 @@ const TimelineNode: React.FC<TimelineNodeProps> = ({
         bg: '#e8f5e8',
         icon: CheckCircle,
         border: '#4caf50'
+      }
+    }
+
+    if (isPartial) {
+      return {
+        primary: '#2196f3',
+        bg: '#e3f2fd',
+        icon: CheckCircle,
+        border: '#2196f3'
       }
     }
 
@@ -86,6 +96,12 @@ const TimelineNode: React.FC<TimelineNodeProps> = ({
 
   const getDaysInfo = () => {
     if (isPaid) return 'Pagada'
+    if (isPartial) {
+      const paidAmount = subloan.paidAmount || 0
+      const totalAmount = subloan.totalAmount
+      const pending = totalAmount - paidAmount
+      return `Pagado parcial: $${paidAmount.toLocaleString()} (Resta: $${pending.toLocaleString()})`
+    }
     
     // Use only date part to avoid timezone issues
     const today = new Date()

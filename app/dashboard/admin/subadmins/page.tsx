@@ -107,13 +107,13 @@ export default function SubadminsPage() {
               fontSize: { xs: '1.5rem', sm: '2.125rem' },
             }}
           >
-            Sub-Administradores
+            Asociados
           </Typography>
           <Typography
             variant='body1'
             color='text.secondary'
           >
-            Gestiona los sub-administradores que crean y supervisan managers
+            Gestiona los asociados que crean y supervisan cobradores
           </Typography>
         </Box>
         <Button
@@ -125,7 +125,7 @@ export default function SubadminsPage() {
             width: { xs: '100%', sm: 'auto' },
           }}
         >
-          Crear Sub-Admin
+          Crear Asociados
         </Button>
       </Box>
 
@@ -282,8 +282,8 @@ export default function SubadminsPage() {
                           color='text.secondary'
                         >
                           {subadmins.length === 0
-                            ? 'No hay sub-administradores registrados todavía'
-                            : 'No se encontraron sub-administradores que coincidan con la búsqueda'}
+                            ? 'No hay asociados registrados todavía'
+                            : 'No se encontraron asociados que coincidan con la búsqueda'}
                         </Typography>
                       </TableCell>
                     </TableRow>

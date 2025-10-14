@@ -28,7 +28,7 @@ export default function AdminManagerStatsTable({ managers, isLoading = false }: 
     return (
       <Paper sx={{ p: 3 }}>
         <Typography variant="h6" gutterBottom>
-          Cargando datos de prestamistas...
+          Cargando datos de cobradores...
         </Typography>
       </Paper>
     )
@@ -39,10 +39,10 @@ export default function AdminManagerStatsTable({ managers, isLoading = false }: 
       <Paper sx={{ p: 3, textAlign: 'center' }}>
         <Person sx={{ fontSize: 48, color: 'text.secondary', mb: 2 }} />
         <Typography variant="h6" color="text.secondary" gutterBottom>
-          No hay prestamistas registrados
+          No hay cobradores registrados
         </Typography>
         <Typography variant="body2" color="text.secondary">
-          Los prestamistas que se creen aparecerán aquí con métricas operativas.
+          Los cobradores que se creen aparecerán aquí con métricas operativas.
         </Typography>
       </Paper>
     )
@@ -56,7 +56,7 @@ export default function AdminManagerStatsTable({ managers, isLoading = false }: 
           <Table>
             <TableHead>
               <TableRow>
-                <TableCell>Prestamista</TableCell>
+                <TableCell>Cobrador</TableCell>
                 <TableCell align="center">Clientes</TableCell>
                 <TableCell align="center">Préstamos</TableCell>
                 <TableCell align="center">Desde</TableCell>

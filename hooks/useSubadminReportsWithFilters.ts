@@ -83,7 +83,8 @@ export const useSubadminReportsWithFilters = () => {
     }
 
     const csvRows = []
-    csvRows.push('Manager,Email,Clientes,Préstamos,Monto Total,Monto Pendiente,Tasa Cobranza,Fecha Registro')
+    // Removed "Tasa Cobranza" per client request
+    csvRows.push('Manager,Email,Clientes,Préstamos,Monto Total,Monto Pendiente,Fecha Registro')
 
     managersToExport.forEach(manager => {
       csvRows.push([
@@ -93,7 +94,7 @@ export const useSubadminReportsWithFilters = () => {
         manager.totalLoans,
         manager.totalAmountLent,
         manager.totalAmountPending,
-        `${manager.collectionRate.toFixed(1)}%`,
+        // Removed: `${manager.collectionRate.toFixed(1)}%`,
         new Date(manager.createdAt).toLocaleDateString('es-AR')
       ].join(','))
     })

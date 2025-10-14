@@ -180,9 +180,9 @@ export default function SubadminAnalyticsPage() {
 
       <StatsGrid columns={{ xs: 2, sm: 2, lg: filteredTotals.totalLoans > 0 ? 4 : 2 }}>
         <StatsCard
-          title="Prestamistas"
+          title="Cobradores"
           value={filteredTotals.totalManagers}
-          subtitle={`${filteredTotals.totalManagers === 1 ? 'prestamista' : 'prestamistas'}`}
+          subtitle={`${filteredTotals.totalManagers === 1 ? 'cobrador' : 'cobradores'}`}
           icon={<People />}
           color="primary"
         />
@@ -219,7 +219,7 @@ export default function SubadminAnalyticsPage() {
 
       <Box sx={{ mt: 4 }}>
         <Typography variant="h6" gutterBottom sx={{ mb: 2 }}>
-          Lista de Prestamistas
+          Lista de Cobradores
         </Typography>
         <ManagerStatsTable
           managers={filteredManagers}
@@ -227,25 +227,6 @@ export default function SubadminAnalyticsPage() {
         />
       </Box>
 
-      {/* Refresh Info */}
-      <Box sx={{ mt: 3, textAlign: 'center' }}>
-        <Typography variant="caption" color="text.secondary">
-          Los datos se actualizan automáticamente.
-          <Typography
-            component="span"
-            variant="caption"
-            sx={{
-              cursor: 'pointer',
-              textDecoration: 'underline',
-              ml: 1,
-              color: 'primary.main'
-            }}
-            onClick={refreshAnalytics}
-          >
-            Actualizar ahora
-          </Typography>
-        </Typography>
-      </Box>
     </Box>
   )
 }

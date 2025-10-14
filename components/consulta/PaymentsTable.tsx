@@ -51,7 +51,7 @@ export default function PaymentsTable({ payments, loanTrack }: PaymentsTableProp
           <Typography variant="body2" color="text.secondary">
             Los detalles específicos de las cuotas no están disponibles en la consulta pública.
             <br />
-            Para información detallada sobre pagos y estados, contacta directamente con tu prestamista.
+            Para información detallada sobre pagos y estados, contacta directamente con tu cobrador.
           </Typography>
 
           <Box sx={{ mt: 3, p: 2, bgcolor: 'info.light', borderRadius: 1, display: 'inline-block' }}>
@@ -210,7 +210,7 @@ export default function PaymentsTable({ payments, loanTrack }: PaymentsTableProp
 
       <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center' }}>
         <Warning sx={{ verticalAlign: 'middle', mr: 1 }} />
-        Si tienes dudas sobre tu préstamo o necesitas asistencia, contacta directamente con tu prestamista.
+        Si tienes dudas sobre tu préstamo o necesitas asistencia, contacta directamente con tu cobrador.
         <br />
         Código de seguimiento: <strong>{loanTrack}</strong>
       </Typography>

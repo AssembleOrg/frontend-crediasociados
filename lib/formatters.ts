@@ -145,7 +145,9 @@ export const getStatusLabel = (status: string): string => {
     'DEFAULTED': 'En mora',
     'CANCELLED': 'Cancelado',
     'REJECTED': 'Rechazado',
-    'OVERDUE': 'Vencido'
+    'OVERDUE': 'Vencido',
+    'PARTIAL': 'Pagado Parcial',
+    'PAID': 'Pagado'
   }
   
   return labels[status] || status

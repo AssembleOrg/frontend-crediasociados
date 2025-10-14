@@ -15,11 +15,14 @@ import {
   Select,
   MenuItem,
   Divider,
-  InputAdornment
+  InputAdornment,
+  Checkbox,
+  FormControlLabel
 } from '@mui/material'
-import { Payment, CalendarToday, AttachMoney } from '@mui/icons-material'
+import { Payment, CalendarToday, AttachMoney, PictureAsPdf } from '@mui/icons-material'
 import { formatAmount, unformatAmount } from '@/lib/formatters'
 import { useOperativa } from '@/hooks/useOperativa'
+import { exportService } from '@/services/export.service'
 import type { SubLoanWithClientInfo } from '@/services/subloans-lookup.service'
 
 interface PaymentModalProps {
@@ -45,6 +48,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
   const [paymentAmount, setPaymentAmount] = useState<string>('')
   const [paymentDate, setPaymentDate] = useState<string>(new Date().toISOString().split('T')[0])
   const [notes, setNotes] = useState<string>('')
+  const [generatePDF, setGeneratePDF] = useState<boolean>(true) // Default: generate PDF
 
   const currentSubloan = mode === 'single' ? subloan :
     subloans.find(s => s.id === selectedSubloanId)
@@ -54,14 +58,14 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
     if (open) {
       if (mode === 'single' && subloan) {
         setSelectedSubloanId(subloan.id)
-        // Auto-fill with pending amount (no partial payments)
+        // Auto-fill with pending amount (partial payments allowed)
         const pendingAmount = subloan.totalAmount - (subloan.paidAmount || 0)
         setPaymentAmount(formatAmount(pendingAmount.toString()))
       } else if (mode === 'selector' && subloans.length > 0) {
         const firstPending = subloans.find(s => s.status !== 'PAID')
         if (firstPending) {
           setSelectedSubloanId(firstPending.id)
-          // Auto-fill with pending amount (no partial payments)
+          // Auto-fill with pending amount (partial payments allowed)
           const pendingAmount = firstPending.totalAmount - (firstPending.paidAmount || 0)
           setPaymentAmount(formatAmount(pendingAmount.toString()))
         } else {
@@ -96,6 +100,55 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
     )
 
     if (ingreso) {
+      // Generate PDF if requested
+      if (generatePDF) {
+        try {
+          // TODO: This is a simplified receipt. When backend provides full loan data,
+          // we can generate a more complete payment receipt with loan details.
+          const receiptData = {
+            clientName,
+            paymentNumber: currentSubloan.paymentNumber,
+            amount: amountValue,
+            paymentDate: new Date(paymentDate),
+            loanTrack: currentSubloan.loanTrack || 'N/A',
+            notes: notes || 'Pago registrado exitosamente'
+          }
+
+          // For now, create a simple text-based receipt
+          // Future: Use exportService to generate proper PDF with loan data
+          const receiptText = `
+COMPROBANTE DE PAGO
+===================
+
+Cliente: ${clientName}
+Código de Préstamo: ${receiptData.loanTrack}
+Cuota #: ${currentSubloan.paymentNumber}
+Monto Pagado: $${formatAmount(amountValue.toString())}
+Fecha de Pago: ${new Date(paymentDate).toLocaleDateString('es-AR')}
+${notes ? `\nNotas: ${notes}` : ''}
+
+Generado: ${new Date().toLocaleString('es-AR')}
+Sistema: Prestamito
+          `.trim()
+
+          // Download as text file (temporary solution until full PDF implementation)
+          const blob = new Blob([receiptText], { type: 'text/plain' })
+          const url = URL.createObjectURL(blob)
+          const link = document.createElement('a')
+          link.href = url
+          link.download = `comprobante-pago-${clientName.replace(/\s+/g, '-')}-${currentSubloan.paymentNumber}.txt`
+          document.body.appendChild(link)
+          link.click()
+          document.body.removeChild(link)
+          URL.revokeObjectURL(url)
+
+          console.log('📄 Comprobante de pago generado')
+        } catch (error) {
+          console.error('Error generating payment receipt:', error)
+          // Don't block the payment if PDF generation fails
+        }
+      }
+
       // Show success feedback
       alert(
         `✅ Pago registrado exitosamente!\n\n` +
@@ -103,7 +156,8 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
         `Cuota #${currentSubloan.paymentNumber}\n` +
         `Monto: $${formatAmount(amountValue.toString())}\n` +
         `Fecha: ${new Date(paymentDate).toLocaleDateString('es-AR')}\n\n` +
-        `💰 El ingreso ha sido registrado en Operativa`
+        `💰 El ingreso ha sido registrado en Operativa` +
+        (generatePDF ? '\n📄 Comprobante descargado' : '')
       )
 
       onClose()
@@ -256,8 +310,8 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
               <TextField
                 label="Monto a Registrar"
                 type="text"
-                value={formatAmount(paymentAmount || '')}
-                disabled
+                value={paymentAmount}
+                onChange={(e) => setPaymentAmount(e.target.value)}
                 InputProps={{
                   startAdornment: (
                     <InputAdornment position="start">
@@ -265,7 +319,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
                     </InputAdornment>
                   ),
                 }}
-                helperText="Solo se permite pago completo de la cuota"
+                helperText={`Pendiente: $${formatAmount((currentSubloan.totalAmount - (currentSubloan.paidAmount || 0)).toString())} - Puedes pagar parcialmente`}
                 fullWidth
               />
             </Box>
@@ -277,8 +331,27 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               fullWidth
-              sx={{ mb: 3 }}
+              sx={{ mb: 2 }}
               placeholder="Agregar observaciones sobre el pago..."
+            />
+
+            {/* PDF Generation Option */}
+            <FormControlLabel
+              control={
+                <Checkbox
+                  checked={generatePDF}
+                  onChange={(e) => setGeneratePDF(e.target.checked)}
+                  color="primary"
+                />
+              }
+              label={
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <PictureAsPdf fontSize="small" />
+                  <Typography variant="body2">
+                    Generar comprobante de pago (recomendado)
+                  </Typography>
+                </Box>
+              }
             />
 
           </>

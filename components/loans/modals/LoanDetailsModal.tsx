@@ -48,6 +48,13 @@ export default function LoanDetailsModal({
   const interestAmount = calculateInterestAmount(loan)
   const statusInfo = getLoanStatusInfo(loan.status)
 
+  // Calculate remaining amount and payments
+  const totalPaid = subLoans.reduce((sum, subloan) => sum + (subloan.paidAmount || 0), 0)
+  const remainingAmount = totalAmount - totalPaid
+  const remainingPayments = subLoans.filter(subloan => 
+    subloan.status === 'PENDING' || subloan.status === 'OVERDUE'
+  ).length
+
   return (
     <Dialog
       open={open}
@@ -85,6 +92,40 @@ export default function LoanDetailsModal({
               <Typography variant="h5" fontWeight="bold" gutterBottom>
                 {clientName} - {loan.loanTrack}
               </Typography>
+
+              {/* Remaining Summary - Highlighted */}
+              {remainingPayments > 0 && (
+                <Box sx={{ 
+                  mt: 2, 
+                  mb: 3, 
+                  p: 2, 
+                  bgcolor: 'primary.main', 
+                  color: 'white',
+                  borderRadius: 2,
+                  textAlign: 'center'
+                }}>
+                  <Typography variant="h6" fontWeight="bold">
+                    Resta pagar ${remainingAmount.toLocaleString()} en {remainingPayments} {remainingPayments === 1 ? 'cuota' : 'cuotas'}
+                  </Typography>
+                </Box>
+              )}
+
+              {remainingPayments === 0 && (
+                <Box sx={{ 
+                  mt: 2, 
+                  mb: 3, 
+                  p: 2, 
+                  bgcolor: 'success.main', 
+                  color: 'white',
+                  borderRadius: 2,
+                  textAlign: 'center'
+                }}>
+                  <Typography variant="h6" fontWeight="bold">
+                    ✓ Préstamo completado - Total pagado: ${totalPaid.toLocaleString()}
+                  </Typography>
+                </Box>
+              )}
+
               <Box
                 sx={{
                   display: 'grid',

@@ -15,11 +15,12 @@ import type {
   ActiveLoanFinancial,
   PortfolioEvolution,
   IncomeVsExpenses,
-  CapitalDistribution
+  CapitalDistribution,
+  LoanChartData
 } from '@/types/finanzas'
 
 // Use the chart data type which has subLoans populated
-type LoanWithSubLoans = components['schemas']['LoanChartDataDto']
+type LoanWithSubLoans = LoanChartData
 type SubLoanResponseDto = components['schemas']['SubLoanResponseDto']
 
 // ============================================================================

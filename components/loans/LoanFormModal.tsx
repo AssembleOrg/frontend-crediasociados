@@ -41,7 +41,7 @@ const INITIAL_FORM_DATA = {
   amount: '',
   baseInterestRate: '10',
   penaltyInterestRate: '20',
-  currency: 'ARS' as 'ARS' | 'USD',
+  // currency: Always ARS (hardcoded, no selector)
   paymentFrequency: 'WEEKLY' as 'DAILY' | 'WEEKLY' | 'BIWEEKLY' | 'MONTHLY',
   numberOfInstallments: '4',
   startDate: new Date().toISOString().split('T')[0]
@@ -54,10 +54,8 @@ const PAYMENT_FREQUENCIES = [
   { value: 'MONTHLY', label: 'Mensual' }
 ]
 
-const CURRENCIES = [
-  { value: 'ARS', label: 'Pesos Argentinos (ARS)' },
-  { value: 'USD', label: 'Dólares (USD)' }
-]
+// Currency is always ARS (per client request)
+const CURRENCY = 'ARS' as const
 
 export function LoanFormModal({ 
   open, 
@@ -83,7 +81,7 @@ export function LoanFormModal({
         amount: (loanData.amount as number)?.toString() || '',
         baseInterestRate: (loanData.baseInterestRate as number)?.toString() || '10',
         penaltyInterestRate: (loanData.penaltyInterestRate as number)?.toString() || '20',
-        currency: (loanData.currency as 'ARS' | 'USD') || 'ARS',
+        // currency: Always ARS (no selector)
         paymentFrequency: (loanData.paymentFrequency as 'DAILY' | 'WEEKLY' | 'BIWEEKLY' | 'MONTHLY') || 'WEEKLY',
         numberOfInstallments: (loanData.numberOfInstallments as number)?.toString() || '4',
         startDate: loanData.startDate ? new Date(loanData.startDate as string).toISOString().split('T')[0] : new Date().toISOString().split('T')[0]
@@ -181,7 +179,7 @@ export function LoanFormModal({
       amount: Number(unformatAmount(formData.amount)),
       baseInterestRate: Number(formData.baseInterestRate),
       penaltyInterestRate: Number(formData.penaltyInterestRate),
-      currency: formData.currency as 'ARS' | 'USD',
+      currency: CURRENCY, // Always ARS
       paymentFrequency: formData.paymentFrequency,
       numberOfInstallments: Number(formData.numberOfInstallments),
       totalPayments: Number(formData.numberOfInstallments), // Required field
@@ -295,20 +293,12 @@ export function LoanFormModal({
                 fullWidth
               />
 
-              <FormControl fullWidth>
-                <InputLabel>Moneda</InputLabel>
-                <Select
-                  value={formData.currency}
-                  onChange={handleSelectChange('currency')}
-                  label="Moneda"
-                >
-                  {CURRENCIES.map((currency) => (
-                    <MenuItem key={currency.value} value={currency.value}>
-                      {currency.label}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
+              {/* Currency selector removed - Always ARS per client request */}
+              <Box sx={{ display: 'none' }}>
+                <Typography variant="caption" color="text.secondary">
+                  Moneda: Pesos Argentinos (ARS)
+                </Typography>
+              </Box>
             </Box>
 
             {/* Interest Rates */}

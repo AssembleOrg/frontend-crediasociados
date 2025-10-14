@@ -170,7 +170,7 @@ export const EGRESO_TIPOS: Record<EgresoTipo, EgresoTipoMeta> = {
     label: 'Capital Entregado',
     icon: 'CallMade',
     color: '#d32f2f',
-    description: 'Capital asignado a prestamista'
+    description: 'Capital asignado a cobrador'
   },
   prestamo_otorgado: {
     value: 'prestamo_otorgado',

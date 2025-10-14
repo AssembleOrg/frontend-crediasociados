@@ -41,7 +41,7 @@ const ManagersFinancialTable = memo(function ManagersFinancialTable({
           variant='h6'
           gutterBottom
         >
-          Métricas Financieras por Prestamista
+          Métricas Financieras por Cobrador
         </Typography>
         <Box sx={{ textAlign: 'center', py: 4, color: 'text.secondary' }}>
           Cargando datos financieros...
@@ -60,10 +60,10 @@ const ManagersFinancialTable = memo(function ManagersFinancialTable({
           variant='h6'
           gutterBottom
         >
-          Métricas Financieras por Prestamista
+          Métricas Financieras por Cobrador
         </Typography>
         <Box sx={{ textAlign: 'center', py: 4, color: 'text.secondary' }}>
-          No hay prestamistas registrados
+          No hay Cobradores registrados
         </Box>
       </Paper>
     );
@@ -79,14 +79,14 @@ const ManagersFinancialTable = memo(function ManagersFinancialTable({
           variant='h6'
           gutterBottom
         >
-          Métricas Financieras por Prestamista
+          Métricas Financieras por cobradores
         </Typography>
         <Typography
           variant='body2'
           color='text.secondary'
         >
           {managers.length}{' '}
-          {managers.length === 1 ? 'prestamista' : 'prestamistas'} bajo tu
+          {managers.length === 1 ? 'cobrador' : 'cobradores'} bajo tu
           gestión
         </Typography>
       </Box>
@@ -96,7 +96,7 @@ const ManagersFinancialTable = memo(function ManagersFinancialTable({
         <Table>
           <TableHead>
             <TableRow sx={{ bgcolor: 'grey.50' }}>
-              <TableCell sx={{ fontWeight: 'bold' }}>Prestamista</TableCell>
+              <TableCell sx={{ fontWeight: 'bold' }}>Cobrador</TableCell>
               <TableCell
                 align='right'
                 sx={{ fontWeight: 'bold' }}

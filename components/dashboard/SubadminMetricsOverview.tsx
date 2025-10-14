@@ -17,9 +17,9 @@ export default function AsociadoMetricsOverview({ analytics, isLoading = false }
       <Grid container spacing={3}>
         <Grid size={{ xs: 12, sm: 6, lg: 3 }}>
           <StatsCard
-            title="Total Prestamistas"
+            title="Total Cobradores"
             value={analytics?.totalManagers || 0}
-            subtitle="prestamistas bajo tu gestión"
+            subtitle="cobradores bajo tu gestión"
             icon={<People />}
             color="primary"
             isLoading={isLoading}

@@ -241,15 +241,15 @@ const SubadminFiltersAndExport = memo(function SubadminFiltersAndExport({
         {/* Manager Filter */}
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, minWidth: 200 }}>
           <Typography variant="subtitle2" color="text.secondary">
-            Filtrar por Manager
+            Filtrar por Cobrador
           </Typography>
           <Box sx={{ display: 'flex', gap: 1 }}>
             <FormControl size="small" sx={{ minWidth: 200 }}>
-              <InputLabel>Manager</InputLabel>
+              <InputLabel>Cobrador</InputLabel>
               <Select
                 value={selectedManager || ''}
                 onChange={(e) => onManagerChange(e.target.value || null)}
-                label="Manager"
+                label="Cobrador"
                 disabled={isLoading}
               >
                 <MenuItem value="">

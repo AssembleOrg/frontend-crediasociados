@@ -121,8 +121,8 @@ class ExportService {
       loanId: loan.id,
       loanTrack: loan.loanTrack,
       amount: loan.amount,
-      baseInterestRate: loan.baseInterestRate,
-      totalAmount: loanData.totalAmount,
+      baseInterestRate: 0, // NOTE: Interest rate removed per client request (feedback.md)
+      totalAmount: loan.amount, // Changed: Show only capital, no interest
       paymentFrequency: loan.paymentFrequency,
       numberOfInstallments: loan.totalPayments,
       startDate: new Date(loan.firstDueDate || loan.createdAt).toLocaleDateString('es-AR'),
@@ -136,20 +136,20 @@ class ExportService {
       clientCUIT: client.cuit,
       clientAddress: client.address,
       
-      // Payment Schedule
+      // Payment Schedule - Without interest
       paymentSchedule: subLoans.map(subLoan => ({
         paymentNumber: subLoan.paymentNumber,
         dueDate: new Date(subLoan.dueDate).toLocaleDateString('es-AR'),
         principalAmount: subLoan.amount,
-        totalAmount: subLoan.totalAmount,
+        totalAmount: subLoan.amount, // Changed: Show only principal, no interest
         status: subLoan.status
       })),
       
-      // Summary
+      // Summary - Without interest per client request
       summary: {
         totalPrincipal: loan.amount,
-        totalInterest: loanData.totalInterest,
-        totalAmount: loanData.totalAmount,
+        totalInterest: 0, // NOTE: Interest removed per client request (feedback.md)
+        totalAmount: loan.amount, // Changed: Show only capital, no interest
         numberOfPayments: loan.totalPayments,
         frequency: getFrequencyLabel(loan.paymentFrequency)
       },
@@ -172,8 +172,9 @@ class ExportService {
       'Cliente': client.fullName,
       'DNI/CUIT': client.dni || client.cuit || '',
       'Monto Prestado': loan.amount,
-      'Tasa Interés (%)': formatInterestRate(loan.baseInterestRate),
-      'Monto Total': loanData.totalAmount,
+      // NOTE: Interest rate removed per client request (feedback.md)
+      // 'Tasa Interés (%)': formatInterestRate(loan.baseInterestRate),
+      'Monto Total': loan.amount, // Changed: Show only capital, no interest
       'Frecuencia': getFrequencyLabel(loan.paymentFrequency),
       'Cantidad Cuotas': loan.totalPayments,
       'Fecha Inicio': new Date(loan.firstDueDate || loan.createdAt).toLocaleDateString('es-AR'),

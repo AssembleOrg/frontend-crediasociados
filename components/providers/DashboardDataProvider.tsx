@@ -94,6 +94,14 @@ export default function DashboardDataProvider({ children }: DashboardDataProvide
   // Race condition prevention
   const isInitializedRef = useRef(false);
   const abortControllerRef = useRef<AbortController | null>(null);
+  
+  // Cache to prevent redundant fetches
+  const dataCache = useRef<{
+    subLoans?: { timestamp: number; data: any };
+    finanzas?: { timestamp: number; data: any };
+  }>({});
+  
+  const CACHE_TTL = 30000; // 30 seconds
 
   /**
    * Initialize SubLoans + Loans data
@@ -213,6 +221,14 @@ export default function DashboardDataProvider({ children }: DashboardDataProvide
       return;
     }
 
+    // Check cache
+    const now = Date.now();
+    if (dataCache.current.finanzas && 
+        now - dataCache.current.finanzas.timestamp < CACHE_TTL) {
+      console.log('💰 [DASHBOARD PROVIDER] Using cached finanzas data');
+      return;
+    }
+
     try {
       console.time('💰 Finanzas Load');
       console.log('💰 [DASHBOARD PROVIDER] Loading Finanzas...');
@@ -256,7 +272,7 @@ export default function DashboardDataProvider({ children }: DashboardDataProvide
       }
 
       additionalDataPromises.push(
-        finanzasService.getActiveLoansFinancial(user.id).catch((err) => {
+        finanzasService.getActiveLoansFinancial(user.id, user.role).catch((err) => {
           console.warn('💰 Active loans failed:', err);
           return [] as ActiveLoanFinancial[];
         }),
@@ -298,6 +314,12 @@ export default function DashboardDataProvider({ children }: DashboardDataProvide
 
       console.log('✅ [DASHBOARD PROVIDER] Finanzas loaded');
       console.timeEnd('💰 Finanzas Load');
+      
+      // Update cache
+      dataCache.current.finanzas = {
+        timestamp: Date.now(),
+        data: true
+      };
     } catch (error) {
       console.error('💰 [DASHBOARD PROVIDER] Finanzas error (continuing):', error);
       // Graceful degradation: keep empty state

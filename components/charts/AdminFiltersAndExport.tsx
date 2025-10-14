@@ -133,7 +133,7 @@ const AdminFiltersAndExport = memo(function AdminFiltersAndExport({
             ml: { md: 'auto' }
           }}>
             <Chip
-              label={`${dataCount.totalSubadmins} sub-admins | ${dataCount.totalManagers} managers | ${dataCount.totalClients} clientes`}
+              label={`${dataCount.totalSubadmins} cobradores | ${dataCount.totalManagers} prestamistas | ${dataCount.totalClients} clientes`}
               size="small"
               color="primary"
               variant="outlined"
@@ -239,18 +239,18 @@ const AdminFiltersAndExport = memo(function AdminFiltersAndExport({
 
         <Divider orientation="vertical" flexItem sx={{ display: { xs: 'none', lg: 'block' } }} />
 
-        {/* Subadmin Filter */}
+        {/* Cobrador Filter */}
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, minWidth: 200 }}>
           <Typography variant="subtitle2" color="text.secondary">
-            Filtrar por Sub-Admin
+            Filtrar por Cobrador
           </Typography>
           <Box sx={{ display: 'flex', gap: 1 }}>
             <FormControl size="small" sx={{ minWidth: 200 }}>
-              <InputLabel>Sub-Admin</InputLabel>
+              <InputLabel>Cobrador</InputLabel>
               <Select
                 value={selectedSubadmin || ''}
                 onChange={(e) => onSubadminChange(e.target.value || null)}
-                label="Sub-Admin"
+                label="Cobrador"
                 disabled={isLoading}
               >
                 <MenuItem value="">
@@ -316,7 +316,7 @@ const AdminFiltersAndExport = memo(function AdminFiltersAndExport({
           </Box>
           <Typography variant="caption" color="text.secondary" sx={{ textAlign: 'center' }}>
             {selectedSubadmin
-              ? 'Solo datos del sub-admin seleccionado'
+              ? 'Solo datos del cobrador seleccionado'
               : 'Todos los datos detallados'
             }
           </Typography>

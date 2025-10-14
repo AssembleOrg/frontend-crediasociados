@@ -54,6 +54,53 @@ export interface ActiveLoanFinancial {
   status: 'ACTIVE' | 'APPROVED'
 }
 
+/**
+ * Client data optimized for charts (from /users/{managerId}/clients/chart)
+ */
+export interface ClientChartData {
+  id: string
+  fullName: string
+  dni?: string
+  cuit?: string
+  totalLoans: number
+  totalAmount: number
+  activeLoans: number
+  activeAmount: number
+  createdAt: string
+  lastLoanDate?: string
+}
+
+/**
+ * Loan data optimized for charts (from /users/{managerId}/loans/chart)
+ */
+export interface LoanChartData {
+  id: string
+  loanTrack: string
+  amount: number
+  originalAmount: number
+  status: string
+  currency: string
+  paymentFrequency: string
+  totalPayments: number
+  completedPayments: number
+  pendingPayments: number
+  paidAmount: number
+  remainingAmount: number
+  createdAt: string
+  nextDueDate?: string
+  client: {
+    id: string
+    fullName: string
+    dni?: string
+  }
+  subLoans?: Array<{
+    id: string
+    amount: number
+    paidAmount: number
+    status: string
+  }>
+}
+
 // ============================================================================
 // EXPENSES (GASTOS)
 // ============================================================================

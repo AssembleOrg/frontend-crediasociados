@@ -26,17 +26,7 @@ interface ManagerStatsTableProps {
 }
 
 const ManagerStatsTable = memo(function ManagerStatsTable({ managers, isLoading = false }: ManagerStatsTableProps) {
-  const getCollectionRateColor = (rate: number) => {
-    if (rate >= 90) return 'success'
-    if (rate >= 70) return 'warning'
-    return 'error'
-  }
-
-  const getCollectionRateLabel = (rate: number) => {
-    if (rate >= 90) return 'Excelente'
-    if (rate >= 70) return 'Bueno'
-    return 'Necesita atención'
-  }
+  // Collection rate removed per client request
 
   if (isLoading) {
     return (
@@ -75,7 +65,6 @@ const ManagerStatsTable = memo(function ManagerStatsTable({ managers, isLoading 
                 <TableCell align="center">Préstamos</TableCell>
                 <TableCell align="right">Dinero Prestado</TableCell>
                 <TableCell align="right">Por Cobrar</TableCell>
-                <TableCell align="center">Cobros</TableCell>
                 <TableCell align="center">Desde</TableCell>
               </TableRow>
             </TableHead>
@@ -128,14 +117,6 @@ const ManagerStatsTable = memo(function ManagerStatsTable({ managers, isLoading 
                     </Typography>
                   </TableCell>
                   <TableCell align="center">
-                    <Chip
-                      label={`${manager.collectionRate.toFixed(0)}% - ${getCollectionRateLabel(manager.collectionRate)}`}
-                      color={getCollectionRateColor(manager.collectionRate)}
-                      size="small"
-                      variant="outlined"
-                    />
-                  </TableCell>
-                  <TableCell align="center">
                     <Typography variant="caption" color="text.secondary">
                       {new Date(manager.createdAt).toLocaleDateString('es-AR')}
                     </Typography>
@@ -165,11 +146,6 @@ const ManagerStatsTable = memo(function ManagerStatsTable({ managers, isLoading 
                       {manager.managerEmail}
                     </Typography>
                   </Box>
-                  <Chip
-                    label={`${manager.collectionRate.toFixed(0)}%`}
-                    color={getCollectionRateColor(manager.collectionRate)}
-                    size="small"
-                  />
                 </Box>
 
                 <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2 }}>

@@ -13,7 +13,7 @@ const ManagersPerSubadminChart = dynamic(
   () => import('@/components/charts/ManagersPerSubadminChart'),
   {
     ssr: false,
-    loading: () => <ChartSkeleton title="Managers por Sub-Administrador" />
+    loading: () => <ChartSkeleton title="Cobradores por Asociados" />
   }
 )
 

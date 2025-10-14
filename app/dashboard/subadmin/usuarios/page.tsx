@@ -93,10 +93,10 @@ export default function ManagersPage() {
       }}>
         <Box>
           <Typography variant="h4" component="h1" gutterBottom>
-            Gestión de Prestamistas
+            Gestión de Cobradores
           </Typography>
           <Typography variant="body1" color="text.secondary">
-            Administra los prestamistas de tu región
+            Administra los cobradores
           </Typography>
         </Box>
 
@@ -105,7 +105,7 @@ export default function ManagersPage() {
           startIcon={<Add />}
           onClick={() => setCreateModalOpen(true)}
         >
-          Crear Prestamista
+          Crear Cobrador
         </Button>
       </Box>
 
@@ -138,7 +138,7 @@ export default function ManagersPage() {
                 <TableRow>
                   <TableCell colSpan={5} align="center" sx={{ py: 4 }}>
                     <Typography variant="body2" color="text.secondary">
-                      No hay prestamistas registrados
+                      No hay cobradores registrados
                     </Typography>
                   </TableCell>
                 </TableRow>
@@ -157,7 +157,7 @@ export default function ManagersPage() {
                     </TableCell>
                     <TableCell>
                       <Chip 
-                        label="Prestamista" 
+                        label="Cobrador" 
                         color="primary" 
                         size="small" 
                       />

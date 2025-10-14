@@ -150,16 +150,39 @@ class FinanzasService {
   }
 
   /**
-   * Get active loans financial data (Manager view)
-   * Transforms real loans data to financial format
+   * Get active loans financial data
+   * For managers: returns their loans
+   * For subadmins: aggregates loans from all their managers
    */
-  async getActiveLoansFinancial(managerId: string): Promise<ActiveLoanFinancial[]> {
+  async getActiveLoansFinancial(userId: string, role?: 'subadmin' | 'manager'): Promise<ActiveLoanFinancial[]> {
     try {
-      // Use chart endpoint to get loans with subloans populated
-      const loans = await api.get(`/users/${managerId}/loans/chart`).then(res => res.data.data || [])
+      // If subadmin, aggregate from all managers
+      if (role === 'subadmin') {
+        console.log('💰 [FINANZAS] Getting active loans for subadmin (aggregated from managers)')
+        const managersData = await this.getManagersFinancial(userId)
+        
+        // Get loans from each manager
+        const allLoansPromises = managersData.map(async (manager) => {
+          try {
+            const loans = await api.get(`/users/${manager.managerId}/loans/chart`)
+              .then(res => res.data.data || [])
+            return getActiveLoansFinancial(loans)
+          } catch (err) {
+            console.warn(`💰 Failed to get loans for manager ${manager.managerName}:`, err)
+            return []
+          }
+        })
+        
+        const allLoansArrays = await Promise.all(allLoansPromises)
+        return allLoansArrays.flat()
+      }
+      
+      // For managers: get their direct loans
+      console.log('💰 [FINANZAS] Getting active loans for manager')
+      const loans = await api.get(`/users/${userId}/loans/chart`).then(res => res.data.data || [])
       return getActiveLoansFinancial(loans)
     } catch (error) {
-      console.error('Error getting active loans financial:', error)
+      console.error('💰 [FINANZAS] Error getting active loans financial:', error)
       return []
     }
   }

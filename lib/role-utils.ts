@@ -7,7 +7,7 @@ export const ROLE_HIERARCHY = {
   admin: 1,
   subadmin: 2,
   manager: 3,
-  prestamista: 3, // Same level as manager (legacy compatibility)
+  prestamista: 3,
   cliente: 4
 } as const
 

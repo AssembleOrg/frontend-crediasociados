@@ -83,7 +83,7 @@ export default function AdminReportsPage() {
           Reportes Administrativos
         </Typography>
         <Typography variant="body1" color="text.secondary">
-          Panel de gestión y exportación de datos de subadministradores
+          Panel de gestión y exportación de datos de asociados
         </Typography>
       </Box>
 
@@ -106,7 +106,7 @@ export default function AdminReportsPage() {
         subtitle=""
         metrics={reports || undefined}
         users={reports?.subadmins || []}
-        userTypeLabel="Subadmin"
+        userTypeLabel="Asociado"
         isLoading={reportsLoading}
         isInitialized={!!reports}
         error={reportsError}

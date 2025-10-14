@@ -49,11 +49,7 @@ const BaseReportTable = memo(function BaseReportTable({
     return `$${amount.toLocaleString()}`
   }
 
-  const getCollectionRateColor = (rate: number) => {
-    if (rate >= 90) return 'success'
-    if (rate >= 70) return 'warning'
-    return 'error'
-  }
+  // Collection rate removed per client request (feedback)
 
   if (isLoading) {
     return (
@@ -150,17 +146,7 @@ const BaseReportTable = memo(function BaseReportTable({
                 </Box>
               )}
 
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <Box>
-                  <Typography variant="caption" color="text.secondary" display="block">
-                    Tasa de Cobro
-                  </Typography>
-                  <Chip
-                    label={`${user.collectionRate.toFixed(1)}%`}
-                    size="small"
-                    color={getCollectionRateColor(user.collectionRate)}
-                  />
-                </Box>
+              <Box>
                 <Typography variant="caption" color="text.secondary">
                   Desde: {new Date(user.createdAt).toLocaleDateString()}
                 </Typography>
@@ -185,7 +171,6 @@ const BaseReportTable = memo(function BaseReportTable({
             <TableCell align="center" sx={{ fontWeight: 'bold' }}>Clientes</TableCell>
             <TableCell align="center" sx={{ fontWeight: 'bold' }}>Préstamos</TableCell>
             {!hideAmounts && <TableCell align="right" sx={{ fontWeight: 'bold' }}>Monto Prestado</TableCell>}
-            <TableCell align="center" sx={{ fontWeight: 'bold' }}>Tasa Cobro</TableCell>
             <TableCell align="center" sx={{ fontWeight: 'bold' }}>Desde</TableCell>
           </TableRow>
         </TableHead>
@@ -232,13 +217,6 @@ const BaseReportTable = memo(function BaseReportTable({
                   </Typography>
                 </TableCell>
               )}
-              <TableCell align="center">
-                <Chip
-                  label={`${user.collectionRate.toFixed(1)}%`}
-                  size="small"
-                  color={getCollectionRateColor(user.collectionRate)}
-                />
-              </TableCell>
               <TableCell align="center">
                 <Typography variant="caption" color="text.secondary">
                   {new Date(user.createdAt).toLocaleDateString()}

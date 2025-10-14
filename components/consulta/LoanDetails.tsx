@@ -51,7 +51,7 @@ export default function LoanDetails({ loanDetails }: LoanDetailsProps) {
       case 'ACTIVE':
         return `Próximo pago: ${formatDate(loanDetails.nextDueDate)}`
       case 'OVERDUE':
-        return 'Tienes pagos vencidos. Contacta a tu prestamista.'
+        return 'Tienes pagos vencidos. Contacta a tu cobrador.'
       case 'COMPLETED':
         return 'Préstamo completado exitosamente.'
       default:
@@ -104,14 +104,14 @@ export default function LoanDetails({ loanDetails }: LoanDetailsProps) {
             <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
               <MonetizationOn color="primary" sx={{ mr: 1 }} />
               <Typography variant="subtitle2" color="text.secondary">
-                Monto Original
+                Total a Pagar
               </Typography>
             </Box>
             <Typography variant="h6" color="primary.main">
               {formatCurrency(loanDetails.amount)}
             </Typography>
             <Typography variant="body2" color="text.secondary">
-              Interés: {(loanDetails.baseInterestRate * 100).toFixed(1)}%
+              Incluye capital + intereses
             </Typography>
           </CardContent>
         </Card>
@@ -121,14 +121,14 @@ export default function LoanDetails({ loanDetails }: LoanDetailsProps) {
             <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
               <CalendarToday color="primary" sx={{ mr: 1 }} />
               <Typography variant="subtitle2" color="text.secondary">
-                Frecuencia
+                Valor de Cuota
               </Typography>
             </Box>
-            <Typography variant="h6">
-              {getFrequencyLabel(loanDetails.paymentFrequency)}
+            <Typography variant="h6" color="success.main">
+              {formatCurrency(loanDetails.amount / loanDetails.totalPayments)}
             </Typography>
             <Typography variant="body2" color="text.secondary">
-              {loanDetails.totalPayments} cuotas totales
+              {getFrequencyLabel(loanDetails.paymentFrequency)}
             </Typography>
           </CardContent>
         </Card>
@@ -138,14 +138,14 @@ export default function LoanDetails({ loanDetails }: LoanDetailsProps) {
             <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
               <CheckCircle color="success" sx={{ mr: 1 }} />
               <Typography variant="subtitle2" color="text.secondary">
-                Progreso
+                Total de Cuotas
               </Typography>
             </Box>
-            <Typography variant="h6" color="success.main">
-              {loanDetails.totalPayments - loanDetails.remainingPayments}/{loanDetails.totalPayments}
+            <Typography variant="h6" color="info.main">
+              {loanDetails.totalPayments} cuotas
             </Typography>
             <Typography variant="body2" color="text.secondary">
-              {loanDetails.remainingPayments} cuotas restantes
+              {loanDetails.totalPayments - loanDetails.remainingPayments} pagadas, {loanDetails.remainingPayments} restantes
             </Typography>
           </CardContent>
         </Card>

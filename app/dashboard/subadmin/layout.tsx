@@ -8,7 +8,7 @@ import {
   ListItemIcon,
   ListItemText,
 } from '@mui/material';
-import { Dashboard, People, Analytics, AttachMoney, Receipt } from '@mui/icons-material';
+import { Dashboard, People, Analytics, AttachMoney, Receipt, Payment } from '@mui/icons-material';
 import { useRouter, usePathname } from 'next/navigation';
 import { QuickActions } from '@/components/dashboard/QuickActions';
 import DashboardDataProvider from '@/components/providers/DashboardDataProvider';
@@ -16,12 +16,17 @@ import DashboardDataProvider from '@/components/providers/DashboardDataProvider'
 const subadminMenuItems = [
   { label: 'Dashboard', icon: <Dashboard />, path: '/dashboard/subadmin' },
   {
+    label: 'Cobros',
+    icon: <Payment />,
+    path: '/dashboard/subadmin/cobros',
+  },
+  {
     label: 'Reportes',
     icon: <Analytics />,
     path: '/dashboard/subadmin/reportes',
   },
   {
-    label: 'Managers',
+    label: 'Cobradores',
     icon: <People />,
     path: '/dashboard/subadmin/usuarios',
   },
@@ -44,12 +49,17 @@ const subadminQuickActions = [
     path: '/dashboard/subadmin',
   },
   {
+    label: 'Cobros',
+    icon: <Payment />,
+    path: '/dashboard/subadmin/cobros',
+  },
+  {
     label: 'Reportes',
     icon: <Analytics />,
     path: '/dashboard/subadmin/reportes',
   },
   {
-    label: 'Managers',
+    label: 'Cobradores',
     icon: <People />,
     path: '/dashboard/subadmin/usuarios',
   },

@@ -74,6 +74,11 @@ export function CreateLoanModal({
   const [simulatedLoans, setSimulatedLoans] = useState<SubLoan[]>([])
   const [isSimulating, setIsSimulating] = useState(false)
   const [simulationModalOpen, setSimulationModalOpen] = useState(false)
+  const [livePreview, setLivePreview] = useState<{
+    totalAmount: number
+    installmentAmount: number
+    totalInterest: number
+  } | null>(null)
 
   // Reset form cuando se cierra el modal
   useEffect(() => {
@@ -93,8 +98,38 @@ export function CreateLoanModal({
       setFormErrors({})
       setSimulatedLoans([])
       setSimulationModalOpen(false)
+      setLivePreview(null)
     }
   }, [open])
+
+  // Live preview calculation - updates as user types
+  useEffect(() => {
+    if (open && formData.amount && formData.baseInterestRate && formData.totalPayments) {
+      try {
+        const amountValue = parseFloat(unformatAmount(formData.amount))
+        const interestRate = parseFloat(formData.baseInterestRate) / 100
+        const payments = parseInt(formData.totalPayments)
+
+        if (amountValue > 0 && interestRate >= 0 && payments > 0) {
+          const totalInterest = amountValue * interestRate
+          const totalAmount = amountValue + totalInterest
+          const installmentAmount = totalAmount / payments
+
+          setLivePreview({
+            totalAmount,
+            installmentAmount,
+            totalInterest
+          })
+        } else {
+          setLivePreview(null)
+        }
+      } catch {
+        setLivePreview(null)
+      }
+    } else {
+      setLivePreview(null)
+    }
+  }, [open, formData.amount, formData.baseInterestRate, formData.totalPayments])
 
   const handleInputChange = (field: keyof typeof formData) => (
     event: React.ChangeEvent<HTMLInputElement>
@@ -694,6 +729,62 @@ export function CreateLoanModal({
               </Box>
             </CardContent>
           </Card>
+
+          {/* Live Preview Card */}
+          {livePreview && (
+            <Card sx={{ 
+              borderRadius: 2, 
+              boxShadow: '0 4px 12px rgba(0,0,0,0.05)',
+              background: 'linear-gradient(135deg, #667eea15 0%, #4facfe15 100%)',
+              border: '2px solid',
+              borderColor: 'primary.main'
+            }}>
+              <CardContent sx={{ p: 3 }}>
+                <Typography variant="h6" sx={{ fontWeight: 600, mb: 2, color: 'primary.main' }}>
+                  📊 Vista Previa en Tiempo Real
+                </Typography>
+                
+                <Box sx={{ 
+                  display: 'grid', 
+                  gridTemplateColumns: { xs: '1fr', sm: 'repeat(3, 1fr)' }, 
+                  gap: 2 
+                }}>
+                  <Box sx={{ textAlign: 'center', p: 2, bgcolor: 'white', borderRadius: 2 }}>
+                    <Typography variant="body2" color="text.secondary" gutterBottom>
+                      Valor por Cuota
+                    </Typography>
+                    <Typography variant="h5" fontWeight="bold" color="success.main">
+                      ${livePreview.installmentAmount.toLocaleString('es-AR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+                    </Typography>
+                  </Box>
+                  
+                  <Box sx={{ textAlign: 'center', p: 2, bgcolor: 'white', borderRadius: 2 }}>
+                    <Typography variant="body2" color="text.secondary" gutterBottom>
+                      Total a Devolver
+                    </Typography>
+                    <Typography variant="h5" fontWeight="bold" color="primary.main">
+                      ${livePreview.totalAmount.toLocaleString('es-AR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+                    </Typography>
+                  </Box>
+                  
+                  <Box sx={{ textAlign: 'center', p: 2, bgcolor: 'white', borderRadius: 2 }}>
+                    <Typography variant="body2" color="text.secondary" gutterBottom>
+                      Total de Intereses
+                    </Typography>
+                    <Typography variant="h5" fontWeight="bold" color="warning.main">
+                      ${livePreview.totalInterest.toLocaleString('es-AR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+                    </Typography>
+                  </Box>
+                </Box>
+
+                <Alert severity="info" sx={{ mt: 2 }}>
+                  <Typography variant="caption">
+                    💡 Estos valores se actualizan automáticamente mientras editas. Haz clic en "Simular Préstamo" para ver el cronograma completo de pagos.
+                  </Typography>
+                </Alert>
+              </CardContent>
+            </Card>
+          )}
 
           {/* Description Card */}
           <Card sx={{ borderRadius: 2, boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}>

@@ -222,9 +222,10 @@ export function UserFormModal({
               value={formData.email}
               onChange={handleInputChange('email')}
               error={!!formErrors.email}
-              helperText={formErrors.email}
+              helperText={mode === 'edit' ? 'El email no puede ser modificado' : formErrors.email}
               required
               fullWidth
+              disabled={mode === 'edit'}
             />
 
             <TextField

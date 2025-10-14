@@ -80,7 +80,7 @@ const ManagersPerSubadminChart = memo(function ManagersPerSubadminChart({ data, 
     return (
       <Paper elevation={1} sx={{ p: 3, height: chartHeight }}>
         <Typography variant="h6" gutterBottom>
-          Managers por Sub-Administrador
+          Managers por Cobradores
         </Typography>
         <Box sx={{
           height: containerHeight,
@@ -99,7 +99,7 @@ const ManagersPerSubadminChart = memo(function ManagersPerSubadminChart({ data, 
     return (
       <Paper elevation={1} sx={{ p: 3, height: chartHeight }}>
         <Typography variant="h6" gutterBottom>
-          Managers por Sub-Administrador
+          Managers por Cobrador
         </Typography>
         <Box sx={{
           height: containerHeight,
@@ -119,7 +119,7 @@ const ManagersPerSubadminChart = memo(function ManagersPerSubadminChart({ data, 
   return (
     <Paper elevation={1} sx={{ p: 3, height: chartHeight }}>
       <Typography variant="h6" gutterBottom>
-        Managers por Sub-Administrador
+        Managers por Cobrador
       </Typography>
 
       <ResponsiveContainer width="100%" height="75%">

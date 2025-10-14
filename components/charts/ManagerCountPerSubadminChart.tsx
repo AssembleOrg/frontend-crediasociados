@@ -30,10 +30,10 @@ const CustomTooltip = ({ active, payload, label }: TooltipProps) => {
           {label}
         </Typography>
         <Typography variant="body2" color="primary.main" fontWeight={600}>
-          {data.value} {data.value === 1 ? 'prestamista' : 'prestamistas'}
+          {data.value} {data.value === 1 ? 'cobrador' : 'cobradores'}
         </Typography>
         <Typography variant="caption" color="text.secondary">
-          Prestamistas bajo gestión
+          Cobradores bajo gestión
         </Typography>
       </Paper>
     )
@@ -59,7 +59,7 @@ export default function ManagerCountPerSubadminChart({ data, isLoading = false }
     return (
       <Paper elevation={1} sx={{ p: 3, height: chartHeight }}>
         <Typography variant="h6" gutterBottom>
-          Prestamistas por Asociado
+          cobradores por Asociado
         </Typography>
         <Box sx={{
           height: containerHeight,
@@ -68,7 +68,7 @@ export default function ManagerCountPerSubadminChart({ data, isLoading = false }
           justifyContent: 'center',
           color: 'text.secondary'
         }}>
-          Cargando datos de prestamistas...
+          Cargando datos de cobradores...
         </Box>
       </Paper>
     )
@@ -78,7 +78,7 @@ export default function ManagerCountPerSubadminChart({ data, isLoading = false }
     return (
       <Paper elevation={1} sx={{ p: 3, height: chartHeight }}>
         <Typography variant="h6" gutterBottom>
-          Prestamistas por Asociado
+          Cobradores por Asociado
         </Typography>
         <Box sx={{
           height: containerHeight,
@@ -100,7 +100,7 @@ export default function ManagerCountPerSubadminChart({ data, isLoading = false }
   return (
     <Paper elevation={1} sx={{ p: 3, height: chartHeight }}>
       <Typography variant="h6" gutterBottom>
-        Prestamistas por Asociado
+        Cobradoress por Asociado
       </Typography>
 
       <ResponsiveContainer width="100%" height="75%">
@@ -138,7 +138,7 @@ export default function ManagerCountPerSubadminChart({ data, isLoading = false }
       {/* Summary with better spacing */}
       <Box sx={{ mt: 3, textAlign: 'center' }}>
         <Typography variant="body2" color="text.secondary">
-          Total prestamistas: {totalManagers}
+          Total cobradores: {totalManagers}
         </Typography>
       </Box>
     </Paper>

@@ -77,8 +77,8 @@ export default function SubadminDashboard() {
     return (
       <Box sx={{ p: 3 }}>
         <PageHeader
-          title="Dashboard Sub-Administrativo"
-          subtitle="Gestión de prestamistas en tu región"
+          title="Dashboard de Cobrador"
+          subtitle="Gestión de cobradores"
         />
         <Alert severity="error" sx={{ mt: 2 }}>
           {error}
@@ -90,8 +90,8 @@ export default function SubadminDashboard() {
   return (
     <Box sx={{ p: 3 }}>
       <PageHeader
-        title="Dashboard Sub-Administrativo"
-        subtitle="Gestión de prestamistas en tu región"
+        title="Dashboard de Cobrador"
+        subtitle="Gestión de cobradores"
       />
 
       <Grid container spacing={4}>

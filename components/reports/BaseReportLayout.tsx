@@ -190,26 +190,6 @@ const BaseReportLayout = memo(function BaseReportLayout({
           showManagers={showManagers}
         />
       </Box>
-
-      {/* Refresh Info */}
-      <Box sx={{ mt: 3, textAlign: 'center' }}>
-        <Typography variant="caption" color="text.secondary">
-          Los datos se actualizan automáticamente.
-          <Typography
-            component="span"
-            variant="caption"
-            sx={{
-              cursor: 'pointer',
-              textDecoration: 'underline',
-              ml: 1,
-              color: 'primary.main'
-            }}
-            onClick={onRefresh}
-          >
-            Actualizar ahora
-          </Typography>
-        </Typography>
-      </Box>
     </Box>
   )
 })

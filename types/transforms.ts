@@ -76,7 +76,7 @@ export const getRoleDisplayName = (role: UserRole): string => {
   const ROLE_DISPLAY: Record<UserRole, string> = {
     superadmin: 'Super Admin',
     admin: 'Administrador',
-    subadmin: 'Sub-Administrador',
+    subadmin: 'Cobrador',
     manager: 'Manager',
     prestamista: 'Prestamista',
     cliente: 'Cliente',
