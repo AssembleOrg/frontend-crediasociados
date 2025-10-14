@@ -37,6 +37,7 @@ export default function OperativaProvider({ children }: OperativaProviderProps) 
 
   const initOperativaData = async (): Promise<boolean> => {
     if (!user) {
+      setIsInitialLoading(false);
       return false;
     }
 
@@ -44,16 +45,30 @@ export default function OperativaProvider({ children }: OperativaProviderProps) 
     abortControllerRef.current = abortController;
 
     try {
-      console.log('🧾 Inicializando datos de Operativa...');
+      console.log('🧾 [OPERATIVA PROVIDER] Inicializando datos de Operativa...');
 
-      const transacciones = await operativaService.getTransacciones(user.id);
+      // Add timeout to prevent blocking (3 seconds for operativa)
+      const transaccionesPromise = operativaService.getTransacciones(user.id);
+      const timeoutPromise = new Promise<null>((resolve) => 
+        setTimeout(() => {
+          console.warn('🧾 [OPERATIVA PROVIDER] Fetch timeout, continuing with empty data');
+          resolve(null);
+        }, 3000)
+      );
+
+      const transacciones = await Promise.race([transaccionesPromise, timeoutPromise]);
 
       if (abortController.signal.aborted) {
         return false;
       }
 
-      setTransacciones(transacciones);
-      console.log('✅ Operativa data initialized:', transacciones.length, 'transacciones');
+      if (transacciones) {
+        setTransacciones(transacciones);
+        console.log('✅ [OPERATIVA PROVIDER] Operativa data initialized:', transacciones.length, 'transacciones');
+      } else {
+        console.warn('🧾 [OPERATIVA PROVIDER] Using empty transacciones due to timeout');
+        setTransacciones([]);
+      }
 
       return true;
     } catch (err) {
@@ -61,11 +76,15 @@ export default function OperativaProvider({ children }: OperativaProviderProps) 
         return false;
       }
 
-      console.error('Error initializing operativa data:', err);
+      console.error('🧾 [OPERATIVA PROVIDER] Error initializing operativa data:', err);
+      // Graceful degradation: set empty array instead of blocking
+      setTransacciones([]);
       return false;
     } finally {
+      // ALWAYS set loading to false to prevent blocking
       if (!abortController.signal.aborted) {
         setIsInitialLoading(false);
+        console.log('🧾 [OPERATIVA PROVIDER] Loading complete');
       }
     }
   };
@@ -106,10 +125,8 @@ export default function OperativaProvider({ children }: OperativaProviderProps) 
 
   return (
     <OperativaProviderContext.Provider value={contextValue}>
-      <AuthLoadingOverlay
-        open={isInitialLoading && !!user}
-        message="Cargando datos operativos..."
-      />
+      {/* Removed blocking overlay - operativa loads in background */}
+      {/* Dashboard can render while operativa data loads */}
       {children}
     </OperativaProviderContext.Provider>
   );

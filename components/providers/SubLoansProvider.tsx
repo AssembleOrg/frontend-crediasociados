@@ -76,17 +76,12 @@ export default function SubLoansProvider({ children }: SubLoansProviderProps) {
       setError(null);
 
       console.time('🏦 SubLoans Init - Total Time');
-      console.log('🏦 Inicializando TODOS los datos de SubLoans + Loans globalmente (Consolidated Provider Pattern)');
+      console.log('🏦 [SUBLOANS PROVIDER] Inicializando TODOS los datos de SubLoans + Loans globalmente (Consolidated Provider Pattern)');
 
       console.time('🏦 API Calls (Parallel)');
-      // Initialize ALL data types in parallel
-      const [
-        enrichedSubLoans,
-        todayDueResponse,
-        allSubLoansResponse,
-        statsResponse,
-        loansResponse
-      ] = await Promise.all([
+      
+      // Add timeout to prevent blocking (5 seconds for critical data)
+      const dataPromise = Promise.all([
         // 1. All SubLoans with Client Info
         subLoansLookupService.getAllSubLoansWithClientInfo(),
         
@@ -102,11 +97,39 @@ export default function SubLoansProvider({ children }: SubLoansProviderProps) {
         // 5. Basic Loans (consolidated to prevent architectural drift)
         loansService.getAllLoans(),
       ]);
+
+      const timeoutPromise = new Promise<null>((resolve) => 
+        setTimeout(() => {
+          console.warn('🏦 [SUBLOANS PROVIDER] Fetch timeout, continuing with empty data');
+          resolve(null);
+        }, 5000)
+      );
+
+      const result = await Promise.race([dataPromise, timeoutPromise]);
+
       console.timeEnd('🏦 API Calls (Parallel)');
 
       if (abortController.signal.aborted) {
         return false;
       }
+
+      if (!result) {
+        console.warn('🏦 [SUBLOANS PROVIDER] Using empty data due to timeout');
+        setAllSubLoansWithClient([]);
+        setTodayDueSubLoans([]);
+        setAllSubLoans([]);
+        setStats(null);
+        setLoans([]);
+        return false;
+      }
+
+      const [
+        enrichedSubLoans,
+        todayDueResponse,
+        allSubLoansResponse,
+        statsResponse,
+        loansResponse
+      ] = result;
 
       console.time('🏦 Data Transform & Store Update');
       // Update ALL store data
@@ -129,7 +152,7 @@ export default function SubLoansProvider({ children }: SubLoansProviderProps) {
 
       console.timeEnd('🏦 Data Transform & Store Update');
 
-      console.log('🔄 SubLoans + Loans data initialized globally (Consolidated):', {
+      console.log('✅ [SUBLOANS PROVIDER] SubLoans + Loans data initialized globally (Consolidated):', {
         enrichedSubLoans: enrichedSubLoans.length,
         todayDue: todayDueResponse.length,
         allSubLoans: allSubLoansResponse.length,
@@ -145,14 +168,24 @@ export default function SubLoansProvider({ children }: SubLoansProviderProps) {
         return false;
       }
 
-      console.error('Error initializing subloans data:', error);
+      console.error('🏦 [SUBLOANS PROVIDER] Error initializing subloans data:', error);
       setError((error as Error).message || 'Error al cargar datos de préstamos');
+      
+      // Graceful degradation: set empty arrays instead of blocking
+      setAllSubLoansWithClient([]);
+      setTodayDueSubLoans([]);
+      setAllSubLoans([]);
+      setStats(null);
+      setLoans([]);
+      
       return false;
 
     } finally {
+      // ALWAYS set loading to false to prevent blocking
       if (!abortController.signal.aborted) {
         setLoading(false);
         setIsInitialLoading(false);
+        console.log('🏦 [SUBLOANS PROVIDER] Loading complete');
       }
     }
   };
@@ -208,10 +241,8 @@ export default function SubLoansProvider({ children }: SubLoansProviderProps) {
 
   return (
     <SubLoansProviderContext.Provider value={contextValue}>
-      <AuthLoadingOverlay
-        open={isInitialLoading && !!currentUser}
-        message="Cargando datos del sistema..."
-      />
+      {/* Removed blocking overlay - subloans loads in background */}
+      {/* Dashboard can render while subloans data loads */}
       {children}
     </SubLoansProviderContext.Provider>
   );

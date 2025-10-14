@@ -46,6 +46,7 @@ export default function FinanzasProvider({ children }: FinanzasProviderProps) {
 
   const initFinanzasData = async (): Promise<boolean> => {
     if (!user) {
+      setIsInitialLoading(false);
       return false;
     }
 
@@ -53,23 +54,40 @@ export default function FinanzasProvider({ children }: FinanzasProviderProps) {
     abortControllerRef.current = abortController;
 
     try {
-      console.log('💰 Inicializando datos de Finanzas...');
+      console.log('💰 [FINANZAS PROVIDER] Inicializando datos de Finanzas...');
 
       const userRole = user.role as UserRole;
 
-      const summary = await finanzasService.getFinancialSummary(
+      // Get financial summary with timeout
+      const summaryPromise = finanzasService.getFinancialSummary(
         user.id,
         userRole === 'subadmin' ? 'subadmin' : 'manager'
       );
+
+      // Set timeout to prevent blocking (5 seconds)
+      const timeoutPromise = new Promise<null>((resolve) => 
+        setTimeout(() => {
+          console.warn('💰 [FINANZAS PROVIDER] Summary fetch timeout, continuing with empty data');
+          resolve(null);
+        }, 5000)
+      );
+
+      const summary = await Promise.race([summaryPromise, timeoutPromise]);
 
       if (abortController.signal.aborted) {
         return false;
       }
 
-      setFinancialSummary(summary);
+      if (summary) {
+        setFinancialSummary(summary);
+        console.log('💰 [FINANZAS PROVIDER] Financial summary loaded');
+      } else {
+        console.warn('💰 [FINANZAS PROVIDER] Using empty financial summary due to timeout');
+      }
 
       if (userRole === 'subadmin') {
-        const [managersData, portfolioData, capitalDist] = await Promise.all([
+        // Load subadmin data with graceful degradation
+        const [managersData, portfolioData, capitalDist] = await Promise.allSettled([
           finanzasService.getManagersFinancial(user.id),
           finanzasService.getPortfolioEvolution(user.id, 30),
           finanzasService.getCapitalDistribution(user.id)
@@ -79,13 +97,33 @@ export default function FinanzasProvider({ children }: FinanzasProviderProps) {
           return false;
         }
 
-        setManagersFinancial(managersData);
-        setPortfolioEvolution(portfolioData);
-        setCapitalDistribution(capitalDist);
+        // Set data with graceful fallbacks
+        if (managersData.status === 'fulfilled') {
+          setManagersFinancial(managersData.value);
+          console.log(`💰 [FINANZAS PROVIDER] Loaded ${managersData.value.length} managers`);
+        } else {
+          console.error('💰 [FINANZAS PROVIDER] Failed to load managers:', managersData.reason);
+          setManagersFinancial([]);
+        }
 
-        console.log('✅ Finanzas data initialized (subadmin)');
+        if (portfolioData.status === 'fulfilled') {
+          setPortfolioEvolution(portfolioData.value);
+        } else {
+          console.error('💰 [FINANZAS PROVIDER] Failed to load portfolio:', portfolioData.reason);
+          setPortfolioEvolution([]);
+        }
+
+        if (capitalDist.status === 'fulfilled') {
+          setCapitalDistribution(capitalDist.value);
+        } else {
+          console.error('💰 [FINANZAS PROVIDER] Failed to load capital distribution:', capitalDist.reason);
+          setCapitalDistribution([]);
+        }
+
+        console.log('✅ [FINANZAS PROVIDER] Finanzas data initialized (subadmin)');
       } else if (userRole === 'manager' || userRole === 'prestamista') {
-        const [loansData, portfolioData, incomeData] = await Promise.all([
+        // Load manager data with graceful degradation
+        const [loansData, portfolioData, incomeData] = await Promise.allSettled([
           finanzasService.getActiveLoansFinancial(user.id),
           finanzasService.getPortfolioEvolution(user.id, 30),
           finanzasService.getIncomeVsExpenses(user.id, 6)
@@ -95,11 +133,29 @@ export default function FinanzasProvider({ children }: FinanzasProviderProps) {
           return false;
         }
 
-        setActiveLoansFinancial(loansData);
-        setPortfolioEvolution(portfolioData);
-        setIncomeVsExpenses(incomeData);
+        // Set data with graceful fallbacks
+        if (loansData.status === 'fulfilled') {
+          setActiveLoansFinancial(loansData.value);
+        } else {
+          console.error('💰 [FINANZAS PROVIDER] Failed to load loans:', loansData.reason);
+          setActiveLoansFinancial([]);
+        }
 
-        console.log('✅ Finanzas data initialized (manager/prestamista)');
+        if (portfolioData.status === 'fulfilled') {
+          setPortfolioEvolution(portfolioData.value);
+        } else {
+          console.error('💰 [FINANZAS PROVIDER] Failed to load portfolio:', portfolioData.reason);
+          setPortfolioEvolution([]);
+        }
+
+        if (incomeData.status === 'fulfilled') {
+          setIncomeVsExpenses(incomeData.value);
+        } else {
+          console.error('💰 [FINANZAS PROVIDER] Failed to load income data:', incomeData.reason);
+          setIncomeVsExpenses([]);
+        }
+
+        console.log('✅ [FINANZAS PROVIDER] Finanzas data initialized (manager/prestamista)');
       }
 
       return true;
@@ -108,11 +164,14 @@ export default function FinanzasProvider({ children }: FinanzasProviderProps) {
         return false;
       }
 
-      console.error('Error initializing finanzas data:', err);
+      console.error('💰 [FINANZAS PROVIDER] Critical error initializing finanzas data:', err);
+      // Don't throw - allow dashboard to continue loading
       return false;
     } finally {
+      // ALWAYS set loading to false to prevent blocking
       if (!abortController.signal.aborted) {
         setIsInitialLoading(false);
+        console.log('💰 [FINANZAS PROVIDER] Loading complete');
       }
     }
   };
@@ -153,10 +212,8 @@ export default function FinanzasProvider({ children }: FinanzasProviderProps) {
 
   return (
     <FinanzasProviderContext.Provider value={contextValue}>
-      <AuthLoadingOverlay
-        open={isInitialLoading && !!user}
-        message="Cargando datos financieros..."
-      />
+      {/* Removed blocking overlay - finanzas loads in background */}
+      {/* Dashboard can render while finanzas data loads */}
       {children}
     </FinanzasProviderContext.Provider>
   );

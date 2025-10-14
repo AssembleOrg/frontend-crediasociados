@@ -1,12 +1,17 @@
 /**
  * THE MESSENGER - Finanzas Service
  *
- * Mock service for financial management
- * Returns hardcoded data - NO REAL API CALLS
+ * Real API implementation for financial management
+ * Calculates financial metrics from real backend data
  *
- * Following architecture: Only HTTP structure, no state management
+ * Following architecture: Only HTTP calls and data transformation, no state management
  */
 
+import api from './api'
+import { loansService } from './loans.service'
+import { operativaService } from './operativa.service'
+import type { LoanResponseDto, UserResponseDto } from '@/types/auth'
+import type { Transaccion } from '@/types/operativa'
 import type {
   FinancialSummary,
   ManagerFinancialData,
@@ -15,143 +20,15 @@ import type {
   IncomeVsExpenses,
   CapitalDistribution
 } from '@/types/finanzas'
-
-// ============================================================================
-// MOCK DATA - Hardcoded for visual development
-// ============================================================================
-
-const MOCK_SUBADMIN_FINANCIAL_SUMMARY: FinancialSummary = {
-  userId: 'subadmin-1',
-  userRole: 'subadmin',
-  capitalAsignado: 1000000,
-  capitalDisponible: 450000,
-  montoEnPrestamosActivos: 550000,
-  recaudadoEsteMes: 85000,
-  gastosEsteMes: 35000,
-  valorCartera: 1000000
-}
-
-const MOCK_MANAGER_FINANCIAL_SUMMARY: FinancialSummary = {
-  userId: 'manager-1',
-  userRole: 'manager',
-  capitalAsignado: 300000,
-  capitalDisponible: 150000,
-  montoEnPrestamosActivos: 150000,
-  recaudadoEsteMes: 28000,
-  gastosEsteMes: 12000,
-  valorCartera: 288000
-}
-
-const MOCK_MANAGERS_FINANCIAL: ManagerFinancialData[] = [
-  {
-    managerId: 'manager-1',
-    managerName: 'Juan Pérez',
-    managerEmail: 'juan.perez@example.com',
-    capitalAsignado: 300000,
-    capitalDisponible: 150000,
-    prestadoActivo: 150000,
-    gastos: 12000,
-    valorCartera: 288000,
-    createdAt: new Date('2024-01-15').toISOString()
-  },
-  {
-    managerId: 'manager-2',
-    managerName: 'María García',
-    managerEmail: 'maria.garcia@example.com',
-    capitalAsignado: 400000,
-    capitalDisponible: 200000,
-    prestadoActivo: 200000,
-    gastos: 8000,
-    valorCartera: 392000,
-    createdAt: new Date('2024-02-10').toISOString()
-  },
-  {
-    managerId: 'manager-3',
-    managerName: 'Carlos López',
-    managerEmail: 'carlos.lopez@example.com',
-    capitalAsignado: 300000,
-    capitalDisponible: 100000,
-    prestadoActivo: 200000,
-    gastos: 15000,
-    valorCartera: 285000,
-    createdAt: new Date('2024-03-05').toISOString()
-  }
-]
-
-const MOCK_ACTIVE_LOANS_FINANCIAL: ActiveLoanFinancial[] = [
-  {
-    loanId: 'loan-1',
-    clientId: 'client-1',
-    clientName: 'Roberto Martínez',
-    montoTotal: 50000,
-    montoPendiente: 30000,
-    montoPagado: 20000,
-    progreso: 40,
-    status: 'ACTIVE'
-  },
-  {
-    loanId: 'loan-2',
-    clientId: 'client-2',
-    clientName: 'Ana Rodríguez',
-    montoTotal: 30000,
-    montoPendiente: 15000,
-    montoPagado: 15000,
-    progreso: 50,
-    status: 'ACTIVE'
-  },
-  {
-    loanId: 'loan-3',
-    clientId: 'client-3',
-    clientName: 'Luis Fernández',
-    montoTotal: 70000,
-    montoPendiente: 60000,
-    montoPagado: 10000,
-    progreso: 14,
-    status: 'ACTIVE'
-  }
-]
-
-const MOCK_PORTFOLIO_EVOLUTION: PortfolioEvolution[] = Array.from({ length: 30 }, (_, i) => {
-  const date = new Date()
-  date.setDate(date.getDate() - (29 - i))
-
-  return {
-    date: date.toISOString().split('T')[0],
-    valorCartera: 280000 + Math.random() * 40000,
-    capitalDisponible: 140000 + Math.random() * 20000,
-    prestadoActivo: 140000 + Math.random() * 20000
-  }
-})
-
-const MOCK_INCOME_VS_EXPENSES: IncomeVsExpenses[] = [
-  { period: 'Enero', ingresos: 95000, egresos: 42000 },
-  { period: 'Febrero', ingresos: 88000, egresos: 38000 },
-  { period: 'Marzo', ingresos: 102000, egresos: 45000 },
-  { period: 'Abril', ingresos: 110000, egresos: 48000 },
-  { period: 'Mayo', ingresos: 98000, egresos: 41000 },
-  { period: 'Junio', ingresos: 105000, egresos: 43000 }
-]
-
-const MOCK_CAPITAL_DISTRIBUTION: CapitalDistribution[] = [
-  {
-    managerName: 'Juan Pérez',
-    managerId: 'manager-1',
-    capitalAsignado: 300000,
-    percentage: 30
-  },
-  {
-    managerName: 'María García',
-    managerId: 'manager-2',
-    capitalAsignado: 400000,
-    percentage: 40
-  },
-  {
-    managerName: 'Carlos López',
-    managerId: 'manager-3',
-    capitalAsignado: 300000,
-    percentage: 30
-  }
-]
+import {
+  calculateManagerFinancialSummary,
+  calculateSubadminFinancialSummary,
+  calculateManagerFinancialData,
+  getActiveLoansFinancial,
+  calculatePortfolioEvolution,
+  calculateIncomeVsExpenses,
+  calculateCapitalDistribution
+} from '@/lib/financial-calculations'
 
 // ============================================================================
 // SERVICE CLASS
@@ -160,70 +37,190 @@ const MOCK_CAPITAL_DISTRIBUTION: CapitalDistribution[] = [
 class FinanzasService {
   /**
    * Get financial summary for current user
-   * @returns Mock financial summary
+   * Calculates from real loans and transactions data
    */
   async getFinancialSummary(userId: string, role: 'subadmin' | 'manager'): Promise<FinancialSummary> {
-    // Simulate API delay
-    await this.mockDelay()
+    try {
+      if (role === 'manager') {
+        // Get manager's loans with subloans populated (using chart endpoint)
+        const [loans, transacciones] = await Promise.all([
+          api.get(`/users/${userId}/loans/chart`).then(res => res.data.data || []),
+          operativaService.getTransacciones(userId)
+        ])
 
-    // Return mock data based on role
-    if (role === 'subadmin') {
-      return { ...MOCK_SUBADMIN_FINANCIAL_SUMMARY, userId }
+        return calculateManagerFinancialSummary(userId, loans, transacciones)
+      } else {
+        // Subadmin: aggregate from all managers
+        const managersData = await this.getManagersFinancial(userId)
+        return calculateSubadminFinancialSummary(userId, managersData)
+      }
+    } catch (error) {
+      console.error('Error getting financial summary:', error)
+      // Return empty summary on error (MVP approach)
+      return {
+        userId,
+        userRole: role,
+        capitalAsignado: 0,
+        capitalDisponible: 0,
+        montoEnPrestamosActivos: 0,
+        recaudadoEsteMes: 0,
+        gastosEsteMes: 0,
+        valorCartera: 0
+      }
     }
-    return { ...MOCK_MANAGER_FINANCIAL_SUMMARY, userId }
   }
 
   /**
    * Get financial data for all managers (Subadmin view)
-   * @returns Mock managers financial data
+   * Calculates from real data for each manager
    */
   async getManagersFinancial(subadminId: string): Promise<ManagerFinancialData[]> {
-    await this.mockDelay()
-    return MOCK_MANAGERS_FINANCIAL
+    try {
+      console.log('💰 [FINANZAS] Getting managers for subadmin:', subadminId)
+      
+      // Get all managers created by this subadmin using correct endpoint
+      const response = await api.get(`/users/${subadminId}/created-users`, {
+        params: { limit: 100 } // Get all managers
+      })
+      
+      const managers: UserResponseDto[] = response.data.data?.data || response.data.data || []
+      console.log(`💰 [FINANZAS] Found ${managers.length} managers`)
+
+      // If no managers, return empty array (graceful degradation)
+      if (managers.length === 0) {
+        console.log('💰 [FINANZAS] No managers found, returning empty array')
+        return []
+      }
+
+      // Calculate financial data for each manager
+      const managersFinancial = await Promise.all(
+        managers.map(async (manager) => {
+          try {
+            console.log(`💰 [FINANZAS] Calculating data for manager: ${manager.fullName}`)
+            
+            // Get manager's loans and transactions
+            const [loans, transacciones] = await Promise.all([
+              api.get(`/users/${manager.id}/loans/chart`)
+                .then(res => res.data.data || [])
+                .catch(err => {
+                  console.warn(`💰 [FINANZAS] Error getting loans for ${manager.fullName}:`, err.message)
+                  return []
+                }),
+              operativaService.getTransacciones(manager.id)
+                .catch(err => {
+                  console.warn(`💰 [FINANZAS] Error getting transactions for ${manager.fullName}:`, err.message)
+                  return []
+                })
+            ])
+
+            return calculateManagerFinancialData(
+              manager.id,
+              manager.fullName,
+              manager.email,
+              loans,
+              transacciones,
+              manager.createdAt
+            )
+          } catch (error) {
+            console.warn(`💰 [FINANZAS] Error calculating data for manager ${manager.fullName}:`, error)
+            // Return zero data for this manager on error (graceful degradation)
+            return {
+              managerId: manager.id,
+              managerName: manager.fullName,
+              managerEmail: manager.email,
+              capitalAsignado: 0,
+              capitalDisponible: 0,
+              prestadoActivo: 0,
+              gastos: 0,
+              valorCartera: 0,
+              createdAt: manager.createdAt
+            }
+          }
+        })
+      )
+
+      console.log(`💰 [FINANZAS] Successfully calculated financial data for ${managersFinancial.length} managers`)
+      return managersFinancial
+      
+    } catch (error) {
+      console.error('💰 [FINANZAS] Critical error getting managers financial data:', error)
+      // Return empty array instead of throwing (graceful degradation)
+      return []
+    }
   }
 
   /**
    * Get active loans financial data (Manager view)
-   * @returns Mock active loans
+   * Transforms real loans data to financial format
    */
   async getActiveLoansFinancial(managerId: string): Promise<ActiveLoanFinancial[]> {
-    await this.mockDelay()
-    return MOCK_ACTIVE_LOANS_FINANCIAL
+    try {
+      // Use chart endpoint to get loans with subloans populated
+      const loans = await api.get(`/users/${managerId}/loans/chart`).then(res => res.data.data || [])
+      return getActiveLoansFinancial(loans)
+    } catch (error) {
+      console.error('Error getting active loans financial:', error)
+      return []
+    }
   }
 
   /**
    * Get portfolio evolution over time
-   * @returns Mock portfolio evolution data (last 30 days)
+   * MVP: Generates trend from current data
+   * TODO: In production, query historical transaction data
    */
   async getPortfolioEvolution(userId: string, days: number = 30): Promise<PortfolioEvolution[]> {
-    await this.mockDelay()
-    return MOCK_PORTFOLIO_EVOLUTION.slice(-days)
+    try {
+      // Get current financial summary
+      const summary = await this.getFinancialSummary(userId, 'manager')
+      
+      // Generate evolution based on current values (MVP approach)
+      return calculatePortfolioEvolution(summary, days)
+    } catch (error) {
+      console.error('Error getting portfolio evolution:', error)
+      return []
+    }
   }
 
   /**
    * Get income vs expenses comparison
-   * @returns Mock income vs expenses data
+   * Calculates from real transaction data
    */
   async getIncomeVsExpenses(userId: string, months: number = 6): Promise<IncomeVsExpenses[]> {
-    await this.mockDelay()
-    return MOCK_INCOME_VS_EXPENSES.slice(-months)
+    try {
+      const transacciones = await operativaService.getTransacciones(userId)
+      return calculateIncomeVsExpenses(transacciones, months)
+    } catch (error) {
+      console.error('Error getting income vs expenses:', error)
+      // Return empty months on error
+      const monthNames = [
+        'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+        'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
+      ]
+      const now = new Date()
+      return Array.from({ length: months }, (_, i) => {
+        const monthDate = new Date(now.getFullYear(), now.getMonth() - (months - 1 - i), 1)
+        return {
+          period: monthNames[monthDate.getMonth()],
+          ingresos: 0,
+          egresos: 0
+        }
+      })
+    }
   }
 
   /**
    * Get capital distribution among managers
-   * @returns Mock capital distribution
+   * Calculates from managers financial data
    */
   async getCapitalDistribution(subadminId: string): Promise<CapitalDistribution[]> {
-    await this.mockDelay()
-    return MOCK_CAPITAL_DISTRIBUTION
-  }
-
-  /**
-   * Mock API delay (200-500ms)
-   */
-  private async mockDelay(): Promise<void> {
-    const delay = 200 + Math.random() * 300
-    return new Promise((resolve) => setTimeout(resolve, delay))
+    try {
+      const managersData = await this.getManagersFinancial(subadminId)
+      return calculateCapitalDistribution(managersData)
+    } catch (error) {
+      console.error('Error getting capital distribution:', error)
+      return []
+    }
   }
 }
 
