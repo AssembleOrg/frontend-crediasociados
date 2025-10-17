@@ -29,6 +29,7 @@ import {
   Description
 } from '@mui/icons-material'
 import { useClients } from '@/hooks/useClients'
+import { useWallet } from '@/hooks/useWallet'
 import { LoanSimulationModal } from './LoanSimulationModal'
 import { VisualCalendar } from '@/components/ui/VisualCalendar'
 import { useBuenosAiresDate } from '@/hooks/useBuenosAiresDate'
@@ -49,13 +50,14 @@ interface SubLoan {
   dueDate: Date
 }
 
-export function CreateLoanModal({ 
-  open, 
-  onClose, 
+export function CreateLoanModal({
+  open,
+  onClose,
   title = "Crear Nuevo Préstamo"
 }: CreateLoanModalProps) {
   const { clients, isLoading: clientsLoading } = useClients()
   const { now, addDays, addMonths, formatDate } = useBuenosAiresDate()
+  const { wallet } = useWallet()
 
   const [formData, setFormData] = useState({
     clientId: '',
@@ -190,6 +192,14 @@ export function CreateLoanModal({
 
     if (!formData.totalPayments || parseInt(formData.totalPayments) < 1) {
       errors.totalPayments = 'El número de pagos debe ser al menos 1'
+    }
+
+    // Validate wallet balance
+    if (wallet && formData.amount) {
+      const loanAmount = parseFloat(unformatAmount(formData.amount)) || 0
+      if (loanAmount > wallet.balance) {
+        errors.amount = `Saldo insuficiente. Disponible: $${wallet.balance.toLocaleString('es-AR')}`
+      }
     }
 
     setFormErrors(errors)
@@ -457,13 +467,28 @@ export function CreateLoanModal({
           {/* Loan Amount Card */}
           <Card sx={{ mb: 3, borderRadius: 2, boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}>
             <CardContent sx={{ p: 3 }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                <AttachMoney sx={{ mr: 1, color: 'primary.main' }} />
-                <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                  Monto del Préstamo
-                </Typography>
+              <Box sx={{ display: 'flex', alignItems: 'center', mb: 2, justifyContent: 'space-between' }}>
+                <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                  <AttachMoney sx={{ mr: 1, color: 'primary.main' }} />
+                  <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                    Monto del Préstamo
+                  </Typography>
+                </Box>
+                {wallet && (
+                  <Box sx={{
+                    p: 1,
+                    bgcolor: 'success.lighter',
+                    borderRadius: 1,
+                    border: '1px solid',
+                    borderColor: 'success.light'
+                  }}>
+                    <Typography variant="caption" sx={{ color: 'success.main', fontWeight: 600 }}>
+                      Disponible: ${wallet.balance.toLocaleString('es-AR')} {wallet.currency}
+                    </Typography>
+                  </Box>
+                )}
               </Box>
-              
+
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
                 <Box sx={{ display: 'flex', gap: 2, flexDirection: { xs: 'column', sm: 'row' } }}>
                   <TextField

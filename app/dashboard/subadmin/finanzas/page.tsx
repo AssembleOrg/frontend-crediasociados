@@ -11,7 +11,9 @@ import {
 } from '@mui/icons-material';
 import PageHeader from '@/components/ui/PageHeader';
 import { StatsCard } from '@/components/dashboard/StatsCard';
+import { WalletBalanceCard } from '@/components/wallet/WalletBalanceCard';
 import { useFinanzas } from '@/hooks/useFinanzas';
+import { useWallet } from '@/hooks/useWallet';
 import { ChartSkeleton } from '@/components/ui/ChartSkeleton';
 
 // Lazy load components
@@ -52,6 +54,13 @@ export default function SubadminFinanzasPage() {
     isLoading,
     error,
   } = useFinanzas();
+
+  // Wallet management
+  const {
+    wallet,
+    isLoading: walletIsLoading,
+    refetchWallet,
+  } = useWallet();
 
   if (isLoading && !financialSummary) {
     return (
@@ -103,6 +112,16 @@ export default function SubadminFinanzasPage() {
         title='Finanzas'
         subtitle='Gestión financiera de tu equipo'
       />
+
+      {/* Wallet Balance Section */}
+      <Box sx={{ mb: 4 }}>
+        <WalletBalanceCard
+          wallet={wallet}
+          isLoading={walletIsLoading}
+          onRefresh={refetchWallet}
+          showDetails={true}
+        />
+      </Box>
 
       {/* Stats Cards */}
       <Grid

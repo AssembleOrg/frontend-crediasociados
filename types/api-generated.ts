@@ -4,1957 +4,1966 @@
  */
 
 export interface paths {
-    "/api/v1": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["AppController_getHello"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+  '/api/v1': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    "/api/v1/auth/login": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** User login */
-        post: operations["AuthController_login"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    get: operations['AppController_getHello'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/auth/login': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    "/api/v1/auth/refresh": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Actualizar token de acceso */
-        post: operations["AuthController_refresh"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    get?: never;
+    put?: never;
+    /** User login */
+    post: operations['AuthController_login'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/auth/refresh': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    "/api/v1/auth/logout": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Cierre de sesión */
-        post: operations["AuthController_logout"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    get?: never;
+    put?: never;
+    /** Actualizar token de acceso */
+    post: operations['AuthController_refresh'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/auth/logout': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    "/api/v1/users": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get all users with pagination */
-        get: operations["UsersController_findAll"];
-        put?: never;
-        /** Create a new user */
-        post: operations["UsersController_create"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    get?: never;
+    put?: never;
+    /** Cierre de sesión */
+    post: operations['AuthController_logout'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/users': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    "/api/v1/users/{id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get a user by ID */
-        get: operations["UsersController_findOne"];
-        put?: never;
-        post?: never;
-        /** Delete a user (soft delete) */
-        delete: operations["UsersController_remove"];
-        options?: never;
-        head?: never;
-        /** Update a user */
-        patch: operations["UsersController_update"];
-        trace?: never;
+    /** Get all users with pagination */
+    get: operations['UsersController_findAll'];
+    put?: never;
+    /** Create a new user */
+    post: operations['UsersController_create'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/users/{id}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    "/api/v1/users/{id}/created-users": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get users created by a specific user */
-        get: operations["UsersController_getCreatedUsers"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    /** Get a user by ID */
+    get: operations['UsersController_findOne'];
+    put?: never;
+    post?: never;
+    /** Delete a user (soft delete) */
+    delete: operations['UsersController_remove'];
+    options?: never;
+    head?: never;
+    /** Update a user */
+    patch: operations['UsersController_update'];
+    trace?: never;
+  };
+  '/api/v1/users/{id}/created-users': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    "/api/v1/users/{id}/hierarchy": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get user hierarchy (who created them and who they created) */
-        get: operations["UsersController_getUserHierarchy"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    /** Get users created by a specific user */
+    get: operations['UsersController_getCreatedUsers'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/users/{id}/hierarchy': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    "/api/v1/external-api/dolar-blue/fetch": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Fetch and persist current Dólar Blue data from external API */
-        post: operations["ExternalApiController_fetchDolarBlue"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    /** Get user hierarchy (who created them and who they created) */
+    get: operations['UsersController_getUserHierarchy'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/external-api/dolar-blue/fetch': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    "/api/v1/external-api/dolar-blue/latest": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get the latest successful Dólar Blue data from database */
-        get: operations["ExternalApiController_getLatestDolarBlue"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    get?: never;
+    put?: never;
+    /** Fetch and persist current Dólar Blue data from external API */
+    post: operations['ExternalApiController_fetchDolarBlue'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/external-api/dolar-blue/latest': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    "/api/v1/external-api/dolar-blue/current-rate": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get current exchange rates for calculations */
-        get: operations["ExternalApiController_getCurrentExchangeRate"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    /** Get the latest successful Dólar Blue data from database */
+    get: operations['ExternalApiController_getLatestDolarBlue'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/external-api/dolar-blue/current-rate': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    "/api/v1/external-api/responses": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get all external API responses with pagination */
-        get: operations["ExternalApiController_getAllApiResponses"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    /** Get current exchange rates for calculations */
+    get: operations['ExternalApiController_getCurrentExchangeRate'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/external-api/responses': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    "/api/v1/external-api/responses/date-range": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get API responses within a date range */
-        get: operations["ExternalApiController_getApiResponsesByDateRange"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    /** Get all external API responses with pagination */
+    get: operations['ExternalApiController_getAllApiResponses'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/external-api/responses/date-range': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    "/api/v1/external-api/stats": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get statistics about external API calls */
-        get: operations["ExternalApiController_getApiStats"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    /** Get API responses within a date range */
+    get: operations['ExternalApiController_getApiResponsesByDateRange'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/external-api/stats': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    "/api/v1/loans": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Obtener todos los préstamos activos del usuario autenticado */
-        get: operations["LoansController_getAllActiveLoans"];
-        put?: never;
-        /** Create a new loan */
-        post: operations["LoansController_createLoan"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    /** Get statistics about external API calls */
+    get: operations['ExternalApiController_getApiStats'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/loans': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    "/api/v1/loans/tracking": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Obtener información del préstamo por DNI y código de tracking (Endpoint público) */
-        get: operations["LoansController_getLoanByTracking"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    /** Obtener todos los préstamos activos del usuario autenticado */
+    get: operations['LoansController_getAllActiveLoans'];
+    put?: never;
+    /** Create a new loan */
+    post: operations['LoansController_createLoan'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/loans/tracking': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    "/api/v1/loans/pagination": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Obtener préstamos paginados del usuario autenticado */
-        get: operations["LoansController_getPaginatedLoans"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    /** Obtener información del préstamo por DNI y código de tracking (Endpoint público) */
+    get: operations['LoansController_getLoanByTracking'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/loans/pagination': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    "/api/v1/loans/{id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Obtener un préstamo específico por ID */
-        get: operations["LoansController_getLoanById"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    /** Obtener préstamos paginados del usuario autenticado */
+    get: operations['LoansController_getPaginatedLoans'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/loans/{id}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    "/api/v1/clients": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get all clients with pagination */
-        get: operations["ClientsController_findAll"];
-        put?: never;
-        /** Create a new client (MANAGER only) */
-        post: operations["ClientsController_create"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    /** Obtener un préstamo específico por ID */
+    get: operations['LoansController_getLoanById'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/clients': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    "/api/v1/clients/search": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Search client by DNI or CUIT */
-        get: operations["ClientsController_searchByDniOrCuit"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    /** Get all clients with pagination */
+    get: operations['ClientsController_findAll'];
+    put?: never;
+    /** Create a new client (MANAGER only) */
+    post: operations['ClientsController_create'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/clients/search': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    "/api/v1/clients/{id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get a specific client by ID */
-        get: operations["ClientsController_findOne"];
-        put?: never;
-        post?: never;
-        /** Delete a client (MANAGER only - soft delete) */
-        delete: operations["ClientsController_remove"];
-        options?: never;
-        head?: never;
-        /** Update a client (MANAGER only) */
-        patch: operations["ClientsController_update"];
-        trace?: never;
+    /** Search client by DNI or CUIT */
+    get: operations['ClientsController_searchByDniOrCuit'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/clients/{id}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    "/api/v1/sub-loans/today-due": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Obtener subloans que vencen hoy (paginado)
-         * @description Retorna todos los subloans que tienen fecha de vencimiento hoy (cualquier estado) con paginación
-         */
-        get: operations["SubLoansController_getTodayDueSubLoans"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    /** Get a specific client by ID */
+    get: operations['ClientsController_findOne'];
+    put?: never;
+    post?: never;
+    /** Delete a client (MANAGER only - soft delete) */
+    delete: operations['ClientsController_remove'];
+    options?: never;
+    head?: never;
+    /** Update a client (MANAGER only) */
+    patch: operations['ClientsController_update'];
+    trace?: never;
+  };
+  '/api/v1/sub-loans/today-due': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    "/api/v1/sub-loans/today-due/stats": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Obtener estadísticas de subloans que vencen hoy
-         * @description Retorna estadísticas agrupadas por status de los subloans que vencen hoy
-         */
-        get: operations["SubLoansController_getTodayDueSubLoansStats"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    /**
+     * Obtener subloans que vencen hoy (paginado)
+     * @description Retorna todos los subloans que tienen fecha de vencimiento hoy (cualquier estado) con paginación
+     */
+    get: operations['SubLoansController_getTodayDueSubLoans'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/sub-loans/today-due/stats': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    "/api/v1/sub-loans/activate-today-due": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Activar subloans que vencen hoy
-         * @description Cambia el status de subloans pendientes que vencen hoy a OVERDUE (solo para admins)
-         */
-        post: operations["SubLoansController_activateTodayDueSubLoans"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    /**
+     * Obtener estadísticas de subloans que vencen hoy
+     * @description Retorna estadísticas agrupadas por status de los subloans que vencen hoy
+     */
+    get: operations['SubLoansController_getTodayDueSubLoansStats'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/sub-loans/activate-today-due': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    "/api/v1/scheduled-tasks/activate-today-due-subloans": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Ejecutar manualmente la activación de subloans que vencen hoy
-         * @description Ejecuta manualmente la tarea que normalmente se ejecuta a las 4:00 AM (solo para admins)
-         */
-        post: operations["ScheduledTasksController_runActivateTodayDueSubLoansManually"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    get?: never;
+    put?: never;
+    /**
+     * Activar subloans que vencen hoy
+     * @description Cambia el status de subloans pendientes que vencen hoy a OVERDUE (solo para admins)
+     */
+    post: operations['SubLoansController_activateTodayDueSubLoans'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/scheduled-tasks/activate-today-due-subloans': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
+    get?: never;
+    put?: never;
+    /**
+     * Ejecutar manualmente la activación de subloans que vencen hoy
+     * @description Ejecuta manualmente la tarea que normalmente se ejecuta a las 4:00 AM (solo para admins)
+     */
+    post: operations['ScheduledTasksController_runActivateTodayDueSubLoansManually'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
 }
 export type webhooks = Record<string, never>;
 export interface components {
-    schemas: {
-        LoginDto: {
-            /** @example user@example.com */
-            email: string;
-            /** @example password123 */
-            password: string;
-        };
-        RefreshTokenDto: {
-            refreshToken: string;
-        };
-        CreateUserDto: {
-            /** @example user@example.com */
-            email: string;
-            /** @example password123 */
-            password: string;
-            /** @example John Doe */
-            fullName: string;
-            /** @example +1234567890 */
-            phone?: string;
-            /**
-             * @example MANAGER
-             * @enum {string}
-             */
-            role: "SUPERADMIN" | "ADMIN" | "SUBADMIN" | "MANAGER";
-        };
-        UserResponseDto: {
-            id: string;
-            email: string;
-            fullName: string;
-            phone?: Record<string, never> | null;
-            /** @enum {string} */
-            role: "SUPERADMIN" | "ADMIN" | "SUBADMIN" | "MANAGER";
-            dni?: Record<string, never> | null;
-            cuit?: Record<string, never> | null;
-            /** Format: date-time */
-            createdAt: string;
-            /** Format: date-time */
-            updatedAt: string;
-        };
-        UpdateUserDto: {
-            /** @example user@example.com */
-            email?: string;
-            /** @example password123 */
-            password?: string;
-            /** @example John Doe */
-            fullName?: string;
-            /** @example +1234567890 */
-            phone?: string;
-            /**
-             * @example MANAGER
-             * @enum {string}
-             */
-            role?: "SUPERADMIN" | "ADMIN" | "SUBADMIN" | "MANAGER";
-        };
-        ExternalApiResponseDto: {
-            /**
-             * @description Unique identifier
-             * @example cuid123
-             */
-            id: string;
-            /**
-             * @description Buy price
-             * @example 1020.5
-             */
-            compra: number;
-            /**
-             * @description Sell price
-             * @example 1050.75
-             */
-            venta: number;
-            /**
-             * @description Exchange house type
-             * @example blue
-             */
-            casa: string;
-            /**
-             * @description Currency name
-             * @example Dólar Blue
-             */
-            nombre: string;
-            /**
-             * @description Currency code
-             * @example USD
-             */
-            moneda: string;
-            /**
-             * @description Last update from external API
-             * @example 2024-01-15T10:30:00.000Z
-             */
-            fechaActualizacion: string;
-            /**
-             * @description API URL called
-             * @example https://dolarapi.com/v1/dolares/blue
-             */
-            apiUrl: string;
-            /**
-             * @description Call status
-             * @example SUCCESS
-             * @enum {string}
-             */
-            status: "SUCCESS" | "ERROR" | "TIMEOUT";
-            /**
-             * @description Response time in milliseconds
-             * @example 250
-             */
-            responseTime?: number;
-            /**
-             * Format: date-time
-             * @description When the record was created in our system
-             * @example 2024-01-15T10:35:00.000Z
-             */
-            createdAt: string;
-            /**
-             * Format: date-time
-             * @description When the record was last updated
-             * @example 2024-01-15T10:35:00.000Z
-             */
-            updatedAt: string;
-        };
-        CreateLoanDto: {
-            /** @example client_id_here */
-            clientId: string;
-            /** @example 100000 */
-            amount: number;
-            /** @example 0.05 */
-            baseInterestRate: number;
-            /** @example 0.05 */
-            penaltyInterestRate: number;
-            /**
-             * @example ARS
-             * @enum {string}
-             */
-            currency?: "ARS" | "USD";
-            /**
-             * @example WEEKLY
-             * @enum {string}
-             */
-            paymentFrequency: "DAILY" | "WEEKLY" | "BIWEEKLY" | "MONTHLY";
-            /**
-             * @example FRIDAY
-             * @enum {string}
-             */
-            paymentDay?: "MONDAY" | "TUESDAY" | "WEDNESDAY" | "THURSDAY" | "FRIDAY" | "SATURDAY";
-            /** @example 12 */
-            totalPayments: number;
-            /** @example 2024-12-31T23:59:59.000Z */
-            firstDueDate?: string;
-            /**
-             * @description Unique tracking code for the loan (auto-generated if not provided)
-             * @example LOAN-2024-001
-             */
-            loanTrack?: string;
-            /** @example Personal loan for business expansion */
-            description?: string;
-            /** @example Client requested weekly payments on Fridays */
-            notes?: string;
-        };
-        CreateLoanResponseDto: {
-            /** @example loan_id_here */
-            id: string;
-            /** @example LOAN-2024-001 */
-            loanTrack: string;
-            /** @example 100000 */
-            amount: number;
-            /** @example ARS */
-            currency: string;
-            /** @example WEEKLY */
-            paymentFrequency: string;
-            /** @example FRIDAY */
-            paymentDay: string;
-            /** @example 12 */
-            totalPayments: number;
-            /** @example 2024-02-02T00:00:00.000Z */
-            firstDueDate: string;
-            /** @example 15 */
-            baseInterestRate: number;
-            /** @example 35 */
-            penaltyInterestRate: number;
-            /** @example 100000 */
-            originalAmount: number;
-            /** @example Business expansion loan */
-            description: string;
-            /** @example Client requested weekly payments on Fridays */
-            notes: string;
-            /** @example 2024-01-15T00:00:00.000Z */
-            requestedDueDate: string;
-            /** @example 2024-01-15T00:00:00.000Z */
-            requestDate: string;
-            /** @example 2024-01-15T00:00:00.000Z */
-            updatedAt: string;
-            /** @example 2024-01-15T00:00:00.000Z */
-            createdAt: string;
-            /** @example 2024-01-15T00:00:00.000Z */
-            deletedAt: string;
-            /** @example client_id */
-            clientId: string;
-            /** @example PENDING */
-            status: string;
-            /** @example {
-             *       "id": "client_id",
-             *       "fullName": "John Doe",
-             *       "dni": "12345678",
-             *       "cuit": "20-12345678-9",
-             *       "phone": "+1234567890",
-             *       "email": "client@example.com",
-             *       "address": "123 Main St, Buenos Aires"
-             *     } */
-            client: Record<string, never>;
-            /**
-             * @description SubLoans generados automáticamente basados en totalPayments
-             * @example [
-             *       {
-             *         "id": "subloan_id_1",
-             *         "paymentNumber": 1,
-             *         "amount": 8333.33,
-             *         "totalAmount": 8333.33,
-             *         "status": "PENDING",
-             *         "dueDate": "2024-02-02T00:00:00.000Z",
-             *         "paidAmount": 0,
-             *         "daysOverdue": 0
-             *       },
-             *       {
-             *         "id": "subloan_id_2",
-             *         "paymentNumber": 2,
-             *         "amount": 8333.33,
-             *         "totalAmount": 8333.33,
-             *         "status": "PENDING",
-             *         "dueDate": "2024-02-09T00:00:00.000Z",
-             *         "paidAmount": 0,
-             *         "daysOverdue": 0
-             *       }
-             *     ]
-             */
-            subLoans: string[];
-        };
-        LoanTrackingResponseDto: {
-            /** @example loan_id_here */
-            id: string;
-            /** @example LOAN-2024-001 */
-            loanTrack: string;
-            /** @example 100000 */
-            amount: number;
-            /** @example ARS */
-            currency: string;
-            /** @example WEEKLY */
-            paymentFrequency: string;
-            /** @example FRIDAY */
-            paymentDay: string;
-            /** @example 12 */
-            totalPayments: number;
-            /** @example 2024-02-02T00:00:00.000Z */
-            firstDueDate: string;
-            /** @example Business expansion loan */
-            description: string;
-            /** @example 2024-01-15T00:00:00.000Z */
-            createdAt: string;
-            /** @example {
-             *       "id": "client_id",
-             *       "fullName": "John Doe",
-             *       "dni": "12345678",
-             *       "cuit": "20-12345678-9",
-             *       "phone": "+1234567890",
-             *       "email": "client@example.com",
-             *       "address": "123 Main St, Buenos Aires"
-             *     } */
-            client: Record<string, never>;
-            /** @example [
-             *       {
-             *         "id": "subloan_id_1",
-             *         "paymentNumber": 1,
-             *         "amount": 8333.33,
-             *         "totalAmount": 9583.33,
-             *         "status": "PENDING",
-             *         "dueDate": "2024-02-02T00:00:00.000Z",
-             *         "paidDate": null,
-             *         "paidAmount": 0,
-             *         "daysOverdue": 0
-             *       }
-             *     ] */
-            subLoans: string[];
-        };
-        ClientBasicInfoDto: {
-            /** @example client_id */
-            id: string;
-            /** @example John Doe */
-            fullName: string;
-            /** @example 12345678 */
-            dni?: Record<string, never>;
-            /** @example 20-12345678-9 */
-            cuit?: Record<string, never>;
-        };
-        SubLoanResponseDto: {
-            /** @example subloan_id_1 */
-            id: string;
-            /** @example loan_id_1 */
-            loanId: string;
-            /** @example 1 */
-            paymentNumber: number;
-            /** @example 8333.33 */
-            amount: number;
-            /** @example 8333.33 */
-            totalAmount: number;
-            /** @example PENDING */
-            status: string;
-            /** @example 2024-02-02T00:00:00.000Z */
-            dueDate: string;
-            /** @example null */
-            paidDate?: Record<string, never>;
-            /** @example 0 */
-            paidAmount: number;
-            /** @example 0 */
-            daysOverdue: number;
-            /** @example 2024-01-15T00:00:00.000Z */
-            createdAt: string;
-            /** @example 2024-01-15T00:00:00.000Z */
-            updatedAt: string;
-            /** @example null */
-            deletedAt?: Record<string, never>;
-        };
-        LoanListResponseDto: {
-            /** @example loan_id_1 */
-            id: string;
-            /** @example client_id_1 */
-            clientId: string;
-            /** @example 100000 */
-            amount: number;
-            /** @example PENDING */
-            status: string;
-            /** @example 2024-01-15T00:00:00.000Z */
-            requestDate: string;
-            /** @example null */
-            approvedDate?: Record<string, never>;
-            /** @example null */
-            completedDate?: Record<string, never>;
-            /** @example Business expansion loan */
-            description?: Record<string, never>;
-            /** @example 2024-01-15T00:00:00.000Z */
-            createdAt: string;
-            /** @example 2024-01-15T00:00:00.000Z */
-            updatedAt: string;
-            /** @example null */
-            deletedAt?: Record<string, never>;
-            /** @example 15 */
-            baseInterestRate: number;
-            /** @example ARS */
-            currency: string;
-            /** @example 2024-02-02T00:00:00.000Z */
-            firstDueDate?: Record<string, never>;
-            /** @example Client requested weekly payments */
-            notes?: Record<string, never>;
-            /** @example FRIDAY */
-            paymentDay?: Record<string, never>;
-            /** @example WEEKLY */
-            paymentFrequency: string;
-            /** @example 35 */
-            penaltyInterestRate: number;
-            /** @example 5 */
-            totalPayments: number;
-            /** @example LOAN-2024-001 */
-            loanTrack: string;
-            /** @example CREDITO */
-            prefix: string;
-            /** @example 2024 */
-            year: number;
-            /** @example 1 */
-            sequence: number;
-            /** @example 100000 */
-            originalAmount: number;
-            client: components["schemas"]["ClientBasicInfoDto"];
-            subLoans: components["schemas"]["SubLoanResponseDto"][];
-        };
-        PaginationMetaDto: {
-            /** @example 1 */
-            page: number;
-            /** @example 10 */
-            limit: number;
-            /** @example 100 */
-            total: number;
-            /** @example 10 */
-            totalPages: number;
-            /** @example true */
-            hasNextPage: boolean;
-            /** @example false */
-            hasPreviousPage: boolean;
-        };
-        PaginatedResponseDto: {
-            /** @description Array of items */
-            data: string[];
-            meta: components["schemas"]["PaginationMetaDto"];
-        };
-        CreateClientDto: {
-            /** @example John Doe Client */
-            fullName: string;
-            /** @example 12345678 */
-            dni?: string;
-            /** @example 20-12345678-9 */
-            cuit?: string;
-            /** @example +1234567890 */
-            phone?: string;
-            /** @example client@example.com */
-            email?: string;
-            /** @example 123 Main St, City */
-            address?: string;
-        };
-        UpdateClientDto: {
-            /** @example John Doe Client */
-            fullName?: string;
-            /** @example 12345678 */
-            dni?: string;
-            /** @example 20-12345678-9 */
-            cuit?: string;
-            /** @example +1234567890 */
-            phone?: string;
-            /** @example client@example.com */
-            email?: string;
-            /** @example 123 Main St, City */
-            address?: string;
-            /** @example Empleado */
-            job?: string;
-        };
-        ClientResponseDto: {
-            id: string;
-            fullName: string;
-            dni?: string | null;
-            cuit?: string | null;
-            phone?: string | null;
-            email?: string | null;
-            address?: string | null;
-            job?: string | null;
-            /** Format: date-time */
-            createdAt: string;
-            /** Format: date-time */
-            updatedAt: string;
-        };
-        ClientWithManagersDto: components["schemas"]["ClientResponseDto"] & {
-            managers?: components["schemas"]["UserResponseDto"][];
-        };
-        ClientWithDetailsDto: components["schemas"]["ClientResponseDto"] & {
-            loans?: Record<string, never>[];
-            managers?: components["schemas"]["UserResponseDto"][];
-        };
-        PaginationMeta: {
-            page: number;
-            limit: number;
-            total: number;
-            totalPages: number;
-            hasNextPage: boolean;
-            hasPreviousPage: boolean;
-        };
+  schemas: {
+    LoginDto: {
+      /** @example user@example.com */
+      email: string;
+      /** @example password123 */
+      password: string;
     };
-    responses: never;
-    parameters: never;
-    requestBodies: never;
-    headers: never;
-    pathItems: never;
+    RefreshTokenDto: {
+      refreshToken: string;
+    };
+    CreateUserDto: {
+      /** @example user@example.com */
+      email: string;
+      /** @example password123 */
+      password: string;
+      /** @example John Doe */
+      fullName: string;
+      /** @example +1234567890 */
+      phone?: string;
+      /**
+       * @example MANAGER
+       * @enum {string}
+       */
+      role: 'SUPERADMIN' | 'ADMIN' | 'SUBADMIN' | 'MANAGER';
+    };
+    UserResponseDto: {
+      id: string;
+      email: string;
+      fullName: string;
+      phone?: Record<string, never> | null;
+      /** @enum {string} */
+      role: 'SUPERADMIN' | 'ADMIN' | 'SUBADMIN' | 'MANAGER';
+      dni?: Record<string, never> | null;
+      cuit?: Record<string, never> | null;
+      /** Format: date-time */
+      createdAt: string;
+      /** Format: date-time */
+      updatedAt: string;
+      wallet: string;
+    };
+    UpdateUserDto: {
+      /** @example user@example.com */
+      email?: string;
+      /** @example password123 */
+      password?: string;
+      /** @example John Doe */
+      fullName?: string;
+      /** @example +1234567890 */
+      phone?: string;
+      /**
+       * @example MANAGER
+       * @enum {string}
+       */
+      role?: 'SUPERADMIN' | 'ADMIN' | 'SUBADMIN' | 'MANAGER';
+    };
+    ExternalApiResponseDto: {
+      /**
+       * @description Unique identifier
+       * @example cuid123
+       */
+      id: string;
+      /**
+       * @description Buy price
+       * @example 1020.5
+       */
+      compra: number;
+      /**
+       * @description Sell price
+       * @example 1050.75
+       */
+      venta: number;
+      /**
+       * @description Exchange house type
+       * @example blue
+       */
+      casa: string;
+      /**
+       * @description Currency name
+       * @example Dólar Blue
+       */
+      nombre: string;
+      /**
+       * @description Currency code
+       * @example USD
+       */
+      moneda: string;
+      /**
+       * @description Last update from external API
+       * @example 2024-01-15T10:30:00.000Z
+       */
+      fechaActualizacion: string;
+      /**
+       * @description API URL called
+       * @example https://dolarapi.com/v1/dolares/blue
+       */
+      apiUrl: string;
+      /**
+       * @description Call status
+       * @example SUCCESS
+       * @enum {string}
+       */
+      status: 'SUCCESS' | 'ERROR' | 'TIMEOUT';
+      /**
+       * @description Response time in milliseconds
+       * @example 250
+       */
+      responseTime?: number;
+      /**
+       * Format: date-time
+       * @description When the record was created in our system
+       * @example 2024-01-15T10:35:00.000Z
+       */
+      createdAt: string;
+      /**
+       * Format: date-time
+       * @description When the record was last updated
+       * @example 2024-01-15T10:35:00.000Z
+       */
+      updatedAt: string;
+    };
+    CreateLoanDto: {
+      /** @example client_id_here */
+      clientId: string;
+      /** @example 100000 */
+      amount: number;
+      /** @example 0.05 */
+      baseInterestRate: number;
+      /** @example 0.05 */
+      penaltyInterestRate: number;
+      /**
+       * @example ARS
+       * @enum {string}
+       */
+      currency?: 'ARS' | 'USD';
+      /**
+       * @example WEEKLY
+       * @enum {string}
+       */
+      paymentFrequency: 'DAILY' | 'WEEKLY' | 'BIWEEKLY' | 'MONTHLY';
+      /**
+       * @example FRIDAY
+       * @enum {string}
+       */
+      paymentDay?:
+        | 'MONDAY'
+        | 'TUESDAY'
+        | 'WEDNESDAY'
+        | 'THURSDAY'
+        | 'FRIDAY'
+        | 'SATURDAY';
+      /** @example 12 */
+      totalPayments: number;
+      /** @example 2024-12-31T23:59:59.000Z */
+      firstDueDate?: string;
+      /**
+       * @description Unique tracking code for the loan (auto-generated if not provided)
+       * @example LOAN-2024-001
+       */
+      loanTrack?: string;
+      /** @example Personal loan for business expansion */
+      description?: string;
+      /** @example Client requested weekly payments on Fridays */
+      notes?: string;
+    };
+    CreateLoanResponseDto: {
+      /** @example loan_id_here */
+      id: string;
+      /** @example LOAN-2024-001 */
+      loanTrack: string;
+      /** @example 100000 */
+      amount: number;
+      /** @example ARS */
+      currency: string;
+      /** @example WEEKLY */
+      paymentFrequency: string;
+      /** @example FRIDAY */
+      paymentDay: string;
+      /** @example 12 */
+      totalPayments: number;
+      /** @example 2024-02-02T00:00:00.000Z */
+      firstDueDate: string;
+      /** @example 15 */
+      baseInterestRate: number;
+      /** @example 35 */
+      penaltyInterestRate: number;
+      /** @example 100000 */
+      originalAmount: number;
+      /** @example Business expansion loan */
+      description: string;
+      /** @example Client requested weekly payments on Fridays */
+      notes: string;
+      /** @example 2024-01-15T00:00:00.000Z */
+      requestedDueDate: string;
+      /** @example 2024-01-15T00:00:00.000Z */
+      requestDate: string;
+      /** @example 2024-01-15T00:00:00.000Z */
+      updatedAt: string;
+      /** @example 2024-01-15T00:00:00.000Z */
+      createdAt: string;
+      /** @example 2024-01-15T00:00:00.000Z */
+      deletedAt: string;
+      /** @example client_id */
+      clientId: string;
+      /** @example PENDING */
+      status: string;
+      /** @example {
+       *       "id": "client_id",
+       *       "fullName": "John Doe",
+       *       "dni": "12345678",
+       *       "cuit": "20-12345678-9",
+       *       "phone": "+1234567890",
+       *       "email": "client@example.com",
+       *       "address": "123 Main St, Buenos Aires"
+       *     } */
+      client: Record<string, never>;
+      /**
+       * @description SubLoans generados automáticamente basados en totalPayments
+       * @example [
+       *       {
+       *         "id": "subloan_id_1",
+       *         "paymentNumber": 1,
+       *         "amount": 8333.33,
+       *         "totalAmount": 8333.33,
+       *         "status": "PENDING",
+       *         "dueDate": "2024-02-02T00:00:00.000Z",
+       *         "paidAmount": 0,
+       *         "daysOverdue": 0
+       *       },
+       *       {
+       *         "id": "subloan_id_2",
+       *         "paymentNumber": 2,
+       *         "amount": 8333.33,
+       *         "totalAmount": 8333.33,
+       *         "status": "PENDING",
+       *         "dueDate": "2024-02-09T00:00:00.000Z",
+       *         "paidAmount": 0,
+       *         "daysOverdue": 0
+       *       }
+       *     ]
+       */
+      subLoans: string[];
+    };
+    LoanTrackingResponseDto: {
+      /** @example loan_id_here */
+      id: string;
+      /** @example LOAN-2024-001 */
+      loanTrack: string;
+      /** @example 100000 */
+      amount: number;
+      /** @example ARS */
+      currency: string;
+      /** @example WEEKLY */
+      paymentFrequency: string;
+      /** @example FRIDAY */
+      paymentDay: string;
+      /** @example 12 */
+      totalPayments: number;
+      /** @example 2024-02-02T00:00:00.000Z */
+      firstDueDate: string;
+      /** @example Business expansion loan */
+      description: string;
+      /** @example 2024-01-15T00:00:00.000Z */
+      createdAt: string;
+      /** @example {
+       *       "id": "client_id",
+       *       "fullName": "John Doe",
+       *       "dni": "12345678",
+       *       "cuit": "20-12345678-9",
+       *       "phone": "+1234567890",
+       *       "email": "client@example.com",
+       *       "address": "123 Main St, Buenos Aires"
+       *     } */
+      client: Record<string, never>;
+      /** @example [
+       *       {
+       *         "id": "subloan_id_1",
+       *         "paymentNumber": 1,
+       *         "amount": 8333.33,
+       *         "totalAmount": 9583.33,
+       *         "status": "PENDING",
+       *         "dueDate": "2024-02-02T00:00:00.000Z",
+       *         "paidDate": null,
+       *         "paidAmount": 0,
+       *         "daysOverdue": 0
+       *       }
+       *     ] */
+      subLoans: string[];
+    };
+    ClientBasicInfoDto: {
+      /** @example client_id */
+      id: string;
+      /** @example John Doe */
+      fullName: string;
+      /** @example 12345678 */
+      dni?: Record<string, never>;
+      /** @example 20-12345678-9 */
+      cuit?: Record<string, never>;
+    };
+    SubLoanResponseDto: {
+      /** @example subloan_id_1 */
+      id: string;
+      /** @example loan_id_1 */
+      loanId: string;
+      /** @example 1 */
+      paymentNumber: number;
+      /** @example 8333.33 */
+      amount: number;
+      /** @example 8333.33 */
+      totalAmount: number;
+      /** @example PENDING */
+      status: string;
+      /** @example 2024-02-02T00:00:00.000Z */
+      dueDate: string;
+      /** @example null */
+      paidDate?: Record<string, never>;
+      /** @example 0 */
+      paidAmount: number;
+      /** @example 0 */
+      daysOverdue: number;
+      /** @example 2024-01-15T00:00:00.000Z */
+      createdAt: string;
+      /** @example 2024-01-15T00:00:00.000Z */
+      updatedAt: string;
+      /** @example null */
+      deletedAt?: Record<string, never>;
+    };
+    LoanListResponseDto: {
+      /** @example loan_id_1 */
+      id: string;
+      /** @example client_id_1 */
+      clientId: string;
+      /** @example 100000 */
+      amount: number;
+      /** @example PENDING */
+      status: string;
+      /** @example 2024-01-15T00:00:00.000Z */
+      requestDate: string;
+      /** @example null */
+      approvedDate?: Record<string, never>;
+      /** @example null */
+      completedDate?: Record<string, never>;
+      /** @example Business expansion loan */
+      description?: Record<string, never>;
+      /** @example 2024-01-15T00:00:00.000Z */
+      createdAt: string;
+      /** @example 2024-01-15T00:00:00.000Z */
+      updatedAt: string;
+      /** @example null */
+      deletedAt?: Record<string, never>;
+      /** @example 15 */
+      baseInterestRate: number;
+      /** @example ARS */
+      currency: string;
+      /** @example 2024-02-02T00:00:00.000Z */
+      firstDueDate?: Record<string, never>;
+      /** @example Client requested weekly payments */
+      notes?: Record<string, never>;
+      /** @example FRIDAY */
+      paymentDay?: Record<string, never>;
+      /** @example WEEKLY */
+      paymentFrequency: string;
+      /** @example 35 */
+      penaltyInterestRate: number;
+      /** @example 5 */
+      totalPayments: number;
+      /** @example LOAN-2024-001 */
+      loanTrack: string;
+      /** @example CREDITO */
+      prefix: string;
+      /** @example 2024 */
+      year: number;
+      /** @example 1 */
+      sequence: number;
+      /** @example 100000 */
+      originalAmount: number;
+      client: components['schemas']['ClientBasicInfoDto'];
+      subLoans: components['schemas']['SubLoanResponseDto'][];
+    };
+    PaginationMetaDto: {
+      /** @example 1 */
+      page: number;
+      /** @example 10 */
+      limit: number;
+      /** @example 100 */
+      total: number;
+      /** @example 10 */
+      totalPages: number;
+      /** @example true */
+      hasNextPage: boolean;
+      /** @example false */
+      hasPreviousPage: boolean;
+    };
+    PaginatedResponseDto: {
+      /** @description Array of items */
+      data: string[];
+      meta: components['schemas']['PaginationMetaDto'];
+    };
+    CreateClientDto: {
+      /** @example John Doe Client */
+      fullName: string;
+      /** @example 12345678 */
+      dni?: string;
+      /** @example 20-12345678-9 */
+      cuit?: string;
+      /** @example +1234567890 */
+      phone?: string;
+      /** @example client@example.com */
+      email?: string;
+      /** @example 123 Main St, City */
+      address?: string;
+    };
+    UpdateClientDto: {
+      /** @example John Doe Client */
+      fullName?: string;
+      /** @example 12345678 */
+      dni?: string;
+      /** @example 20-12345678-9 */
+      cuit?: string;
+      /** @example +1234567890 */
+      phone?: string;
+      /** @example client@example.com */
+      email?: string;
+      /** @example 123 Main St, City */
+      address?: string;
+      /** @example Empleado */
+      job?: string;
+    };
+    ClientResponseDto: {
+      id: string;
+      fullName: string;
+      dni?: string | null;
+      cuit?: string | null;
+      phone?: string | null;
+      email?: string | null;
+      address?: string | null;
+      job?: string | null;
+      /** Format: date-time */
+      createdAt: string;
+      /** Format: date-time */
+      updatedAt: string;
+    };
+    ClientWithManagersDto: components['schemas']['ClientResponseDto'] & {
+      managers?: components['schemas']['UserResponseDto'][];
+    };
+    ClientWithDetailsDto: components['schemas']['ClientResponseDto'] & {
+      loans?: Record<string, never>[];
+      managers?: components['schemas']['UserResponseDto'][];
+    };
+    PaginationMeta: {
+      page: number;
+      limit: number;
+      total: number;
+      totalPages: number;
+      hasNextPage: boolean;
+      hasPreviousPage: boolean;
+    };
+  };
+  responses: never;
+  parameters: never;
+  requestBodies: never;
+  headers: never;
+  pathItems: never;
 }
 export type $defs = Record<string, never>;
 export interface operations {
-    AppController_getHello: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
+  AppController_getHello: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    AuthController_login: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
         };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["LoginDto"];
-            };
-        };
-        responses: {
-            /** @description Login exitoso */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Credenciales incorrectas */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
+        content?: never;
+      };
     };
-    AuthController_refresh: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["RefreshTokenDto"];
-            };
-        };
-        responses: {
-            /** @description Token actualizado exitosamente */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Token de actualización inválido */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
+  };
+  AuthController_login: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    AuthController_logout: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["RefreshTokenDto"];
-            };
-        };
-        responses: {
-            /** @description Cierre de sesión exitoso */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['LoginDto'];
+      };
     };
-    UsersController_findAll: {
-        parameters: {
-            query?: {
-                page?: number;
-                limit?: number;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
+    responses: {
+      /** @description Login exitoso */
+      200: {
+        headers: {
+          [name: string]: unknown;
         };
-        requestBody?: never;
-        responses: {
-            /** @description Users retrieved successfully */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
+        content?: never;
+      };
+      /** @description Credenciales incorrectas */
+      401: {
+        headers: {
+          [name: string]: unknown;
         };
+        content?: never;
+      };
     };
-    UsersController_create: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["CreateUserDto"];
-            };
-        };
-        responses: {
-            /** @description User created successfully */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["UserResponseDto"];
-                };
-            };
-            /** @description Bad request */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Forbidden */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
+  };
+  AuthController_refresh: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    UsersController_findOne: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description User ID */
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description User retrieved successfully */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["UserResponseDto"];
-                };
-            };
-            /** @description User not found */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['RefreshTokenDto'];
+      };
     };
-    UsersController_remove: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description User ID */
-                id: string;
-            };
-            cookie?: never;
+    responses: {
+      /** @description Token actualizado exitosamente */
+      200: {
+        headers: {
+          [name: string]: unknown;
         };
-        requestBody?: never;
-        responses: {
-            /** @description User deleted successfully */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description User not found */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
+        content?: never;
+      };
+      /** @description Token de actualización inválido */
+      401: {
+        headers: {
+          [name: string]: unknown;
         };
+        content?: never;
+      };
     };
-    UsersController_update: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description User ID */
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["UpdateUserDto"];
-            };
-        };
-        responses: {
-            /** @description User updated successfully */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["UserResponseDto"];
-                };
-            };
-            /** @description Bad request */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Forbidden */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description User not found */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
+  };
+  AuthController_logout: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    UsersController_getCreatedUsers: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description User ID */
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Created users retrieved successfully */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['RefreshTokenDto'];
+      };
     };
-    UsersController_getUserHierarchy: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description User ID */
-                id: string;
-            };
-            cookie?: never;
+    responses: {
+      /** @description Cierre de sesión exitoso */
+      200: {
+        headers: {
+          [name: string]: unknown;
         };
-        requestBody?: never;
-        responses: {
-            /** @description User hierarchy retrieved successfully */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
+        content?: never;
+      };
     };
-    ExternalApiController_fetchDolarBlue: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Dólar Blue data fetched and persisted successfully */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ExternalApiResponseDto"];
-                };
-            };
-            /** @description Forbidden - insufficient permissions */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
+  };
+  UsersController_findAll: {
+    parameters: {
+      query?: {
+        page?: number;
+        limit?: number;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    ExternalApiController_getLatestDolarBlue: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
+    requestBody?: never;
+    responses: {
+      /** @description Users retrieved successfully */
+      200: {
+        headers: {
+          [name: string]: unknown;
         };
-        requestBody?: never;
-        responses: {
-            /** @description Latest Dólar Blue data retrieved successfully */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ExternalApiResponseDto"];
-                };
-            };
-            /** @description No successful data found */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
+        content?: never;
+      };
     };
-    ExternalApiController_getCurrentExchangeRate: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Current exchange rates retrieved successfully */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        /** @example 1020.5 */
-                        compra?: number;
-                        /** @example 1050.75 */
-                        venta?: number;
-                    };
-                };
-            };
-        };
+  };
+  UsersController_create: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    ExternalApiController_getAllApiResponses: {
-        parameters: {
-            query?: {
-                /** @description Page number (default: 1) */
-                page?: number;
-                /** @description Items per page (default: 10) */
-                limit?: number;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description API responses retrieved successfully */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        data?: components["schemas"]["ExternalApiResponseDto"][];
-                        meta?: {
-                            page?: number;
-                            limit?: number;
-                            total?: number;
-                            totalPages?: number;
-                            hasNextPage?: boolean;
-                            hasPreviousPage?: boolean;
-                        };
-                    };
-                };
-            };
-        };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['CreateUserDto'];
+      };
     };
-    ExternalApiController_getApiResponsesByDateRange: {
-        parameters: {
-            query: {
-                /** @description Start date (ISO format) */
-                startDate: string;
-                /** @description End date (ISO format) */
-                endDate: string;
-                /** @description Page number (default: 1) */
-                page?: number;
-                /** @description Items per page (default: 10) */
-                limit?: number;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
+    responses: {
+      /** @description User created successfully */
+      201: {
+        headers: {
+          [name: string]: unknown;
         };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
+        content: {
+          'application/json': components['schemas']['UserResponseDto'];
         };
+      };
+      /** @description Bad request */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Forbidden */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
     };
-    ExternalApiController_getApiStats: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description API statistics retrieved successfully */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        /** @example 150 */
-                        totalCalls?: number;
-                        /** @example 145 */
-                        successfulCalls?: number;
-                        /** @example 5 */
-                        failedCalls?: number;
-                        /** @example 250 */
-                        averageResponseTime?: number;
-                        /**
-                         * Format: date-time
-                         * @example 2024-01-15T10:30:00.000Z
-                         */
-                        lastSuccessfulCall?: string;
-                    };
-                };
-            };
-        };
+  };
+  UsersController_findOne: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description User ID */
+        id: string;
+      };
+      cookie?: never;
     };
-    LoansController_getAllActiveLoans: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
+    requestBody?: never;
+    responses: {
+      /** @description User retrieved successfully */
+      200: {
+        headers: {
+          [name: string]: unknown;
         };
-        requestBody?: never;
-        responses: {
-            /** @description Préstamos activos obtenidos exitosamente */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["LoanListResponseDto"][];
-                };
-            };
-            /** @description No autorizado */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
+        content: {
+          'application/json': components['schemas']['UserResponseDto'];
         };
+      };
+      /** @description User not found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
     };
-    LoansController_createLoan: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["CreateLoanDto"];
-            };
-        };
-        responses: {
-            /** @description Préstamo creado exitosamente */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["CreateLoanResponseDto"];
-                };
-            };
-            /** @description Solicitud incorrecta */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description No autorizado */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Prohibido - Rol insuficiente */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
+  };
+  UsersController_remove: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description User ID */
+        id: string;
+      };
+      cookie?: never;
     };
-    LoansController_getLoanByTracking: {
-        parameters: {
-            query: {
-                /** @description Número de DNI del cliente */
-                dni: string;
-                /** @description Código de tracking del préstamo */
-                tracking: string;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
+    requestBody?: never;
+    responses: {
+      /** @description User deleted successfully */
+      200: {
+        headers: {
+          [name: string]: unknown;
         };
-        requestBody?: never;
-        responses: {
-            /** @description Información del préstamo obtenida exitosamente */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["LoanTrackingResponseDto"];
-                };
-            };
-            /** @description Solicitud incorrecta - Parámetros faltantes */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Préstamo no encontrado o DNI no coincide */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
+        content?: never;
+      };
+      /** @description User not found */
+      404: {
+        headers: {
+          [name: string]: unknown;
         };
+        content?: never;
+      };
     };
-    LoansController_getPaginatedLoans: {
-        parameters: {
-            query?: {
-                /** @description Número de página */
-                page?: number;
-                /** @description Elementos por página */
-                limit?: number;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Préstamos paginados obtenidos exitosamente */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PaginatedResponseDto"];
-                };
-            };
-            /** @description No autorizado */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
+  };
+  UsersController_update: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description User ID */
+        id: string;
+      };
+      cookie?: never;
     };
-    LoansController_getLoanById: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Préstamo obtenido exitosamente */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description No autorizado */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Préstamo no encontrado */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['UpdateUserDto'];
+      };
     };
-    ClientsController_findAll: {
-        parameters: {
-            query?: {
-                page?: number;
-                limit?: number;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
+    responses: {
+      /** @description User updated successfully */
+      200: {
+        headers: {
+          [name: string]: unknown;
         };
-        requestBody?: never;
-        responses: {
-            /** @description Clients retrieved successfully */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        data?: {
-                            data?: components["schemas"]["ClientWithManagersDto"][];
-                            meta?: components["schemas"]["PaginationMeta"];
-                        };
-                        message?: string;
-                        success?: boolean;
-                        timestamp?: string;
-                    };
-                };
-            };
-            /** @description Unauthorized */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
+        content: {
+          'application/json': components['schemas']['UserResponseDto'];
         };
+      };
+      /** @description Bad request */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Forbidden */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description User not found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
     };
-    ClientsController_create: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["CreateClientDto"];
-            };
-        };
-        responses: {
-            /** @description Client created successfully or existing client assigned */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        data?: components["schemas"]["ClientResponseDto"] | {
-                            id?: string;
-                            fullName?: string;
-                            dni?: string;
-                            cuit?: string;
-                            phone?: string;
-                            email?: string;
-                            address?: string;
-                            job?: string;
-                            createdAt?: string;
-                            updatedAt?: string;
-                            isExistingClient?: boolean;
-                            message?: string;
-                        };
-                        message?: string;
-                        success?: boolean;
-                        timestamp?: string;
-                    };
-                };
-            };
-            /** @description Bad Request - Validation failed or client already assigned */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Forbidden - Insufficient permissions */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
+  };
+  UsersController_getCreatedUsers: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description User ID */
+        id: string;
+      };
+      cookie?: never;
     };
-    ClientsController_searchByDniOrCuit: {
-        parameters: {
-            query?: {
-                dni?: string;
-                cuit?: string;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
+    requestBody?: never;
+    responses: {
+      /** @description Created users retrieved successfully */
+      200: {
+        headers: {
+          [name: string]: unknown;
         };
-        requestBody?: never;
-        responses: {
-            /** @description Client found successfully */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        data?: components["schemas"]["ClientWithManagersDto"];
-                        message?: string;
-                        success?: boolean;
-                        timestamp?: string;
-                    };
-                };
-            };
-            /** @description Bad Request - Missing DNI or CUIT */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Client not found */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
+        content?: never;
+      };
     };
-    ClientsController_findOne: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description Client ID */
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Client retrieved successfully */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        data?: components["schemas"]["ClientWithDetailsDto"];
-                        message?: string;
-                        success?: boolean;
-                        timestamp?: string;
-                    };
-                };
-            };
-            /** @description Forbidden - Insufficient permissions */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Client not found */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
+  };
+  UsersController_getUserHierarchy: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description User ID */
+        id: string;
+      };
+      cookie?: never;
     };
-    ClientsController_remove: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description Client ID */
-                id: string;
-            };
-            cookie?: never;
+    requestBody?: never;
+    responses: {
+      /** @description User hierarchy retrieved successfully */
+      200: {
+        headers: {
+          [name: string]: unknown;
         };
-        requestBody?: never;
-        responses: {
-            /** @description Client deleted successfully */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        data?: {
-                            message?: string;
-                        };
-                        message?: string;
-                        success?: boolean;
-                        timestamp?: string;
-                    };
-                };
-            };
-            /** @description Forbidden - Insufficient permissions */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Client not found */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
+        content?: never;
+      };
     };
-    ClientsController_update: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description Client ID */
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["UpdateClientDto"];
-            };
-        };
-        responses: {
-            /** @description Client updated successfully */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        data?: components["schemas"]["ClientResponseDto"];
-                        message?: string;
-                        success?: boolean;
-                        timestamp?: string;
-                    };
-                };
-            };
-            /** @description Bad Request - Validation failed or duplicate DNI/CUIT */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Forbidden - Insufficient permissions */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Client not found */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
+  };
+  ExternalApiController_fetchDolarBlue: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    SubLoansController_getTodayDueSubLoans: {
-        parameters: {
-            query?: {
-                /** @description Número de página */
-                page?: number;
-                /** @description Elementos por página (mínimo 20) */
-                limit?: number;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
+    requestBody?: never;
+    responses: {
+      /** @description Dólar Blue data fetched and persisted successfully */
+      201: {
+        headers: {
+          [name: string]: unknown;
         };
-        requestBody?: never;
-        responses: {
-            /** @description Subloans que vencen hoy obtenidos exitosamente */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description No autorizado */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
+        content: {
+          'application/json': components['schemas']['ExternalApiResponseDto'];
         };
+      };
+      /** @description Forbidden - insufficient permissions */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
     };
-    SubLoansController_getTodayDueSubLoansStats: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Estadísticas obtenidas exitosamente */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description No autorizado */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
+  };
+  ExternalApiController_getLatestDolarBlue: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    SubLoansController_activateTodayDueSubLoans: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
+    requestBody?: never;
+    responses: {
+      /** @description Latest Dólar Blue data retrieved successfully */
+      200: {
+        headers: {
+          [name: string]: unknown;
         };
-        requestBody?: never;
-        responses: {
-            /** @description Subloans activados exitosamente */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description No autorizado */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Prohibido - Solo administradores */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
+        content: {
+          'application/json': components['schemas']['ExternalApiResponseDto'];
         };
+      };
+      /** @description No successful data found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
     };
-    ScheduledTasksController_runActivateTodayDueSubLoansManually: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Tarea ejecutada exitosamente */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description No autorizado */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Prohibido - Solo administradores */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
+  };
+  ExternalApiController_getCurrentExchangeRate: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
+    requestBody?: never;
+    responses: {
+      /** @description Current exchange rates retrieved successfully */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': {
+            /** @example 1020.5 */
+            compra?: number;
+            /** @example 1050.75 */
+            venta?: number;
+          };
+        };
+      };
+    };
+  };
+  ExternalApiController_getAllApiResponses: {
+    parameters: {
+      query?: {
+        /** @description Page number (default: 1) */
+        page?: number;
+        /** @description Items per page (default: 10) */
+        limit?: number;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description API responses retrieved successfully */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': {
+            data?: components['schemas']['ExternalApiResponseDto'][];
+            meta?: {
+              page?: number;
+              limit?: number;
+              total?: number;
+              totalPages?: number;
+              hasNextPage?: boolean;
+              hasPreviousPage?: boolean;
+            };
+          };
+        };
+      };
+    };
+  };
+  ExternalApiController_getApiResponsesByDateRange: {
+    parameters: {
+      query: {
+        /** @description Start date (ISO format) */
+        startDate: string;
+        /** @description End date (ISO format) */
+        endDate: string;
+        /** @description Page number (default: 1) */
+        page?: number;
+        /** @description Items per page (default: 10) */
+        limit?: number;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  ExternalApiController_getApiStats: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description API statistics retrieved successfully */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': {
+            /** @example 150 */
+            totalCalls?: number;
+            /** @example 145 */
+            successfulCalls?: number;
+            /** @example 5 */
+            failedCalls?: number;
+            /** @example 250 */
+            averageResponseTime?: number;
+            /**
+             * Format: date-time
+             * @example 2024-01-15T10:30:00.000Z
+             */
+            lastSuccessfulCall?: string;
+          };
+        };
+      };
+    };
+  };
+  LoansController_getAllActiveLoans: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Préstamos activos obtenidos exitosamente */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['LoanListResponseDto'][];
+        };
+      };
+      /** @description No autorizado */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  LoansController_createLoan: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['CreateLoanDto'];
+      };
+    };
+    responses: {
+      /** @description Préstamo creado exitosamente */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['CreateLoanResponseDto'];
+        };
+      };
+      /** @description Solicitud incorrecta */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description No autorizado */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Prohibido - Rol insuficiente */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  LoansController_getLoanByTracking: {
+    parameters: {
+      query: {
+        /** @description Número de DNI del cliente */
+        dni: string;
+        /** @description Código de tracking del préstamo */
+        tracking: string;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Información del préstamo obtenida exitosamente */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['LoanTrackingResponseDto'];
+        };
+      };
+      /** @description Solicitud incorrecta - Parámetros faltantes */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Préstamo no encontrado o DNI no coincide */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  LoansController_getPaginatedLoans: {
+    parameters: {
+      query?: {
+        /** @description Número de página */
+        page?: number;
+        /** @description Elementos por página */
+        limit?: number;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Préstamos paginados obtenidos exitosamente */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['PaginatedResponseDto'];
+        };
+      };
+      /** @description No autorizado */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  LoansController_getLoanById: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Préstamo obtenido exitosamente */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description No autorizado */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Préstamo no encontrado */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  ClientsController_findAll: {
+    parameters: {
+      query?: {
+        page?: number;
+        limit?: number;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Clients retrieved successfully */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': {
+            data?: {
+              data?: components['schemas']['ClientWithManagersDto'][];
+              meta?: components['schemas']['PaginationMeta'];
+            };
+            message?: string;
+            success?: boolean;
+            timestamp?: string;
+          };
+        };
+      };
+      /** @description Unauthorized */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  ClientsController_create: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['CreateClientDto'];
+      };
+    };
+    responses: {
+      /** @description Client created successfully or existing client assigned */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': {
+            data?:
+              | components['schemas']['ClientResponseDto']
+              | {
+                  id?: string;
+                  fullName?: string;
+                  dni?: string;
+                  cuit?: string;
+                  phone?: string;
+                  email?: string;
+                  address?: string;
+                  job?: string;
+                  createdAt?: string;
+                  updatedAt?: string;
+                  isExistingClient?: boolean;
+                  message?: string;
+                };
+            message?: string;
+            success?: boolean;
+            timestamp?: string;
+          };
+        };
+      };
+      /** @description Bad Request - Validation failed or client already assigned */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Forbidden - Insufficient permissions */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  ClientsController_searchByDniOrCuit: {
+    parameters: {
+      query?: {
+        dni?: string;
+        cuit?: string;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Client found successfully */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': {
+            data?: components['schemas']['ClientWithManagersDto'];
+            message?: string;
+            success?: boolean;
+            timestamp?: string;
+          };
+        };
+      };
+      /** @description Bad Request - Missing DNI or CUIT */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Client not found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  ClientsController_findOne: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Client ID */
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Client retrieved successfully */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': {
+            data?: components['schemas']['ClientWithDetailsDto'];
+            message?: string;
+            success?: boolean;
+            timestamp?: string;
+          };
+        };
+      };
+      /** @description Forbidden - Insufficient permissions */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Client not found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  ClientsController_remove: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Client ID */
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Client deleted successfully */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': {
+            data?: {
+              message?: string;
+            };
+            message?: string;
+            success?: boolean;
+            timestamp?: string;
+          };
+        };
+      };
+      /** @description Forbidden - Insufficient permissions */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Client not found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  ClientsController_update: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Client ID */
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['UpdateClientDto'];
+      };
+    };
+    responses: {
+      /** @description Client updated successfully */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': {
+            data?: components['schemas']['ClientResponseDto'];
+            message?: string;
+            success?: boolean;
+            timestamp?: string;
+          };
+        };
+      };
+      /** @description Bad Request - Validation failed or duplicate DNI/CUIT */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Forbidden - Insufficient permissions */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Client not found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  SubLoansController_getTodayDueSubLoans: {
+    parameters: {
+      query?: {
+        /** @description Número de página */
+        page?: number;
+        /** @description Elementos por página (mínimo 20) */
+        limit?: number;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Subloans que vencen hoy obtenidos exitosamente */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description No autorizado */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  SubLoansController_getTodayDueSubLoansStats: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Estadísticas obtenidas exitosamente */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description No autorizado */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  SubLoansController_activateTodayDueSubLoans: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Subloans activados exitosamente */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description No autorizado */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Prohibido - Solo administradores */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  ScheduledTasksController_runActivateTodayDueSubLoansManually: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Tarea ejecutada exitosamente */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description No autorizado */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Prohibido - Solo administradores */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
 }

@@ -1,6 +1,5 @@
 import api from './api';
 import type { components } from '@/types/api-generated';
-import type { PaginationParams, PaginatedResponse } from '@/types/auth';
 
 type SubLoanResponseDto = components['schemas']['SubLoanResponseDto'];
 
@@ -20,6 +19,10 @@ interface ActivationResultDto {
 /**
  * THE MESSENGER - SubLoans Service
  * Simple, testable functions that only communicate with the API.
+ *
+ * NOTA: SubLoans ahora soportan estado PARTIAL para pagos parciales
+ * Estados: PENDING | PARTIAL | PAID | OVERDUE
+ * El historial de pagos se guarda en formato JSON en el SubLoan
  */
 class SubLoansService {
   async getTodayDueSubLoans(): Promise<SubLoanResponseDto[]> {
@@ -53,6 +56,73 @@ class SubLoansService {
     });
 
     return allSubLoans;
+  }
+
+  async getSubLoanById(id: string): Promise<SubLoanResponseDto> {
+    const response = await api.get(`/subloans/${id}`);
+    return response.data.data;
+  }
+
+  async getSubLoansByLoanId(loanId: string): Promise<SubLoanResponseDto[]> {
+    const response = await api.get(`/subloans/loan/${loanId}`);
+    return response.data.data;
+  }
+
+  /**
+   * Helper: Calculate remaining amount for a SubLoan
+   * Used in payment UI to show how much is left to pay
+   */
+  calculateRemainingAmount(subloan: SubLoanResponseDto): number {
+    return Math.max(0, subloan.totalAmount - subloan.paidAmount);
+  }
+
+  /**
+   * Helper: Determine payment status badge color and text
+   * Used in UI for visual feedback
+   */
+  getStatusDisplay(status: string): {
+    text: string;
+    color: string;
+    bgColor: string;
+  } {
+    const statusMap: Record<string, { text: string; color: string; bgColor: string }> = {
+      PENDING: { text: 'Pendiente', color: '#FFA500', bgColor: '#FFF8E1' },
+      PARTIAL: { text: 'Parcial', color: '#2196F3', bgColor: '#E3F2FD' },
+      PAID: { text: 'Pagado', color: '#4CAF50', bgColor: '#E8F5E9' },
+      OVERDUE: { text: 'Vencido', color: '#F44336', bgColor: '#FFEBEE' },
+    };
+
+    return statusMap[status] || { text: status, color: '#999', bgColor: '#F5F5F5' };
+  }
+
+  /**
+   * Helper: Filter SubLoans by payment status
+   * Useful for grouping subloans in UI
+   */
+  filterByStatus(subloans: SubLoanResponseDto[], status: string): SubLoanResponseDto[] {
+    return subloans.filter((subloan) => subloan.status === status);
+  }
+
+  /**
+   * Helper: Calculate total amounts from list of subloans
+   */
+  calculateTotals(subloans: SubLoanResponseDto[]): {
+    totalAmount: number;
+    totalPaid: number;
+    totalRemaining: number;
+    totalOverdue: number;
+  } {
+    return subloans.reduce(
+      (acc, subloan) => ({
+        totalAmount: acc.totalAmount + subloan.totalAmount,
+        totalPaid: acc.totalPaid + subloan.paidAmount,
+        totalRemaining:
+          acc.totalRemaining + Math.max(0, subloan.totalAmount - subloan.paidAmount),
+        totalOverdue:
+          acc.totalOverdue + (subloan.status === 'OVERDUE' ? subloan.totalAmount : 0),
+      }),
+      { totalAmount: 0, totalPaid: 0, totalRemaining: 0, totalOverdue: 0 }
+    );
   }
 }
 

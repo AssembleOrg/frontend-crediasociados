@@ -7,20 +7,65 @@ export type LoginDto = components['schemas']['LoginDto'];
 export type RefreshTokenDto = components['schemas']['RefreshTokenDto'];
 export type CreateUserDto = components['schemas']['CreateUserDto'];
 export type UpdateUserDto = components['schemas']['UpdateUserDto'];
-export type UserResponseDto = components['schemas']['UserResponseDto']
+export type UserResponseDto = components['schemas']['UserResponseDto'];
 
 // Client API Contract Types
-export type CreateClientDto = components['schemas']['CreateClientDto']
-export type UpdateClientDto = components['schemas']['UpdateClientDto']
+export type CreateClientDto = components['schemas']['CreateClientDto'];
+export type UpdateClientDto = components['schemas']['UpdateClientDto'];
 export type ClientResponseDto = components['schemas']['ClientResponseDto'];
 
 // Loan API Contract Types
-export type CreateLoanDto = components['schemas']['CreateLoanDto']
-export type CreateLoanResponseDto = components['schemas']['CreateLoanResponseDto']
-export type LoanListResponseDto = components['schemas']['LoanListResponseDto']
-export type LoanTrackingResponseDto = components['schemas']['LoanTrackingResponseDto']
+export type CreateLoanDto = components['schemas']['CreateLoanDto'];
+export type CreateLoanResponseDto =
+  components['schemas']['CreateLoanResponseDto'];
+export type LoanListResponseDto = components['schemas']['LoanListResponseDto'];
+export type LoanTrackingResponseDto =
+  components['schemas']['LoanTrackingResponseDto'];
 // Since getAllLoans doesn't have a specific response type, we'll use CreateLoanResponseDto
-export type LoanResponseDto = CreateLoanResponseDto
+export type LoanResponseDto = CreateLoanResponseDto;
+
+export interface Wallet {
+  id: string;
+  userId: string;
+  balance: number;
+  currency: 'ARS' | 'USD';
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface WalletTransaction {
+  id: string;
+  walletId: string;
+  userId: string;
+  type:
+    | 'DEPOSIT'
+    | 'WITHDRAWAL'
+    | 'LOAN_DISBURSEMENT'
+    | 'LOAN_PAYMENT'
+    | 'TRANSFER_TO_MANAGER'
+    | 'TRANSFER_FROM_SUBADMIN';
+  amount: number;
+  currency: 'ARS' | 'USD';
+  description: string;
+  relatedUserId?: string;
+  createdAt: Date;
+}
+
+export interface Payment {
+  id: string;
+  subLoanId: string;
+  amount: number;
+  currency: 'ARS' | 'USD';
+  paymentDate: Date;
+  description?: string;
+  createdAt: Date;
+}
+
+export interface PaymentDistribution {
+  subLoanId: string;
+  distributedAmount: number;
+  newStatus: 'PARTIAL' | 'PAID';
+}
 
 export interface LoginResponse {
   user: UserResponseDto;
@@ -57,7 +102,13 @@ export interface PaginatedResponse<T> {
 }
 
 // Frontend domain types - Internal representation
-export type UserRole = 'superadmin' | 'admin' | 'subadmin' | 'manager' | 'prestamista' | 'cliente';
+export type UserRole =
+  | 'superadmin'
+  | 'admin'
+  | 'subadmin'
+  | 'manager'
+  | 'prestamista'
+  | 'cliente';
 
 export interface User {
   id: string;
@@ -69,6 +120,7 @@ export interface User {
   cuit?: string;
   createdAt: Date;
   updatedAt: Date;
+  wallet?: Wallet;
 }
 
 // Frontend domain type for Clients
@@ -94,13 +146,26 @@ export interface Loan {
   penaltyInterestRate: number;
   currency: 'ARS';
   paymentFrequency: 'DAILY' | 'WEEKLY' | 'BIWEEKLY' | 'MONTHLY';
-  paymentDay?: 'MONDAY' | 'TUESDAY' | 'WEDNESDAY' | 'THURSDAY' | 'FRIDAY' | 'SATURDAY' | 'SUNDAY';
+  paymentDay?:
+    | 'MONDAY'
+    | 'TUESDAY'
+    | 'WEDNESDAY'
+    | 'THURSDAY'
+    | 'FRIDAY'
+    | 'SATURDAY'
+    | 'SUNDAY';
   totalPayments: number;
   firstDueDate?: Date;
   loanTrack: string;
   description?: string;
   notes?: string;
-  status: 'PENDING' | 'APPROVED' | 'REJECTED' | 'ACTIVE' | 'COMPLETED' | 'DEFAULTED';
+  status:
+    | 'PENDING'
+    | 'APPROVED'
+    | 'REJECTED'
+    | 'ACTIVE'
+    | 'COMPLETED'
+    | 'DEFAULTED';
   requestDate: Date;
   approvedDate?: Date;
   completedDate?: Date;
@@ -137,8 +202,18 @@ export type ClientToCreateDto = (
   client: Omit<Client, 'id' | 'createdAt' | 'updatedAt'>
 ) => CreateClientDto;
 
-// Loan transform utilities  
+// Loan transform utilities
 export type ApiLoanToLoan = (apiLoan: LoanResponseDto) => Loan;
 export type LoanToCreateDto = (
-  loan: Omit<Loan, 'id' | 'status' | 'requestDate' | 'approvedDate' | 'completedDate' | 'createdAt' | 'updatedAt' | 'client'>
+  loan: Omit<
+    Loan,
+    | 'id'
+    | 'status'
+    | 'requestDate'
+    | 'approvedDate'
+    | 'completedDate'
+    | 'createdAt'
+    | 'updatedAt'
+    | 'client'
+  >
 ) => CreateLoanDto;

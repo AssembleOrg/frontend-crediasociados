@@ -6,11 +6,18 @@ import { AttachMoney, TrendingUp, AccountBalance, Savings, Receipt, TrendingDown
 import { useRouter } from 'next/navigation'
 import PageHeader from '@/components/ui/PageHeader'
 import { StatsCard } from '@/components/dashboard/StatsCard'
+import { WalletBalanceCard } from '@/components/wallet/WalletBalanceCard'
 import { useFinanzas } from '@/hooks/useFinanzas'
+import { useWallet } from '@/hooks/useWallet'
 
 export default function PrestamistaFinanzasPage() {
   const router = useRouter()
   const { financialSummary, isLoading, error } = useFinanzas()
+  const {
+    wallet,
+    isLoading: walletIsLoading,
+    refetchWallet,
+  } = useWallet()
 
   if (error) {
     return (
@@ -35,6 +42,16 @@ export default function PrestamistaFinanzasPage() {
           }
         ]}
       />
+
+      {/* Wallet Balance Section */}
+      <Box sx={{ mb: 4 }}>
+        <WalletBalanceCard
+          wallet={wallet}
+          isLoading={walletIsLoading}
+          onRefresh={refetchWallet}
+          showDetails={true}
+        />
+      </Box>
 
       {/* Stats Cards - 6 cards in 3x2 grid */}
       <Grid container spacing={3} sx={{ mb: 4 }}>

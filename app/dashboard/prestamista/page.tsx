@@ -5,8 +5,10 @@ import dynamic from 'next/dynamic'
 import { Box, Grid, CircularProgress, Typography, Button, useMediaQuery } from '@mui/material'
 import { ExpandMore, ExpandLess } from '@mui/icons-material'
 import PageHeader from '@/components/ui/PageHeader'
+import { WalletBalanceCard } from '@/components/wallet/WalletBalanceCard'
 import { usePrestamistaDashboardData } from '@/hooks/usePrestamistaDashboardData'
 import { usePrestamistaCharts } from '@/hooks/usePrestamistaCharts'
+import { useWallet } from '@/hooks/useWallet'
 import { ChartSkeleton, BarChartSkeleton } from '@/components/ui/ChartSkeleton'
 
 // Lazy load charts to reduce initial bundle size
@@ -44,6 +46,13 @@ export default function PrestamistaDashboard() {
 
   const chartData = usePrestamistaCharts(clients, loans, subLoans)
 
+  // Wallet management
+  const {
+    wallet,
+    isLoading: walletIsLoading,
+    refetchWallet,
+  } = useWallet()
+
   // Responsive logic for mobile
   const isMobile = useMediaQuery('(max-width:600px)')
   const [showAllCharts, setShowAllCharts] = useState(false)
@@ -67,6 +76,16 @@ export default function PrestamistaDashboard() {
         title="Dashboard Prestamista"
         subtitle="Gestión de clientes y préstamos de tu cartera"
       />
+
+      {/* Wallet Balance Section */}
+      <Box sx={{ mb: 4 }}>
+        <WalletBalanceCard
+          wallet={wallet}
+          isLoading={walletIsLoading}
+          onRefresh={refetchWallet}
+          showDetails={true}
+        />
+      </Box>
 
       <Grid container spacing={4}>
         {/* Mobile: PaymentsDistribution first (always visible) */}

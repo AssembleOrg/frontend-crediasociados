@@ -12,6 +12,7 @@ import type {
   Loan,
   LoanResponseDto,
   CreateLoanDto,
+  Wallet,
 } from './auth';
 
 // Role mapping between API and Frontend
@@ -42,6 +43,8 @@ export const apiUserToUser = (apiUser: UserResponseDto): User => ({
   cuit: typeof apiUser.cuit === 'string' ? apiUser.cuit : undefined,
   createdAt: new Date(apiUser.createdAt),
   updatedAt: new Date(apiUser.updatedAt),
+  wallet:
+    (apiUser as UserResponseDto & { wallet?: Wallet }).wallet ?? undefined,
 });
 
 // Transform frontend user to API create DTO
@@ -114,9 +117,7 @@ export const clientToCreateDto = (
 });
 
 // Transform frontend client to API update DTO
-export const clientToUpdateDto = (
-  client: Partial<Client>
-): UpdateClientDto => {
+export const clientToUpdateDto = (client: Partial<Client>): UpdateClientDto => {
   const dto: UpdateClientDto = {};
 
   if (client.fullName !== undefined) dto.fullName = client.fullName;
@@ -143,12 +144,33 @@ export const apiLoanToLoan = (apiLoan: LoanResponseDto): Loan => ({
   baseInterestRate: (apiLoan as any).baseInterestRate || 0.05, // Use API value or fallback
   penaltyInterestRate: (apiLoan as any).penaltyInterestRate || 0.05, // Use API value or fallback
   currency: 'ARS' as const,
-  paymentFrequency: apiLoan.paymentFrequency as 'DAILY' | 'WEEKLY' | 'BIWEEKLY' | 'MONTHLY',
-  paymentDay: (['MONDAY','TUESDAY','WEDNESDAY','THURSDAY','FRIDAY','SATURDAY','SUNDAY'].includes((apiLoan as unknown as { paymentDay?: string }).paymentDay || '')
-    ? (((apiLoan as unknown as { paymentDay?: string }).paymentDay as unknown) as 'MONDAY' | 'TUESDAY' | 'WEDNESDAY' | 'THURSDAY' | 'FRIDAY' | 'SATURDAY' | 'SUNDAY')
-    : undefined),
+  paymentFrequency: apiLoan.paymentFrequency as
+    | 'DAILY'
+    | 'WEEKLY'
+    | 'BIWEEKLY'
+    | 'MONTHLY',
+  paymentDay: [
+    'MONDAY',
+    'TUESDAY',
+    'WEDNESDAY',
+    'THURSDAY',
+    'FRIDAY',
+    'SATURDAY',
+    'SUNDAY',
+  ].includes((apiLoan as unknown as { paymentDay?: string }).paymentDay || '')
+    ? ((apiLoan as unknown as { paymentDay?: string }).paymentDay as unknown as
+        | 'MONDAY'
+        | 'TUESDAY'
+        | 'WEDNESDAY'
+        | 'THURSDAY'
+        | 'FRIDAY'
+        | 'SATURDAY'
+        | 'SUNDAY')
+    : undefined,
   totalPayments: apiLoan.totalPayments,
-  firstDueDate: apiLoan.firstDueDate ? new Date(apiLoan.firstDueDate) : undefined,
+  firstDueDate: apiLoan.firstDueDate
+    ? new Date(apiLoan.firstDueDate)
+    : undefined,
   loanTrack: apiLoan.loanTrack,
   description: apiLoan.description || undefined,
   notes: undefined, // Not available in current API response
@@ -163,7 +185,17 @@ export const apiLoanToLoan = (apiLoan: LoanResponseDto): Loan => ({
 
 // Transform frontend loan to API create DTO
 export const loanToCreateDto = (
-  loan: Omit<Loan, 'id' | 'status' | 'requestDate' | 'approvedDate' | 'completedDate' | 'createdAt' | 'updatedAt' | 'client'>
+  loan: Omit<
+    Loan,
+    | 'id'
+    | 'status'
+    | 'requestDate'
+    | 'approvedDate'
+    | 'completedDate'
+    | 'createdAt'
+    | 'updatedAt'
+    | 'client'
+  >
 ): CreateLoanDto => ({
   clientId: loan.clientId,
   amount: loan.amount,
@@ -171,11 +203,25 @@ export const loanToCreateDto = (
   penaltyInterestRate: loan.penaltyInterestRate,
   currency: loan.currency,
   paymentFrequency: loan.paymentFrequency,
-  paymentDay: (loan.paymentFrequency === 'DAILY'
-    ? undefined
-    : (['MONDAY','TUESDAY','WEDNESDAY','THURSDAY','FRIDAY','SATURDAY'].includes((loan.paymentDay as string) || '')
-        ? (loan.paymentDay as 'MONDAY' | 'TUESDAY' | 'WEDNESDAY' | 'THURSDAY' | 'FRIDAY' | 'SATURDAY')
-        : undefined)),
+  paymentDay:
+    loan.paymentFrequency === 'DAILY'
+      ? undefined
+      : [
+          'MONDAY',
+          'TUESDAY',
+          'WEDNESDAY',
+          'THURSDAY',
+          'FRIDAY',
+          'SATURDAY',
+        ].includes((loan.paymentDay as string) || '')
+      ? (loan.paymentDay as
+          | 'MONDAY'
+          | 'TUESDAY'
+          | 'WEDNESDAY'
+          | 'THURSDAY'
+          | 'FRIDAY'
+          | 'SATURDAY')
+      : undefined,
   totalPayments: loan.totalPayments,
   firstDueDate: loan.firstDueDate?.toISOString(),
   loanTrack: loan.loanTrack,

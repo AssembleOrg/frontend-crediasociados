@@ -1,23 +1,25 @@
-import { create } from 'zustand'
-import { persist, createJSONStorage } from 'zustand/middleware'
-import type { User, AuthState } from '@/types/auth'
+import { create } from 'zustand';
+import { persist, createJSONStorage } from 'zustand/middleware';
+import type { User, AuthState, Wallet } from '@/types/auth';
 
 // Custom cookie storage for Zustand persist
 const cookieStorage = {
   getItem: (key: string): string | null => {
     if (typeof window === 'undefined') return null;
     const cookies = document.cookie.split(';');
-    const cookie = cookies.find(c => c.trim().startsWith(`${key}=`));
+    const cookie = cookies.find((c) => c.trim().startsWith(`${key}=`));
     return cookie ? decodeURIComponent(cookie.split('=')[1]) : null;
   },
   setItem: (key: string, value: string): void => {
     if (typeof window === 'undefined') return;
-    document.cookie = `${key}=${encodeURIComponent(value)}; path=/; max-age=86400; SameSite=Lax`;
+    document.cookie = `${key}=${encodeURIComponent(
+      value
+    )}; path=/; max-age=86400; SameSite=Lax`;
   },
   removeItem: (key: string): void => {
     if (typeof window === 'undefined') return;
     document.cookie = `${key}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT`;
-  }
+  },
 };
 
 /**
@@ -27,11 +29,12 @@ const cookieStorage = {
  */
 interface AuthStore extends AuthState {
   // Simple synchronous setters only
-  setUser: (user: User | null) => void
-  setTokens: (token: string | null, refreshToken: string | null) => void
-  setAuthentication: (isAuthenticated: boolean) => void
-  clearAuth: () => void
-  getDashboardRoute: () => string
+  setUser: (user: User | null) => void;
+  setTokens: (token: string | null, refreshToken: string | null) => void;
+  setAuthentication: (isAuthenticated: boolean) => void;
+  clearAuth: () => void;
+  getDashboardRoute: () => string;
+  updateUserWallet: (wallet: Wallet) => void;
 }
 
 export const useAuthStore = create<AuthStore>()(
@@ -45,15 +48,21 @@ export const useAuthStore = create<AuthStore>()(
 
       // Simple synchronous actions only
       setUser: (user: User | null) => {
-        set({ user })
+        set({ user });
       },
 
       setTokens: (token: string | null, refreshToken: string | null) => {
-        set({ token, refreshToken })
+        set({ token, refreshToken });
       },
 
       setAuthentication: (isAuthenticated: boolean) => {
-        set({ isAuthenticated })
+        set({ isAuthenticated });
+      },
+
+      updateUserWallet: (wallet: Wallet) => {
+        set((state) => ({
+          user: state.user ? { ...state.user, wallet } : null,
+        }));
       },
 
       clearAuth: () => {
@@ -61,31 +70,35 @@ export const useAuthStore = create<AuthStore>()(
           user: null,
           token: null,
           refreshToken: null,
-          isAuthenticated: false
-        })
+          isAuthenticated: false,
+        });
       },
 
       // Utility function for routing
       getDashboardRoute: () => {
-        const { user } = get()
-        if (!user) return '/login'
-        
+        const { user } = get();
+        if (!user) return '/login';
+
         switch (user.role) {
-          case 'admin': return '/dashboard/admin'
-          case 'subadmin': return '/dashboard/subadmin'
-          case 'prestamista': return '/dashboard/prestamista'
-          default: return '/login'
+          case 'admin':
+            return '/dashboard/admin';
+          case 'subadmin':
+            return '/dashboard/subadmin';
+          case 'prestamista':
+            return '/dashboard/prestamista';
+          default:
+            return '/login';
         }
-      }
+      },
     }),
     {
       name: 'auth-storage',
       storage: createJSONStorage(() => cookieStorage),
-      partialize: (state) => ({ 
-        user: state.user, 
-        token: state.token, 
+      partialize: (state) => ({
+        user: state.user,
+        token: state.token,
         refreshToken: state.refreshToken,
-        isAuthenticated: state.isAuthenticated 
+        isAuthenticated: state.isAuthenticated,
       }),
       skipHydration: false,
       onRehydrateStorage: () => (state, error) => {
@@ -95,4 +108,4 @@ export const useAuthStore = create<AuthStore>()(
       },
     }
   )
-)
+);

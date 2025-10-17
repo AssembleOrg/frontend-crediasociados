@@ -17,12 +17,15 @@ import {
   Divider,
   InputAdornment,
   Checkbox,
-  FormControlLabel
+  FormControlLabel,
+  Alert,
+  Chip
 } from '@mui/material'
-import { Payment, CalendarToday, AttachMoney, PictureAsPdf } from '@mui/icons-material'
+import { Payment, CalendarToday, AttachMoney, PictureAsPdf, Info, History } from '@mui/icons-material'
 import { formatAmount, unformatAmount } from '@/lib/formatters'
 import { useOperativa } from '@/hooks/useOperativa'
 import { exportService } from '@/services/export.service'
+import { paymentsService } from '@/services/payments.service'
 import type { SubLoanWithClientInfo } from '@/services/subloans-lookup.service'
 
 interface PaymentModalProps {
@@ -49,6 +52,11 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
   const [paymentDate, setPaymentDate] = useState<string>(new Date().toISOString().split('T')[0])
   const [notes, setNotes] = useState<string>('')
   const [generatePDF, setGeneratePDF] = useState<boolean>(true) // Default: generate PDF
+  const [paymentPreview, setPaymentPreview] = useState<{
+    remainingAfterPayment: number
+    status: 'PARTIAL' | 'PAID'
+    isPartial: boolean
+  } | null>(null)
 
   const currentSubloan = mode === 'single' ? subloan :
     subloans.find(s => s.id === selectedSubloanId)
@@ -84,6 +92,25 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
       setPaymentAmount(formatAmount(pendingAmount.toString()))
     }
   }, [selectedSubloanId, currentSubloan, open, mode])
+
+  // Calculate payment preview (status changes)
+  useEffect(() => {
+    if (currentSubloan && paymentAmount) {
+      const amountValue = parseFloat(unformatAmount(paymentAmount)) || 0
+      const pendingAmount = currentSubloan.totalAmount - (currentSubloan.paidAmount || 0)
+      const remainingAfterPayment = Math.max(0, pendingAmount - amountValue)
+      const isPartial = amountValue > 0 && remainingAfterPayment > 0
+      const status = remainingAfterPayment === 0 ? 'PAID' : 'PARTIAL'
+
+      setPaymentPreview({
+        remainingAfterPayment,
+        status,
+        isPartial
+      })
+    } else {
+      setPaymentPreview(null)
+    }
+  }, [currentSubloan, paymentAmount])
 
   const handleRegisterPayment = async () => {
     if (!currentSubloan) return
@@ -323,6 +350,36 @@ Sistema: Prestamito
                 fullWidth
               />
             </Box>
+
+            {/* Payment Preview - Status Display */}
+            {paymentPreview && (
+              <Alert
+                icon={<Info />}
+                severity={paymentPreview.isPartial ? 'warning' : 'success'}
+                sx={{ mb: 3 }}
+              >
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, justifyContent: 'space-between' }}>
+                  <Typography variant="body2">
+                    {paymentPreview.isPartial
+                      ? `⚠️ Este será un pago PARCIAL`
+                      : `✅ Este completará el pago (PAGADO)`}
+                  </Typography>
+                  <Box sx={{ display: 'flex', gap: 1 }}>
+                    <Chip
+                      label={paymentPreview.status}
+                      color={paymentPreview.status === 'PAID' ? 'success' : 'warning'}
+                      size="small"
+                      variant="outlined"
+                    />
+                    {paymentPreview.remainingAfterPayment > 0 && (
+                      <Typography variant="caption" sx={{ color: 'warning.main', fontWeight: 600 }}>
+                        Restará: ${formatAmount(paymentPreview.remainingAfterPayment.toString())}
+                      </Typography>
+                    )}
+                  </Box>
+                </Box>
+              </Alert>
+            )}
 
             <TextField
               label="Notas (opcional)"

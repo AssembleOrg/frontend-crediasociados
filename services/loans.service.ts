@@ -1,107 +1,158 @@
-import api from './api'
-import type { 
-  LoanResponseDto, 
+import api from './api';
+import type {
+  LoanResponseDto,
   LoanListResponseDto,
   CreateLoanDto,
   CreateLoanResponseDto,
   LoanTrackingResponseDto,
   PaginationParams,
-  PaginatedResponse
-} from '@/types/auth'
+  PaginatedResponse,
+} from '@/types/auth';
 
 /**
  * THE MESSENGER - Loans Service
  * Simple, testable functions that only communicate with the API.
  * No state management, no complex logic - just API calls.
+ *
+ * NOTA: El backend ahora valida que el manager tenga saldo suficiente en su cartera
+ * antes de permitir la creación de un préstamo. La cartera se debita automáticamente.
  */
 class LoansService {
-  async getLoansPaginated(params: PaginationParams = {}): Promise<PaginatedResponse<LoanResponseDto>> {
-    const searchParams = new URLSearchParams()
-    
-    if (params.page) searchParams.append('page', params.page.toString())
-    if (params.limit) searchParams.append('limit', params.limit.toString())
+  async getLoansPaginated(
+    params: PaginationParams = {}
+  ): Promise<PaginatedResponse<LoanResponseDto>> {
+    const searchParams = new URLSearchParams();
 
-    const queryString = searchParams.toString()
-    const url = queryString ? `/pagination?${queryString}` : '/pagination'
-    
-    const response = await api.get(url)
-    
+    if (params.page) searchParams.append('page', params.page.toString());
+    if (params.limit) searchParams.append('limit', params.limit.toString());
+
+    const queryString = searchParams.toString();
+    const url = queryString ? `/pagination?${queryString}` : '/pagination';
+
+    const response = await api.get(url);
+
     return {
       data: response.data.data.data,
-      meta: response.data.data.meta
-    }
+      meta: response.data.data.meta,
+    };
   }
 
   async getAllLoans(): Promise<LoanResponseDto[]> {
-    const response = await api.get('/loans')
-    return response.data.data
+    const response = await api.get('/loans');
+    return response.data.data;
   }
 
   async getActiveLoansWithClientId(): Promise<LoanListResponseDto[]> {
-    const response = await api.get('/loans')
-    return response.data.data || response.data || [] // Handle different response structures
+    const response = await api.get('/loans');
+    return response.data.data || response.data || []; // Handle different response structures
   }
 
   async getLoanById(id: string): Promise<LoanResponseDto> {
-    const response = await api.get(`/loans/${id}`)
-    return response.data.data
+    const response = await api.get(`/loans/${id}`);
+    return response.data.data;
   }
 
   async createLoan(loanData: CreateLoanDto): Promise<CreateLoanResponseDto> {
-    // DEBUG: Log COMPLETO de datos para diagnosticar error 500
-    console.log('🔍 [DEBUG] loans.service - Datos COMPLETOS enviados al backend:', {
-      completePayload: loanData,
-      fieldsBreakdown: {
-        clientId: loanData.clientId,
-        amount: { value: loanData.amount, type: typeof loanData.amount },
-        baseInterestRate: { value: loanData.baseInterestRate, type: typeof loanData.baseInterestRate },
-        penaltyInterestRate: { value: loanData.penaltyInterestRate, type: typeof loanData.penaltyInterestRate },
-        currency: loanData.currency,
-        paymentFrequency: loanData.paymentFrequency,
-        paymentDay: loanData.paymentDay,
-        totalPayments: { value: loanData.totalPayments, type: typeof loanData.totalPayments },
-        firstDueDate: loanData.firstDueDate,
-        description: loanData.description
-      },
-      timestamp: new Date().toISOString()
-    })
+    console.log(
+      '🔍 [DEBUG] loans.service - Datos enviados para crear préstamo:',
+      loanData
+    );
 
     try {
-      const response = await api.post('/loans', loanData)
+      const response = await api.post('/loans', loanData);
 
-      // DEBUG: Log respuesta exitosa
-      console.log('🔍 [DEBUG] loans.service - Préstamo creado exitosamente:', {
-        loanId: response.data.data.id,
-        clientId: response.data.data.clientId,
-        status: response.status,
-        fullResponse: response.data.data
-      })
+      console.log(
+        '🔍 [DEBUG] loans.service - Respuesta completa del backend:',
+        response.data
+      );
 
-      return response.data.data
+      const createdLoanData = response.data.data;
+      if (
+        !createdLoanData.loan ||
+        !createdLoanData.subLoans ||
+        !createdLoanData.walletTransaction
+      ) {
+        console.error(
+          '🚨 [ERROR] loans.service - La respuesta de la API no tiene la estructura esperada para un préstamo nuevo.'
+        );
+        throw new Error(
+          'Respuesta inesperada del servidor al crear el préstamo.'
+        );
+      }
+
+      console.log(
+        '✅ [SUCCESS] loans.service - Préstamo creado exitosamente:',
+        {
+          loanId: createdLoanData.loan.id,
+          clientId: createdLoanData.loan.clientId,
+          walletTransactionId: createdLoanData.walletTransaction.id,
+        }
+      );
+
+      return createdLoanData.loan;
     } catch (error: any) {
-      // DEBUG: Log error completo
-      console.error('🚨 [DEBUG] loans.service - ERROR 500 creando préstamo:', {
-        error: error.response?.data || error.message,
-        status: error.response?.status,
-        sentData: loanData
-      })
-      throw error
+      console.error('🚨 [ERROR] loans.service - Error creando préstamo:', {
+        message: error.message,
+        statusCode: error.response?.status,
+        responseData: error.response?.data,
+        sentData: loanData,
+      });
+      throw error;
     }
   }
 
-  async updateLoan(id: string, loanData: Partial<CreateLoanDto>): Promise<LoanResponseDto> {
-    const response = await api.patch(`/loans/${id}`, loanData)
-    return response.data.data
+  async updateLoan(
+    id: string,
+    loanData: Partial<CreateLoanDto>
+  ): Promise<LoanResponseDto> {
+    const response = await api.patch(`/loans/${id}`, loanData);
+    return response.data.data;
   }
 
   async deleteLoan(id: string): Promise<void> {
-    await api.delete(`/loans/${id}`)
+    await api.delete(`/loans/${id}`);
   }
 
-  async getLoanByTracking(dni: string, tracking: string): Promise<LoanTrackingResponseDto> {
-    const response = await api.get(`/loans/tracking?dni=${dni}&tracking=${tracking}`)
-    return response.data.data
+  async getLoanByTracking(
+    dni: string,
+    tracking: string
+  ): Promise<LoanTrackingResponseDto> {
+    const response = await api.get(
+      `/loans/tracking?dni=${dni}&tracking=${tracking}`
+    );
+    return response.data.data;
+  }
+
+  /**
+   * Helper: Validate if loan can be created with available wallet balance
+   * NOTE: Backend performs the actual validation and transaction
+   * This is for frontend pre-validation only
+   *
+   * @param loanAmount The amount to loan
+   * @param availableBalance The available balance in manager's wallet
+   * @returns Object with validation result and message
+   */
+  validateLoanAgainstBalance(
+    loanAmount: number,
+    availableBalance: number
+  ): {
+    isValid: boolean;
+    message: string;
+    insufficientBy?: number;
+  } {
+    if (loanAmount > availableBalance) {
+      return {
+        isValid: false,
+        message: `Saldo insuficiente. Necesita $${loanAmount.toFixed(2)} pero solo tiene $${availableBalance.toFixed(2)}`,
+        insufficientBy: loanAmount - availableBalance,
+      };
+    }
+
+    return {
+      isValid: true,
+      message: 'Saldo disponible suficiente',
+    };
   }
 }
 
-export const loansService = new LoansService()
+export const loansService = new LoansService();
