@@ -9,6 +9,7 @@ interface PageHeaderAction {
   color?: 'primary' | 'secondary' | 'error' | 'warning' | 'info' | 'success'
   startIcon?: React.ReactNode
   size?: 'small' | 'medium' | 'large'
+  disabled?: boolean
 }
 
 interface PageHeaderProps {
@@ -77,6 +78,7 @@ export default function PageHeader({
               size={action.size || 'medium'}
               startIcon={action.startIcon}
               onClick={action.onClick}
+              disabled={action.disabled}
               sx={{ width: { xs: '100%', sm: 'auto' } }}
             >
               {action.label}

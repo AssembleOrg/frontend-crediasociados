@@ -14,6 +14,7 @@ import {
   Chip,
   IconButton,
   Alert,
+  Typography,
 } from '@mui/material'
 import {
   Add,
@@ -21,6 +22,7 @@ import {
   Delete,
 } from '@mui/icons-material'
 import { useClients } from '@/hooks/useClients'
+import { useAuth } from '@/hooks/useAuth'
 import { ClientFormModal } from '@/components/clients/ClientFormModal'
 import { DeleteClientConfirmDialog } from '@/components/clients/DeleteClientConfirmDialog'
 import { ClientCard } from '@/components/clients/ClientCard'
@@ -29,14 +31,15 @@ import PageHeader from '@/components/ui/PageHeader'
 import type { Client } from '@/types/auth'
 
 export default function ClientesPage() {
-  const { 
-    clients, 
-    getTotalClients, 
-    isLoading, 
-    error, 
-    deleteClient, 
-    clearError 
+  const {
+    clients,
+    getTotalClients,
+    isLoading,
+    error,
+    deleteClient,
+    clearError
   } = useClients()
+  const { user: currentUser } = useAuth()
 
   const [page, setPage] = useState(0)
   const [rowsPerPage, setRowsPerPage] = useState(10)
@@ -71,6 +74,12 @@ export default function ClientesPage() {
     setSelectedClient(null)
   }
 
+  // Calculate quota information
+  const clientQuota = currentUser?.clientQuota ?? 0
+  const usedQuota = currentUser?.usedClientQuota ?? 0
+  const availableQuota = currentUser?.availableClientQuota ?? 0
+  const hasQuotaAvailable = availableQuota > 0
+
   return (
     <Box sx={{ p: 3 }}>
       {/* Header */}
@@ -82,10 +91,39 @@ export default function ClientesPage() {
             label: 'Crear Cliente',
             onClick: () => setCreateModalOpen(true),
             startIcon: <Add />,
-            variant: 'contained'
+            variant: 'contained',
+            disabled: !hasQuotaAvailable
           }
         ]}
       />
+
+      {/* Quota Information */}
+      {clientQuota > 0 && (
+        <Box sx={{ mb: 3, display: 'flex', alignItems: 'center', gap: 2 }}>
+          <Chip
+            label={`${usedQuota}/${clientQuota} clientes`}
+            color={availableQuota > 5 ? 'success' : availableQuota > 0 ? 'warning' : 'error'}
+            variant="filled"
+          />
+          <Typography variant="body2" color="text.secondary">
+            {availableQuota} clientes disponibles
+          </Typography>
+        </Box>
+      )}
+
+      {/* No Quota Alert */}
+      {clientQuota === 0 && (
+        <Alert severity="warning" sx={{ mb: 3 }}>
+          No tienes cuota asignada. Contacta a tu administrador para solicitar una cuota de clientes.
+        </Alert>
+      )}
+
+      {/* Quota Exceeded Alert */}
+      {clientQuota > 0 && availableQuota === 0 && (
+        <Alert severity="error" sx={{ mb: 3 }}>
+          Has alcanzado tu límite de clientes ({clientQuota}). No puedes crear más clientes hasta que tu administrador aumente tu cuota.
+        </Alert>
+      )}
 
       {/* Error Alert */}
       {error && (

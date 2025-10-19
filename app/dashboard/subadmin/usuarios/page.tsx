@@ -28,6 +28,30 @@ import { DeleteUserConfirmDialog } from '@/components/users/DeleteUserConfirmDia
 import { TableSkeleton } from '@/components/ui/TableSkeleton'
 import type { User } from '@/types/auth'
 
+// Helper function to determine quota chip color based on available quota
+const getQuotaChipColor = (availableQuota?: number): 'success' | 'warning' | 'error' | 'default' => {
+  if (availableQuota === undefined || availableQuota === 0) {
+    return 'error'
+  }
+  if (availableQuota <= 5) {
+    return 'warning'
+  }
+  return 'success'
+}
+
+// Helper function to format quota display
+const formatQuotaDisplay = (manager: User): string => {
+  const clientQuota = manager.clientQuota ?? 0
+  const usedQuota = manager.usedClientQuota ?? 0
+  const availableQuota = manager.availableClientQuota ?? 0
+
+  if (clientQuota === 0) {
+    return 'Sin cuota'
+  }
+
+  return `${usedQuota}/${clientQuota} (${availableQuota} disponibles)`
+}
+
 export default function ManagersPage() {
   const {
     users,
@@ -127,16 +151,17 @@ export default function ManagersPage() {
                 <TableCell>Nombre</TableCell>
                 <TableCell>Email</TableCell>
                 <TableCell>Rol</TableCell>
+                <TableCell>Cuota de Clientes</TableCell>
                 <TableCell>Estado</TableCell>
                 <TableCell align="right">Acciones</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
               {isLoading && managers.length === 0 ? (
-                <TableSkeleton columns={5} rows={8} />
+                <TableSkeleton columns={6} rows={8} />
               ) : managers.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={5} align="center" sx={{ py: 4 }}>
+                  <TableCell colSpan={6} align="center" sx={{ py: 4 }}>
                     <Typography variant="body2" color="text.secondary">
                       No hay cobradores registrados
                     </Typography>
@@ -156,17 +181,25 @@ export default function ManagersPage() {
                       </Typography>
                     </TableCell>
                     <TableCell>
-                      <Chip 
-                        label="Cobrador" 
-                        color="primary" 
-                        size="small" 
+                      <Chip
+                        label="Cobrador"
+                        color="primary"
+                        size="small"
                       />
                     </TableCell>
                     <TableCell>
-                      <Chip 
-                        label="Activo" 
-                        color="success" 
-                        size="small" 
+                      <Chip
+                        label={formatQuotaDisplay(manager)}
+                        color={getQuotaChipColor(manager.availableClientQuota)}
+                        size="small"
+                        variant={manager.clientQuota === 0 ? 'outlined' : 'filled'}
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <Chip
+                        label="Activo"
+                        color="success"
+                        size="small"
                       />
                     </TableCell>
                     <TableCell align="right">
