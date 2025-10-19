@@ -47,7 +47,7 @@ export const WalletBalanceCard: React.FC<WalletBalanceCardProps> = ({
     if (amount === null || amount === undefined) return '$0';
     return new Intl.NumberFormat('es-AR', {
       style: 'currency',
-      currency: wallet?.currency === 'USD' ? 'USD' : 'ARS',
+      currency: 'ARS',
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
     }).format(amount);
@@ -58,15 +58,36 @@ export const WalletBalanceCard: React.FC<WalletBalanceCardProps> = ({
       <Card sx={{ mb: 3 }}>
         <CardContent>
           <Stack spacing={2}>
-            <Skeleton variant="text" width="40%" />
-            <Skeleton variant="rectangular" height={60} />
+            <Skeleton
+              variant='text'
+              width='40%'
+            />
+            <Skeleton
+              variant='rectangular'
+              height={60}
+            />
             {showDetails && (
-              <Grid container spacing={2}>
-                <Grid item xs={6}>
-                  <Skeleton variant="rectangular" height={40} />
+              <Grid
+                container
+                spacing={2}
+              >
+                <Grid
+                  item
+                  xs={6}
+                >
+                  <Skeleton
+                    variant='rectangular'
+                    height={40}
+                  />
                 </Grid>
-                <Grid item xs={6}>
-                  <Skeleton variant="rectangular" height={40} />
+                <Grid
+                  item
+                  xs={6}
+                >
+                  <Skeleton
+                    variant='rectangular'
+                    height={40}
+                  />
                 </Grid>
               </Grid>
             )}
@@ -78,11 +99,33 @@ export const WalletBalanceCard: React.FC<WalletBalanceCardProps> = ({
 
   if (!wallet) {
     return (
-      <Card sx={{ mb: 3, bgcolor: 'warning.light' }}>
+      <Card
+        sx={{
+          mb: 3,
+          bgcolor: 'error.lighter',
+          borderLeft: 4,
+          borderColor: 'error.main',
+        }}
+      >
         <CardContent>
-          <Typography color="error" variant="body2">
-            No se pudo cargar los datos de la cartera
-          </Typography>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            <Info color='error' />
+            <Box>
+              <Typography
+                variant='subtitle2'
+                sx={{ fontWeight: 600, color: 'error.main' }}
+              >
+                Billetera no disponible
+              </Typography>
+              <Typography
+                variant='caption'
+                color='text.secondary'
+              >
+                Tu billetera aún no está configurada. Contacta al administrador
+                para activarla.
+              </Typography>
+            </Box>
+          </Box>
         </CardContent>
       </Card>
     );
@@ -102,16 +145,22 @@ export const WalletBalanceCard: React.FC<WalletBalanceCardProps> = ({
           >
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
               <AttachMoney sx={{ color: 'primary.main' }} />
-              <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
+              <Typography
+                variant='subtitle2'
+                sx={{ fontWeight: 600 }}
+              >
                 Tu Cartera
               </Typography>
-              <Tooltip title="Saldo disponible en tu cartera">
+              <Tooltip title='Saldo disponible en tu cartera'>
                 <Info sx={{ fontSize: 16, color: 'text.secondary' }} />
               </Tooltip>
             </Box>
             {onRefresh && (
-              <Tooltip title="Actualizar saldo">
-                <IconButton size="small" onClick={onRefresh}>
+              <Tooltip title='Actualizar saldo'>
+                <IconButton
+                  size='small'
+                  onClick={onRefresh}
+                >
                   <Refresh sx={{ fontSize: 18 }} />
                 </IconButton>
               </Tooltip>
@@ -128,12 +177,15 @@ export const WalletBalanceCard: React.FC<WalletBalanceCardProps> = ({
               borderColor: 'primary.main',
             }}
           >
-            <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+            <Typography
+              variant='caption'
+              sx={{ color: 'text.secondary' }}
+            >
               Saldo Disponible
             </Typography>
             <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 1 }}>
               <Typography
-                variant="h4"
+                variant='h4'
                 sx={{
                   fontWeight: 700,
                   color: 'primary.main',
@@ -141,7 +193,10 @@ export const WalletBalanceCard: React.FC<WalletBalanceCardProps> = ({
               >
                 {formatCurrency(wallet.balance)}
               </Typography>
-              <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+              <Typography
+                variant='caption'
+                sx={{ color: 'text.secondary' }}
+              >
                 {wallet.currency}
               </Typography>
             </Box>
@@ -149,9 +204,11 @@ export const WalletBalanceCard: React.FC<WalletBalanceCardProps> = ({
 
           {/* Desglose si showDetails */}
           {showDetails && (
-            <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2 }}>
+            <Box
+              sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2 }}
+            >
               {/* Disponible para prestar */}
-              <Tooltip title="Dinero que puedes prestar ahora">
+              <Tooltip title='Dinero que puedes prestar ahora'>
                 <Box
                   sx={{
                     p: 1.5,
@@ -169,7 +226,7 @@ export const WalletBalanceCard: React.FC<WalletBalanceCardProps> = ({
                       }}
                     />
                     <Typography
-                      variant="caption"
+                      variant='caption'
                       sx={{
                         color: 'success.main',
                         fontWeight: 600,
@@ -179,7 +236,7 @@ export const WalletBalanceCard: React.FC<WalletBalanceCardProps> = ({
                     </Typography>
                   </Box>
                   <Typography
-                    variant="subtitle2"
+                    variant='subtitle2'
                     sx={{
                       fontWeight: 600,
                       color: 'success.main',
@@ -192,7 +249,7 @@ export const WalletBalanceCard: React.FC<WalletBalanceCardProps> = ({
               </Tooltip>
 
               {/* Bloqueado en préstamos */}
-              <Tooltip title="Dinero comprometido en préstamos activos">
+              <Tooltip title='Dinero comprometido en préstamos activos'>
                 <Box
                   sx={{
                     p: 1.5,
@@ -210,7 +267,7 @@ export const WalletBalanceCard: React.FC<WalletBalanceCardProps> = ({
                       }}
                     />
                     <Typography
-                      variant="caption"
+                      variant='caption'
                       sx={{
                         color: 'warning.main',
                         fontWeight: 600,
@@ -220,7 +277,7 @@ export const WalletBalanceCard: React.FC<WalletBalanceCardProps> = ({
                     </Typography>
                   </Box>
                   <Typography
-                    variant="subtitle2"
+                    variant='subtitle2'
                     sx={{
                       fontWeight: 600,
                       color: 'warning.main',
@@ -236,11 +293,17 @@ export const WalletBalanceCard: React.FC<WalletBalanceCardProps> = ({
 
           {/* Metadata */}
           <Box sx={{ pt: 1, borderTop: '1px solid', borderColor: 'divider' }}>
-            <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+            <Typography
+              variant='caption'
+              sx={{ color: 'text.secondary' }}
+            >
               Moneda: <strong>{wallet.currency}</strong>
             </Typography>
             <br />
-            <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+            <Typography
+              variant='caption'
+              sx={{ color: 'text.secondary' }}
+            >
               Actualizado:{' '}
               <strong>
                 {new Date(wallet.updatedAt).toLocaleString('es-AR')}

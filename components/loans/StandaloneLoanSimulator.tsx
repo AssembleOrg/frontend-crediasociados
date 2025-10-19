@@ -19,13 +19,20 @@ import {
   TableRow,
   Divider,
   Alert,
+  IconButton,
+  Tooltip,
 } from '@mui/material';
-import { Calculate, TrendingUp } from '@mui/icons-material';
+import { Calculate, TrendingUp, KeyboardArrowUp, KeyboardArrowDown } from '@mui/icons-material';
 import {
   formatAmount,
   unformatAmount,
   getFrequencyLabel,
 } from '@/lib/formatters';
+import {
+  findRoundedInterestRateUp,
+  findRoundedInterestRateDown,
+  isNiceRoundNumber,
+} from '@/lib/installment-rounding';
 // Note: calculateLoanPayments function needs to be implemented in loan-calculator
 
 interface SimulationResult {
@@ -87,7 +94,6 @@ export function StandaloneLoanSimulator() {
       }
 
       const principalPortion = principalAmount / totalPaymentsNum;
-      const interestPortion = amountPerPayment - principalPortion;
 
       simulatedPayments.push({
         paymentNumber: i,
@@ -223,14 +229,101 @@ export function StandaloneLoanSimulator() {
           fullWidth
         />
 
-        <TextField
-          label='Tasa de Interés (%)'
-          type='number'
-          value={baseInterestRate}
-          onChange={(e) => setBaseInterestRate(e.target.value)}
-          size='small'
-          fullWidth
-        />
+        <Box sx={{ display: 'flex', alignItems: 'flex-end', gap: 0.5 }}>
+          <TextField
+            label='Tasa de Interés (%)'
+            type='number'
+            value={baseInterestRate}
+            onChange={(e) => setBaseInterestRate(e.target.value)}
+            size='small'
+            fullWidth
+            sx={{
+              '& input[type=number]::-webkit-inner-spin-button': {
+                display: 'none',
+              },
+              '& input[type=number]::-webkit-outer-spin-button': {
+                display: 'none',
+              },
+              '& input[type=number]': {
+                MozAppearance: 'textfield',
+              },
+            }}
+          />
+          <Tooltip title='Redondear cuota hacia arriba'>
+            <span>
+              <IconButton
+                size='small'
+                onClick={() => {
+                  if (amount && totalPayments && baseInterestRate) {
+                    const result = findRoundedInterestRateUp({
+                      baseAmount: parseFloat(unformatAmount(amount)),
+                      totalPayments: parseInt(totalPayments),
+                      currentInterestRate: parseFloat(baseInterestRate),
+                    });
+                    if (result) {
+                      setBaseInterestRate(result.interestRate.toFixed(2));
+                    }
+                  }
+                }}
+                disabled={!amount || !totalPayments || !baseInterestRate}
+                sx={{
+                  bgcolor: 'rgba(255,255,255,0.2)',
+                  border: '2px solid rgba(255,255,255,0.5)',
+                  color: 'white',
+                  borderRadius: 1,
+                  '&:hover': {
+                    bgcolor: 'rgba(255,255,255,0.3)',
+                    borderColor: 'white',
+                  },
+                  '&:disabled': {
+                    bgcolor: 'rgba(255,255,255,0.1)',
+                    borderColor: 'rgba(255,255,255,0.2)',
+                    color: 'rgba(255,255,255,0.5)',
+                  },
+                }}
+              >
+                <KeyboardArrowUp />
+              </IconButton>
+            </span>
+          </Tooltip>
+          <Tooltip title='Redondear cuota hacia abajo'>
+            <span>
+              <IconButton
+                size='small'
+                onClick={() => {
+                  if (amount && totalPayments && baseInterestRate) {
+                    const result = findRoundedInterestRateDown({
+                      baseAmount: parseFloat(unformatAmount(amount)),
+                      totalPayments: parseInt(totalPayments),
+                      currentInterestRate: parseFloat(baseInterestRate),
+                    });
+                    if (result) {
+                      setBaseInterestRate(result.interestRate.toFixed(2));
+                    }
+                  }
+                }}
+                disabled={!amount || !totalPayments || !baseInterestRate}
+                sx={{
+                  bgcolor: 'rgba(255,255,255,0.2)',
+                  border: '2px solid rgba(255,255,255,0.5)',
+                  color: 'white',
+                  borderRadius: 1,
+                  '&:hover': {
+                    bgcolor: 'rgba(255,255,255,0.3)',
+                    borderColor: 'white',
+                  },
+                  '&:disabled': {
+                    bgcolor: 'rgba(255,255,255,0.1)',
+                    borderColor: 'rgba(255,255,255,0.2)',
+                    color: 'rgba(255,255,255,0.5)',
+                  },
+                }}
+              >
+                <KeyboardArrowDown />
+              </IconButton>
+            </span>
+          </Tooltip>
+        </Box>
 
         <FormControl
           size='small'
@@ -341,6 +434,47 @@ export function StandaloneLoanSimulator() {
               ${realtimeTotal.toLocaleString('es-AR')}
             </Typography>
           </Box>
+          {totalPayments && (
+            <>
+              <Box
+                sx={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  mt: 1,
+                  pt: 1,
+                  borderTop: '1px solid rgba(255,255,255,0.2)',
+                }}
+              >
+                <Typography
+                  variant='body2'
+                  sx={{ color: 'rgba(255,255,255,0.85)' }}
+                >
+                  Valor por cuota:
+                </Typography>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                  <Typography
+                    variant='h6'
+                    sx={{ fontWeight: 700, color: isNiceRoundNumber(realtimeTotal / parseInt(totalPayments)) ? '#4ade80' : '#ffffff' }}
+                  >
+                    $
+                    {(realtimeTotal / parseInt(totalPayments)).toLocaleString(
+                      'es-AR',
+                      { minimumFractionDigits: 0, maximumFractionDigits: 0 }
+                    )}
+                  </Typography>
+                  {isNiceRoundNumber(realtimeTotal / parseInt(totalPayments)) && (
+                    <Typography
+                      variant='caption'
+                      sx={{ color: '#4ade80', fontWeight: 600 }}
+                    >
+                      ✓
+                    </Typography>
+                  )}
+                </Box>
+              </Box>
+            </>
+          )}
         </Box>
       )}
 

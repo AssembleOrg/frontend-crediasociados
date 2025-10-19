@@ -28,7 +28,7 @@ export interface Wallet {
   id: string;
   userId: string;
   balance: number;
-  currency: 'ARS' | 'USD';
+  currency: 'ARS';
   createdAt: Date;
   updatedAt: Date;
 }
@@ -45,7 +45,7 @@ export interface WalletTransaction {
     | 'TRANSFER_TO_MANAGER'
     | 'TRANSFER_FROM_SUBADMIN';
   amount: number;
-  currency: 'ARS' | 'USD';
+  currency: 'ARS';
   description: string;
   relatedUserId?: string;
   createdAt: Date;
@@ -55,7 +55,7 @@ export interface Payment {
   id: string;
   subLoanId: string;
   amount: number;
-  currency: 'ARS' | 'USD';
+  currency: 'ARS';
   paymentDate: Date;
   description?: string;
   createdAt: Date;

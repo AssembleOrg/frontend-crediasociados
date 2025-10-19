@@ -2,7 +2,11 @@
 
 import { useState, useCallback, useEffect } from 'react';
 import { walletsService } from '@/services/wallets.service';
-import type { Wallet, WalletTransaction, PaginatedResponse } from '@/types/auth';
+import type {
+  Wallet,
+  WalletTransaction,
+  PaginatedResponse,
+} from '@/types/auth';
 
 interface UseWalletState {
   wallet: Wallet | null;
@@ -14,9 +18,21 @@ interface UseWalletState {
 interface UseWalletReturn extends UseWalletState {
   refetchWallet: () => Promise<void>;
   refetchBalance: () => Promise<void>;
-  deposit: (amount: number, currency: string, description: string) => Promise<Wallet | null>;
-  transfer: (managerId: string, amount: number, currency: string, description: string) => Promise<Wallet | null>;
-  getTransactions: (page?: number, limit?: number) => Promise<PaginatedResponse<WalletTransaction> | null>;
+  deposit: (
+    amount: number,
+    currency: string,
+    description: string
+  ) => Promise<Wallet | null>;
+  transfer: (
+    managerId: string,
+    amount: number,
+    currency: string,
+    description: string
+  ) => Promise<Wallet | null>;
+  getTransactions: (
+    page?: number,
+    limit?: number
+  ) => Promise<PaginatedResponse<WalletTransaction> | null>;
   clearError: () => void;
 }
 
@@ -45,9 +61,31 @@ export const useWallet = (autoFetch: boolean = true): UseWalletReturn => {
       setWallet(walletData);
       setBalance(walletData.balance);
     } catch (err: any) {
-      const errorMessage = err?.message || 'Error fetching wallet';
+      // Handle specific errors gracefully
+      let errorMessage = 'Error al cargar la billetera';
+
+      if (
+        err?.status === 500 ||
+        err?.statusCode === 500 ||
+        err?.response?.status === 500
+      ) {
+        errorMessage =
+          'Tu billetera aún no está configurada. Contacta al administrador.';
+      } else if (
+        err?.status === 404 ||
+        err?.statusCode === 404 ||
+        err?.response?.status === 404
+      ) {
+        errorMessage = 'Billetera no encontrada. Por favor contacta soporte.';
+      } else if (err?.message) {
+        errorMessage = err.message;
+      }
+
       setError(errorMessage);
-      console.error('useWallet - refetchWallet error:', err);
+      console.warn('useWallet - Wallet not available:', {
+        status: err?.status || err?.statusCode,
+        message: errorMessage,
+      });
     } finally {
       setIsLoading(false);
     }
@@ -71,9 +109,29 @@ export const useWallet = (autoFetch: boolean = true): UseWalletReturn => {
         });
       }
     } catch (err: any) {
-      const errorMessage = err?.message || 'Error fetching balance';
+      // Handle specific errors gracefully
+      let errorMessage = 'Error al obtener el saldo';
+
+      if (
+        err?.status === 500 ||
+        err?.statusCode === 500 ||
+        err?.response?.status === 500
+      ) {
+        errorMessage = 'Tu billetera aún no está configurada.';
+      } else if (
+        err?.status === 404 ||
+        err?.statusCode === 404 ||
+        err?.response?.status === 404
+      ) {
+        errorMessage = 'Billetera no encontrada.';
+      } else if (err?.message) {
+        errorMessage = err.message;
+      }
+
       setError(errorMessage);
-      console.error('useWallet - refetchBalance error:', err);
+      console.warn('useWallet - Balance fetch error:', {
+        status: err?.status || err?.statusCode,
+      });
     } finally {
       setIsLoading(false);
     }
@@ -94,7 +152,7 @@ export const useWallet = (autoFetch: boolean = true): UseWalletReturn => {
       try {
         const result = await walletsService.deposit({
           amount,
-          currency: currency as 'ARS' | 'USD',
+          currency: currency as 'ARS',
           description,
         });
 
@@ -132,7 +190,7 @@ export const useWallet = (autoFetch: boolean = true): UseWalletReturn => {
         const result = await walletsService.transfer({
           managerId,
           amount,
-          currency: currency as 'ARS' | 'USD',
+          currency: currency as 'ARS',
           description,
         });
 
@@ -170,7 +228,10 @@ export const useWallet = (autoFetch: boolean = true): UseWalletReturn => {
       setError(null);
 
       try {
-        const transactions = await walletsService.getTransactions({ page, limit });
+        const transactions = await walletsService.getTransactions({
+          page,
+          limit,
+        });
         return transactions;
       } catch (err: any) {
         const errorMessage = err?.message || 'Error fetching transactions';

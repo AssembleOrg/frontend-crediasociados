@@ -42,7 +42,8 @@ const INITIAL_FORM_DATA = {
   phone: '',
   dni: '',
   cuit: '',
-  role: 'manager' as UserRole
+  role: 'manager' as UserRole,
+  clientQuota: 50  // ← NUEVO: Default 50 clientes
 }
 
 export function UserFormModal({
@@ -71,7 +72,8 @@ export function UserFormModal({
         phone: user.phone || '',
         dni: user.dni || '',
         cuit: user.cuit || '',
-        role: user.role as UserRole
+        role: user.role as UserRole,
+        clientQuota: (user as any)?.clientQuota || 50  // ← NUEVO: Read from user
       })
     } else if (mode === 'create') {
       setFormData({
@@ -136,13 +138,14 @@ export function UserFormModal({
     }
 
     // Prepare data for submission
-    const userData: Omit<User, 'id' | 'createdAt' | 'updatedAt'> = {
+    const userData: Omit<User, 'id' | 'createdAt' | 'updatedAt'> & { clientQuota?: number } = {
       fullName: formData.fullName,
       email: formData.email,
       phone: formData.phone || undefined,
       dni: formData.dni || undefined,
       cuit: formData.cuit || undefined,
       role: formData.role,
+      clientQuota: formData.clientQuota || 50  // ← NUEVO: Include clientQuota
     }
 
     let result: boolean
@@ -284,6 +287,24 @@ export function UserFormModal({
                 </Select>
               </FormControl>
             )}
+
+            {/* Client Quota Field - NUEVO */}
+            {(mode === 'create' && targetRole === 'manager') || (mode === 'edit' && formData.role === 'manager') ? (
+              <TextField
+                label="Cuota de Clientes"
+                type="number"
+                value={formData.clientQuota}
+                onChange={(e) => setFormData(prev => ({
+                  ...prev,
+                  clientQuota: Math.max(0, parseInt(e.target.value) || 50)
+                }))}
+                fullWidth
+                helperText="Número máximo de clientes que puede crear este manager (default: 50)"
+                InputProps={{
+                  inputProps: { min: 1, max: 200 }
+                }}
+              />
+            ) : null}
           </Box>
         </DialogContent>
 

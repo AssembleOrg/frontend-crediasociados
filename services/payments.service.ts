@@ -27,7 +27,7 @@ interface PaymentResponse {
 interface RegisterPaymentRequest {
   subLoanId: string;
   amount: number;
-  currency: 'ARS' | 'USD';
+  currency: 'ARS';
   paymentDate: string;
   description?: string;
 }
@@ -77,7 +77,9 @@ class PaymentsService {
    * @param data Payment details
    * @returns Payment response with subloan status update and distribution info
    */
-  async registerPayment(data: RegisterPaymentRequest): Promise<PaymentResponse> {
+  async registerPayment(
+    data: RegisterPaymentRequest
+  ): Promise<PaymentResponse> {
     const response = await api.post('/payments/register', data);
     return response.data.data;
   }
@@ -89,7 +91,9 @@ class PaymentsService {
    * @param data Bulk payment request with array of payments
    * @returns Array of payment responses
    */
-  async bulkRegisterPayments(data: BulkRegisterRequest): Promise<BulkPaymentResponse> {
+  async bulkRegisterPayments(
+    data: BulkRegisterRequest
+  ): Promise<BulkPaymentResponse> {
     const response = await api.post('/payments/bulk-register', data);
     return response.data.data;
   }

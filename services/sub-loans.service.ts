@@ -85,21 +85,29 @@ class SubLoansService {
     color: string;
     bgColor: string;
   } {
-    const statusMap: Record<string, { text: string; color: string; bgColor: string }> = {
+    const statusMap: Record<
+      string,
+      { text: string; color: string; bgColor: string }
+    > = {
       PENDING: { text: 'Pendiente', color: '#FFA500', bgColor: '#FFF8E1' },
       PARTIAL: { text: 'Parcial', color: '#2196F3', bgColor: '#E3F2FD' },
       PAID: { text: 'Pagado', color: '#4CAF50', bgColor: '#E8F5E9' },
       OVERDUE: { text: 'Vencido', color: '#F44336', bgColor: '#FFEBEE' },
     };
 
-    return statusMap[status] || { text: status, color: '#999', bgColor: '#F5F5F5' };
+    return (
+      statusMap[status] || { text: status, color: '#999', bgColor: '#F5F5F5' }
+    );
   }
 
   /**
    * Helper: Filter SubLoans by payment status
    * Useful for grouping subloans in UI
    */
-  filterByStatus(subloans: SubLoanResponseDto[], status: string): SubLoanResponseDto[] {
+  filterByStatus(
+    subloans: SubLoanResponseDto[],
+    status: string
+  ): SubLoanResponseDto[] {
     return subloans.filter((subloan) => subloan.status === status);
   }
 
@@ -117,9 +125,11 @@ class SubLoansService {
         totalAmount: acc.totalAmount + subloan.totalAmount,
         totalPaid: acc.totalPaid + subloan.paidAmount,
         totalRemaining:
-          acc.totalRemaining + Math.max(0, subloan.totalAmount - subloan.paidAmount),
+          acc.totalRemaining +
+          Math.max(0, subloan.totalAmount - subloan.paidAmount),
         totalOverdue:
-          acc.totalOverdue + (subloan.status === 'OVERDUE' ? subloan.totalAmount : 0),
+          acc.totalOverdue +
+          (subloan.status === 'OVERDUE' ? subloan.totalAmount : 0),
       }),
       { totalAmount: 0, totalPaid: 0, totalRemaining: 0, totalOverdue: 0 }
     );

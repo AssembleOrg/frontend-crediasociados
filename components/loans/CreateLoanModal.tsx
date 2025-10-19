@@ -16,17 +16,20 @@ import {
   Select,
   MenuItem,
   InputAdornment,
-
+  IconButton,
+  Tooltip,
   Card,
   CardContent,
   Divider,
 } from '@mui/material'
-import { 
-  Person, 
-  AttachMoney, 
-  Percent, 
-  CalendarToday, 
-  Description
+import {
+  Person,
+  AttachMoney,
+  Percent,
+  CalendarToday,
+  Description,
+  KeyboardArrowUp,
+  KeyboardArrowDown,
 } from '@mui/icons-material'
 import { useClients } from '@/hooks/useClients'
 import { useWallet } from '@/hooks/useWallet'
@@ -35,6 +38,11 @@ import { VisualCalendar } from '@/components/ui/VisualCalendar'
 import { useBuenosAiresDate } from '@/hooks/useBuenosAiresDate'
 import { formatAmount, unformatAmount } from '@/lib/formatters'
 import { ValidationUtils } from '@/lib/validation-utils'
+import {
+  findRoundedInterestRateUp,
+  findRoundedInterestRateDown,
+  isNiceRoundNumber,
+} from '@/lib/installment-rounding'
 
 
 interface CreateLoanModalProps {
@@ -600,35 +608,117 @@ export function CreateLoanModal({
               </Box>
               
               <Box sx={{ display: 'flex', gap: 2, flexDirection: { xs: 'column', sm: 'row' } }}>
-                <TextField
-                  label="Tasa de Interés Base"
-                  type="number"
-                  value={formData.baseInterestRate}
-                  onChange={handleInputChange('baseInterestRate')}
-                  error={!!formErrors.baseInterestRate}
-                  helperText={formErrors.baseInterestRate || 'Porcentaje de interés aplicado al monto total'}
-                  required
-                  fullWidth
-                  InputProps={{
-                    endAdornment: <InputAdornment position="end">%</InputAdornment>,
-                  }}
-                  sx={{
-                    '& .MuiOutlinedInput-root': {
-                      borderRadius: 2,
-                    },
-                    '& input[type=number]': {
-                      MozAppearance: 'textfield',
-                    },
-                    '& input[type=number]::-webkit-outer-spin-button': {
-                      WebkitAppearance: 'none',
-                      margin: 0,
-                    },
-                    '& input[type=number]::-webkit-inner-spin-button': {
-                      WebkitAppearance: 'none',
-                      margin: 0,
-                    },
-                  }}
-                />
+                <Box sx={{ display: 'flex', alignItems: 'flex-end', gap: 0.5, flex: 1 }}>
+                  <TextField
+                    label="Tasa de Interés Base"
+                    type="number"
+                    value={formData.baseInterestRate}
+                    onChange={handleInputChange('baseInterestRate')}
+                    error={!!formErrors.baseInterestRate}
+                    helperText={formErrors.baseInterestRate || 'Porcentaje de interés aplicado al monto total'}
+                    required
+                    fullWidth
+                    InputProps={{
+                      endAdornment: <InputAdornment position="end">%</InputAdornment>,
+                    }}
+                    sx={{
+                      '& .MuiOutlinedInput-root': {
+                        borderRadius: 2,
+                      },
+                      '& input[type=number]': {
+                        MozAppearance: 'textfield',
+                      },
+                      '& input[type=number]::-webkit-outer-spin-button': {
+                        display: 'none',
+                      },
+                      '& input[type=number]::-webkit-inner-spin-button': {
+                        display: 'none',
+                      },
+                    }}
+                  />
+                  <Tooltip title='Redondear cuota hacia arriba'>
+                    <span>
+                      <IconButton
+                        size='small'
+                        onClick={() => {
+                          if (formData.amount && formData.totalPayments && formData.baseInterestRate) {
+                            const result = findRoundedInterestRateUp({
+                              baseAmount: parseFloat(unformatAmount(formData.amount)),
+                              totalPayments: parseInt(formData.totalPayments),
+                              currentInterestRate: parseFloat(formData.baseInterestRate),
+                            });
+                            if (result) {
+                              setFormData(prev => ({
+                                ...prev,
+                                baseInterestRate: result.interestRate.toFixed(2),
+                              }));
+                            }
+                          }
+                        }}
+                        disabled={!formData.amount || !formData.totalPayments || !formData.baseInterestRate}
+                        sx={{
+                          bgcolor: 'primary.lighter',
+                          border: '2px solid',
+                          borderColor: 'primary.main',
+                          color: 'primary.main',
+                          borderRadius: 1,
+                          '&:hover': {
+                            bgcolor: 'primary.light',
+                            borderColor: 'primary.dark',
+                          },
+                          '&:disabled': {
+                            bgcolor: 'action.disabledBackground',
+                            borderColor: 'action.disabled',
+                            color: 'action.disabled',
+                          },
+                        }}
+                      >
+                        <KeyboardArrowUp />
+                      </IconButton>
+                    </span>
+                  </Tooltip>
+                  <Tooltip title='Redondear cuota hacia abajo'>
+                    <span>
+                      <IconButton
+                        size='small'
+                        onClick={() => {
+                          if (formData.amount && formData.totalPayments && formData.baseInterestRate) {
+                            const result = findRoundedInterestRateDown({
+                              baseAmount: parseFloat(unformatAmount(formData.amount)),
+                              totalPayments: parseInt(formData.totalPayments),
+                              currentInterestRate: parseFloat(formData.baseInterestRate),
+                            });
+                            if (result) {
+                              setFormData(prev => ({
+                                ...prev,
+                                baseInterestRate: result.interestRate.toFixed(2),
+                              }));
+                            }
+                          }
+                        }}
+                        disabled={!formData.amount || !formData.totalPayments || !formData.baseInterestRate}
+                        sx={{
+                          bgcolor: 'primary.lighter',
+                          border: '2px solid',
+                          borderColor: 'primary.main',
+                          color: 'primary.main',
+                          borderRadius: 1,
+                          '&:hover': {
+                            bgcolor: 'primary.light',
+                            borderColor: 'primary.dark',
+                          },
+                          '&:disabled': {
+                            bgcolor: 'action.disabledBackground',
+                            borderColor: 'action.disabled',
+                            color: 'action.disabled',
+                          },
+                        }}
+                      >
+                        <KeyboardArrowDown />
+                      </IconButton>
+                    </span>
+                  </Tooltip>
+                </Box>
                 <TextField
                   label="Tasa de Penalización"
                   type="number"
@@ -757,8 +847,8 @@ export function CreateLoanModal({
 
           {/* Live Preview Card */}
           {livePreview && (
-            <Card sx={{ 
-              borderRadius: 2, 
+            <Card sx={{
+              borderRadius: 2,
               boxShadow: '0 4px 12px rgba(0,0,0,0.05)',
               background: 'linear-gradient(135deg, #667eea15 0%, #4facfe15 100%)',
               border: '2px solid',
@@ -768,21 +858,32 @@ export function CreateLoanModal({
                 <Typography variant="h6" sx={{ fontWeight: 600, mb: 2, color: 'primary.main' }}>
                   📊 Vista Previa en Tiempo Real
                 </Typography>
-                
-                <Box sx={{ 
-                  display: 'grid', 
-                  gridTemplateColumns: { xs: '1fr', sm: 'repeat(3, 1fr)' }, 
-                  gap: 2 
+
+                <Box sx={{
+                  display: 'grid',
+                  gridTemplateColumns: { xs: '1fr', sm: 'repeat(3, 1fr)' },
+                  gap: 2
                 }}>
                   <Box sx={{ textAlign: 'center', p: 2, bgcolor: 'white', borderRadius: 2 }}>
                     <Typography variant="body2" color="text.secondary" gutterBottom>
                       Valor por Cuota
                     </Typography>
-                    <Typography variant="h5" fontWeight="bold" color="success.main">
-                      ${livePreview.installmentAmount.toLocaleString('es-AR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
-                    </Typography>
+                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 0.5 }}>
+                      <Typography
+                        variant="h5"
+                        fontWeight="bold"
+                        sx={{ color: isNiceRoundNumber(livePreview.installmentAmount) ? '#22c55e' : 'success.main' }}
+                      >
+                        ${livePreview.installmentAmount.toLocaleString('es-AR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+                      </Typography>
+                      {isNiceRoundNumber(livePreview.installmentAmount) && (
+                        <Typography variant="caption" sx={{ color: '#22c55e', fontWeight: 600 }}>
+                          ✓
+                        </Typography>
+                      )}
+                    </Box>
                   </Box>
-                  
+
                   <Box sx={{ textAlign: 'center', p: 2, bgcolor: 'white', borderRadius: 2 }}>
                     <Typography variant="body2" color="text.secondary" gutterBottom>
                       Total a Devolver
@@ -791,7 +892,7 @@ export function CreateLoanModal({
                       ${livePreview.totalAmount.toLocaleString('es-AR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
                     </Typography>
                   </Box>
-                  
+
                   <Box sx={{ textAlign: 'center', p: 2, bgcolor: 'white', borderRadius: 2 }}>
                     <Typography variant="body2" color="text.secondary" gutterBottom>
                       Total de Intereses
@@ -804,7 +905,7 @@ export function CreateLoanModal({
 
                 <Alert severity="info" sx={{ mt: 2 }}>
                   <Typography variant="caption">
-                    💡 Estos valores se actualizan automáticamente mientras editas. Haz clic en "Simular Préstamo" para ver el cronograma completo de pagos.
+                    💡 Estos valores se actualizan automáticamente mientras editas. Usa las flechas en la tasa de interés para redondear las cuotas. Haz clic en &quot;Simular Préstamo&quot; para ver el cronograma completo de pagos.
                   </Typography>
                 </Alert>
               </CardContent>

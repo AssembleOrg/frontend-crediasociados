@@ -27,14 +27,14 @@ interface BalanceResponse {
 
 interface DepositRequest {
   amount: number;
-  currency: 'ARS' | 'USD';
+  currency: 'ARS';
   description: string;
 }
 
 interface TransferRequest {
   managerId: string;
   amount: number;
-  currency: 'ARS' | 'USD';
+  currency: 'ARS';
   description: string;
 }
 

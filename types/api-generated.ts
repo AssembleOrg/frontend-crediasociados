@@ -533,7 +533,7 @@ export interface components {
       nombre: string;
       /**
        * @description Currency code
-       * @example USD
+       * @example ARS
        */
       moneda: string;
       /**
@@ -583,7 +583,7 @@ export interface components {
        * @example ARS
        * @enum {string}
        */
-      currency?: 'ARS' | 'USD';
+      currency?: 'ARS';
       /**
        * @example WEEKLY
        * @enum {string}

@@ -23,6 +23,7 @@ import {
 } from '@mui/material'
 import { Payment, CalendarToday, AttachMoney, PictureAsPdf, Info, History } from '@mui/icons-material'
 import { formatAmount, unformatAmount } from '@/lib/formatters'
+import { generatePaymentPDF } from '@/utils/pdf/paymentReceipt'
 import { useOperativa } from '@/hooks/useOperativa'
 import { exportService } from '@/services/export.service'
 import { paymentsService } from '@/services/payments.service'
@@ -115,80 +116,78 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
   const handleRegisterPayment = async () => {
     if (!currentSubloan) return
 
-    const amountValue = parseFloat(unformatAmount(paymentAmount))
+    try {
+      const amountValue = parseFloat(unformatAmount(paymentAmount))
 
-    // Create ingreso in operativa system
-    const ingreso = await createIngresoFromPago(
-      currentSubloan.id,
-      amountValue,
-      clientName,
-      currentSubloan.paymentNumber,
-      new Date(paymentDate)
-    )
+      // Register payment using the real payments service endpoint
+      // This updates the SubLoan status and creates the payment record
+      const paymentResult = await paymentsService.registerPayment({
+        subLoanId: currentSubloan.id,
+        amount: amountValue,
+        currency: 'ARS',
+        paymentDate: paymentDate,
+        description: notes || undefined
+      })
 
-    if (ingreso) {
-      // Generate PDF if requested
-      if (generatePDF) {
+      if (paymentResult) {
+        // Also create ingreso in operativa system for financial tracking
         try {
-          // TODO: This is a simplified receipt. When backend provides full loan data,
-          // we can generate a more complete payment receipt with loan details.
-          const receiptData = {
+          await createIngresoFromPago(
+            currentSubloan.id,
+            amountValue,
             clientName,
-            paymentNumber: currentSubloan.paymentNumber,
-            amount: amountValue,
-            paymentDate: new Date(paymentDate),
-            loanTrack: currentSubloan.loanTrack || 'N/A',
-            notes: notes || 'Pago registrado exitosamente'
-          }
-
-          // For now, create a simple text-based receipt
-          // Future: Use exportService to generate proper PDF with loan data
-          const receiptText = `
-COMPROBANTE DE PAGO
-===================
-
-Cliente: ${clientName}
-Código de Préstamo: ${receiptData.loanTrack}
-Cuota #: ${currentSubloan.paymentNumber}
-Monto Pagado: $${formatAmount(amountValue.toString())}
-Fecha de Pago: ${new Date(paymentDate).toLocaleDateString('es-AR')}
-${notes ? `\nNotas: ${notes}` : ''}
-
-Generado: ${new Date().toLocaleString('es-AR')}
-Sistema: Prestamito
-          `.trim()
-
-          // Download as text file (temporary solution until full PDF implementation)
-          const blob = new Blob([receiptText], { type: 'text/plain' })
-          const url = URL.createObjectURL(blob)
-          const link = document.createElement('a')
-          link.href = url
-          link.download = `comprobante-pago-${clientName.replace(/\s+/g, '-')}-${currentSubloan.paymentNumber}.txt`
-          document.body.appendChild(link)
-          link.click()
-          document.body.removeChild(link)
-          URL.revokeObjectURL(url)
-
-          console.log('📄 Comprobante de pago generado')
-        } catch (error) {
-          console.error('Error generating payment receipt:', error)
-          // Don't block the payment if PDF generation fails
+            currentSubloan.paymentNumber,
+            new Date(paymentDate)
+          )
+        } catch (operativaError) {
+          console.warn('⚠️ Payment registered but Operativa entry failed:', operativaError)
+          // Don't block - payment is already registered
         }
+
+        // Determine if this was a PARTIAL or PAID payment
+        const remainingAfterPayment = Math.max(0, (currentSubloan.totalAmount - (currentSubloan.paidAmount || 0)) - amountValue)
+        const isPartial = remainingAfterPayment > 0
+        const newStatus = remainingAfterPayment === 0 ? 'PAID' : 'PARTIAL'
+
+        // Generate receipt if requested
+        if (generatePDF) {
+          try {
+            generatePaymentPDF({
+              clientName,
+              paymentNumber: currentSubloan.paymentNumber,
+              amount: amountValue,
+              paymentDate: new Date(paymentDate),
+              loanTrack: currentSubloan.loanTrack || 'N/A',
+              status: newStatus,
+              remainingAmount: remainingAfterPayment,
+              notes: notes || undefined
+            })
+
+            console.log('📄 Comprobante de pago PDF generado')
+          } catch (error) {
+            console.error('Error generating payment receipt:', error)
+            // Don't block the payment if receipt generation fails
+          }
+        }
+
+        // Show success feedback
+        // TODO: Replace alert with PaymentSuccessModal in Sprint 6.3
+        alert(
+          `✅ Pago registrado exitosamente!\n\n` +
+          `Cliente: ${clientName}\n` +
+          `Cuota #${currentSubloan.paymentNumber}\n` +
+          `Monto: $${formatAmount(amountValue.toString())}\n` +
+          `Fecha: ${new Date(paymentDate).toLocaleDateString('es-AR')}\n` +
+          `Estado: ${newStatus}\n` +
+          (isPartial ? `Restante: $${formatAmount(remainingAfterPayment.toString())}\n` : '') +
+          `\n💰 El pago ha sido registrado en el sistema` +
+          (generatePDF ? '\n📄 Comprobante descargado' : '')
+        )
+
+        onClose()
       }
-
-      // Show success feedback
-      alert(
-        `✅ Pago registrado exitosamente!\n\n` +
-        `Cliente: ${clientName}\n` +
-        `Cuota #${currentSubloan.paymentNumber}\n` +
-        `Monto: $${formatAmount(amountValue.toString())}\n` +
-        `Fecha: ${new Date(paymentDate).toLocaleDateString('es-AR')}\n\n` +
-        `💰 El ingreso ha sido registrado en Operativa` +
-        (generatePDF ? '\n📄 Comprobante descargado' : '')
-      )
-
-      onClose()
-    } else {
+    } catch (error: any) {
+      console.error('Payment registration error:', error)
       alert('❌ Error al registrar el pago. Por favor intenta nuevamente.')
     }
   }
