@@ -24,7 +24,6 @@ import {
 import { Person, Phone, Email, Home, Work } from '@mui/icons-material'
 import type { SelectChangeEvent } from '@mui/material/Select'
 import { useClients } from '@/hooks/useClients'
-import { useAuth } from '@/hooks/useAuth'
 import { ClientValidation } from '@/lib/validation-utils'
 import { formatDNI, formatCUIT, unformatDNI, unformatCUIT, formatPhoneNumber, unformatPhoneNumber } from '@/lib/formatters'
 import { LATIN_AMERICAN_COUNTRIES } from '@/lib/countries'
@@ -55,13 +54,9 @@ export function ClientFormModal({
   mode
 }: ClientFormModalProps) {
   const { createClient, updateClient, isLoading, error } = useClients()
-  const { user: currentUser } = useAuth()
 
   const [formData, setFormData] = useState(INITIAL_FORM_DATA)
   const [formErrors, setFormErrors] = useState<Record<string, string>>({})
-
-  // Calculate quota availability (only for create mode)
-  const availableQuota = mode === 'create' ? (currentUser?.availableClientQuota ?? 0) : Infinity
 
   // Initialize form data when client changes (for edit mode)
   useEffect(() => {
@@ -132,11 +127,6 @@ export function ClientFormModal({
     const errors = mode === 'create'
       ? ClientValidation.validateCreateClient(formData)
       : ClientValidation.validateUpdateClient(formData)
-
-    // Add quota validation for create mode
-    if (mode === 'create' && availableQuota <= 0) {
-      errors.quota = 'No tienes cuota disponible para crear clientes'
-    }
 
     setFormErrors(errors)
     return Object.keys(errors).length === 0
@@ -226,20 +216,6 @@ export function ClientFormModal({
 
       <form onSubmit={handleSubmit}>
         <DialogContent sx={{ p: 0 }}>
-          {/* No Quota Alert - Create Mode */}
-          {mode === 'create' && availableQuota <= 0 && (
-            <Alert severity="error" sx={{ m: 3, mb: 0 }}>
-              No tienes cuota disponible para crear clientes. Contacta a tu administrador.
-            </Alert>
-          )}
-
-          {/* Low Quota Warning - Create Mode */}
-          {mode === 'create' && availableQuota > 0 && availableQuota <= 5 && (
-            <Alert severity="warning" sx={{ m: 3, mb: 0 }}>
-              Tienes solo {availableQuota} clientes disponibles.
-            </Alert>
-          )}
-
           {error && (
             <Alert severity="error" sx={{ m: 3, mb: 0 }}>
               {error}
@@ -483,7 +459,7 @@ export function ClientFormModal({
           <Button
             type="submit"
             variant="contained"
-            disabled={isLoading || (mode === 'create' && availableQuota <= 0)}
+            disabled={isLoading}
             size="large"
             sx={{
               borderRadius: 2,
@@ -494,7 +470,6 @@ export function ClientFormModal({
                 background: 'linear-gradient(135deg, #5a6fd8 0%, #3d8bfe 100%)',
               }
             }}
-            title={mode === 'create' && availableQuota <= 0 ? 'No tienes cuota disponible' : ''}
           >
             {isLoading ? loadingText : submitText}
           </Button>
