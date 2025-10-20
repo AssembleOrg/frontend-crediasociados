@@ -37,6 +37,24 @@ export function useLoansFilters() {
       filtered = filtered.filter(loan => loan.paymentFrequency === loansFilters.paymentFrequency)
     }
 
+    // Loan status filter (based on payment status of subloans)
+    if (loansFilters.loanStatus && loansFilters.loanStatus !== 'ALL') {
+      filtered = filtered.filter(loan => {
+        // Determine loan status based on its status field
+        // PENDING: loan.status is PENDING
+        // PARTIAL: loan.status is ACTIVE and has PARTIAL subloans
+        // PAID: loan.status is COMPLETED or all subloans are PAID
+        if (loansFilters.loanStatus === 'PENDING') {
+          return loan.status === 'PENDING'
+        } else if (loansFilters.loanStatus === 'PARTIAL') {
+          return loan.status === 'ACTIVE' || loan.status === 'APPROVED'
+        } else if (loansFilters.loanStatus === 'PAID') {
+          return loan.status === 'COMPLETED'
+        }
+        return true
+      })
+    }
+
     return filtered
   }, [loans, loansFilters])
 

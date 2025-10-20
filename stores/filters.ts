@@ -3,10 +3,12 @@ import { create } from 'zustand'
 export interface LoansFilters {
   clientId?: string
   paymentFrequency?: string
+  loanStatus?: 'PENDING' | 'PARTIAL' | 'PAID' | 'ALL'
 }
 
 export interface CobrosFilters {
   status?: 'OVERDUE' | 'TODAY' | 'SOON' | 'UPCOMING' | 'NOTIFIED' | 'ALL'
+  paymentStatus?: 'PENDING' | 'PARTIAL' | 'PAID' | 'ALL'
   clientId?: string
 }
 

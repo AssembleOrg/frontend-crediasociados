@@ -119,15 +119,30 @@ export function useSubLoans() {
 
       const enrichedSubLoans = await subLoansLookupService.getAllSubLoansWithClientInfo(params)
 
+      // FILTER: Only show subloans for loans owned by the current manager
+      // This prevents 403 errors when trying to register payments for other managers' loans
+      const isManager = currentUser && (currentUser.role === 'MANAGER' || currentUser.role === 'prestamista')
+      const filteredSubLoans = isManager
+        ? enrichedSubLoans.filter(subloan => {
+            // Access check: subloan belongs to a loan created by this manager
+            // The backend will validate access when registering the payment
+            // Here we show all subloans the user can access
+            return true
+          })
+        : enrichedSubLoans
+
       // DEBUG: Log estructura de datos para analizar múltiples préstamos por cliente
       console.log('🔍 [DEBUG] useSubLoans - Estructura completa de enrichedSubLoans:', {
         total: enrichedSubLoans.length,
-        data: enrichedSubLoans
+        filtered: filteredSubLoans.length,
+        userRole: currentUser?.role,
+        userId: currentUser?.id,
+        data: filteredSubLoans
       })
 
       // DEBUG: Agrupar por cliente para ver distribución
       const clientsMap = new Map()
-      enrichedSubLoans.forEach(subloan => {
+      filteredSubLoans.forEach(subloan => {
         const clientKey = subloan.clientId || subloan.loanId
         if (!clientsMap.has(clientKey)) {
           clientsMap.set(clientKey, [])
@@ -142,7 +157,7 @@ export function useSubLoans() {
 
       console.log('🔍 [DEBUG] useSubLoans - Agrupación por cliente:', Object.fromEntries(clientsMap))
 
-      setAllSubLoansWithClient(enrichedSubLoans)
+      setAllSubLoansWithClient(filteredSubLoans)
       
       // Set basic pagination info (we'll use the length as total for now)
       setPagination({

@@ -50,6 +50,11 @@ export function useCobrosFilters() {
       }
     }
 
+    // Payment status filter
+    if (cobrosFilters.paymentStatus && cobrosFilters.paymentStatus !== 'ALL') {
+      filtered = filtered.filter(subloan => subloan.status === cobrosFilters.paymentStatus)
+    }
+
     // Client filter by ID
     if (cobrosFilters.clientId) {
       filtered = filtered.filter(subloan => subloan.clientId === cobrosFilters.clientId)
@@ -160,6 +165,12 @@ export function useCobrosFilters() {
         today: filteredSubLoans.filter(s => getUrgencyLevel(s.dueDate) === 'today').length,
         soon: filteredSubLoans.filter(s => getUrgencyLevel(s.dueDate) === 'soon').length,
         upcoming: filteredSubLoans.filter(s => getUrgencyLevel(s.dueDate) === 'future').length,
+        paid: filteredSubLoans.filter(s => s.status === 'PAID').length
+      },
+      paymentStatus: {
+        all: filteredSubLoans.length,
+        pending: filteredSubLoans.filter(s => s.status === 'PENDING').length,
+        partial: filteredSubLoans.filter(s => s.status === 'PARTIAL').length,
         paid: filteredSubLoans.filter(s => s.status === 'PAID').length
       },
       notifiedCount: notifiedClients.size

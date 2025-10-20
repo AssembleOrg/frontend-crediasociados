@@ -1,18 +1,20 @@
 'use client'
 
-import { 
-  Box, 
-  Card, 
-  CardContent, 
-  Typography, 
-  FormControl, 
-  InputLabel, 
-  Select, 
-  MenuItem, 
+import {
+  Box,
+  Card,
+  CardContent,
+  Typography,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
   Button,
   Chip,
   Autocomplete,
-  TextField
+  TextField,
+  ToggleButton,
+  ToggleButtonGroup
 } from '@mui/material'
 import { 
   FilterList, 
@@ -39,6 +41,10 @@ export function LoansFilterPanel({ variant = 'expanded', onClose }: LoansFilterP
   const handleClearFilters = () => {
     clearAllFilters()
     onClose?.()
+  }
+
+  const handleLoanStatusFilter = (loanStatus: 'PENDING' | 'PARTIAL' | 'PAID' | 'ALL' | null) => {
+    updateFilter('loanStatus', loanStatus || undefined)
   }
 
   return (
@@ -118,6 +124,86 @@ export function LoansFilterPanel({ variant = 'expanded', onClose }: LoansFilterP
               </Select>
             </FormControl>
           </Box>
+        </Box>
+
+        {/* Loan Status Filter */}
+        <Box sx={{ mt: 2, mb: 2 }}>
+          <Typography variant="subtitle2" gutterBottom>
+            Estado de Cuotas
+          </Typography>
+          <ToggleButtonGroup
+            value={filters.loanStatus || 'ALL'}
+            exclusive
+            onChange={(_, value) => handleLoanStatusFilter(value)}
+            size="small"
+            fullWidth
+            sx={{
+              display: 'flex',
+              flexWrap: 'wrap',
+              gap: 1,
+              '& .MuiToggleButton-root': {
+                borderRadius: 2,
+                border: '1px solid',
+                px: 2,
+                py: 1,
+                flex: '1 1 auto',
+                minWidth: 'auto'
+              }
+            }}
+          >
+            <ToggleButton
+              value="ALL"
+              sx={{
+                color: 'primary.main',
+                borderColor: 'primary.main',
+                '&.Mui-selected': {
+                  backgroundColor: 'primary.main',
+                  color: 'white'
+                }
+              }}
+            >
+              Todos
+            </ToggleButton>
+            <ToggleButton
+              value="PENDING"
+              sx={{
+                color: 'default',
+                borderColor: 'default',
+                '&.Mui-selected': {
+                  backgroundColor: 'default',
+                  color: 'white'
+                }
+              }}
+            >
+              Pendiente
+            </ToggleButton>
+            <ToggleButton
+              value="PARTIAL"
+              sx={{
+                color: 'info.main',
+                borderColor: 'info.main',
+                '&.Mui-selected': {
+                  backgroundColor: 'info.main',
+                  color: 'white'
+                }
+              }}
+            >
+              Parcial
+            </ToggleButton>
+            <ToggleButton
+              value="PAID"
+              sx={{
+                color: 'success.main',
+                borderColor: 'success.main',
+                '&.Mui-selected': {
+                  backgroundColor: 'success.main',
+                  color: 'white'
+                }
+              }}
+            >
+              Pagado
+            </ToggleButton>
+          </ToggleButtonGroup>
         </Box>
 
         {/* Filter Summary */}

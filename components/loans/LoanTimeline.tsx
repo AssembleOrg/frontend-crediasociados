@@ -308,7 +308,39 @@ export const LoanTimeline: React.FC<LoanTimelineProps> = ({
   // Calculate progress stats
   const totalCuotas = subLoans.length
   const paidCuotas = subLoans.filter(s => s.status === 'PAID').length
+  const pendingCuotas = totalCuotas - paidCuotas
   const progressPercentage = totalCuotas > 0 ? (paidCuotas / totalCuotas) * 100 : 0
+
+  // Calculate financial summary
+  const totalAmount = subLoans.reduce((sum, s) => sum + (s.totalAmount || 0), 0)
+  const paidAmount = subLoans.reduce((sum, s) => {
+    if (s.status === 'PAID') {
+      return sum + (s.totalAmount || 0)
+    }
+    if (s.status === 'PARTIAL') {
+      return sum + (s.paidAmount || 0)
+    }
+    return sum
+  }, 0)
+  const remainingAmount = totalAmount - paidAmount
+
+  // Format currency
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('es-AR', {
+      style: 'currency',
+      currency: 'ARS',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0
+    }).format(amount)
+  }
+
+  // Determine remaining amount color
+  const getRemainingAmountColor = () => {
+    const percentageRemaining = (remainingAmount / totalAmount) * 100
+    if (percentageRemaining < 25) return 'success.main'
+    if (percentageRemaining < 50) return 'warning.main'
+    return 'error.main'
+  }
 
   // Sort subloans by payment number
   const sortedSubLoans = [...subLoans].sort((a, b) => a.paymentNumber - b.paymentNumber)
@@ -322,15 +354,29 @@ export const LoanTimeline: React.FC<LoanTimelineProps> = ({
         <Typography variant="h6" fontWeight="bold" gutterBottom>
           {clientName} - Timeline de Cuotas
         </Typography>
-        <Box sx={{ 
-          display: 'flex', 
-          alignItems: 'center', 
+        <Box sx={{
+          display: 'flex',
+          flexDirection: { xs: 'column', sm: 'row' },
+          alignItems: { xs: 'flex-start', sm: 'center' },
           gap: 2,
-          mb: 2 
+          mb: 2
         }}>
-          <Typography variant="body2" color="text.secondary">
-            Progreso: {paidCuotas} de {totalCuotas} cuotas pagadas ({Math.round(progressPercentage)}%)
-          </Typography>
+          <Chip
+            label={`Progreso: ${paidCuotas}/${totalCuotas} cuotas (${Math.round(progressPercentage)}%)`}
+            size="small"
+            variant="outlined"
+            color="primary"
+          />
+          <Chip
+            label={`Resta pagar: ${formatCurrency(remainingAmount)} en ${pendingCuotas} cuota${pendingCuotas !== 1 ? 's' : ''}`}
+            size="small"
+            variant="filled"
+            color={remainingAmount <= 0 ? 'success' : undefined}
+            sx={{
+              backgroundColor: remainingAmount <= 0 ? undefined : getRemainingAmountColor(),
+              color: 'white'
+            }}
+          />
         </Box>
 
         {/* Progress Bar */}

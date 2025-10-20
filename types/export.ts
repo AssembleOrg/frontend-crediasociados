@@ -54,8 +54,9 @@ export interface LoanPDFData {
     totalAmount: number;
     numberOfPayments: number;
     frequency: string;
+    remainingBalance: number;
   };
-  
+
   // Metadata
   generatedAt: string;
   generatedBy: string;
@@ -67,8 +68,8 @@ export interface ExcelLoanData {
   'Cliente': string;
   'DNI/CUIT': string;
   'Monto Prestado': number;
-  'Tasa Interés (%)': number;
   'Monto Total': number;
+  'Resta Abonar': number;
   'Frecuencia': string;
   'Cantidad Cuotas': number;
   'Fecha Inicio': string;

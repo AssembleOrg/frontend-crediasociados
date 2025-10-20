@@ -2,10 +2,8 @@
 
 import { useState, useMemo } from 'react';
 import { Box, Typography, Paper, Alert, Tabs, Tab, Chip } from '@mui/material';
-import { Info } from '@mui/icons-material';
 import PageHeader from '@/components/ui/PageHeader';
 import { useSubLoans } from '@/hooks/useSubLoans';
-import { useAuth } from '@/hooks/useAuth';
 import LoanTimeline from '@/components/loans/LoanTimeline';
 import type { SubLoanWithClientInfo } from '@/services/subloans-lookup.service';
 
@@ -29,53 +27,37 @@ function TabPanel({ children, value, index }: TabPanelProps) {
 }
 
 export default function CobradorCobrosPage() {
-  const { user } = useAuth();
   const { allSubLoansWithClient, isLoading, error } = useSubLoans();
   const [selectedTab, setSelectedTab] = useState(0);
 
-  // Group subloans by manager (prestamista)
-  const subLoansByManager = useMemo(() => {
+  // Group subloans by client (simplificado - sin manager tracking)
+  const clientsWithLoans = useMemo(() => {
     const grouped: Record<
       string,
       {
-        managerId: string;
-        managerName: string;
+        clientId: string;
+        clientName: string;
         subLoans: SubLoanWithClientInfo[];
       }
     > = {};
 
     allSubLoansWithClient.forEach((subloan) => {
-      const managerId = subloan.managerId || 'unknown';
-      const managerName = subloan.managerName || 'Cobrador Desconocido';
+      const clientId = subloan.clientId || 'unknown';
+      const clientName = subloan.clientName || 'Cliente Desconocido';
 
-      if (!grouped[managerId]) {
-        grouped[managerId] = {
-          managerId,
-          managerName,
+      if (!grouped[clientId]) {
+        grouped[clientId] = {
+          clientId,
+          clientName,
           subLoans: [],
         };
       }
 
-      grouped[managerId].subLoans.push(subloan);
+      grouped[clientId].subLoans.push(subloan);
     });
 
     return Object.values(grouped);
   }, [allSubLoansWithClient]);
-
-  // Group subloans by client for timeline display
-  const getSubLoansByClient = (managerSubLoans: SubLoanWithClientInfo[]) => {
-    const grouped: Record<string, SubLoanWithClientInfo[]> = {};
-
-    managerSubLoans.forEach((subloan) => {
-      const clientId = subloan.clientId || 'unknown';
-      if (!grouped[clientId]) {
-        grouped[clientId] = [];
-      }
-      grouped[clientId].push(subloan);
-    });
-
-    return Object.values(grouped);
-  };
 
   if (isLoading) {
     return (
@@ -119,7 +101,7 @@ export default function CobradorCobrosPage() {
         subtitle='Vista informativa de cobros por cobrador'
       />
 
-      {subLoansByManager.length === 0 ? (
+      {clientsWithLoans.length === 0 ? (
         <Paper sx={{ p: 4, textAlign: 'center' }}>
           <Typography
             variant='h6'
@@ -137,7 +119,7 @@ export default function CobradorCobrosPage() {
         </Paper>
       ) : (
         <Paper sx={{ p: 0 }}>
-          {/* Tabs for each manager */}
+          {/* Tabs for each client */}
           <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
             <Tabs
               value={selectedTab}
@@ -146,73 +128,59 @@ export default function CobradorCobrosPage() {
               scrollButtons='auto'
               sx={{ px: 2 }}
             >
-              {subLoansByManager.map((manager, index) => (
+              {clientsWithLoans.map((client, index) => (
                 <Tab
-                  key={manager.managerId}
+                  key={client.clientId}
                   label={
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      {manager.managerName}
+                      {client.clientName}
                       <Chip
-                        label={manager.subLoans.length}
+                        label={client.subLoans.length}
                         size='small'
                         color='primary'
                       />
                     </Box>
                   }
-                  id={`manager-tab-${index}`}
-                  aria-controls={`manager-tabpanel-${index}`}
+                  id={`client-tab-${index}`}
+                  aria-controls={`client-tabpanel-${index}`}
                 />
               ))}
             </Tabs>
           </Box>
 
           {/* Tab Panels */}
-          {subLoansByManager.map((manager, index) => {
-            const clientGroups = getSubLoansByClient(manager.subLoans);
+          {clientsWithLoans.map((client, index) => (
+            <TabPanel
+              key={client.clientId}
+              value={selectedTab}
+              index={index}
+            >
+              <Box sx={{ px: 3 }}>
+                <Typography
+                  variant='h6'
+                  gutterBottom
+                >
+                  {client.clientName}
+                </Typography>
+                <Typography
+                  variant='body2'
+                  color='text.secondary'
+                  sx={{ mb: 3 }}
+                >
+                  Total de cuotas: {client.subLoans.length}
+                </Typography>
 
-            return (
-              <TabPanel
-                key={manager.managerId}
-                value={selectedTab}
-                index={index}
-              >
-                <Box sx={{ px: 3 }}>
-                  <Typography
-                    variant='h6'
-                    gutterBottom
-                  >
-                    Cobros de {manager.managerName}
-                  </Typography>
-                  <Typography
-                    variant='body2'
-                    color='text.secondary'
-                    sx={{ mb: 3 }}
-                  >
-                    Total de cuotas: {manager.subLoans.length}
-                  </Typography>
-
-                  {/* Timeline for each client */}
-                  {clientGroups.map((clientSubLoans, clientIndex) => {
-                    const clientName =
-                      clientSubLoans[0]?.clientName || 'Cliente Desconocido';
-
-                    return (
-                      <Box
-                        key={clientIndex}
-                        sx={{ mb: 4 }}
-                      >
-                        <LoanTimeline
-                          clientName={clientName}
-                          subLoans={clientSubLoans}
-                          compact={false}
-                        />
-                      </Box>
-                    );
-                  })}
+                {/* Timeline for client loans */}
+                <Box sx={{ mb: 2 }}>
+                  <LoanTimeline
+                    clientName={client.clientName}
+                    subLoans={client.subLoans}
+                    compact={false}
+                  />
                 </Box>
-              </TabPanel>
-            );
-          })}
+              </Box>
+            </TabPanel>
+          ))}
         </Paper>
       )}
     </Box>

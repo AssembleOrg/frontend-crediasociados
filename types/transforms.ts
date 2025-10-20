@@ -113,7 +113,7 @@ export const clientToCreateDto = (
   phone: client.phone,
   email: client.email,
   address: client.address,
-  // Note: job field is not supported in CreateClientDto, only in UpdateClientDto
+  job: client.job,
 });
 
 // Transform frontend client to API update DTO

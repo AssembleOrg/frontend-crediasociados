@@ -21,7 +21,7 @@ interface Payment {
   paymentNumber: number;
   amount: number;
   dueDate: string;
-  status: 'PENDING' | 'PAID' | 'OVERDUE';
+  status: 'PENDING' | 'PAID' | 'PARTIAL' | 'OVERDUE';
   paidDate?: string;
 }
 
@@ -113,6 +113,14 @@ export default function PaymentsTable({
           <Chip
             label={label}
             color='success'
+            size='small'
+          />
+        );
+      case 'PARTIAL':
+        return (
+          <Chip
+            label={label}
+            color='info'
             size='small'
           />
         );

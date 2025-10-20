@@ -104,7 +104,7 @@ export default function ClientesPage() {
         <Box sx={{ display: { xs: 'none', lg: 'block' } }}>
           <TableContainer>
             {isLoading ? (
-              <TableSkeleton columns={6} />
+              <TableSkeleton columns={7} />
             ) : (
               <Table>
                 <TableHead>
@@ -113,6 +113,7 @@ export default function ClientesPage() {
                     <TableCell><strong>DNI</strong></TableCell>
                     <TableCell><strong>Email</strong></TableCell>
                     <TableCell><strong>Teléfono</strong></TableCell>
+                    <TableCell><strong>Ocupación</strong></TableCell>
                     <TableCell><strong>Estado</strong></TableCell>
                     <TableCell align="center"><strong>Acciones</strong></TableCell>
                   </TableRow>
@@ -126,6 +127,7 @@ export default function ClientesPage() {
                         <TableCell>{client.dni || 'N/A'}</TableCell>
                         <TableCell>{client.email || 'N/A'}</TableCell>
                         <TableCell>{client.phone || 'N/A'}</TableCell>
+                        <TableCell>{client.job || 'N/A'}</TableCell>
                         <TableCell>
                           <Chip
                             label="Activo"

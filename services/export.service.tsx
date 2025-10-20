@@ -115,7 +115,15 @@ class ExportService {
    */
   private transformLoanToPDFData(loanData: ExportLoanData): LoanPDFData {
     const { loan, client, subLoans } = loanData;
-    
+
+    // Calculate remaining balance
+    const totalPaid = subLoans.reduce((sum, s) => {
+      if (s.status === 'PAID') return sum + (s.totalAmount || 0)
+      if (s.status === 'PARTIAL') return sum + (s.paidAmount || 0)
+      return sum
+    }, 0)
+    const remainingBalance = loan.amount - totalPaid
+
     return {
       // Loan Information
       loanId: loan.id,
@@ -127,7 +135,7 @@ class ExportService {
       numberOfInstallments: loan.totalPayments,
       startDate: new Date(loan.firstDueDate || loan.createdAt).toLocaleDateString('es-AR'),
       description: loan.description,
-      
+
       // Client Information
       clientName: client.fullName,
       clientPhone: client.phone,
@@ -135,7 +143,7 @@ class ExportService {
       clientDNI: client.dni,
       clientCUIT: client.cuit,
       clientAddress: client.address,
-      
+
       // Payment Schedule - Without interest
       paymentSchedule: subLoans.map(subLoan => ({
         paymentNumber: subLoan.paymentNumber,
@@ -144,16 +152,17 @@ class ExportService {
         totalAmount: subLoan.amount, // Changed: Show only principal, no interest
         status: subLoan.status
       })),
-      
+
       // Summary - Without interest per client request
       summary: {
         totalPrincipal: loan.amount,
         totalInterest: 0, // NOTE: Interest removed per client request (feedback.md)
         totalAmount: loan.amount, // Changed: Show only capital, no interest
         numberOfPayments: loan.totalPayments,
-        frequency: getFrequencyLabel(loan.paymentFrequency)
+        frequency: getFrequencyLabel(loan.paymentFrequency),
+        remainingBalance
       },
-      
+
       // Metadata
       generatedAt: new Date().toLocaleString('es-AR'),
       generatedBy: 'Prestamito - Sistema de Gestión de Préstamos'
@@ -164,8 +173,16 @@ class ExportService {
    * Transform loan data to Excel row structure
    */
   private transformLoanToExcelData = (loanData: ExportLoanData): ExcelLoanData => {
-    const { loan, client } = loanData;
-    
+    const { loan, client, subLoans } = loanData;
+
+    // Calculate remaining balance
+    const totalPaid = subLoans.reduce((sum, s) => {
+      if (s.status === 'PAID') return sum + (s.totalAmount || 0)
+      if (s.status === 'PARTIAL') return sum + (s.paidAmount || 0)
+      return sum
+    }, 0)
+    const remainingBalance = loan.amount - totalPaid
+
     return {
       'ID Préstamo': loan.id,
       'Código Seguimiento': loan.loanTrack || '',
@@ -175,6 +192,7 @@ class ExportService {
       // NOTE: Interest rate removed per client request (feedback.md)
       // 'Tasa Interés (%)': formatInterestRate(loan.baseInterestRate),
       'Monto Total': loan.amount, // Changed: Show only capital, no interest
+      'Resta Abonar': remainingBalance,
       'Frecuencia': getFrequencyLabel(loan.paymentFrequency),
       'Cantidad Cuotas': loan.totalPayments,
       'Fecha Inicio': new Date(loan.firstDueDate || loan.createdAt).toLocaleDateString('es-AR'),
@@ -337,12 +355,12 @@ class ExportService {
               <Text style={styles.value}>${data.amount.toLocaleString('es-AR')}</Text>
             </View>
             <View style={styles.row}>
-              <Text style={styles.label}>Tasa de Interés:</Text>
-              <Text style={styles.value}>{formatInterestRate(data.baseInterestRate).toFixed(1)}%</Text>
-            </View>
-            <View style={styles.row}>
               <Text style={styles.label}>Monto Total a Devolver:</Text>
               <Text style={styles.value}>${data.totalAmount.toLocaleString('es-AR')}</Text>
+            </View>
+            <View style={styles.row}>
+              <Text style={styles.label}>Resta Abonar:</Text>
+              <Text style={styles.value}>${data.summary.remainingBalance.toLocaleString('es-AR')}</Text>
             </View>
             <View style={styles.row}>
               <Text style={styles.label}>Frecuencia de Pago:</Text>

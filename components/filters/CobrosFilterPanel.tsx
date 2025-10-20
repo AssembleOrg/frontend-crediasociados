@@ -55,6 +55,38 @@ export function CobrosFilterPanel({ variant = 'expanded', onClose }: CobrosFilte
     updateFilter('status', status || undefined)
   }
 
+  const handlePaymentStatusFilter = (paymentStatus: 'PENDING' | 'PARTIAL' | 'PAID' | 'ALL' | null) => {
+    updateFilter('paymentStatus', paymentStatus || undefined)
+  }
+
+  // Payment status filter options
+  const paymentStatusOptions = [
+    {
+      key: 'ALL',
+      label: 'Todos',
+      color: 'default',
+      count: filterStats.paymentStatus?.all || 0
+    },
+    {
+      key: 'PENDING',
+      label: 'Pendiente',
+      color: 'default',
+      count: filterStats.paymentStatus?.pending || 0
+    },
+    {
+      key: 'PARTIAL',
+      label: 'Pago Parcial',
+      color: 'info',
+      count: filterStats.paymentStatus?.partial || 0
+    },
+    {
+      key: 'PAID',
+      label: 'Pagado',
+      color: 'success',
+      count: filterStats.paymentStatus?.paid || 0
+    }
+  ]
+
   return (
     <Card elevation={2}>
       <CardContent>
@@ -113,6 +145,55 @@ export function CobrosFilterPanel({ variant = 'expanded', onClose }: CobrosFilte
                   },
                   '&:hover': {
                     backgroundColor: 'customColor' in option ? `${option.customColor}20` : `${option.color}.light`,
+                  }
+                }}
+              >
+                {option.label} ({option.count})
+              </ToggleButton>
+            ))}
+          </ToggleButtonGroup>
+        </Box>
+
+        <Divider sx={{ mb: 3 }} />
+
+        {/* Payment Status Filter Buttons */}
+        <Box sx={{ mb: 3 }}>
+          <Typography variant="subtitle2" gutterBottom>
+            Estado de Pago
+          </Typography>
+          <ToggleButtonGroup
+            value={filters.paymentStatus || 'ALL'}
+            exclusive
+            onChange={(_, value) => handlePaymentStatusFilter(value)}
+            size="small"
+            sx={{
+              display: 'flex',
+              flexWrap: 'wrap',
+              gap: 1,
+              '& .MuiToggleButton-root': {
+                borderRadius: 2,
+                border: '1px solid',
+                px: 2,
+                py: 1
+              }
+            }}
+          >
+            {paymentStatusOptions.map((option) => (
+              <ToggleButton
+                key={option.key}
+                value={option.key}
+                sx={{
+                  color: `${option.color}.main`,
+                  borderColor: `${option.color}.main`,
+                  '&.Mui-selected': {
+                    backgroundColor: `${option.color}.main`,
+                    color: 'white',
+                    '&:hover': {
+                      backgroundColor: `${option.color}.dark`,
+                    }
+                  },
+                  '&:hover': {
+                    backgroundColor: `${option.color}.light`,
                   }
                 }}
               >

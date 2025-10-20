@@ -21,12 +21,13 @@ import {
   Alert,
   Chip
 } from '@mui/material'
-import { Payment, CalendarToday, AttachMoney, PictureAsPdf, Info, History } from '@mui/icons-material'
+import { Payment, CalendarToday, AttachMoney, PictureAsPdf, Info } from '@mui/icons-material'
 import { formatAmount, unformatAmount } from '@/lib/formatters'
 import { generatePaymentPDF } from '@/utils/pdf/paymentReceipt'
 import { useOperativa } from '@/hooks/useOperativa'
-import { exportService } from '@/services/export.service'
 import { paymentsService } from '@/services/payments.service'
+import { PaymentErrorModal } from './PaymentErrorModal'
+import { PaymentSuccessModal } from './PaymentSuccessModal'
 import type { SubLoanWithClientInfo } from '@/services/subloans-lookup.service'
 
 interface PaymentModalProps {
@@ -57,6 +58,21 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
     remainingAfterPayment: number
     status: 'PARTIAL' | 'PAID'
     isPartial: boolean
+  } | null>(null)
+
+  // Modal states for error and success feedback
+  const [errorModalOpen, setErrorModalOpen] = useState(false)
+  const [errorMessage, setErrorMessage] = useState('')
+  const [successModalOpen, setSuccessModalOpen] = useState(false)
+  const [successData, setSuccessData] = useState<{
+    clientName: string
+    paymentNumber: number
+    amount: number
+    paymentDate: Date
+    status: 'PARTIAL' | 'PAID'
+    remainingAmount: number
+    notes?: string
+    pdfGenerated: boolean
   } | null>(null)
 
   const currentSubloan = mode === 'single' ? subloan :
@@ -146,7 +162,6 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
 
         // Determine if this was a PARTIAL or PAID payment
         const remainingAfterPayment = Math.max(0, (currentSubloan.totalAmount - (currentSubloan.paidAmount || 0)) - amountValue)
-        const isPartial = remainingAfterPayment > 0
         const newStatus = remainingAfterPayment === 0 ? 'PAID' : 'PARTIAL'
 
         // Generate receipt if requested
@@ -170,26 +185,40 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
           }
         }
 
-        // Show success feedback
-        // TODO: Replace alert with PaymentSuccessModal in Sprint 6.3
-        alert(
-          `✅ Pago registrado exitosamente!\n\n` +
-          `Cliente: ${clientName}\n` +
-          `Cuota #${currentSubloan.paymentNumber}\n` +
-          `Monto: $${formatAmount(amountValue.toString())}\n` +
-          `Fecha: ${new Date(paymentDate).toLocaleDateString('es-AR')}\n` +
-          `Estado: ${newStatus}\n` +
-          (isPartial ? `Restante: $${formatAmount(remainingAfterPayment.toString())}\n` : '') +
-          `\n💰 El pago ha sido registrado en el sistema` +
-          (generatePDF ? '\n📄 Comprobante descargado' : '')
-        )
-
-        onClose()
+        // Show success feedback with new modal
+        setSuccessData({
+          clientName,
+          paymentNumber: currentSubloan.paymentNumber,
+          amount: amountValue,
+          paymentDate: new Date(paymentDate),
+          status: newStatus,
+          remainingAmount: remainingAfterPayment,
+          notes: notes || undefined,
+          pdfGenerated: generatePDF
+        })
+        setSuccessModalOpen(true)
       }
-    } catch (error: any) {
+    } catch (error) {
       console.error('Payment registration error:', error)
-      alert('❌ Error al registrar el pago. Por favor intenta nuevamente.')
+
+      // Extract error message for better UX
+      const errorMsg = (error as Record<string, unknown>)?.response?.data?.message ||
+                       (error as Record<string, unknown>)?.message ||
+                       'Error al registrar el pago. Por favor intenta nuevamente.'
+      setErrorMessage(String(errorMsg))
+      setErrorModalOpen(true)
     }
+  }
+
+  const handleSuccessClose = () => {
+    setSuccessModalOpen(false)
+    setSuccessData(null)
+    onClose()
+  }
+
+  const handleErrorRetry = () => {
+    setErrorModalOpen(false)
+    setErrorMessage('')
   }
 
   const formatCurrency = (amount: number) => {
@@ -427,6 +456,30 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
           Registrar Pago
         </Button>
       </DialogActions>
+
+      {/* Error Modal */}
+      <PaymentErrorModal
+        open={errorModalOpen}
+        onClose={() => setErrorModalOpen(false)}
+        errorMessage={errorMessage}
+        onRetry={handleErrorRetry}
+      />
+
+      {/* Success Modal */}
+      {successData && (
+        <PaymentSuccessModal
+          open={successModalOpen}
+          onClose={handleSuccessClose}
+          clientName={successData.clientName}
+          paymentNumber={successData.paymentNumber}
+          amount={successData.amount}
+          paymentDate={successData.paymentDate}
+          status={successData.status}
+          remainingAmount={successData.remainingAmount}
+          notes={successData.notes}
+          pdfGenerated={successData.pdfGenerated}
+        />
+      )}
     </Dialog>
   )
 }

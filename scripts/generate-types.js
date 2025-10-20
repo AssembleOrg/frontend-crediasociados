@@ -24,6 +24,19 @@ try {
   
   // Add missing schemas that are referenced but not defined
   const missingSchemas = {
+    CreateClientDto: {
+      type: "object",
+      properties: {
+        fullName: { type: "string" },
+        dni: { type: "string" },
+        cuit: { type: "string" },
+        phone: { type: "string" },
+        email: { type: "string" },
+        address: { type: "string" },
+        job: { type: "string" }
+      },
+      required: ["fullName"]
+    },
     ClientResponseDto: {
       type: "object",
       properties: {

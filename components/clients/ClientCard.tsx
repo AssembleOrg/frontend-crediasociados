@@ -14,7 +14,8 @@ import {
   Person,
   Email,
   Phone,
-  Badge
+  Badge,
+  Work
 } from '@mui/icons-material'
 import type { Client } from '@/types/auth'
 
@@ -96,6 +97,15 @@ export function ClientCard({ client, onEdit, onDelete }: ClientCardProps) {
             <Typography variant="body2" color="text.secondary">
               <strong>CUIT:</strong> {client.cuit}
             </Typography>
+          )}
+
+          {client.job && (
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <Work fontSize="small" color="action" />
+              <Typography variant="body2" color="text.secondary">
+                <strong>Ocupación:</strong> {client.job}
+              </Typography>
+            </Box>
           )}
         </Box>
 
