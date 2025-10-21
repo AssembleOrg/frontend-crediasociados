@@ -27,6 +27,7 @@ import { UserFormModal } from '@/components/users/UserFormModal'
 import { DeleteUserConfirmDialog } from '@/components/users/DeleteUserConfirmDialog'
 import { TableSkeleton } from '@/components/ui/TableSkeleton'
 import type { User } from '@/types/auth'
+import { useAuth } from '@/hooks/useAuth'
 
 // Helper function to determine quota chip color based on available quota
 const getQuotaChipColor = (availableQuota?: number): 'success' | 'warning' | 'error' | 'default' => {
@@ -63,6 +64,8 @@ export default function ManagersPage() {
     clearError
   } = useUsers()
   
+  const { user: currentSubadmin } = useAuth()
+  
   // Filter prestamistas directly (MANAGER from API becomes 'prestamista' in frontend)
   const managers = useMemo(() => {
     console.log('🔍 [DEBUG] All users received:', users.map(u => ({ id: u.id, name: u.fullName, role: u.role })))
@@ -71,6 +74,14 @@ export default function ManagersPage() {
     return filtered
   }, [users])
   const totalManagers = managers.length
+  
+  // Calculate available client quota for current subadmin
+  const creatorAvailableQuota = useMemo(() => {
+    if (!currentSubadmin) return 0
+    const total = currentSubadmin.clientQuota ?? 0
+    const used = currentSubadmin.usedClientQuota ?? 0
+    return Math.max(0, total - used)
+  }, [currentSubadmin])
 
   const [page, setPage] = useState(0)
   const [rowsPerPage, setRowsPerPage] = useState(10)
@@ -247,6 +258,8 @@ export default function ManagersPage() {
         updateUser={updateUser}
         isLoading={isLoading}
         error={error}
+        creatorAvailableQuota={creatorAvailableQuota}
+        creatorTotalQuota={currentSubadmin?.clientQuota}
       />
 
       {selectedUser && (

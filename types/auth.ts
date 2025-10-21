@@ -121,7 +121,7 @@ export interface User {
   createdAt: Date;
   updatedAt: Date;
   wallet?: Wallet;
-  // Client quota fields (from backend, pending api-generated.ts update)
+
   clientQuota?: number;
   usedClientQuota?: number;
   availableClientQuota?: number;

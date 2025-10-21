@@ -14,9 +14,9 @@ export const ROLE_HIERARCHY = {
 export const ROLE_DISPLAY_NAMES = {
   superadmin: 'Super Admin',
   admin: 'Admin',
-  subadmin: 'Sub Admin',
-  manager: 'Manager', 
-  prestamista: 'Prestamista',
+  subadmin: 'Asociado',
+  manager: 'Cobrador', 
+  prestamista: 'Cobrador',
   cliente: 'Cliente'
 } as const
 

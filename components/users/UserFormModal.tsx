@@ -28,6 +28,8 @@ interface UserFormModalProps {
   mode: 'create' | 'edit'
   targetRole?: UserRole // For create mode
   allowRoleChange?: boolean // For edit mode
+  creatorAvailableQuota?: number // Available quota from creator (Subadmin)
+  creatorTotalQuota?: number // Total quota from creator
   // Functions passed from parent to avoid duplicate useUsers hooks
   createUser?: (userData: Omit<User, 'id' | 'createdAt' | 'updatedAt'> & { password: string }) => Promise<boolean>
   updateUser?: (id: string, userData: Partial<User> & { password?: string }) => Promise<boolean>
@@ -53,6 +55,8 @@ export function UserFormModal({
   mode,
   targetRole = 'manager',
   allowRoleChange = false,
+  creatorAvailableQuota,
+  creatorTotalQuota,
   createUser,
   updateUser,
   isLoading = false,
@@ -126,6 +130,23 @@ export function UserFormModal({
       errors.password = 'La contraseña debe tener al menos 6 caracteres'
     }
 
+    // Validate clientQuota for SUBADMIN or MANAGER creation
+    if (mode === 'create' && (targetRole === 'subadmin' || targetRole === 'manager')) {
+      if (formData.clientQuota <= 0) {
+        errors.clientQuota = 'La cuota de clientes debe ser mayor a 0'
+      } else if (creatorAvailableQuota !== undefined && creatorAvailableQuota > 0 && formData.clientQuota > creatorAvailableQuota) {
+        errors.clientQuota = `Solo tienes ${creatorAvailableQuota} clientes disponibles para asignar`
+      }
+    }
+    
+    // Validate clientQuota for SUBADMIN or MANAGER edit
+    if (mode === 'edit' && (formData.role === 'subadmin' || formData.role === 'manager')) {
+      const usedQuota = (user as any)?.usedClientQuota ?? 0
+      if (formData.clientQuota < usedQuota) {
+        errors.clientQuota = `No puedes reducir la cuota por debajo de ${usedQuota} (clientes actualmente usados)`
+      }
+    }
+
     setFormErrors(errors)
     return Object.keys(errors).length === 0
   }
@@ -145,7 +166,7 @@ export function UserFormModal({
       dni: formData.dni || undefined,
       cuit: formData.cuit || undefined,
       role: formData.role,
-      clientQuota: formData.clientQuota || 50  // ← NUEVO: Include clientQuota
+      clientQuota: (targetRole === 'subadmin' || targetRole === 'manager' || formData.role === 'subadmin' || formData.role === 'manager') ? formData.clientQuota : undefined
     }
 
     let result: boolean
@@ -288,22 +309,40 @@ export function UserFormModal({
               </FormControl>
             )}
 
-            {/* Client Quota Field - NUEVO */}
-            {(mode === 'create' && targetRole === 'manager') || (mode === 'edit' && formData.role === 'manager') ? (
-              <TextField
-                label="Cuota de Clientes"
-                type="number"
-                value={formData.clientQuota}
-                onChange={(e) => setFormData(prev => ({
-                  ...prev,
-                  clientQuota: Math.max(0, parseInt(e.target.value) || 50)
-                }))}
-                fullWidth
-                helperText="Número máximo de clientes que puede crear este manager (default: 50)"
-                InputProps={{
-                  inputProps: { min: 1, max: 200 }
-                }}
-              />
+            {/* Client Quota Field */}
+            {(mode === 'create' && (targetRole === 'subadmin' || targetRole === 'manager')) || (mode === 'edit' && (formData.role === 'subadmin' || formData.role === 'manager')) ? (
+              <>
+                {mode === 'create' && (creatorAvailableQuota !== undefined && creatorAvailableQuota > 0) && (
+                  <Alert severity="info" sx={{ mb: 2 }}>
+                    Tienes {creatorAvailableQuota} clientes disponibles de {creatorTotalQuota} para asignar a este {targetRole === 'subadmin' ? 'asociado' : 'cobrador'}
+                  </Alert>
+                )}
+                <TextField
+                  label="Cuota de Clientes"
+                  type="number"
+                  value={formData.clientQuota}
+                  onChange={(e) => {
+                    const value = Math.max(1, parseInt(e.target.value) || 50)
+                    setFormData(prev => ({
+                      ...prev,
+                      clientQuota: value
+                    }))
+                    // Clear error if exists
+                    if (formErrors.clientQuota) {
+                      setFormErrors(prev => ({
+                        ...prev,
+                        clientQuota: ''
+                      }))
+                    }
+                  }}
+                  error={!!formErrors.clientQuota}
+                  helperText={formErrors.clientQuota || (targetRole === 'subadmin' ? "Número máximo de clientes que puede distribuir este asociado" : "Número máximo de clientes que puede crear este cobrador")}
+                  fullWidth
+                  InputProps={{
+                    inputProps: { min: 1, max: creatorAvailableQuota && creatorAvailableQuota > 0 ? creatorAvailableQuota : 500 }
+                  }}
+                />
+              </>
             ) : null}
           </Box>
         </DialogContent>

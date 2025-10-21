@@ -56,6 +56,7 @@ export const userToCreateDto = (
   fullName: user.fullName,
   phone: user.phone,
   role: REVERSE_ROLE_MAP[user.role] || 'MANAGER',
+  clientQuota: (user as any)?.clientQuota,
 });
 
 // Transform frontend user to API update DTO

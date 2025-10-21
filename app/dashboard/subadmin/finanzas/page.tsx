@@ -2,7 +2,7 @@
 
 import React from 'react';
 import dynamic from 'next/dynamic';
-import { Box, Grid, CircularProgress, Typography, Alert } from '@mui/material';
+import { Box, Grid, CircularProgress, Typography, Alert, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow } from '@mui/material';
 import {
   AttachMoney,
   TrendingUp,
@@ -11,10 +11,10 @@ import {
 } from '@mui/icons-material';
 import PageHeader from '@/components/ui/PageHeader';
 import { StatsCard } from '@/components/dashboard/StatsCard';
-import { WalletBalanceCard } from '@/components/wallet/WalletBalanceCard';
 import { useFinanzas } from '@/hooks/useFinanzas';
-import { useWallet } from '@/hooks/useWallet';
+import { useUsers } from '@/hooks/useUsers';
 import { ChartSkeleton } from '@/components/ui/ChartSkeleton';
+import { useMemo } from 'react';
 
 // Lazy load components
 const ManagersFinancialTable = dynamic(
@@ -55,12 +55,19 @@ export default function SubadminFinanzasPage() {
     error,
   } = useFinanzas();
 
+  const { users } = useUsers();
+
+  // Filter cobradores
+  const cobradores = useMemo(() => {
+    return users.filter(u => u.role === 'prestamista')
+  }, [users])
+
   // Wallet management
   const {
     wallet,
     isLoading: walletIsLoading,
     refetchWallet,
-  } = useWallet();
+  } = useUsers(); // Changed from useWallet to useUsers
 
   if (isLoading && !financialSummary) {
     return (
@@ -114,14 +121,7 @@ export default function SubadminFinanzasPage() {
       />
 
       {/* Wallet Balance Section */}
-      <Box sx={{ mb: 4 }}>
-        <WalletBalanceCard
-          wallet={wallet}
-          isLoading={walletIsLoading}
-          onRefresh={refetchWallet}
-          showDetails={true}
-        />
-      </Box>
+      {/* Removed WalletBalanceCard */}
 
       {/* Stats Cards */}
       <Grid
@@ -191,6 +191,67 @@ export default function SubadminFinanzasPage() {
           isLoading={isLoading}
         />
       </Box> */}
+
+      {/* Cobradores Summary Table */}
+      <Paper sx={{ mb: 4 }}>
+        <TableContainer>
+          <Table>
+            <TableHead sx={{ bgcolor: 'grey.100' }}>
+              <TableRow>
+                <TableCell sx={{ fontWeight: 600 }}>Cobrador</TableCell>
+                <TableCell align="right" sx={{ fontWeight: 600 }}>Capital Asignado</TableCell>
+                <TableCell align="right" sx={{ fontWeight: 600 }}>Dinero Prestado</TableCell>
+                <TableCell align="right" sx={{ fontWeight: 600 }}>Balance Actual</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {cobradores.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={4} sx={{ textAlign: 'center', py: 3 }}>
+                    <Typography color="text.secondary">
+                      No hay cobradores registrados aún
+                    </Typography>
+                  </TableCell>
+                </TableRow>
+              ) : (
+                cobradores.map((cobrador) => {
+                  const assignedCapital = cobrador.wallet?.balance ?? 0
+                  const loanedAmount = 0 // This would come from actual loan data
+                  const availableBalance = assignedCapital - loanedAmount
+                  
+                  return (
+                    <TableRow key={cobrador.id} hover>
+                      <TableCell>
+                        <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                          {cobrador.fullName}
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          {cobrador.email}
+                        </Typography>
+                      </TableCell>
+                      <TableCell align="right">
+                        <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                          ${assignedCapital?.toLocaleString('es-AR') ?? 0}
+                        </Typography>
+                      </TableCell>
+                      <TableCell align="right">
+                        <Typography variant="body2" sx={{ color: 'warning.main', fontWeight: 500 }}>
+                          ${loanedAmount?.toLocaleString('es-AR') ?? 0}
+                        </Typography>
+                      </TableCell>
+                      <TableCell align="right">
+                        <Typography variant="body2" sx={{ color: 'success.main', fontWeight: 600 }}>
+                          ${availableBalance?.toLocaleString('es-AR') ?? 0}
+                        </Typography>
+                      </TableCell>
+                    </TableRow>
+                  )
+                })
+              )}
+            </TableBody>
+          </Table>
+        </TableContainer>
+      </Paper>
 
       {/* Charts */}
       {/* <Grid container spacing={3}>
