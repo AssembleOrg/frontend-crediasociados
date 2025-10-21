@@ -2,7 +2,7 @@
 
 import React from 'react'
 import { Box, Grid, Alert } from '@mui/material'
-import { AttachMoney, TrendingUp, AccountBalance, Savings, Receipt, TrendingDown } from '@mui/icons-material'
+import { TrendingUp, AccountBalance, Savings, Receipt } from '@mui/icons-material'
 import { useRouter } from 'next/navigation'
 import PageHeader from '@/components/ui/PageHeader'
 import { StatsCard } from '@/components/dashboard/StatsCard'
@@ -53,21 +53,9 @@ export default function PrestamistaFinanzasPage() {
         />
       </Box>
 
-      {/* Stats Cards - 6 cards in 3x2 grid */}
+      {/* Stats Cards - 4 essential cards (2x2 mobile, 1x4 desktop) */}
       <Grid container spacing={3} sx={{ mb: 4 }}>
-        {/* Row 1 */}
-        <Grid size={{ xs: 12, sm: 6, lg: 4 }}>
-          <StatsCard
-            title="Capital Asignado"
-            value={`$${financialSummary?.capitalAsignado.toLocaleString('es-AR') || 0}`}
-            subtitle="capital total asignado"
-            icon={<AttachMoney />}
-            color="primary"
-            isLoading={isLoading}
-          />
-        </Grid>
-
-        <Grid size={{ xs: 12, sm: 6, lg: 4 }}>
+        <Grid size={{ xs: 12, sm: 6, lg: 3 }}>
           <StatsCard
             title="Capital Disponible"
             value={`$${financialSummary?.capitalDisponible.toLocaleString('es-AR') || 0}`}
@@ -78,7 +66,7 @@ export default function PrestamistaFinanzasPage() {
           />
         </Grid>
 
-        <Grid size={{ xs: 12, sm: 6, lg: 4 }}>
+        <Grid size={{ xs: 12, sm: 6, lg: 3 }}>
           <StatsCard
             title="Prestado Activo"
             value={`$${financialSummary?.montoEnPrestamosActivos.toLocaleString('es-AR') || 0}`}
@@ -89,8 +77,7 @@ export default function PrestamistaFinanzasPage() {
           />
         </Grid>
 
-        {/* Row 2 */}
-        <Grid size={{ xs: 12, sm: 6, lg: 4 }}>
+        <Grid size={{ xs: 12, sm: 6, lg: 3 }}>
           <StatsCard
             title="Recaudado Este Mes"
             value={`$${financialSummary?.recaudadoEsteMes.toLocaleString('es-AR') || 0}`}
@@ -101,18 +88,7 @@ export default function PrestamistaFinanzasPage() {
           />
         </Grid>
 
-        <Grid size={{ xs: 12, sm: 6, lg: 4 }}>
-          <StatsCard
-            title="Gastos Este Mes"
-            value={`$${financialSummary?.gastosEsteMes.toLocaleString('es-AR') || 0}`}
-            subtitle="egresos operativos"
-            icon={<TrendingDown />}
-            color="error"
-            isLoading={isLoading}
-          />
-        </Grid>
-
-        <Grid size={{ xs: 12, sm: 6, lg: 4 }}>
+        <Grid size={{ xs: 12, sm: 6, lg: 3 }}>
           <StatsCard
             title="Valor de Cartera"
             value={`$${financialSummary?.valorCartera.toLocaleString('es-AR') || 0}`}

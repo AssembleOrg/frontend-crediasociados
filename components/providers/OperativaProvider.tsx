@@ -4,7 +4,6 @@ import { createContext, useContext, useEffect, useRef, useState } from 'react';
 import { operativaService } from '@/services/operativa.service';
 import { useOperativaStore } from '@/stores/operativa';
 import { useAuth } from '@/hooks/useAuth';
-import { AuthLoadingOverlay } from '@/components/ui/AuthLoadingOverlay';
 
 interface OperativaProviderProps {
   children: React.ReactNode;

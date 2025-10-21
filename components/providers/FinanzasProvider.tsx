@@ -4,7 +4,6 @@ import { createContext, useContext, useEffect, useRef, useState } from 'react';
 import { finanzasService } from '@/services/finanzas.service';
 import { useFinanzasStore } from '@/stores/finanzas';
 import { useAuth } from '@/hooks/useAuth';
-import { AuthLoadingOverlay } from '@/components/ui/AuthLoadingOverlay';
 import type { UserRole } from '@/types/auth';
 
 interface FinanzasProviderProps {

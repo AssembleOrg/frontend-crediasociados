@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react'
 import {
   Box,
-  Typography,
   Table,
   TableBody,
   TableCell,
@@ -14,11 +13,10 @@ import {
   TablePagination,
   CircularProgress,
   Alert,
-  Button,
   IconButton,
   Tooltip
 } from '@mui/material'
-import { Eye, Delete } from '@mui/icons-material'
+import { Visibility } from '@mui/icons-material'
 import { formatAmount } from '@/lib/formatters'
 import { dailyClosuresService } from '@/services/daily-closures.service'
 import type { DailyClosure } from '@/types/daily-closures'
@@ -38,10 +36,6 @@ export const ClosureHistoryTable: React.FC<ClosureHistoryTableProps> = ({
   const [page, setPage] = useState(0)
   const [rowsPerPage, setRowsPerPage] = useState(10)
 
-  useEffect(() => {
-    fetchClosures()
-  }, [refreshTrigger])
-
   const fetchClosures = async () => {
     setIsLoading(true)
     setError(null)
@@ -51,12 +45,18 @@ export const ClosureHistoryTable: React.FC<ClosureHistoryTableProps> = ({
         limit: rowsPerPage
       })
       setClosures(response?.data || [])
-    } catch (err: any) {
-      setError(err?.message || 'Error al cargar cierres')
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : 'Error al cargar cierres'
+      setError(errorMsg)
     } finally {
       setIsLoading(false)
     }
   }
+
+  useEffect(() => {
+    fetchClosures()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [refreshTrigger, page, rowsPerPage])
 
   const handleChangePage = (_event: unknown, newPage: number) => {
     setPage(newPage)
@@ -124,9 +124,8 @@ export const ClosureHistoryTable: React.FC<ClosureHistoryTableProps> = ({
                       <IconButton
                         size="small"
                         onClick={() => onViewDetail?.(closure)}
-                        startIcon={<Eye />}
                       >
-                        <Eye fontSize="small" />
+                        <Visibility fontSize="small" />
                       </IconButton>
                     </Tooltip>
                   </TableCell>

@@ -68,7 +68,7 @@ export const TransferToManagerModal: React.FC<TransferToManagerModalProps> = ({
 
     try {
       await walletsService.transfer({
-        recipientId: selectedManager.id,
+        managerId: selectedManager.id,
         amount: amountValue,
         currency: 'ARS',
         description: notes || `Transferencia a ${selectedManager.name}`
@@ -83,8 +83,9 @@ export const TransferToManagerModal: React.FC<TransferToManagerModalProps> = ({
 
       onSuccess?.()
       onClose()
-    } catch (err: any) {
-      setError(err?.message || 'Error al realizar la transferencia')
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : 'Error al realizar la transferencia'
+      setError(errorMsg)
     } finally {
       setIsSubmitting(false)
     }

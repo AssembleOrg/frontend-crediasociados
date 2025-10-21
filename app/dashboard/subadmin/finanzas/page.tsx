@@ -1,8 +1,7 @@
 'use client';
 
 import React from 'react';
-import dynamic from 'next/dynamic';
-import { Box, Grid, CircularProgress, Typography, Alert, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow } from '@mui/material';
+import { Box, Grid, CircularProgress, Typography, Alert, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Card, CardContent, useTheme, useMediaQuery, Chip } from '@mui/material';
 import {
   AttachMoney,
   TrendingUp,
@@ -13,44 +12,19 @@ import PageHeader from '@/components/ui/PageHeader';
 import { StatsCard } from '@/components/dashboard/StatsCard';
 import { useFinanzas } from '@/hooks/useFinanzas';
 import { useUsers } from '@/hooks/useUsers';
-import { ChartSkeleton } from '@/components/ui/ChartSkeleton';
 import { useMemo } from 'react';
 
-// Lazy load components
-const ManagersFinancialTable = dynamic(
-  () => import('@/components/finanzas/ManagersFinancialTable'),
-  {
-    ssr: false,
-    loading: () => (
-      <Box sx={{ p: 3, textAlign: 'center', color: 'text.secondary' }}>
-        Cargando tabla...
-      </Box>
-    ),
-  }
-);
-
-const PortfolioEvolutionChart = dynamic(
-  () => import('@/components/charts/PortfolioEvolutionChart'),
-  {
-    ssr: false,
-    loading: () => <ChartSkeleton title='Evolución del Valor de Cartera' />,
-  }
-);
-
-const CapitalDistributionChart = dynamic(
-  () => import('@/components/charts/CapitalDistributionChart'),
-  {
-    ssr: false,
-    loading: () => <ChartSkeleton title='Distribución de Capital' />,
-  }
-);
+// Lazy load components (commented out - not used in MVP)
+// const ManagersFinancialTable = dynamic(...)
+// const PortfolioEvolutionChart = dynamic(...)
+// const CapitalDistributionChart = dynamic(...)
 
 export default function SubadminFinanzasPage() {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('lg'));
+
   const {
     financialSummary,
-    managersFinancial,
-    portfolioEvolution,
-    capitalDistribution,
     isLoading,
     error,
   } = useFinanzas();
@@ -61,13 +35,6 @@ export default function SubadminFinanzasPage() {
   const cobradores = useMemo(() => {
     return users.filter(u => u.role === 'prestamista')
   }, [users])
-
-  // Wallet management
-  const {
-    wallet,
-    isLoading: walletIsLoading,
-    refetchWallet,
-  } = useUsers(); // Changed from useWallet to useUsers
 
   if (isLoading && !financialSummary) {
     return (
@@ -192,66 +159,136 @@ export default function SubadminFinanzasPage() {
         />
       </Box> */}
 
-      {/* Cobradores Summary Table */}
-      <Paper sx={{ mb: 4 }}>
-        <TableContainer>
-          <Table>
-            <TableHead sx={{ bgcolor: 'grey.100' }}>
-              <TableRow>
-                <TableCell sx={{ fontWeight: 600 }}>Cobrador</TableCell>
-                <TableCell align="right" sx={{ fontWeight: 600 }}>Capital Asignado</TableCell>
-                <TableCell align="right" sx={{ fontWeight: 600 }}>Dinero Prestado</TableCell>
-                <TableCell align="right" sx={{ fontWeight: 600 }}>Balance Actual</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {cobradores.length === 0 ? (
+      {/* Cobradores Summary Table / Cards */}
+      {/* Desktop Table View */}
+      {!isMobile && (
+        <Paper sx={{ mb: 4 }}>
+          <TableContainer>
+            <Table>
+              <TableHead sx={{ bgcolor: 'grey.100' }}>
                 <TableRow>
-                  <TableCell colSpan={4} sx={{ textAlign: 'center', py: 3 }}>
-                    <Typography color="text.secondary">
-                      No hay cobradores registrados aún
-                    </Typography>
-                  </TableCell>
+                  <TableCell sx={{ fontWeight: 600 }}>Cobrador</TableCell>
+                  <TableCell align="right" sx={{ fontWeight: 600 }}>Capital Asignado</TableCell>
+                  <TableCell align="right" sx={{ fontWeight: 600 }}>Dinero Prestado</TableCell>
+                  <TableCell align="right" sx={{ fontWeight: 600 }}>Balance Actual</TableCell>
                 </TableRow>
-              ) : (
-                cobradores.map((cobrador) => {
-                  const assignedCapital = cobrador.wallet?.balance ?? 0
-                  const loanedAmount = 0 // This would come from actual loan data
-                  const availableBalance = assignedCapital - loanedAmount
-                  
-                  return (
-                    <TableRow key={cobrador.id} hover>
-                      <TableCell>
-                        <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                          {cobrador.fullName}
-                        </Typography>
-                        <Typography variant="caption" color="text.secondary">
-                          {cobrador.email}
-                        </Typography>
-                      </TableCell>
-                      <TableCell align="right">
-                        <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                          ${assignedCapital?.toLocaleString('es-AR') ?? 0}
-                        </Typography>
-                      </TableCell>
-                      <TableCell align="right">
-                        <Typography variant="body2" sx={{ color: 'warning.main', fontWeight: 500 }}>
-                          ${loanedAmount?.toLocaleString('es-AR') ?? 0}
-                        </Typography>
-                      </TableCell>
-                      <TableCell align="right">
-                        <Typography variant="body2" sx={{ color: 'success.main', fontWeight: 600 }}>
-                          ${availableBalance?.toLocaleString('es-AR') ?? 0}
-                        </Typography>
-                      </TableCell>
-                    </TableRow>
-                  )
-                })
-              )}
-            </TableBody>
-          </Table>
-        </TableContainer>
-      </Paper>
+              </TableHead>
+              <TableBody>
+                {cobradores.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={4} sx={{ textAlign: 'center', py: 3 }}>
+                      <Typography color="text.secondary">
+                        No hay cobradores registrados aún
+                      </Typography>
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  cobradores.map((cobrador) => {
+                    const assignedCapital = cobrador.wallet?.balance ?? 0
+                    const loanedAmount = 0
+                    const availableBalance = assignedCapital - loanedAmount
+
+                    return (
+                      <TableRow key={cobrador.id} hover>
+                        <TableCell>
+                          <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                            {cobrador.fullName}
+                          </Typography>
+                          <Typography variant="caption" color="text.secondary">
+                            {cobrador.email}
+                          </Typography>
+                        </TableCell>
+                        <TableCell align="right">
+                          <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                            ${assignedCapital?.toLocaleString('es-AR') ?? 0}
+                          </Typography>
+                        </TableCell>
+                        <TableCell align="right">
+                          <Typography variant="body2" sx={{ color: 'warning.main', fontWeight: 500 }}>
+                            ${loanedAmount?.toLocaleString('es-AR') ?? 0}
+                          </Typography>
+                        </TableCell>
+                        <TableCell align="right">
+                          <Typography variant="body2" sx={{ color: 'success.main', fontWeight: 600 }}>
+                            ${availableBalance?.toLocaleString('es-AR') ?? 0}
+                          </Typography>
+                        </TableCell>
+                      </TableRow>
+                    )
+                  })
+                )}
+              </TableBody>
+            </Table>
+          </TableContainer>
+        </Paper>
+      )}
+
+      {/* Mobile Card View */}
+      {isMobile && (
+        <Box sx={{ mb: 4 }}>
+          {cobradores.length === 0 ? (
+            <Paper sx={{ p: 3, textAlign: 'center' }}>
+              <Typography color="text.secondary">
+                No hay cobradores registrados aún
+              </Typography>
+            </Paper>
+          ) : (
+            <Grid container spacing={2}>
+              {cobradores.map((cobrador) => {
+                const assignedCapital = cobrador.wallet?.balance ?? 0
+                const loanedAmount = 0
+                const availableBalance = assignedCapital - loanedAmount
+
+                return (
+                  <Grid size={{ xs: 12 }} key={cobrador.id}>
+                    <Card>
+                      <CardContent>
+                        <Box sx={{ mb: 2 }}>
+                          <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
+                            {cobrador.fullName}
+                          </Typography>
+                          <Typography variant="caption" color="text.secondary">
+                            {cobrador.email}
+                          </Typography>
+                        </Box>
+
+                        <Grid container spacing={2}>
+                          <Grid size={{ xs: 12, sm: 6 }}>
+                            <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 0.5 }}>
+                              Capital Asignado
+                            </Typography>
+                            <Typography variant="body2" sx={{ fontWeight: 600, color: 'primary.main' }}>
+                              ${assignedCapital?.toLocaleString('es-AR') ?? 0}
+                            </Typography>
+                          </Grid>
+                          <Grid size={{ xs: 12, sm: 6 }}>
+                            <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 0.5 }}>
+                              Dinero Prestado
+                            </Typography>
+                            <Typography variant="body2" sx={{ fontWeight: 600, color: 'warning.main' }}>
+                              ${loanedAmount?.toLocaleString('es-AR') ?? 0}
+                            </Typography>
+                          </Grid>
+                          <Grid size={{ xs: 12 }}>
+                            <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 0.5 }}>
+                              Balance Actual
+                            </Typography>
+                            <Chip
+                              label={`$${availableBalance?.toLocaleString('es-AR') ?? 0}`}
+                              color="success"
+                              sx={{ fontWeight: 600 }}
+                            />
+                          </Grid>
+                        </Grid>
+                      </CardContent>
+                    </Card>
+                  </Grid>
+                )
+              })}
+            </Grid>
+          )}
+        </Box>
+      )}
 
       {/* Charts */}
       {/* <Grid container spacing={3}>

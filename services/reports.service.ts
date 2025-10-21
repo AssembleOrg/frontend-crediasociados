@@ -5,7 +5,6 @@ import { managerService } from './manager.service'
 import type { ClientChartDataDto, LoanChartDataDto } from './manager.service'
 
 type UserResponseDto = components['schemas']['UserResponseDto']
-type LoanListResponseDto = components['schemas']['LoanListResponseDto']
 type ClientResponseDto = components['schemas']['ClientResponseDto']
 
 export interface BaseReportMetrics {
@@ -116,7 +115,7 @@ class ReportsService {
    */
   calculateUserMetrics(
     user: UserResponseDto,
-    loans: LoanListResponseDto[]
+    loans: LoanChartDataDto[]
   ): UserReportData {
     // Filter only active loans (ACTIVE or APPROVED status)
     const activeLoans = loans.filter(loan =>
@@ -124,11 +123,11 @@ class ReportsService {
     )
 
     // Get unique clients from active loans
-    const uniqueClientIds = new Set(activeLoans.map(loan => loan.clientId))
+    const uniqueClientIds = new Set(activeLoans.map(loan => loan.client?.id || ''))
     const totalClients = uniqueClientIds.size
 
     // Calculate total amounts from active loans only
-    const totalAmountLent = activeLoans.reduce((sum, loan) => sum + loan.amount, 0)
+    const totalAmountLent = activeLoans.reduce((sum, loan) => sum + (loan.amount || 0), 0)
 
     // Calculate pending amounts and collection rate from active loans subloans
     let totalAmountPending = 0
@@ -136,13 +135,14 @@ class ReportsService {
     let paidSubLoans = 0
 
     activeLoans.forEach(loan => {
-      if (loan.subLoans && Array.isArray(loan.subLoans)) {
-        loan.subLoans.forEach((subLoan: any) => {
+      const subLoans = (loan as any).subLoans
+      if (subLoans && Array.isArray(subLoans)) {
+        subLoans.forEach((subLoan: any) => {
           totalSubLoans++
           if (subLoan.status === 'PAID') {
             paidSubLoans++
           } else if (subLoan.status === 'PENDING' || subLoan.status === 'OVERDUE') {
-            totalAmountPending += subLoan.totalAmount - subLoan.paidAmount
+            totalAmountPending += (subLoan.totalAmount || 0) - (subLoan.paidAmount || 0)
           }
         })
       }

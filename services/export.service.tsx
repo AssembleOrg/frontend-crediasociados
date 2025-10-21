@@ -145,8 +145,8 @@ class ExportService {
       clientAddress: client.address,
 
       // Payment Schedule - Without interest
-      paymentSchedule: subLoans.map(subLoan => ({
-        paymentNumber: subLoan.paymentNumber,
+      paymentSchedule: subLoans.map((subLoan, idx) => ({
+        paymentNumber: subLoan.paymentNumber ?? (idx + 1),
         dueDate: new Date(subLoan.dueDate).toLocaleDateString('es-AR'),
         principalAmount: subLoan.amount,
         totalAmount: subLoan.amount, // Changed: Show only principal, no interest

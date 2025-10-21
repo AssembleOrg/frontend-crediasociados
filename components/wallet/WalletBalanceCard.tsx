@@ -72,8 +72,7 @@ export const WalletBalanceCard: React.FC<WalletBalanceCardProps> = ({
                 spacing={2}
               >
                 <Grid
-                  item
-                  xs={6}
+                  size={6}
                 >
                   <Skeleton
                     variant='rectangular'
@@ -81,8 +80,7 @@ export const WalletBalanceCard: React.FC<WalletBalanceCardProps> = ({
                   />
                 </Grid>
                 <Grid
-                  item
-                  xs={6}
+                  size={6}
                 >
                   <Skeleton
                     variant='rectangular'

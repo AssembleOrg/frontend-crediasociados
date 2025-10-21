@@ -112,7 +112,7 @@ export default function CobrosPage() {
   )
 
   const overduePayments = useMemo(() =>
-    allSubLoansWithClient.filter(p => getUrgencyLevel(p.dueDate) === 'overdue'),
+    allSubLoansWithClient.filter(p => p.dueDate && getUrgencyLevel(p.dueDate) === 'overdue'),
     [allSubLoansWithClient]
   )
 

@@ -77,7 +77,7 @@ export function UserFormModal({
         dni: user.dni || '',
         cuit: user.cuit || '',
         role: user.role as UserRole,
-        clientQuota: (user as any)?.clientQuota || 50  // ← NUEVO: Read from user
+        clientQuota: user.clientQuota || 50  // ← NUEVO: Read from user
       })
     } else if (mode === 'create') {
       setFormData({
@@ -140,8 +140,8 @@ export function UserFormModal({
     }
     
     // Validate clientQuota for SUBADMIN or MANAGER edit
-    if (mode === 'edit' && (formData.role === 'subadmin' || formData.role === 'manager')) {
-      const usedQuota = (user as any)?.usedClientQuota ?? 0
+    if (mode === 'edit' && user && (formData.role === 'subadmin' || formData.role === 'manager')) {
+      const usedQuota = user.usedClientQuota ?? 0
       if (formData.clientQuota < usedQuota) {
         errors.clientQuota = `No puedes reducir la cuota por debajo de ${usedQuota} (clientes actualmente usados)`
       }

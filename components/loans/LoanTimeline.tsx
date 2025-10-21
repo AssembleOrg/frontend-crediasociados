@@ -15,15 +15,14 @@ interface TimelineNodeProps {
   subloan: SubLoanWithClientInfo
   index: number
   isLast: boolean
-  getUrgencyLevel: (dueDate: string) => 'overdue' | 'today' | 'soon' | 'future'
+  getUrgencyLevel: (dueDate?: string) => 'overdue' | 'today' | 'soon' | 'future'
   compact?: boolean
   onPaymentClick?: (subloan: SubLoanWithClientInfo) => void
 }
 
-const TimelineNode: React.FC<TimelineNodeProps> = ({ 
-  subloan, 
-  index, 
-  isLast, 
+const TimelineNode: React.FC<TimelineNodeProps> = ({
+  subloan,
+  isLast,
   getUrgencyLevel,
   compact = false,
   onPaymentClick
@@ -87,7 +86,8 @@ const TimelineNode: React.FC<TimelineNodeProps> = ({
   const colors = getNodeColors()
   const IconComponent = colors.icon
 
-  const formatDate = (dateString: string) => {
+  const formatDate = (dateString?: string) => {
+    if (!dateString) return 'N/A'
     return new Date(dateString).toLocaleDateString('es-AR', {
       month: 'short',
       day: 'numeric'
@@ -98,18 +98,20 @@ const TimelineNode: React.FC<TimelineNodeProps> = ({
     if (isPaid) return 'Pagada'
     if (isPartial) {
       const paidAmount = subloan.paidAmount || 0
-      const totalAmount = subloan.totalAmount
+      const totalAmount = subloan.totalAmount ?? 0
       const pending = totalAmount - paidAmount
       return `Pagado parcial: $${paidAmount.toLocaleString()} (Resta: $${pending.toLocaleString()})`
     }
-    
+
+    if (!subloan.dueDate) return 'Sin fecha vencimiento'
+
     // Use only date part to avoid timezone issues
     const today = new Date()
     today.setHours(0, 0, 0, 0)
-    
+
     const dueDate = new Date(subloan.dueDate)
     dueDate.setHours(0, 0, 0, 0)
-    
+
     const diffTime = dueDate.getTime() - today.getTime()
     const diffDays = diffTime / (1000 * 60 * 60 * 24)
 
@@ -127,17 +129,17 @@ const TimelineNode: React.FC<TimelineNodeProps> = ({
             Cuota #{subloan.paymentNumber}
           </Typography>
           <Typography variant="caption" display="block">
-            Monto: ${subloan.totalAmount.toLocaleString()}
+            Monto: ${(subloan.totalAmount ?? 0).toLocaleString()}
           </Typography>
           <Typography variant="caption" display="block">
-            Vencimiento: {formatDate(subloan.dueDate)}
+            Vencimiento: {subloan.dueDate ? formatDate(subloan.dueDate) : 'N/A'}
           </Typography>
           <Typography variant="caption" display="block" color={colors.primary}>
             {getDaysInfo()}
           </Typography>
-          {subloan.paidAmount > 0 && (
+          {(subloan.paidAmount ?? 0) > 0 && (
             <Typography variant="caption" display="block" color="success.main">
-              Pagado: ${subloan.paidAmount.toLocaleString()}
+              Pagado: ${(subloan.paidAmount ?? 0).toLocaleString()}
             </Typography>
           )}
         </Box>
@@ -230,12 +232,12 @@ const TimelineNode: React.FC<TimelineNodeProps> = ({
             >
               {formatDate(subloan.dueDate)}
             </Typography>
-            <Typography 
-              variant="caption" 
+            <Typography
+              variant="caption"
               fontWeight="bold"
               color={colors.primary}
             >
-              ${subloan.totalAmount.toLocaleString()}
+              ${(subloan.totalAmount ?? 0).toLocaleString()}
             </Typography>
           </>
         )}
@@ -288,17 +290,19 @@ export const LoanTimeline: React.FC<LoanTimelineProps> = ({
   const isMobile = useMediaQuery(theme.breakpoints.down('md'))
 
   // Helper function to determine urgency based on due date
-  const getUrgencyLevel = (dueDate: string): 'overdue' | 'today' | 'soon' | 'future' => {
+  const getUrgencyLevel = (dueDate?: string): 'overdue' | 'today' | 'soon' | 'future' => {
+    if (!dueDate) return 'future'
+
     // Use only date part to avoid timezone issues
     const today = new Date()
     today.setHours(0, 0, 0, 0)
-    
+
     const due = new Date(dueDate)
     due.setHours(0, 0, 0, 0)
-    
+
     const diffTime = due.getTime() - today.getTime()
     const diffDays = diffTime / (1000 * 60 * 60 * 24)
-    
+
     if (diffDays < 0) return 'overdue'
     if (diffDays === 0) return 'today'
     if (diffDays <= 2) return 'soon'
@@ -343,7 +347,7 @@ export const LoanTimeline: React.FC<LoanTimelineProps> = ({
   }
 
   // Sort subloans by payment number
-  const sortedSubLoans = [...subLoans].sort((a, b) => a.paymentNumber - b.paymentNumber)
+  const sortedSubLoans = [...subLoans].sort((a, b) => (a.paymentNumber ?? 0) - (b.paymentNumber ?? 0))
 
   const isCompactMode = compact || isMobile
 

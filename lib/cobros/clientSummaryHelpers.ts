@@ -25,7 +25,7 @@ export const getClientsSummary = (allSubLoansWithClient: SubLoanWithClientInfo[]
   
   // Group by client
   allSubLoansWithClient.forEach(subloan => {
-    const clientKey = subloan.clientId || subloan.loanId
+    const clientKey = subloan.clientId || subloan.loanId || 'unknown'
     if (!clientsMap.has(clientKey)) {
       clientsMap.set(clientKey, [])
     }
@@ -52,7 +52,7 @@ export const getClientsSummary = (allSubLoansWithClient: SubLoanWithClientInfo[]
     return {
       clientId: firstSubloan.clientId || clientKey,
       clientName,
-      subLoans: subLoans.sort((a, b) => a.paymentNumber - b.paymentNumber),
+      subLoans: subLoans.sort((a, b) => (a.paymentNumber ?? 0) - (b.paymentNumber ?? 0)),
       urgencyLevel,
       stats: {
         total: subLoans.length,
@@ -60,7 +60,7 @@ export const getClientsSummary = (allSubLoansWithClient: SubLoanWithClientInfo[]
         today: todayCount,
         soon: soonCount,
         paid: paidCount,
-        totalAmount: subLoans.reduce((sum, s) => sum + s.totalAmount, 0),
+        totalAmount: subLoans.reduce((sum, s) => sum + (s.totalAmount ?? 0), 0),
         paidAmount: subLoans.reduce((sum, s) => sum + (s.paidAmount || 0), 0)
       }
     }
@@ -86,7 +86,7 @@ export const getStatusStats = (allSubLoansWithClient: SubLoanWithClientInfo[]) =
     pending: allSubLoansWithClient.filter(p => p.status === 'PENDING').length,
     overdue: allSubLoansWithClient.filter(p => p.status === 'OVERDUE').length,
     canceled: 0, // TODO: backend no maneja cancelados aún
-    totalExpected: allSubLoansWithClient.reduce((sum, p) => sum + p.totalAmount, 0),
+    totalExpected: allSubLoansWithClient.reduce((sum, p) => sum + (p.totalAmount ?? 0), 0),
     totalCollected: allSubLoansWithClient.reduce((sum, p) => sum + (p.paidAmount || 0), 0)
   }
   return stats

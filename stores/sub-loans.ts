@@ -1,9 +1,7 @@
 import { create } from 'zustand'
 import { immer } from 'zustand/middleware/immer'
-import type { components } from '@/types/api-generated'
 import type { SubLoanWithClientInfo } from '@/services/subloans-lookup.service'
-
-type SubLoanResponseDto = components['schemas']['SubLoanResponseDto']
+import type { SubLoanResponseDto } from '@/types/export'
 
 interface SubLoanStats {
   totalDueToday: number
@@ -141,7 +139,7 @@ export const useSubLoansStore = create<SubLoansStore>()(
     getTotalAmount: () => {
       const stats = get().stats
       if (stats) return stats.totalAmount
-      return get().todayDueSubLoans.reduce((sum, subloan) => sum + subloan.totalAmount, 0)
+      return get().todayDueSubLoans.reduce((sum, subloan) => sum + (subloan.totalAmount ?? subloan.amount ?? 0), 0)
     },
   }))
 )

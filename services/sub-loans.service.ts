@@ -1,7 +1,5 @@
 import api from './api';
-import type { components } from '@/types/api-generated';
-
-type SubLoanResponseDto = components['schemas']['SubLoanResponseDto'];
+import type { SubLoanResponseDto } from '@/types/export';
 
 interface SubLoanStatsResponseDto {
   totalDueToday: number;
@@ -73,7 +71,7 @@ class SubLoansService {
    * Used in payment UI to show how much is left to pay
    */
   calculateRemainingAmount(subloan: SubLoanResponseDto): number {
-    return Math.max(0, subloan.totalAmount - subloan.paidAmount);
+    return Math.max(0, (subloan.totalAmount ?? subloan.amount ?? 0) - (subloan.paidAmount ?? 0));
   }
 
   /**
@@ -122,14 +120,14 @@ class SubLoansService {
   } {
     return subloans.reduce(
       (acc, subloan) => ({
-        totalAmount: acc.totalAmount + subloan.totalAmount,
-        totalPaid: acc.totalPaid + subloan.paidAmount,
+        totalAmount: acc.totalAmount + (subloan.totalAmount ?? subloan.amount ?? 0),
+        totalPaid: acc.totalPaid + (subloan.paidAmount ?? 0),
         totalRemaining:
           acc.totalRemaining +
-          Math.max(0, subloan.totalAmount - subloan.paidAmount),
+          Math.max(0, (subloan.totalAmount ?? subloan.amount ?? 0) - (subloan.paidAmount ?? 0)),
         totalOverdue:
           acc.totalOverdue +
-          (subloan.status === 'OVERDUE' ? subloan.totalAmount : 0),
+          (subloan.status === 'OVERDUE' ? (subloan.totalAmount ?? subloan.amount ?? 0) : 0),
       }),
       { totalAmount: 0, totalPaid: 0, totalRemaining: 0, totalOverdue: 0 }
     );

@@ -84,10 +84,10 @@ export default function OverduePaymentsModal({
               </TableHead>
               <TableBody>
                 {overduePayments.map((payment) => {
-                  const daysOverdue = Math.floor(
+                  const daysOverdue = payment.dueDate ? Math.floor(
                     (new Date().getTime() - new Date(payment.dueDate).getTime()) /
                       (1000 * 3600 * 24)
-                  )
+                  ) : 0
                   return (
                     <TableRow
                       key={payment.id}
@@ -133,7 +133,7 @@ export default function OverduePaymentsModal({
                           fontWeight="bold"
                           color="white"
                         >
-                          ${payment.totalAmount.toLocaleString()}
+                          ${payment.totalAmount?.toLocaleString() ?? 0}
                         </Typography>
                       </TableCell>
                       <TableCell align="center">
@@ -142,7 +142,7 @@ export default function OverduePaymentsModal({
                           color="white"
                           fontWeight="bold"
                         >
-                          {new Date(payment.dueDate).toLocaleDateString('es-AR')}
+                          {payment.dueDate ? new Date(payment.dueDate).toLocaleDateString('es-AR') : 'N/A'}
                         </Typography>
                       </TableCell>
                       <TableCell align="center">
@@ -181,10 +181,10 @@ export default function OverduePaymentsModal({
           }}
         >
           {overduePayments.map((payment) => {
-            const daysOverdue = Math.floor(
+            const daysOverdue = payment.dueDate ? Math.floor(
               (new Date().getTime() - new Date(payment.dueDate).getTime()) /
                 (1000 * 3600 * 24)
-            )
+            ) : 0
             return (
               <Card
                 key={payment.id}
@@ -248,7 +248,7 @@ export default function OverduePaymentsModal({
                           fontWeight="bold"
                           color="white"
                         >
-                          ${payment.totalAmount.toLocaleString()}
+                          ${payment.totalAmount?.toLocaleString() ?? 0}
                         </Typography>
                       </Box>
                       <Box>
@@ -264,7 +264,7 @@ export default function OverduePaymentsModal({
                           color="white"
                           fontWeight="bold"
                         >
-                          {new Date(payment.dueDate).toLocaleDateString('es-AR')}
+                          {payment.dueDate ? new Date(payment.dueDate).toLocaleDateString('es-AR') : 'N/A'}
                         </Typography>
                       </Box>
                     </Box>

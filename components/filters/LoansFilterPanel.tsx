@@ -21,14 +21,13 @@ import {
   Clear
 } from '@mui/icons-material'
 import { useLoansFilters } from '@/hooks/useLoansFilters'
-import { getFrequencyLabel } from '@/lib/formatters'
 
 interface LoansFilterPanelProps {
   variant?: 'expanded' | 'compact'
   onClose?: () => void
 }
 
-export function LoansFilterPanel({ variant = 'expanded', onClose }: LoansFilterPanelProps) {
+export function LoansFilterPanel({ variant: _variant = 'expanded', onClose }: LoansFilterPanelProps) {
   const {
     filters,
     filterOptions,

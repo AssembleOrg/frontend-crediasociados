@@ -13,7 +13,6 @@ import {
 import {
   PictureAsPdf,
   TableChart,
-  Download,
   CheckCircle,
   Error as ErrorIcon
 } from '@mui/icons-material';

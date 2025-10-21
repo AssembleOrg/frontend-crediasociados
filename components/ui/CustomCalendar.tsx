@@ -114,6 +114,7 @@ export function CustomCalendar({
   // Sincronizar input con value
   useEffect(() => {
     setInputValue(formatDateForInput(value ?? null))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [value])
 
   // Sincronizar currentMonth con value

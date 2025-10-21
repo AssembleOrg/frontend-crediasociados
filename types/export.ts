@@ -1,7 +1,17 @@
 import type { Loan, Client } from './auth';
 import type { components } from './api-generated';
 
-type SubLoanResponseDto = components['schemas']['SubLoanResponseDto'];
+export interface SubLoanResponseDto {
+  id: string;
+  loanId: string;
+  amount: number;
+  paidAmount: number;
+  status: 'PENDING' | 'PARTIAL' | 'PAID' | 'OVERDUE';
+  dueDate: string;
+  createdAt: string;
+  paymentNumber?: number;
+  totalAmount?: number;
+}
 
 export interface ExportLoanData {
   loan: Loan;

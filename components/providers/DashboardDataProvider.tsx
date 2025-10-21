@@ -28,6 +28,7 @@ import type {
   IncomeVsExpenses,
   CapitalDistribution
 } from '@/types/finanzas';
+import type { SubLoanWithClientInfo } from '@/services/subloans-lookup.service';
 
 interface DashboardDataProviderProps {
   children: React.ReactNode;
@@ -97,8 +98,8 @@ export default function DashboardDataProvider({ children }: DashboardDataProvide
   
   // Cache to prevent redundant fetches
   const dataCache = useRef<{
-    subLoans?: { timestamp: number; data: any };
-    finanzas?: { timestamp: number; data: any };
+    subLoans?: { timestamp: number; data: SubLoanWithClientInfo[] };
+    finanzas?: { timestamp: number; data: Record<string, unknown> };
   }>({});
   
   const CACHE_TTL = 30000; // 30 seconds
@@ -252,6 +253,7 @@ export default function DashboardDataProvider({ children }: DashboardDataProvide
       }
 
       // Parallel fetch of additional data with Promise.allSettled
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const additionalDataPromises: Promise<any>[] = [];
 
       if (user.role === 'subadmin') {
@@ -314,11 +316,11 @@ export default function DashboardDataProvider({ children }: DashboardDataProvide
 
       console.log('✅ [DASHBOARD PROVIDER] Finanzas loaded');
       console.timeEnd('💰 Finanzas Load');
-      
+
       // Update cache
       dataCache.current.finanzas = {
         timestamp: Date.now(),
-        data: true
+        data: summary ? (summary as unknown as Record<string, unknown>) : {}
       };
     } catch (error) {
       console.error('💰 [DASHBOARD PROVIDER] Finanzas error (continuing):', error);

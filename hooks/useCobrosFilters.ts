@@ -69,7 +69,7 @@ export function useCobrosFilters() {
     
     // Group by client
     filteredSubLoans.forEach(subloan => {
-      const clientKey = subloan.clientId || subloan.loanId
+      const clientKey = subloan.clientId || subloan.loanId || 'unknown'
       if (!clientsMap.has(clientKey)) {
         clientsMap.set(clientKey, [])
       }
@@ -114,7 +114,7 @@ export function useCobrosFilters() {
       return {
         clientId: firstSubloan.clientId || clientKey,
         clientName,
-        subLoans: subLoans.sort((a, b) => a.paymentNumber - b.paymentNumber),
+        subLoans: subLoans.sort((a, b) => (a.paymentNumber ?? 0) - (b.paymentNumber ?? 0)),
         urgencyLevel,
         stats: {
           total: subLoans.length,
@@ -122,7 +122,7 @@ export function useCobrosFilters() {
           today: todayCount,
           soon: soonCount,
           paid: paidCount,
-          totalAmount: subLoans.reduce((sum, s) => sum + s.totalAmount, 0),
+          totalAmount: subLoans.reduce((sum, s) => sum + (s.totalAmount ?? 0), 0),
           paidAmount: subLoans.reduce((sum, s) => sum + (s.paidAmount || 0), 0)
         }
       }
@@ -159,7 +159,7 @@ export function useCobrosFilters() {
   const filterStats = useMemo(() => {
     const stats = {
       total: filteredClientsSummary.length, // Count clients, not subloans
-      totalAmount: filteredSubLoans.reduce((sum, s) => sum + s.totalAmount, 0),
+      totalAmount: filteredSubLoans.reduce((sum, s) => sum + (s.totalAmount ?? 0), 0),
       byStatus: {
         overdue: filteredSubLoans.filter(s => getUrgencyLevel(s.dueDate) === 'overdue').length,
         today: filteredSubLoans.filter(s => getUrgencyLevel(s.dueDate) === 'today').length,

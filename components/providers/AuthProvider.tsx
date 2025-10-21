@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useAuthStore } from '@/stores/auth';
-import { setAuthToken, setRefreshToken, initializeTokensFromCookie } from '@/services/api';
+import { setAuthToken } from '@/services/api';
 import { AuthLoadingOverlay } from '@/components/ui/AuthLoadingOverlay';
 import { logger } from '@/lib/logger';
 
@@ -27,14 +27,9 @@ export default function AuthProvider({ children }: AuthProviderProps) {
 
   useEffect(() => {
     const checkRehydration = async () => {
-      initializeTokensFromCookie();
-
+      // Initialize auth token from store
       if (authStore.token) {
         setAuthToken(authStore.token);
-      }
-
-      if (authStore.refreshToken) {
-        setRefreshToken(authStore.refreshToken);
       }
 
       await new Promise(resolve => setTimeout(resolve, 50));
@@ -44,7 +39,7 @@ export default function AuthProvider({ children }: AuthProviderProps) {
     };
 
     checkRehydration();
-  }, [authStore.token, authStore.refreshToken]);
+  }, [authStore.token]);
 
   if (!isRehydrated) {
     return (

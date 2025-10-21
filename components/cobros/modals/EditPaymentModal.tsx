@@ -40,13 +40,13 @@ export default function EditPaymentModal({
   useEffect(() => {
     if (selectedPayment) {
       setEditAmount(selectedPayment.paidAmount?.toString() || '')
-      setEditStatus(selectedPayment.status)
+      setEditStatus(selectedPayment.status || '')
       setEditNotes('') // TODO: backend no tiene notas aún
     }
   }, [selectedPayment])
 
   const handleSave = () => {
-    if (!selectedPayment) return
+    if (!selectedPayment || !selectedPayment.id) return
 
     const paymentData = {
       id: selectedPayment.id,
@@ -92,7 +92,7 @@ export default function EditPaymentModal({
               Préstamo: {selectedPayment?.loanId} - Cuota #{selectedPayment?.paymentNumber}
             </Typography>
             <Typography variant="body2" color="text.secondary">
-              Monto debido: ${selectedPayment?.totalAmount.toLocaleString()}
+              Monto debido: ${selectedPayment?.totalAmount?.toLocaleString() ?? 0}
             </Typography>
           </Box>
 

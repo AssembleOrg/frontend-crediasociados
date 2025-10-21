@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import {
   Dialog,
   DialogTitle,
@@ -17,8 +17,7 @@ import {
   TableHead,
   TableRow,
   CircularProgress,
-  Alert,
-  Chip
+  Alert
 } from '@mui/material'
 import { History, Close } from '@mui/icons-material'
 import { paymentsService } from '@/services/payments.service'
@@ -44,24 +43,27 @@ export const PaymentHistoryModal: React.FC<PaymentHistoryModalProps> = ({
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  useEffect(() => {
-    if (open) {
-      fetchPaymentHistory()
-    }
-  }, [open, subLoanId])
-
-  const fetchPaymentHistory = async () => {
+  const fetchPaymentHistory = useCallback(async () => {
     setIsLoading(true)
     setError(null)
     try {
       const history = await paymentsService.getPaymentHistory(subLoanId)
-      setPayments(history || [])
-    } catch (err: any) {
-      setError(err?.message || 'Error al cargar historial de pagos')
+      // Handle both array and object response formats
+      const paymentsList = Array.isArray(history) ? history : []
+      setPayments(paymentsList)
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : 'Error al cargar historial de pagos'
+      setError(errorMsg)
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [subLoanId])
+
+  useEffect(() => {
+    if (open) {
+      fetchPaymentHistory()
+    }
+  }, [open, subLoanId, fetchPaymentHistory])
 
   const totalPaid = payments.reduce((sum, p) => sum + p.amount, 0)
   const remainingAmount = totalAmount - totalPaid

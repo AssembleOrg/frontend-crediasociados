@@ -18,6 +18,7 @@ import {
   IconButton,
   Menu,
   MenuItem,
+  useTheme,
 } from '@mui/material';
 import {
   Search,
@@ -34,6 +35,8 @@ import { DeleteUserConfirmDialog } from '@/components/users/DeleteUserConfirmDia
 import { TableSkeleton } from '@/components/ui/TableSkeleton';
 
 export default function SubadminsPage() {
+  useTheme();
+
   const [searchTerm, setSearchTerm] = useState('');
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [selectedSubadmin, setSelectedSubadmin] = useState<string | null>(null);
@@ -86,6 +89,22 @@ export default function SubadminsPage() {
     setSelectedSubadmin(null);
   };
 
+  const calculateQuotaPercentage = (used: number, total: number): number => {
+    if (total === 0) return 0;
+    return Math.round((used / total) * 100);
+  };
+
+  const getQuotaColor = (percentage: number): 'success' | 'warning' | 'error' => {
+    if (percentage >= 90) return 'error';
+    if (percentage >= 70) return 'warning';
+    return 'success';
+  };
+
+  const totalAvailableQuota = subadmins.reduce(
+    (sum, subadmin) => sum + ((subadmin.clientQuota ?? 0) - (subadmin.usedClientQuota ?? 0)),
+    0
+  );
+
   return (
     <Box>
       <Box
@@ -112,9 +131,21 @@ export default function SubadminsPage() {
           <Typography
             variant='body1'
             color='text.secondary'
+            sx={{ mb: 1 }}
           >
             Gestiona los asociados que crean y supervisan cobradores
           </Typography>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <Typography variant='body2' color='text.secondary'>
+              Clientes disponibles para asignar:
+            </Typography>
+            <Chip
+              label={totalAvailableQuota}
+              color='primary'
+              size='small'
+              sx={{ fontWeight: 600 }}
+            />
+          </Box>
         </Box>
         <Button
           variant='contained'
@@ -171,19 +202,25 @@ export default function SubadminsPage() {
                   align='center'
                   sx={{ display: { xs: 'none', sm: 'table-cell' } }}
                 >
-                  Teléfono
+                  Cuota Total
                 </TableCell>
                 <TableCell
                   align='center'
                   sx={{ display: { xs: 'none', md: 'table-cell' } }}
                 >
-                  Fecha Creación
+                  Cuota Usada
                 </TableCell>
                 <TableCell
                   align='center'
                   sx={{ display: { xs: 'none', lg: 'table-cell' } }}
                 >
-                  Última Actualización
+                  Cuota Disponible
+                </TableCell>
+                <TableCell
+                  align='center'
+                  sx={{ display: { xs: 'none', md: 'table-cell' } }}
+                >
+                  Teléfono
                 </TableCell>
                 <TableCell align='center'>Acciones</TableCell>
               </TableRow>
@@ -231,12 +268,34 @@ export default function SubadminsPage() {
                         align='center'
                         sx={{ display: { xs: 'none', sm: 'table-cell' } }}
                       >
-                        <Typography
-                          variant='body2'
-                          color='text.secondary'
-                        >
-                          {subadmin.phone || 'No especificado'}
+                        <Typography variant='body2' sx={{ fontWeight: 600 }}>
+                          {subadmin.clientQuota ?? 0}
                         </Typography>
+                      </TableCell>
+                      <TableCell
+                        align='center'
+                        sx={{ display: { xs: 'none', md: 'table-cell' } }}
+                      >
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                          <Typography variant='body2' sx={{ fontWeight: 500 }}>
+                            {subadmin.usedClientQuota ?? 0}
+                          </Typography>
+                          <Typography variant='caption' color='text.secondary'>
+                            ({calculateQuotaPercentage(subadmin.usedClientQuota ?? 0, subadmin.clientQuota ?? 0)}%)
+                          </Typography>
+                        </Box>
+                      </TableCell>
+                      <TableCell
+                        align='center'
+                        sx={{ display: { xs: 'none', lg: 'table-cell' } }}
+                      >
+                        <Chip
+                          label={(subadmin.clientQuota ?? 0) - (subadmin.usedClientQuota ?? 0)}
+                          color={getQuotaColor(calculateQuotaPercentage(subadmin.usedClientQuota ?? 0, subadmin.clientQuota ?? 0))}
+                          variant='outlined'
+                          size='small'
+                          sx={{ fontWeight: 600 }}
+                        />
                       </TableCell>
                       <TableCell
                         align='center'
@@ -246,18 +305,7 @@ export default function SubadminsPage() {
                           variant='body2'
                           color='text.secondary'
                         >
-                          {formatDate(subadmin.createdAt.toISOString())}
-                        </Typography>
-                      </TableCell>
-                      <TableCell
-                        align='center'
-                        sx={{ display: { xs: 'none', lg: 'table-cell' } }}
-                      >
-                        <Typography
-                          variant='body2'
-                          color='text.secondary'
-                        >
-                          {formatDate(subadmin.updatedAt.toISOString())}
+                          {subadmin.phone || 'No especificado'}
                         </Typography>
                       </TableCell>
                       <TableCell align='center'>
@@ -274,7 +322,7 @@ export default function SubadminsPage() {
                   {filteredSubadmins.length === 0 && !isLoading && (
                     <TableRow>
                       <TableCell
-                        colSpan={6}
+                        colSpan={7}
                         sx={{ textAlign: 'center', py: 4 }}
                       >
                         <Typography

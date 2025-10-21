@@ -12,7 +12,6 @@ import {
 } from '@mui/material';
 import {
   PictureAsPdf,
-  Download,
   CheckCircle,
   Error as ErrorIcon
 } from '@mui/icons-material';

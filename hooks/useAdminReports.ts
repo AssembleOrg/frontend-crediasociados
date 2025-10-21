@@ -111,7 +111,10 @@ export const useAdminReports = () => {
               email: user.email,
               role: 'ADMIN',
               createdAt: user.createdAt ? user.createdAt.toISOString() : new Date().toISOString(),
-              updatedAt: user.updatedAt ? user.updatedAt.toISOString() : new Date().toISOString()
+              updatedAt: user.updatedAt ? user.updatedAt.toISOString() : new Date().toISOString(),
+              clientQuota: 0,
+              usedClientQuota: 0,
+              availableClientQuota: 0
             },
             adminLoans as any
           )

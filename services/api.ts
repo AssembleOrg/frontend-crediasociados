@@ -27,6 +27,14 @@ api.interceptors.request.use(
     if (currentToken && !config.headers['Authorization']) {
       config.headers['Authorization'] = `Bearer ${currentToken}`;
     }
+    // Debug logging para wallets
+    if (config.url?.includes('wallets')) {
+      console.log('[API DEBUG] Wallet request:', {
+        url: config.url,
+        hasToken: !!currentToken,
+        authHeader: config.headers['Authorization'] ? 'SET' : 'NOT SET',
+      });
+    }
     return config;
   },
   (error) => {

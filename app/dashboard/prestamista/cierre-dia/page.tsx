@@ -32,7 +32,7 @@ export default function DailyClosurePage() {
 
       <Grid container spacing={3}>
         {/* Instructions Card */}
-        <Grid item xs={12}>
+        <Grid size={{ xs: 12 }}>
           <Card sx={{ bgcolor: 'info.lighter', borderLeft: 4, borderColor: 'info.main' }}>
             <CardContent>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
@@ -49,7 +49,7 @@ export default function DailyClosurePage() {
         </Grid>
 
         {/* History Table */}
-        <Grid item xs={12}>
+        <Grid size={{ xs: 12 }}>
           <Typography variant="h6" sx={{ fontWeight: 600, mb: 2 }}>
             Historial de Cierres
           </Typography>

@@ -121,7 +121,7 @@ export function useSubLoans() {
 
       // FILTER: Only show subloans for loans owned by the current manager
       // This prevents 403 errors when trying to register payments for other managers' loans
-      const isManager = currentUser && (currentUser.role === 'MANAGER' || currentUser.role === 'prestamista')
+      const isManager = currentUser && (currentUser.role === 'manager' || currentUser.role === 'prestamista')
       const filteredSubLoans = isManager
         ? enrichedSubLoans.filter(subloan => {
             // Access check: subloan belongs to a loan created by this manager

@@ -1,30 +1,21 @@
 'use client'
 
-import { 
-  Box, 
-  Card, 
-  CardContent, 
-  Typography, 
-  TextField, 
+import {
+  Box,
+  Card,
+  CardContent,
+  Typography,
+  TextField,
   Button,
   Chip,
   ToggleButton,
   ToggleButtonGroup,
   Divider,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
   Autocomplete
 } from '@mui/material'
-import { 
-  FilterList, 
-  Clear, 
-  Search,
-  AttachMoney,
-  CalendarToday,
-  NotificationImportant,
-  CheckCircle
+import {
+  FilterList,
+  Clear
 } from '@mui/icons-material'
 import { useCobrosFilters } from '@/hooks/useCobrosFilters'
 import { useClients } from '@/hooks/useClients'

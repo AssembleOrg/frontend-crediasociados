@@ -2,6 +2,7 @@
 
 import { useState, useCallback, useEffect } from 'react';
 import { walletsService } from '@/services/wallets.service';
+import { useWalletsStore } from '@/stores/wallets';
 import type {
   Wallet,
   WalletTransaction,
@@ -49,6 +50,9 @@ export const useWallet = (autoFetch: boolean = true): UseWalletReturn => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Get store actions
+  const setCurrentUserWallet = useWalletsStore((state) => state.setCurrentUserWallet);
+
   /**
    * Obtener datos completos de la cartera
    */
@@ -60,6 +64,14 @@ export const useWallet = (autoFetch: boolean = true): UseWalletReturn => {
       const walletData = await walletsService.getMyWallet();
       setWallet(walletData);
       setBalance(walletData.balance);
+
+      // Also update Zustand store for global access
+      setCurrentUserWallet({
+        balance: walletData.balance,
+        currency: walletData.currency,
+        availableForLoan: (walletData as any).availableForLoan ?? walletData.balance,
+        lockedAmount: (walletData as any).lockedAmount ?? 0,
+      });
     } catch (err: any) {
       // Handle specific errors gracefully
       let errorMessage = 'Error al cargar la billetera';
@@ -89,7 +101,7 @@ export const useWallet = (autoFetch: boolean = true): UseWalletReturn => {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [setCurrentUserWallet]);
 
   /**
    * Obtener solo el saldo (operación más ligera)
@@ -195,16 +207,22 @@ export const useWallet = (autoFetch: boolean = true): UseWalletReturn => {
         });
 
         // Actualizar wallet del usuario actual con nuevo balance
-        setWallet({
-          ...wallet!,
-          balance: result.fromWallet.newBalance,
-        });
-        setBalance(result.fromWallet.newBalance);
-
-        return {
+        const updatedWallet = {
           ...wallet!,
           balance: result.fromWallet.newBalance,
         };
+        setWallet(updatedWallet);
+        setBalance(result.fromWallet.newBalance);
+
+        // Update Zustand store as well
+        setCurrentUserWallet({
+          balance: result.fromWallet.newBalance,
+          currency: updatedWallet.currency,
+          availableForLoan: (updatedWallet as any).availableForLoan ?? result.fromWallet.newBalance,
+          lockedAmount: (updatedWallet as any).lockedAmount ?? 0,
+        });
+
+        return updatedWallet;
       } catch (err: any) {
         const errorMessage = err?.message || 'Error creating transfer';
         setError(errorMessage);
@@ -214,7 +232,7 @@ export const useWallet = (autoFetch: boolean = true): UseWalletReturn => {
         setIsLoading(false);
       }
     },
-    [wallet]
+    [wallet, setCurrentUserWallet]
   );
 
   /**

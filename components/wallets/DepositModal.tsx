@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { green } from '@mui/material/colors'
 import {
   Dialog,
   DialogTitle,
@@ -13,7 +14,7 @@ import {
   Alert,
   CircularProgress,
   Card,
-  CardContent
+  CardContent,
 } from '@mui/material'
 import { TrendingUp, Close } from '@mui/icons-material'
 import { formatAmount, unformatAmount } from '@/lib/formatters'
@@ -32,7 +33,6 @@ export const DepositModal: React.FC<DepositModalProps> = ({
   onSuccess
 }) => {
   const [amount, setAmount] = useState<string>('')
-  const [currency, setCurrency] = useState<string>('ARS')
   const [description, setDescription] = useState<string>('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -49,17 +49,16 @@ export const DepositModal: React.FC<DepositModalProps> = ({
     try {
       await onSubmit({
         amount: amountValue,
-        currency,
+        currency: 'ARS',
         description: description || `Depósito de $${formatAmount(amountValue.toString())}`
       })
 
-      // Reset form on success
       setAmount('')
       setDescription('')
-      setCurrency('ARS')
       onSuccess?.('Depósito realizado con éxito')
-    } catch (err: any) {
-      setError(err?.message || 'Error al hacer el depósito')
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : 'Error al hacer el depósito'
+      setError(errorMsg)
     } finally {
       setIsSubmitting(false)
     }
@@ -81,78 +80,91 @@ export const DepositModal: React.FC<DepositModalProps> = ({
       maxWidth="sm"
       fullWidth
       PaperProps={{
-        sx: { borderRadius: 3 }
+        sx: { borderRadius: 2 }
       }}
     >
       <DialogTitle sx={{
         display: 'flex',
         alignItems: 'center',
-        gap: 1,
-        background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-        color: 'white'
+        gap: 1.5,
+        background: `linear-gradient(135deg, ${green[500]} 0%, ${green[700]} 100%)`,
+        color: 'white',
+        p: 2.5
       }}>
-        <TrendingUp />
+        <TrendingUp sx={{ fontSize: 24 }} />
         <Typography variant="h6" sx={{ fontWeight: 600 }}>
           Hacer Depósito
         </Typography>
       </DialogTitle>
 
-      <DialogContent sx={{ pt: 3 }}>
-        {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
-
-        {/* Amount Input */}
-        <TextField
-          label="Monto a Depositar"
-          type="text"
-          value={formatAmount(amount)}
-          onChange={(e) => setAmount(unformatAmount(e.target.value))}
-          fullWidth
-          sx={{ mb: 3 }}
-          placeholder="$0"
-          disabled={isSubmitting}
-          autoFocus
-          helperText="Ingresa el monto en pesos argentinos"
-        />
-
-        {/* Description */}
-        <TextField
-          label="Concepto (opcional)"
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
-          fullWidth
-          sx={{ mb: 3 }}
-          placeholder="Ej: Pago de capital enero 2025"
-          disabled={isSubmitting}
-          multiline
-          rows={2}
-        />
-
-        {/* Preview */}
-        {amount && (
-          <Card sx={{ bgcolor: 'success.lighter', mb: 3 }}>
-            <CardContent>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                <Typography variant="caption" color="text.secondary">
-                  Monto a depositar:
-                </Typography>
-                <Typography variant="body2" sx={{ fontWeight: 600, color: 'success.main' }}>
-                  ${formatAmount(amountValue.toString())}
-                </Typography>
-              </Box>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                <Typography variant="caption" color="text.secondary">
-                  Moneda:
-                </Typography>
-                <Typography variant="caption" sx={{ fontWeight: 600 }}>
-                  {currency}
-                </Typography>
-              </Box>
-            </CardContent>
-          </Card>
+      <DialogContent sx={{ p: 0 }}>
+        {error && (
+          <Alert severity="error" sx={{ m: 3, mb: 0 }}>
+            {error}
+          </Alert>
         )}
+        <Box sx={{ p: 3 }}>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+            {/* Amount Section */}
+            <Box>
+              <TextField
+                label="Monto a Depositar"
+                type="text"
+                value={formatAmount(amount)}
+                onChange={(e) => setAmount(unformatAmount(e.target.value))}
+                fullWidth
+                placeholder="$0"
+                disabled={isSubmitting}
+                autoFocus
+                helperText="Ingresa el monto en pesos argentinos"
+              />
+            </Box>
+
+            {/* Description Section */}
+            <Box>
+              <TextField
+                label="Concepto (opcional)"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                fullWidth
+                placeholder="Ej: Ingreso de capital enero 2025"
+                disabled={isSubmitting}
+                multiline
+                rows={2}
+                helperText="Descripción del depósito"
+              />
+            </Box>
+
+            {/* Preview Card */}
+            {amount && (
+              <Card sx={{ backgroundColor: '#e8f5e9', borderLeft: '4px solid', borderLeftColor: 'success.main' }}>
+                <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
+                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <Typography variant="caption" color="text.secondary">
+                        Monto a depositar:
+                      </Typography>
+                      <Typography variant="subtitle2" sx={{ fontWeight: 600, color: 'success.main' }}>
+                        ${formatAmount(amountValue.toString())}
+                      </Typography>
+                    </Box>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <Typography variant="caption" color="text.secondary">
+                        Moneda:
+                      </Typography>
+                      <Typography variant="caption" sx={{ fontWeight: 600 }}>
+                        ARS
+                      </Typography>
+                    </Box>
+                  </Box>
+                </CardContent>
+              </Card>
+            )}
+          </Box>
+        </Box>
       </DialogContent>
 
-      <DialogActions sx={{ p: 2 }}>
+      <DialogActions sx={{ p: 3, gap: 2 }}>
         <Button onClick={handleClose} variant="outlined" disabled={isSubmitting} startIcon={<Close />}>
           Cancelar
         </Button>
@@ -160,8 +172,8 @@ export const DepositModal: React.FC<DepositModalProps> = ({
           onClick={handleSubmit}
           variant="contained"
           disabled={!canSubmit || isSubmitting}
-          endIcon={isSubmitting ? <CircularProgress size={20} /> : <TrendingUp />}
-          sx={{ bgcolor: 'success.main', '&:hover': { bgcolor: 'success.dark' } }}
+          endIcon={isSubmitting ? <CircularProgress size={20} color="inherit" /> : <TrendingUp />}
+          sx={{ backgroundColor: 'success.main', '&:hover': { backgroundColor: 'success.dark' } }}
         >
           {isSubmitting ? 'Depositando...' : 'Depositar'}
         </Button>

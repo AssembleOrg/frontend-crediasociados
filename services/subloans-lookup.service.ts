@@ -2,13 +2,21 @@ import { subLoansService } from './sub-loans.service'
 import { loansService } from './loans.service'
 import { clientsService } from './clients.service'
 import type { components } from '@/types/api-generated'
-import type { PaginationParams } from '@/types/auth'
+import type { PaginationParams, LoanListResponseDto } from '@/types/auth'
+import type { SubLoanResponseDto } from '@/types/export'
 
-type SubLoanResponseDto = components['schemas']['SubLoanResponseDto']
-type LoanListResponseDto = components['schemas']['LoanListResponseDto']
 type ClientResponseDto = components['schemas']['ClientResponseDto']
 
-export interface SubLoanWithClientInfo extends SubLoanResponseDto {
+export interface SubLoanWithClientInfo {
+  id?: string
+  loanId?: string
+  amount?: number
+  paidAmount?: number
+  status?: string
+  dueDate?: string
+  createdAt?: string
+  paymentNumber?: number
+  totalAmount?: number
   clientId?: string
   clientName?: string
   clientFullData?: ClientResponseDto
@@ -59,7 +67,7 @@ class SubLoansLookupService {
       const enrichedSubLoans: SubLoanWithClientInfo[] = await Promise.all(
         subLoans.map(async subLoan => {
           const loan = this.loansCache.get(subLoan.loanId)
-          const clientId = loan?.clientId
+          const clientId = loan?.client?.id
           
           // Try cache first, then lazy load if needed
           let client = clientId ? this.clientsCache.get(clientId) : undefined
@@ -107,7 +115,7 @@ class SubLoansLookupService {
       const enrichedSubLoans: SubLoanWithClientInfo[] = await Promise.all(
         subLoans.map(async subLoan => {
           const loan = this.loansCache.get(subLoan.loanId)
-          const clientId = loan?.clientId
+          const clientId = loan?.client?.id
           
           // Try cache first, then lazy load if needed
           let client = clientId ? this.clientsCache.get(clientId) : undefined
@@ -228,9 +236,9 @@ class SubLoansLookupService {
     await this.loadClientsCache()
 
     const loan = this.loansCache.get(loanId)
-    if (!loan?.clientId) return null
+    if (!loan?.client?.id) return null
 
-    return this.clientsCache.get(loan.clientId) || null
+    return this.clientsCache.get(loan.client?.id) || null
   }
 }
 

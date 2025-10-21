@@ -5,7 +5,6 @@ import {
   Paper,
   Box,
   Button,
-  ButtonGroup,
   TextField,
   Typography,
   Divider,
@@ -148,23 +147,33 @@ const SubadminFiltersAndExport = memo(function SubadminFiltersAndExport({
         alignItems: { xs: 'stretch', lg: 'flex-start' }
       }}>
         {/* Time Period Filters */}
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, width: { xs: '100%', lg: 'auto' } }}>
           <Typography variant="subtitle2" color="text.secondary">
             Período Temporal
           </Typography>
-          <ButtonGroup variant="outlined" size="small">
+          <Box
+            sx={{
+              display: 'grid',
+              gridTemplateColumns: { xs: '1fr 1fr', sm: 'repeat(4, 1fr)', lg: 'repeat(4, auto)' },
+              gap: 1,
+              width: { xs: '100%', sm: 'auto' }
+            }}
+          >
             {(Object.keys(FILTER_LABELS) as TimeFilter[]).map((filter) => (
               <Button
                 key={filter}
                 variant={currentFilter === filter ? 'contained' : 'outlined'}
                 onClick={() => onFilterChange(filter)}
                 disabled={isLoading}
-                sx={{ minWidth: 100 }}
+                size="small"
+                sx={{
+                  width: '100%'
+                }}
               >
                 {FILTER_LABELS[filter]}
               </Button>
             ))}
-          </ButtonGroup>
+          </Box>
 
           {/* Current Range Display */}
           {currentFilter !== 'custom' && (
@@ -239,12 +248,12 @@ const SubadminFiltersAndExport = memo(function SubadminFiltersAndExport({
         <Divider orientation="vertical" flexItem sx={{ display: { xs: 'none', lg: 'block' } }} />
 
         {/* Manager Filter */}
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, minWidth: 200 }}>
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, width: { xs: '100%', lg: 'auto' }, minWidth: { lg: 200 } }}>
           <Typography variant="subtitle2" color="text.secondary">
             Filtrar por Cobrador
           </Typography>
-          <Box sx={{ display: 'flex', gap: 1 }}>
-            <FormControl size="small" sx={{ minWidth: 200 }}>
+          <Box sx={{ display: 'flex', gap: 1, flexDirection: { xs: 'column', sm: 'row' }, alignItems: { xs: 'stretch', sm: 'flex-start' } }}>
+            <FormControl size="small" sx={{ minWidth: { xs: '100%', sm: 200 }, flex: { xs: 1, sm: 'auto' } }}>
               <InputLabel>Cobrador</InputLabel>
               <Select
                 value={selectedManager || ''}
@@ -268,6 +277,7 @@ const SubadminFiltersAndExport = memo(function SubadminFiltersAndExport({
                 onClick={clearManagerFilter}
                 startIcon={<Clear />}
                 disabled={isLoading}
+                sx={{ width: { xs: '100%', sm: 'auto' } }}
               >
                 Limpiar
               </Button>
@@ -286,18 +296,18 @@ const SubadminFiltersAndExport = memo(function SubadminFiltersAndExport({
         <Divider orientation="vertical" flexItem sx={{ display: { xs: 'none', lg: 'block' } }} />
 
         {/* Actions */}
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, ml: { lg: 'auto' } }}>
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, width: { xs: '100%', lg: 'auto' }, ml: { lg: 'auto' } }}>
           <Typography variant="subtitle2" color="text.secondary">
             Exportación
           </Typography>
-          <Box sx={{ display: 'flex', gap: 1 }}>
+          <Box sx={{ display: 'flex', gap: 1, flexDirection: { xs: 'column', sm: 'row' } }}>
             <Button
               variant="contained"
               size="small"
               onClick={onExportExcel}
               disabled={isLoading}
               startIcon={<FileDownload />}
-              sx={{ minWidth: 110 }}
+              sx={{ minWidth: { xs: '100%', sm: 110 }, flex: { xs: 1, sm: 'auto' } }}
             >
               Excel
             </Button>
@@ -308,7 +318,7 @@ const SubadminFiltersAndExport = memo(function SubadminFiltersAndExport({
               disabled={isLoading}
               startIcon={<PictureAsPdf />}
               color="secondary"
-              sx={{ minWidth: 110 }}
+              sx={{ minWidth: { xs: '100%', sm: 110 }, flex: { xs: 1, sm: 'auto' } }}
             >
               PDF
             </Button>

@@ -16,6 +16,11 @@ import {
   Chip,
   IconButton,
   Alert,
+  Card,
+  CardContent,
+  Grid,
+  useTheme,
+  useMediaQuery,
 } from '@mui/material'
 import {
   Add,
@@ -54,6 +59,9 @@ const formatQuotaDisplay = (manager: User): string => {
 }
 
 export default function ManagersPage() {
+  const theme = useTheme()
+  const isMobile = useMediaQuery(theme.breakpoints.down('lg'))
+
   const {
     users,
     isLoading,
@@ -63,7 +71,7 @@ export default function ManagersPage() {
     deleteUser,
     clearError
   } = useUsers()
-  
+
   const { user: currentSubadmin } = useAuth()
   
   // Filter prestamistas directly (MANAGER from API becomes 'prestamista' in frontend)
@@ -154,100 +162,214 @@ export default function ManagersPage() {
         </Alert>
       )}
 
-      <Paper sx={{ width: '100%', mb: 2 }}>
-        <TableContainer>
-          <Table>
-            <TableHead>
-              <TableRow>
-                <TableCell>Nombre</TableCell>
-                <TableCell>Email</TableCell>
-                <TableCell>Rol</TableCell>
-                <TableCell>Cuota de Clientes</TableCell>
-                <TableCell>Estado</TableCell>
-                <TableCell align="right">Acciones</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {isLoading && managers.length === 0 ? (
-                <TableSkeleton columns={6} rows={8} />
-              ) : managers.length === 0 ? (
+      {/* Desktop Table View */}
+      {!isMobile && (
+        <Paper sx={{ width: '100%', mb: 2 }}>
+          <TableContainer>
+            <Table>
+              <TableHead>
                 <TableRow>
-                  <TableCell colSpan={6} align="center" sx={{ py: 4 }}>
-                    <Typography variant="body2" color="text.secondary">
-                      No hay cobradores registrados
-                    </Typography>
-                  </TableCell>
+                  <TableCell>Nombre</TableCell>
+                  <TableCell>Email</TableCell>
+                  <TableCell>Rol</TableCell>
+                  <TableCell>Cuota de Clientes</TableCell>
+                  <TableCell>Estado</TableCell>
+                  <TableCell align="right">Acciones</TableCell>
                 </TableRow>
-              ) : (
-                managers.map((manager) => (
-                  <TableRow key={manager.id} hover>
-                    <TableCell>
-                      <Typography variant="body2" fontWeight="medium">
-                        {manager.fullName}
+              </TableHead>
+              <TableBody>
+                {isLoading && managers.length === 0 ? (
+                  <TableSkeleton columns={6} rows={8} />
+                ) : managers.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={6} align="center" sx={{ py: 4 }}>
+                      <Typography variant="body2" color="text.secondary">
+                        No hay cobradores registrados
                       </Typography>
-                    </TableCell>
-                    <TableCell>
-                      <Typography variant="body2">
-                        {manager.email}
-                      </Typography>
-                    </TableCell>
-                    <TableCell>
-                      <Chip
-                        label="Cobrador"
-                        color="primary"
-                        size="small"
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <Chip
-                        label={formatQuotaDisplay(manager)}
-                        color={getQuotaChipColor(manager.availableClientQuota)}
-                        size="small"
-                        variant={manager.clientQuota === 0 ? 'outlined' : 'filled'}
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <Chip
-                        label="Activo"
-                        color="success"
-                        size="small"
-                      />
-                    </TableCell>
-                    <TableCell align="right">
-                      <IconButton
-                        size="small"
-                        onClick={() => handleEdit(manager)}
-                        sx={{ mr: 1 }}
-                      >
-                        <Edit fontSize="small" />
-                      </IconButton>
-                      <IconButton
-                        size="small"
-                        onClick={() => handleDelete(manager)}
-                        color="error"
-                      >
-                        <Delete fontSize="small" />
-                      </IconButton>
                     </TableCell>
                   </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
-        </TableContainer>
+                ) : (
+                  managers.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage).map((manager) => (
+                    <TableRow key={manager.id} hover>
+                      <TableCell>
+                        <Typography variant="body2" fontWeight="medium">
+                          {manager.fullName}
+                        </Typography>
+                      </TableCell>
+                      <TableCell>
+                        <Typography variant="body2">
+                          {manager.email}
+                        </Typography>
+                      </TableCell>
+                      <TableCell>
+                        <Chip
+                          label="Cobrador"
+                          color="primary"
+                          size="small"
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <Chip
+                          label={formatQuotaDisplay(manager)}
+                          color={getQuotaChipColor(manager.availableClientQuota)}
+                          size="small"
+                          variant={manager.clientQuota === 0 ? 'outlined' : 'filled'}
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <Chip
+                          label="Activo"
+                          color="success"
+                          size="small"
+                        />
+                      </TableCell>
+                      <TableCell align="right">
+                        <IconButton
+                          size="small"
+                          onClick={() => handleEdit(manager)}
+                          sx={{ mr: 1 }}
+                        >
+                          <Edit fontSize="small" />
+                        </IconButton>
+                        <IconButton
+                          size="small"
+                          onClick={() => handleDelete(manager)}
+                          color="error"
+                        >
+                          <Delete fontSize="small" />
+                        </IconButton>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </TableContainer>
 
-        <TablePagination
-          rowsPerPageOptions={[5, 10, 25]}
-          component="div"
-          count={totalManagers}
-          rowsPerPage={rowsPerPage}
-          page={page}
-          onPageChange={handleChangePage}
-          onRowsPerPageChange={handleChangeRowsPerPage}
-          labelRowsPerPage="Filas por página:"
-          labelDisplayedRows={({ from, to, count }) => `${from}-${to} de ${count}`}
-        />
-      </Paper>
+          <TablePagination
+            rowsPerPageOptions={[5, 10, 25]}
+            component="div"
+            count={totalManagers}
+            rowsPerPage={rowsPerPage}
+            page={page}
+            onPageChange={handleChangePage}
+            onRowsPerPageChange={handleChangeRowsPerPage}
+            labelRowsPerPage="Filas por página:"
+            labelDisplayedRows={({ from, to, count }) => `${from}-${to} de ${count}`}
+          />
+        </Paper>
+      )}
+
+      {/* Mobile Card View */}
+      {isMobile && (
+        <Box sx={{ mb: 2 }}>
+          {isLoading ? (
+            <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center', py: 4 }}>
+              Cargando cobradores...
+            </Typography>
+          ) : managers.length === 0 ? (
+            <Paper sx={{ p: 3, textAlign: 'center' }}>
+              <Typography variant="body2" color="text.secondary">
+                No hay cobradores registrados
+              </Typography>
+            </Paper>
+          ) : (
+            <Grid container spacing={2}>
+              {managers.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage).map((manager) => (
+                <Grid size={{ xs: 12 }} key={manager.id}>
+                  <Card>
+                    <CardContent>
+                      {/* Header */}
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
+                        <Box>
+                          <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
+                            {manager.fullName}
+                          </Typography>
+                          <Typography variant="caption" color="text.secondary">
+                            {manager.email}
+                          </Typography>
+                        </Box>
+                        <Chip
+                          label="Activo"
+                          color="success"
+                          size="small"
+                        />
+                      </Box>
+
+                      {/* Info Grid */}
+                      <Grid container spacing={2} sx={{ mb: 2 }}>
+                        <Grid size={{ xs: 6 }}>
+                          <Typography variant="caption" color="text.secondary" display="block">
+                            Rol
+                          </Typography>
+                          <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                            Cobrador
+                          </Typography>
+                        </Grid>
+                        <Grid size={{ xs: 6 }}>
+                          <Typography variant="caption" color="text.secondary" display="block">
+                            Cuota Disponible
+                          </Typography>
+                          <Typography variant="body2" sx={{ fontWeight: 600, color: getQuotaChipColor(manager.availableClientQuota) === 'error' ? 'error.main' : 'success.main' }}>
+                            {formatQuotaDisplay(manager)}
+                          </Typography>
+                        </Grid>
+                      </Grid>
+
+                      {/* Action Buttons */}
+                      <Box sx={{ display: 'flex', gap: 1 }}>
+                        <Button
+                          size="small"
+                          variant="outlined"
+                          startIcon={<Edit />}
+                          fullWidth
+                          onClick={() => handleEdit(manager)}
+                        >
+                          Editar
+                        </Button>
+                        <Button
+                          size="small"
+                          variant="outlined"
+                          color="error"
+                          startIcon={<Delete />}
+                          onClick={() => handleDelete(manager)}
+                          sx={{ minWidth: 'auto' }}
+                        >
+                        </Button>
+                      </Box>
+                    </CardContent>
+                  </Card>
+                </Grid>
+              ))}
+            </Grid>
+          )}
+
+          {/* Mobile Pagination */}
+          {!isLoading && managers.length > 0 && (
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 3, flexWrap: 'wrap', gap: 2 }}>
+              <Typography variant="caption" color="text.secondary">
+                {page * rowsPerPage + 1}-{Math.min((page + 1) * rowsPerPage, totalManagers)} de {totalManagers}
+              </Typography>
+              <Box sx={{ display: 'flex', gap: 1 }}>
+                <Button
+                  size="small"
+                  disabled={page === 0}
+                  onClick={() => handleChangePage({}, page - 1)}
+                >
+                  Anterior
+                </Button>
+                <Button
+                  size="small"
+                  disabled={(page + 1) * rowsPerPage >= totalManagers}
+                  onClick={() => handleChangePage({}, page + 1)}
+                >
+                  Siguiente
+                </Button>
+              </Box>
+            </Box>
+          )}
+        </Box>
+      )}
 
       <UserFormModal
         open={createModalOpen}

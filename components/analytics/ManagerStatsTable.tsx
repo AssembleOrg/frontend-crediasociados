@@ -13,7 +13,6 @@ import {
   Box,
   Card,
   CardContent,
-  Chip,
   Avatar
 } from '@mui/material'
 import { Person, AccountBalance, Schedule } from '@mui/icons-material'

@@ -1,10 +1,10 @@
 import api from './api'
 import type { components } from '@/types/api-generated'
 import type { PaginationParams } from '@/types/auth'
+import type { SubLoanResponseDto } from '@/types/export'
 
 type UserResponseDto = components['schemas']['UserResponseDto']
-type LoanListResponseDto = components['schemas']['LoanListResponseDto']
-type SubLoanResponseDto = components['schemas']['SubLoanResponseDto']
+type LoanChartDataDto = components['schemas']['LoanChartDataDto']
 
 export interface ManagerAnalytics {
   managerId: string
@@ -47,7 +47,7 @@ class AnalyticsService {
   /**
    * Get all loans for a specific manager
    */
-  async getManagerLoans(managerId: string): Promise<LoanListResponseDto[]> {
+  async getManagerLoans(managerId: string): Promise<LoanChartDataDto[]> {
     // Note: This gets loans for the authenticated user (manager)
     // We'll need to handle this in the hook by making requests as the manager
     const response = await api.get('/loans')
@@ -59,14 +59,14 @@ class AnalyticsService {
    */
   calculateManagerAnalytics(
     manager: UserResponseDto,
-    loans: LoanListResponseDto[]
+    loans: LoanChartDataDto[]
   ): ManagerAnalytics {
     // Get unique clients from loans
-    const uniqueClientIds = new Set(loans.map(loan => loan.clientId))
+    const uniqueClientIds = new Set(loans.map(loan => loan.client?.id || ''))
     const totalClients = uniqueClientIds.size
 
     // Calculate total amounts
-    const totalAmountLent = loans.reduce((sum, loan) => sum + loan.amount, 0)
+    const totalAmountLent = loans.reduce((sum, loan) => sum + (loan.amount || 0), 0)
 
     // Calculate pending amounts from subloans
     let totalAmountPending = 0
@@ -74,13 +74,14 @@ class AnalyticsService {
     let paidSubLoans = 0
 
     loans.forEach(loan => {
-      if (loan.subLoans && Array.isArray(loan.subLoans)) {
-        loan.subLoans.forEach((subLoan: SubLoanResponseDto) => {
+      const subLoans = (loan as any).subLoans
+      if (subLoans && Array.isArray(subLoans)) {
+        subLoans.forEach((subLoan: any) => {
           totalSubLoans++
           if (subLoan.status === 'PAID') {
             paidSubLoans++
           } else if (subLoan.status === 'PENDING' || subLoan.status === 'OVERDUE') {
-            totalAmountPending += subLoan.totalAmount - subLoan.paidAmount
+            totalAmountPending += (subLoan.totalAmount || 0) - (subLoan.paidAmount || 0)
           }
         })
       }

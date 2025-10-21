@@ -18,10 +18,11 @@ export type ClientResponseDto = components['schemas']['ClientResponseDto'];
 export type CreateLoanDto = components['schemas']['CreateLoanDto'];
 export type CreateLoanResponseDto =
   components['schemas']['CreateLoanResponseDto'];
-export type LoanListResponseDto = components['schemas']['LoanListResponseDto'];
+export type LoanChartDataDto = components['schemas']['LoanChartDataDto'];
 export type LoanTrackingResponseDto =
   components['schemas']['LoanTrackingResponseDto'];
-// Since getAllLoans doesn't have a specific response type, we'll use CreateLoanResponseDto
+// Since getAllLoans doesn't have a specific response type, we'll use LoanChartDataDto
+export type LoanListResponseDto = LoanChartDataDto;
 export type LoanResponseDto = CreateLoanResponseDto;
 
 export interface Wallet {

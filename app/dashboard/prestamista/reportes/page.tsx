@@ -20,13 +20,15 @@ import {
   TableHead,
   TableRow,
   Chip,
+  Grid,
+  useTheme,
+  useMediaQuery,
 } from '@mui/material'
 import {
   Download,
   Assessment,
   TrendingUp,
   PieChart,
-  BarChart,
   DateRange,
 } from '@mui/icons-material'
 import { useClients } from '@/hooks/useClients'
@@ -34,10 +36,13 @@ import { useLoans } from '@/hooks/useLoans'
 import { useSubLoans } from '@/hooks/useSubLoans'
 import { getUrgencyLevel } from '@/lib/cobros/urgencyHelpers'
 
-type ReportType = 'clients' | 'loans' | 'payments' | 'performance'
+type ReportType = 'clients' | 'loans' | 'payments'
 type DateRange = 'week' | 'month' | 'quarter' | 'year' | 'custom'
 
 export default function ReportesPage() {
+  const theme = useTheme()
+  const isMobile = useMediaQuery(theme.breakpoints.down('lg'))
+
   const { clients } = useClients()
   const { loans } = useLoans()
   const { allSubLoansWithClient } = useSubLoans()
@@ -52,7 +57,7 @@ export default function ReportesPage() {
     const totalLoanAmount = loans.reduce((sum, loan) => sum + (loan.amount || 0), 0)
 
     const paidSubLoans = allSubLoansWithClient.filter(s => s.status === 'PAID')
-    const overdueSubLoans = allSubLoansWithClient.filter(s => getUrgencyLevel(s.dueDate) === 'overdue')
+    const overdueSubLoans = allSubLoansWithClient.filter(s => s.dueDate && getUrgencyLevel(s.dueDate) === 'overdue')
     const partialSubLoans = allSubLoansWithClient.filter(s => s.status === 'PARTIAL')
 
     const totalSubLoans = allSubLoansWithClient.length
@@ -82,7 +87,6 @@ export default function ReportesPage() {
     { value: 'clients', label: 'Reporte de Clientes', icon: <Assessment /> },
     { value: 'loans', label: 'Reporte de Préstamos', icon: <TrendingUp /> },
     { value: 'payments', label: 'Reporte de Pagos', icon: <PieChart /> },
-    { value: 'performance', label: 'Rendimiento General', icon: <BarChart /> },
   ]
 
   const dateRanges = [
@@ -106,36 +110,93 @@ export default function ReportesPage() {
     switch (selectedReport) {
       case 'clients':
         return (
-          <TableContainer component={Paper} sx={{ mt: 2 }}>
-            <Table>
-              <TableHead>
-                <TableRow>
-                  <TableCell>Cliente</TableCell>
-                  <TableCell>DNI</TableCell>
-                  <TableCell>Email</TableCell>
-                  <TableCell>Teléfono</TableCell>
-                  <TableCell>Fecha de Registro</TableCell>
-                  <TableCell>Estado</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
+          <Box sx={{ mt: 2 }}>
+            {/* Desktop Table View */}
+            {!isMobile && (
+              <TableContainer component={Paper}>
+                <Table>
+                  <TableHead>
+                    <TableRow>
+                      <TableCell>Cliente</TableCell>
+                      <TableCell>DNI</TableCell>
+                      <TableCell>Email</TableCell>
+                      <TableCell>Teléfono</TableCell>
+                      <TableCell>Fecha de Registro</TableCell>
+                      <TableCell>Estado</TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {clients.slice(0, 10).map((client) => (
+                      <TableRow key={client.id}>
+                        <TableCell>{client.fullName}</TableCell>
+                        <TableCell>{client.dni || '-'}</TableCell>
+                        <TableCell>{client.email || '-'}</TableCell>
+                        <TableCell>{client.phone || '-'}</TableCell>
+                        <TableCell>
+                          {client.createdAt ? new Date(client.createdAt).toLocaleDateString('es-AR') : '-'}
+                        </TableCell>
+                        <TableCell>
+                          <Chip label="Activo" color="success" size="small" />
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            )}
+
+            {/* Mobile Card View */}
+            {isMobile && (
+              <Grid container spacing={2}>
                 {clients.slice(0, 10).map((client) => (
-                  <TableRow key={client.id}>
-                    <TableCell>{client.fullName}</TableCell>
-                    <TableCell>{client.dni || '-'}</TableCell>
-                    <TableCell>{client.email || '-'}</TableCell>
-                    <TableCell>{client.phone || '-'}</TableCell>
-                    <TableCell>
-                      {client.createdAt ? new Date(client.createdAt).toLocaleDateString('es-AR') : '-'}
-                    </TableCell>
-                    <TableCell>
-                      <Chip label="Activo" color="success" size="small" />
-                    </TableCell>
-                  </TableRow>
+                  <Grid size={{ xs: 12 }} key={client.id}>
+                    <Card>
+                      <CardContent>
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
+                          <Box>
+                            <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
+                              {client.fullName}
+                            </Typography>
+                            <Typography variant="caption" color="text.secondary">
+                              {client.email || '-'}
+                            </Typography>
+                          </Box>
+                          <Chip label="Activo" color="success" size="small" />
+                        </Box>
+
+                        <Grid container spacing={2}>
+                          <Grid size={{ xs: 6 }}>
+                            <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 0.5 }}>
+                              DNI
+                            </Typography>
+                            <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                              {client.dni || '-'}
+                            </Typography>
+                          </Grid>
+                          <Grid size={{ xs: 6 }}>
+                            <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 0.5 }}>
+                              Teléfono
+                            </Typography>
+                            <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                              {client.phone || '-'}
+                            </Typography>
+                          </Grid>
+                          <Grid size={{ xs: 12 }}>
+                            <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 0.5 }}>
+                              Fecha de Registro
+                            </Typography>
+                            <Typography variant="body2">
+                              {client.createdAt ? new Date(client.createdAt).toLocaleDateString('es-AR') : '-'}
+                            </Typography>
+                          </Grid>
+                        </Grid>
+                      </CardContent>
+                    </Card>
+                  </Grid>
                 ))}
-              </TableBody>
-            </Table>
-          </TableContainer>
+              </Grid>
+            )}
+          </Box>
         )
 
       case 'loans':
@@ -223,72 +284,6 @@ export default function ReportesPage() {
                   </Typography>
                   <Typography color="textSecondary">
                     Cobrado Total
-                  </Typography>
-                </CardContent>
-              </Card>
-            </Box>
-          </Box>
-        )
-
-      case 'performance':
-        return (
-          <Box sx={{ mt: 2 }}>
-            <Typography variant="h6" gutterBottom>
-              Indicadores de Rendimiento
-            </Typography>
-            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(2, 1fr)' }, gap: 3 }}>
-              <Card>
-                <CardContent>
-                  <Typography gutterBottom variant="h6">
-                    Eficiencia de Cobranza
-                  </Typography>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <Typography variant="h4" color="success.main">
-                      {realStats.collectionEfficiency}%
-                    </Typography>
-                    <TrendingUp color="success" />
-                  </Box>
-                  <Typography variant="body2" color="textSecondary">
-                    Tasa de éxito en cobros
-                  </Typography>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent>
-                  <Typography gutterBottom variant="h6">
-                    Tiempo Promedio de Aprobación
-                  </Typography>
-                  <Typography variant="h4" color="primary">
-                    2.3 días
-                  </Typography>
-                  <Typography variant="body2" color="textSecondary">
-                    Dentro del objetivo de 3 días
-                  </Typography>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent>
-                  <Typography gutterBottom variant="h6">
-                    Satisfacción del Cliente
-                  </Typography>
-                  <Typography variant="h4" color="success.main">
-                    4.8/5
-                  </Typography>
-                  <Typography variant="body2" color="textSecondary">
-                    Basado en 127 evaluaciones
-                  </Typography>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent>
-                  <Typography gutterBottom variant="h6">
-                    ROI Promedio
-                  </Typography>
-                  <Typography variant="h4" color="primary">
-                    18.5%
-                  </Typography>
-                  <Typography variant="body2" color="textSecondary">
-                    Retorno sobre inversión anual
                   </Typography>
                 </CardContent>
               </Card>

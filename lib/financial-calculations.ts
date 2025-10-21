@@ -7,10 +7,9 @@
  * Following KISS principle: Simple, testable calculations.
  */
 
-import type { components } from '@/types/api-generated'
 import type { Transaccion } from '@/types/operativa'
-import type { 
-  FinancialSummary, 
+import type {
+  FinancialSummary,
   ManagerFinancialData,
   ActiveLoanFinancial,
   PortfolioEvolution,
@@ -18,10 +17,10 @@ import type {
   CapitalDistribution,
   LoanChartData
 } from '@/types/finanzas'
+import type { SubLoanResponseDto } from '@/types/export'
 
 // Use the chart data type which has subLoans populated
 type LoanWithSubLoans = LoanChartData
-type SubLoanResponseDto = components['schemas']['SubLoanResponseDto']
 
 // ============================================================================
 // HELPER FUNCTIONS
@@ -204,7 +203,7 @@ export function calculateManagerFinancialData(
  */
 export function loanToActiveLoanFinancial(loan: LoanWithSubLoans): ActiveLoanFinancial {
   const montoTotal = Number(loan.amount || 0)
-  
+
   // Calculate paid and pending from subloans
   let montoPagado = 0
   let montoPendiente = montoTotal
@@ -212,7 +211,7 @@ export function loanToActiveLoanFinancial(loan: LoanWithSubLoans): ActiveLoanFin
   if (loan.subLoans && Array.isArray(loan.subLoans)) {
     montoPagado = loan.subLoans
       .reduce((sum, sl) => sum + Number(sl.paidAmount || 0), 0)
-    
+
     montoPendiente = loan.subLoans
       .filter(sl => sl.status !== 'PAID')
       .reduce((sum, sl) => sum + Number(sl.amount || 0), 0)
@@ -222,8 +221,8 @@ export function loanToActiveLoanFinancial(loan: LoanWithSubLoans): ActiveLoanFin
 
   return {
     loanId: loan.id,
-    clientId: loan.clientId,
-    clientName: loan.client?.fullName || `Cliente ${loan.clientId}`,
+    clientId: loan.client?.id || '',
+    clientName: loan.client?.fullName || `Cliente ${loan.client?.id || loan.id}`,
     montoTotal,
     montoPendiente,
     montoPagado,

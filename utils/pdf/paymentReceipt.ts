@@ -39,12 +39,12 @@ export const generatePaymentPDF = (data: PaymentReceiptData) => {
   // Title
   doc.setTextColor(255, 255, 255)
   doc.setFontSize(24)
-  doc.setFont(undefined, 'bold')
+  doc.setFont('helvetica', 'bold')
   doc.text('COMPROBANTE DE PAGO', pageWidth / 2, 12, { align: 'center' })
 
   // Status badge
   doc.setFontSize(10)
-  doc.setFont(undefined, 'normal')
+  doc.setFont('helvetica', 'normal')
   doc.text(`Estado: ${data.status}`, pageWidth / 2, 20, { align: 'center' })
 
   yPosition = 45
@@ -52,12 +52,12 @@ export const generatePaymentPDF = (data: PaymentReceiptData) => {
   // ============ CLIENT INFO ============
   doc.setTextColor(0, 0, 0)
   doc.setFontSize(14)
-  doc.setFont(undefined, 'bold')
+  doc.setFont('helvetica', 'bold')
   doc.text('Información del Cliente', margin, yPosition)
   yPosition += 10
 
   doc.setFontSize(11)
-  doc.setFont(undefined, 'normal')
+  doc.setFont('helvetica', 'normal')
   doc.text(`Cliente: ${data.clientName}`, margin, yPosition)
   yPosition += 6
   doc.text(`Código de Préstamo: ${data.loanTrack}`, margin, yPosition)
@@ -67,37 +67,37 @@ export const generatePaymentPDF = (data: PaymentReceiptData) => {
 
   // ============ PAYMENT DETAILS ============
   doc.setFontSize(14)
-  doc.setFont(undefined, 'bold')
+  doc.setFont('helvetica', 'bold')
   doc.text('Detalles del Pago', margin, yPosition)
   yPosition += 10
 
   // Table-like layout
   doc.setFontSize(11)
-  doc.setFont(undefined, 'normal')
+  doc.setFont('helvetica', 'normal')
 
   const labelWidth = 40
   const valueX = margin + labelWidth
 
   doc.text('Monto Pagado:', margin, yPosition)
-  doc.setFont(undefined, 'bold')
+  doc.setFont('helvetica', 'bold')
   doc.text(`$${formatAmount(data.amount.toString())}`, valueX, yPosition)
-  doc.setFont(undefined, 'normal')
+  doc.setFont('helvetica', 'normal')
   yPosition += 6
 
   doc.text('Fecha de Pago:', margin, yPosition)
-  doc.setFont(undefined, 'bold')
+  doc.setFont('helvetica', 'bold')
   doc.text(data.paymentDate.toLocaleDateString('es-AR'), valueX, yPosition)
-  doc.setFont(undefined, 'normal')
+  doc.setFont('helvetica', 'normal')
   yPosition += 6
 
   // Remaining amount if PARTIAL
   if (data.status === 'PARTIAL' && data.remainingAmount && data.remainingAmount > 0) {
     doc.setTextColor(255, 152, 0) // Orange
-    doc.setFont(undefined, 'bold')
+    doc.setFont('helvetica', 'bold')
     doc.text('Restante por Pagar:', margin, yPosition)
     doc.text(`$${formatAmount(data.remainingAmount.toString())}`, valueX, yPosition)
     doc.setTextColor(0, 0, 0)
-    doc.setFont(undefined, 'normal')
+    doc.setFont('helvetica', 'normal')
     yPosition += 6
   }
 
@@ -106,11 +106,11 @@ export const generatePaymentPDF = (data: PaymentReceiptData) => {
   // ============ NOTES ============
   if (data.notes) {
     doc.setFontSize(11)
-    doc.setFont(undefined, 'bold')
+    doc.setFont('helvetica', 'bold')
     doc.text('Notas:', margin, yPosition)
     yPosition += 6
 
-    doc.setFont(undefined, 'normal')
+    doc.setFont('helvetica', 'normal')
     doc.setFontSize(10)
     const notesLines = doc.splitTextToSize(data.notes, pageWidth - 2 * margin)
     doc.text(notesLines, margin, yPosition)
@@ -125,7 +125,7 @@ export const generatePaymentPDF = (data: PaymentReceiptData) => {
   doc.line(margin, footerY - 5, pageWidth - margin, footerY - 5)
 
   doc.setFontSize(9)
-  doc.setFont(undefined, 'normal')
+  doc.setFont('helvetica', 'normal')
   doc.setTextColor(100, 100, 100)
 
   doc.text(`Generado: ${new Date().toLocaleString('es-AR')}`, margin, footerY)

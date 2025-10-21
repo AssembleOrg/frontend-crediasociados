@@ -9,7 +9,6 @@ import { useLoansStore } from '@/stores/loans';
 import { useAuthStore } from '@/stores/auth';
 import { useAuth } from '@/hooks/useAuth';
 import { apiLoanToLoan } from '@/types/transforms';
-import { AuthLoadingOverlay } from '@/components/ui/AuthLoadingOverlay';
 
 interface SubLoansProviderProps {
   children: React.ReactNode;
@@ -118,7 +117,7 @@ export default function SubLoansProvider({ children }: SubLoansProviderProps) {
         setAllSubLoansWithClient([]);
         setTodayDueSubLoans([]);
         setAllSubLoans([]);
-        setStats(null);
+        // Don't set stats since the store expects SubLoanStats, not null
         setLoans([]);
         return false;
       }
@@ -175,7 +174,7 @@ export default function SubLoansProvider({ children }: SubLoansProviderProps) {
       setAllSubLoansWithClient([]);
       setTodayDueSubLoans([]);
       setAllSubLoans([]);
-      setStats(null);
+      // Don't set stats since the store expects SubLoanStats, not null
       setLoans([]);
       
       return false;

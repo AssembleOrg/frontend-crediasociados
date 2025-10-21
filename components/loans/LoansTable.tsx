@@ -93,7 +93,7 @@ export function LoansTable({ loans: externalLoans, onViewDetails }: LoansTablePr
     // Fallback: Calculate from subloans if baseInterestRate is not available
     const loanSubLoans = allSubLoansWithClient.filter(subloan => subloan.loanId === loan.id)
     if (loanSubLoans.length > 0) {
-      const totalAmount = loanSubLoans.reduce((sum, sl) => sum + sl.totalAmount, 0)
+      const totalAmount = loanSubLoans.reduce((sum, sl) => sum + (sl.totalAmount ?? 0), 0)
       const totalInterest = totalAmount - loan.amount
       
       if (totalInterest > 0 && loan.amount > 0) {

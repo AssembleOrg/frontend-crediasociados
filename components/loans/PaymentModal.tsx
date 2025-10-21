@@ -82,16 +82,16 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
   useEffect(() => {
     if (open) {
       if (mode === 'single' && subloan) {
-        setSelectedSubloanId(subloan.id)
+        setSelectedSubloanId(subloan.id ?? '')
         // Auto-fill with pending amount (partial payments allowed)
-        const pendingAmount = subloan.totalAmount - (subloan.paidAmount || 0)
+        const pendingAmount = (subloan.totalAmount ?? 0) - (subloan.paidAmount || 0)
         setPaymentAmount(formatAmount(pendingAmount.toString()))
       } else if (mode === 'selector' && subloans.length > 0) {
         const firstPending = subloans.find(s => s.status !== 'PAID')
         if (firstPending) {
-          setSelectedSubloanId(firstPending.id)
+          setSelectedSubloanId(firstPending.id ?? '')
           // Auto-fill with pending amount (partial payments allowed)
-          const pendingAmount = firstPending.totalAmount - (firstPending.paidAmount || 0)
+          const pendingAmount = (firstPending.totalAmount ?? 0) - (firstPending.paidAmount || 0)
           setPaymentAmount(formatAmount(pendingAmount.toString()))
         } else {
           setPaymentAmount('')
@@ -105,7 +105,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
   // Auto-fill payment amount when subloan selection changes in selector mode
   useEffect(() => {
     if (open && mode === 'selector' && selectedSubloanId && currentSubloan) {
-      const pendingAmount = currentSubloan.totalAmount - (currentSubloan.paidAmount || 0)
+      const pendingAmount = (currentSubloan.totalAmount ?? 0) - (currentSubloan.paidAmount || 0)
       setPaymentAmount(formatAmount(pendingAmount.toString()))
     }
   }, [selectedSubloanId, currentSubloan, open, mode])
@@ -114,7 +114,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
   useEffect(() => {
     if (currentSubloan && paymentAmount) {
       const amountValue = parseFloat(unformatAmount(paymentAmount)) || 0
-      const pendingAmount = currentSubloan.totalAmount - (currentSubloan.paidAmount || 0)
+      const pendingAmount = (currentSubloan.totalAmount ?? 0) - (currentSubloan.paidAmount || 0)
       const remainingAfterPayment = Math.max(0, pendingAmount - amountValue)
       const isPartial = amountValue > 0 && remainingAfterPayment > 0
       const status = remainingAfterPayment === 0 ? 'PAID' : 'PARTIAL'
@@ -138,7 +138,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
       // Register payment using the real payments service endpoint
       // This updates the SubLoan status and creates the payment record
       const paymentResult = await paymentsService.registerPayment({
-        subLoanId: currentSubloan.id,
+        subLoanId: currentSubloan.id ?? '',
         amount: amountValue,
         currency: 'ARS',
         paymentDate: paymentDate,
@@ -149,10 +149,10 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
         // Also create ingreso in operativa system for financial tracking
         try {
           await createIngresoFromPago(
-            currentSubloan.id,
+            currentSubloan.id ?? '',
             amountValue,
             clientName,
-            currentSubloan.paymentNumber,
+            currentSubloan.paymentNumber ?? 0,
             new Date(paymentDate)
           )
         } catch (operativaError) {
@@ -161,7 +161,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
         }
 
         // Determine if this was a PARTIAL or PAID payment
-        const remainingAfterPayment = Math.max(0, (currentSubloan.totalAmount - (currentSubloan.paidAmount || 0)) - amountValue)
+        const remainingAfterPayment = Math.max(0, ((currentSubloan.totalAmount ?? 0) - (currentSubloan.paidAmount || 0)) - amountValue)
         const newStatus = remainingAfterPayment === 0 ? 'PAID' : 'PARTIAL'
 
         // Generate receipt if requested
@@ -169,10 +169,10 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
           try {
             generatePaymentPDF({
               clientName,
-              paymentNumber: currentSubloan.paymentNumber,
+              paymentNumber: currentSubloan.paymentNumber ?? 0,
               amount: amountValue,
               paymentDate: new Date(paymentDate),
-              loanTrack: currentSubloan.loanTrack || 'N/A',
+              loanTrack: 'N/A',
               status: newStatus,
               remainingAmount: remainingAfterPayment,
               notes: notes || undefined
@@ -188,7 +188,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
         // Show success feedback with new modal
         setSuccessData({
           clientName,
-          paymentNumber: currentSubloan.paymentNumber,
+          paymentNumber: currentSubloan.paymentNumber ?? 0,
           amount: amountValue,
           paymentDate: new Date(paymentDate),
           status: newStatus,
@@ -202,8 +202,10 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
       console.error('Payment registration error:', error)
 
       // Extract error message for better UX
-      const errorMsg = (error as Record<string, unknown>)?.response?.data?.message ||
-                       (error as Record<string, unknown>)?.message ||
+      const errObj = error as Record<string, unknown>
+      const responseData = (errObj?.response as Record<string, unknown>)?.data as Record<string, unknown> | undefined
+      const errorMsg = responseData?.message ||
+                       errObj?.message ||
                        'Error al registrar el pago. Por favor intenta nuevamente.'
       setErrorMessage(String(errorMsg))
       setErrorModalOpen(true)
@@ -229,7 +231,8 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
     }).format(amount)
   }
 
-  const formatDate = (dateString: string) => {
+  const formatDate = (dateString?: string) => {
+    if (!dateString) return 'N/A'
     return new Date(dateString).toLocaleDateString('es-AR')
   }
 
@@ -279,12 +282,12 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
               label="Seleccionar Cuota"
             >
               {pendingSubloans.map((s) => {
-                const pendingAmount = s.totalAmount - (s.paidAmount || 0)
+                const pendingAmount = (s.totalAmount ?? 0) - (s.paidAmount || 0)
                 return (
-                  <MenuItem key={s.id} value={s.id}>
+                  <MenuItem key={s.id ?? ''} value={s.id ?? ''}>
                     <Box sx={{ display: 'flex', justifyContent: 'space-between', width: '100%' }}>
                       <Typography>
-                        Cuota #{s.paymentNumber} - Vence: {formatDate(s.dueDate)}
+                        Cuota #{s.paymentNumber ?? '?'} - Vence: {formatDate(s.dueDate)}
                       </Typography>
                       <Typography color="primary" fontWeight="bold">
                         {formatCurrency(pendingAmount)}
@@ -311,7 +314,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
               }}
             >
               <Typography variant="h6" gutterBottom>
-                Cuota #{currentSubloan.paymentNumber}
+                Cuota #{currentSubloan.paymentNumber ?? '?'}
               </Typography>
               <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(3, 1fr)' }, gap: 2 }}>
                 <Box>
@@ -319,7 +322,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
                     Monto Total
                   </Typography>
                   <Typography variant="h6" fontWeight="bold">
-                    {formatCurrency(currentSubloan.totalAmount)}
+                    {formatCurrency(currentSubloan.totalAmount ?? 0)}
                   </Typography>
                 </Box>
                 <Box>
@@ -335,7 +338,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
                     Saldo Pendiente
                   </Typography>
                   <Typography variant="h6" fontWeight="bold" color="error.main">
-                    {formatCurrency(currentSubloan.totalAmount - (currentSubloan.paidAmount || 0))}
+                    {formatCurrency((currentSubloan.totalAmount ?? 0) - (currentSubloan.paidAmount || 0))}
                   </Typography>
                 </Box>
               </Box>
@@ -374,7 +377,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
                     </InputAdornment>
                   ),
                 }}
-                helperText={`Pendiente: $${formatAmount((currentSubloan.totalAmount - (currentSubloan.paidAmount || 0)).toString())} - Puedes pagar parcialmente`}
+                helperText={`Pendiente: $${formatAmount(((currentSubloan.totalAmount ?? 0) - (currentSubloan.paidAmount || 0)).toString())} - Puedes pagar parcialmente`}
                 fullWidth
               />
             </Box>

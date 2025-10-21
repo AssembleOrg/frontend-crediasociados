@@ -74,6 +74,52 @@ class WalletsService {
     const response = await api.get(url);
     return response.data.data;
   }
+
+  /**
+   * Cache for storing wallet balances by userId
+   * Used to enrich user data without making multiple API calls
+   */
+  private walletCache: Map<string, { balance: number; timestamp: number }> = new Map();
+  private cacheExpiry = 5 * 60 * 1000; // 5 minutes
+
+  /**
+   * Get cached wallet balance or fetch fresh if expired
+   */
+  async getCachedBalance(userId?: string): Promise<BalanceResponse> {
+    // For now, this only works for current user
+    // In the future, this could be enhanced if backend supports fetching other users' balances
+    const cacheKey = userId || 'current';
+    const cached = this.walletCache.get(cacheKey);
+
+    if (cached && Date.now() - cached.timestamp < this.cacheExpiry) {
+      return {
+        balance: cached.balance,
+        currency: 'ARS',
+        availableForLoan: cached.balance,
+        lockedAmount: 0,
+      };
+    }
+
+    // Fetch fresh data (only works for authenticated user currently)
+    const balance = await this.getBalance();
+    this.walletCache.set(cacheKey, {
+      balance: balance.balance,
+      timestamp: Date.now(),
+    });
+
+    return balance;
+  }
+
+  /**
+   * Clear cache for a specific user or all
+   */
+  clearCache(userId?: string): void {
+    if (userId) {
+      this.walletCache.delete(userId);
+    } else {
+      this.walletCache.clear();
+    }
+  }
 }
 
 export const walletsService = new WalletsService();

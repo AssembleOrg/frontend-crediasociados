@@ -23,7 +23,8 @@ import {
 import { Add, Delete, Receipt } from '@mui/icons-material'
 import { formatAmount, unformatAmount } from '@/lib/formatters'
 import { dailyClosuresService } from '@/services/daily-closures.service'
-import type { Expense, ExpenseCategory } from '@/types/daily-closures'
+import type { Expense } from '@/types/daily-closures'
+import { ExpenseCategory } from '@/types/daily-closures'
 
 interface CreateClosureModalProps {
   open: boolean
@@ -32,7 +33,12 @@ interface CreateClosureModalProps {
   closureDate?: string
 }
 
-const EXPENSE_CATEGORIES: ExpenseCategory[] = ['COMBUSTIBLE', 'consumo', 'REPARACIONES', 'OTROS']
+const EXPENSE_CATEGORIES = [
+  ExpenseCategory.COMBUSTIBLE,
+  ExpenseCategory.CONSUMO,
+  ExpenseCategory.REPARACIONES,
+  ExpenseCategory.OTROS,
+]
 
 export const CreateClosureModal: React.FC<CreateClosureModalProps> = ({
   open,
@@ -60,11 +66,11 @@ export const CreateClosureModal: React.FC<CreateClosureModalProps> = ({
   const addExpense = () => {
     setExpenses([
       ...expenses,
-      { category: 'OTROS', amount: 0, description: '' }
+      { category: ExpenseCategory.OTROS, amount: 0, description: '' } as Omit<Expense, 'id'>
     ])
   }
 
-  const updateExpense = (index: number, field: keyof Expense, value: any) => {
+  const updateExpense = (index: number, field: keyof Expense, value: string | number | ExpenseCategory) => {
     const updated = [...expenses]
     updated[index] = { ...updated[index], [field]: value }
     setExpenses(updated)
@@ -88,7 +94,7 @@ export const CreateClosureModal: React.FC<CreateClosureModalProps> = ({
       }
 
       await dailyClosuresService.createClosure({
-        closureDate: new Date(closureDate),
+        closureDate,
         totalCollected: collected,
         expenses: expenses.map(e => ({
           category: e.category,
@@ -100,8 +106,9 @@ export const CreateClosureModal: React.FC<CreateClosureModalProps> = ({
 
       onSuccess?.()
       onClose()
-    } catch (err: any) {
-      setError(err?.message || 'Error al crear cierre del día')
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : 'Error al crear cierre del día'
+      setError(errorMsg)
     } finally {
       setIsSubmitting(false)
     }

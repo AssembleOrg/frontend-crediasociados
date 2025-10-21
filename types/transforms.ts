@@ -45,6 +45,9 @@ export const apiUserToUser = (apiUser: UserResponseDto): User => ({
   updatedAt: new Date(apiUser.updatedAt),
   wallet:
     (apiUser as UserResponseDto & { wallet?: Wallet }).wallet ?? undefined,
+  clientQuota: apiUser.clientQuota ?? 0,
+  usedClientQuota: apiUser.usedClientQuota ?? 0,
+  availableClientQuota: apiUser.availableClientQuota ?? 0,
 });
 
 // Transform frontend user to API create DTO
@@ -71,6 +74,7 @@ export const userToUpdateDto = (
   if (user.phone !== undefined) dto.phone = user.phone;
   if (user.role !== undefined)
     dto.role = REVERSE_ROLE_MAP[user.role] || 'MANAGER';
+  if (user.clientQuota !== undefined) dto.clientQuota = user.clientQuota;
 
   return dto;
 };

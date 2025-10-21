@@ -11,12 +11,14 @@ export interface UrgencyColors {
 /**
  * Determines urgency level based on due date
  */
-export const getUrgencyLevel = (dueDate: string): 'overdue' | 'today' | 'soon' | 'future' => {
+export const getUrgencyLevel = (dueDate?: string): 'overdue' | 'today' | 'soon' | 'future' => {
+  if (!dueDate) return 'future'
+
   const today = new Date()
   const due = new Date(dueDate)
   const diffTime = due.getTime() - today.getTime()
   const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
-  
+
   if (diffDays < 0) return 'overdue' // Ya vencido
   if (diffDays === 0) return 'today' // Vence hoy
   if (diffDays <= 2) return 'soon' // Vence pronto (1-2 días)

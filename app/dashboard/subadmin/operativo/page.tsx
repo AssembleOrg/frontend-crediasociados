@@ -22,14 +22,14 @@ import {
   Snackbar,
   Chip
 } from '@mui/material'
-import { Add, TrendingDown, TrendingUp } from '@mui/icons-material'
+import { TrendingDown, TrendingUp } from '@mui/icons-material'
 import PageHeader from '@/components/ui/PageHeader'
 import { useWallet } from '@/hooks/useWallet'
 import { useUsers } from '@/hooks/useUsers'
-import { useAuth } from '@/hooks/useAuth'
 import { DepositModal } from '@/components/wallets/DepositModal'
 import { TransferToCobrador } from '@/components/wallets/TransferToCobrador'
 import { WithdrawFromCobrador } from '@/components/wallets/WithdrawFromCobrador'
+import { formatAmount } from '@/lib/formatters'
 import type { User } from '@/types/auth'
 
 interface ToastState {
@@ -48,6 +48,7 @@ export default function OperativoSubadminPage() {
   const [depositModalOpen, setDepositModalOpen] = useState(false)
   const [transferModalOpen, setTransferModalOpen] = useState(false)
   const [withdrawModalOpen, setWithdrawModalOpen] = useState(false)
+  const [selectedCobrador, setSelectedCobrador] = useState<User | null>(null)
   const [toast, setToast] = useState<ToastState>({
     open: false,
     message: '',
@@ -81,11 +82,11 @@ export default function OperativoSubadminPage() {
   }
 
   const handleDeposit = async (data: { amount: number; currency: string; description: string }) => {
-    const success = await deposit(data.amount, data.description, data.currency)
+    const success = await deposit(data.amount, data.currency, data.description)
     if (success) {
       setDepositModalOpen(false)
       await refetchWallet()
-      showToast(`✅ Depósito de $${data.amount.toLocaleString('es-AR')} realizado exitosamente`, 'success')
+      showToast(`✅ Depósito de $${formatAmount(data.amount.toString())} realizado exitosamente`, 'success')
     } else {
       showToast('Error al realizar el depósito', 'error')
     }
@@ -113,42 +114,42 @@ export default function OperativoSubadminPage() {
       />
 
       {/* Wallet Balance Card */}
-      <Card sx={{ mb: 3, bgcolor: 'primary.light', color: 'primary.dark' }}>
-        <CardContent>
-          <Grid container spacing={2} alignItems="center">
-            <Grid size={{ xs: 12, sm: 6 }}>
-              <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1 }}>
+      <Card sx={{ mb: 4, bgcolor: 'primary.light', border: `1px solid ${theme.palette.primary.main}` }}>
+        <CardContent sx={{ p: 3 }}>
+          <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr auto' }, gap: 3, alignItems: 'center' }}>
+            <Box>
+              <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 500, color: 'text.primary' }}>
                 Tu Saldo Disponible
               </Typography>
-              <Typography variant="h4" sx={{ fontWeight: 'bold' }}>
-                ${wallet?.balance ?? 0}
+              <Typography variant="h4" sx={{ fontWeight: 700, color: theme.palette.mode === 'dark' ? '#fff' : '#000' }}>
+                ${wallet?.balance?.toLocaleString('es-AR') ?? 0}
               </Typography>
-            </Grid>
-            <Grid size={{ xs: 12, sm: 6 }} sx={{ display: 'flex', gap: 1, justifyContent: { xs: 'flex-start', sm: 'flex-end' } }}>
+            </Box>
+            <Box sx={{ display: 'flex', gap: 1.5, flexDirection: { xs: 'column', sm: 'row' }, justifyContent: { xs: 'flex-start', sm: 'flex-end' } }}>
               <Button
                 variant="contained"
                 startIcon={<TrendingUp />}
                 onClick={() => setDepositModalOpen(true)}
-                sx={{ bgcolor: 'success.main', '&:hover': { bgcolor: 'success.dark' } }}
+                sx={{ backgroundColor: 'success.main', '&:hover': { backgroundColor: 'success.dark' } }}
               >
-                Hacer Depósito
+                Depositar
               </Button>
               <Button
-                variant="contained"
+                variant="outlined"
                 startIcon={<TrendingDown />}
                 onClick={() => setTransferModalOpen(true)}
                 disabled={!wallet || wallet.balance <= 0}
               >
                 Transferir
               </Button>
-            </Grid>
-          </Grid>
+            </Box>
+          </Box>
         </CardContent>
       </Card>
 
       {/* Desktop Table View */}
       {!isMobile && (
-        <Paper>
+        <Paper sx={{ mb: 4 }}>
           <TableContainer>
             <Table>
               <TableHead sx={{ bgcolor: 'grey.100' }}>
@@ -191,8 +192,8 @@ export default function OperativoSubadminPage() {
                         </Typography>
                       </TableCell>
                       <TableCell align="right">
-                        <Typography variant="body2" sx={{ fontWeight: 600, color: 'success.main' }}>
-                          ${cobrador.wallet?.balance ?? 0}
+                        <Typography variant="body2" sx={{ fontWeight: 600, color: cobrador.wallet?.balance ? 'success.main' : 'text.secondary' }}>
+                          {cobrador.wallet?.balance !== undefined ? `$${cobrador.wallet.balance.toLocaleString('es-AR')}` : 'N/A'}
                         </Typography>
                       </TableCell>
                       <TableCell align="center">
@@ -200,7 +201,10 @@ export default function OperativoSubadminPage() {
                           size="small" 
                           variant="outlined" 
                           sx={{ mr: 1 }}
-                          onClick={() => setTransferModalOpen(true)}
+                          onClick={() => {
+                            setSelectedCobrador(cobrador)
+                            setTransferModalOpen(true)
+                          }}
                         >
                           Transferir
                         </Button>
@@ -208,7 +212,10 @@ export default function OperativoSubadminPage() {
                           size="small" 
                           variant="outlined" 
                           color="error"
-                          onClick={() => setWithdrawModalOpen(true)}
+                          onClick={() => {
+                            setSelectedCobrador(cobrador)
+                            setWithdrawModalOpen(true)
+                          }}
                         >
                           Retirar
                         </Button>
@@ -247,9 +254,9 @@ export default function OperativoSubadminPage() {
                             {cobrador.email}
                           </Typography>
                         </Box>
-                        <Chip 
-                          label={`$${cobrador.wallet?.balance ?? 0}`}
-                          color="success"
+                        <Chip
+                          label={cobrador.wallet?.balance !== undefined ? `$${cobrador.wallet.balance.toLocaleString('es-AR')}` : 'N/A'}
+                          color={cobrador.wallet?.balance ? 'success' : 'default'}
                           size="small"
                         />
                       </Box>
@@ -280,7 +287,10 @@ export default function OperativoSubadminPage() {
                           size="small" 
                           variant="outlined" 
                           fullWidth
-                          onClick={() => setTransferModalOpen(true)}
+                          onClick={() => {
+                            setSelectedCobrador(cobrador)
+                            setTransferModalOpen(true)
+                          }}
                         >
                           Transferir
                         </Button>
@@ -289,7 +299,10 @@ export default function OperativoSubadminPage() {
                           variant="outlined" 
                           color="error"
                           fullWidth
-                          onClick={() => setWithdrawModalOpen(true)}
+                          onClick={() => {
+                            setSelectedCobrador(cobrador)
+                            setWithdrawModalOpen(true)
+                          }}
                         >
                           Retirar
                         </Button>
@@ -313,14 +326,22 @@ export default function OperativoSubadminPage() {
 
       <TransferToCobrador
         open={transferModalOpen}
-        onClose={() => setTransferModalOpen(false)}
-        onSuccess={handleTransferSuccess}
+        onClose={() => {
+          setTransferModalOpen(false)
+          setSelectedCobrador(null)
+        }}
+        selectedCobrador={selectedCobrador}
         currentBalance={wallet?.balance ?? 0}
+        onSuccess={handleTransferSuccess}
       />
 
       <WithdrawFromCobrador
         open={withdrawModalOpen}
-        onClose={() => setWithdrawModalOpen(false)}
+        onClose={() => {
+          setWithdrawModalOpen(false)
+          setSelectedCobrador(null)
+        }}
+        selectedCobrador={selectedCobrador}
         onSuccess={handleWithdrawSuccess}
       />
 
