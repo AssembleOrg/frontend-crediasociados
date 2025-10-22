@@ -7,6 +7,7 @@ import { DateTime } from 'luxon'
 import { ensureLuxonConfigured } from '@/lib/luxon-config'
 import type { AdminReportData } from '@/services/reports.service'
 import type { ClientChartDataDto, LoanChartDataDto } from '@/services/manager.service'
+import type { User } from '@/types/auth'
 
 export type TimeFilter = 'week' | 'month' | 'quarter' | 'custom'
 
@@ -15,46 +16,29 @@ interface DateRange {
   to: Date
 }
 
-interface BasicSubadminData {
-  id: string
-  name: string
-  email: string
-  managersCount: number
-}
-
-interface ManagerData {
-  id: string
-  name: string
-  email: string
-  clients: ClientChartDataDto[]
-  loans: LoanChartDataDto[]
-}
-
-interface DetailedSubadminData extends BasicSubadminData {
+/**
+ * SubadminEnrichment - Derived data for a subadmin
+ * NOT the User object itself - that lives in usersStore
+ * Only contains enrichment data (charts, metrics, analytics)
+ */
+interface SubadminEnrichment {
   totalClients: number
   totalLoans: number
-  managers: ManagerData[]
-}
-
-interface ProcessedChartData {
-  managersPerSubadmin: Array<{
+  totalAmount: number
+  managers: Array<{
+    id: string
     name: string
-    value: number
-    subadminId: string
-  }>
-  clientsEvolution: Array<{
-    date: string
-    clients: number
+    email: string
+    clients: ClientChartDataDto[]
+    loans: LoanChartDataDto[]
   }>
 }
 
 interface AdminStore {
-  // State - Session data that should persist
+  // State - Only enrichment data (NOT User[] duplicates!)
   reports: AdminReportData | null
-  basicData: BasicSubadminData[]
-  detailedData: DetailedSubadminData[]
-  lastFetch: Date | null
-  lastDetailedFetch: Date | null
+  subadminEnrichments: Record<string, SubadminEnrichment>
+  lastEnrichmentFetch: Date | null
 
   // Filters (persist during session)
   timeFilter: TimeFilter
@@ -63,24 +47,21 @@ interface AdminStore {
 
   // Simple synchronous actions only
   setReports: (reports: AdminReportData | null) => void
-  setBasicData: (data: BasicSubadminData[]) => void
-  setDetailedData: (data: DetailedSubadminData[]) => void
-  setLastFetch: (date: Date) => void
-  setLastDetailedFetch: (date: Date) => void
+  setSubadminEnrichments: (subadminId: string, enrichment: SubadminEnrichment) => void
+  setLastEnrichmentFetch: (date: Date) => void
 
   // Filter setters
   setTimeFilter: (filter: TimeFilter) => void
   setDateRange: (range: DateRange) => void
   setSelectedSubadmin: (id: string | null) => void
 
-  isBasicDataFresh: () => boolean
-  isDetailedDataFresh: () => boolean
-  hasDetailedData: () => boolean
-  getAggregatedTotals: () => { totalClients: number; totalLoans: number }
-  getSubadminOptions: () => Array<{ id: string; name: string }>
+  isEnrichmentDataFresh: () => boolean
+  hasEnrichmentData: () => boolean
+  getAggregatedTotals: (subadmins: User[]) => { totalClients: number; totalLoans: number; totalAmount: number }
+  getSubadminOptions: (subadmins: User[]) => Array<{ id: string; name: string }>
 
   clearAllData: () => void
-  clearDetailedData: () => void
+  clearEnrichmentData: () => void
 
   invalidateCache: () => void
 }
@@ -115,10 +96,8 @@ export const useAdminStore = create<AdminStore>()(
   persist(
     immer((set, get) => ({
       reports: null,
-      basicData: [],
-      detailedData: [],
-      lastFetch: null,
-      lastDetailedFetch: null,
+      subadminEnrichments: {},
+      lastEnrichmentFetch: null,
       timeFilter: 'month',
       dateRange: getDateRangeForFilter('month'),
       selectedSubadmin: null,
@@ -126,33 +105,19 @@ export const useAdminStore = create<AdminStore>()(
       setReports: (reports) => {
         set((state) => {
           state.reports = reports
-          state.lastFetch = new Date()
         })
       },
 
-      setBasicData: (data) => {
+      setSubadminEnrichments: (subadminId, enrichment) => {
         set((state) => {
-          state.basicData = data
-          state.lastFetch = new Date()
+          state.subadminEnrichments[subadminId] = enrichment
+          state.lastEnrichmentFetch = new Date()
         })
       },
 
-      setDetailedData: (data) => {
+      setLastEnrichmentFetch: (date) => {
         set((state) => {
-          state.detailedData = data
-          state.lastDetailedFetch = new Date()
-        })
-      },
-
-      setLastFetch: (date) => {
-        set((state) => {
-          state.lastFetch = date
-        })
-      },
-
-      setLastDetailedFetch: (date) => {
-        set((state) => {
-          state.lastDetailedFetch = date
+          state.lastEnrichmentFetch = date
         })
       },
 
@@ -176,68 +141,56 @@ export const useAdminStore = create<AdminStore>()(
         })
       },
 
-      isBasicDataFresh: () => {
-        const lastFetch = get().lastFetch
-        if (!lastFetch) return false
-        const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000)
-        return lastFetch > fiveMinutesAgo
-      },
-
-      isDetailedDataFresh: () => {
-        const lastDetailedFetch = get().lastDetailedFetch
-        if (!lastDetailedFetch) return false
+      isEnrichmentDataFresh: () => {
+        const lastEnrichmentFetch = get().lastEnrichmentFetch
+        if (!lastEnrichmentFetch) return false
         const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000)
-        return lastDetailedFetch > tenMinutesAgo
+        return lastEnrichmentFetch > tenMinutesAgo
       },
 
-      hasDetailedData: () => {
-        return get().detailedData.length > 0
+      hasEnrichmentData: () => {
+        return Object.keys(get().subadminEnrichments).length > 0
       },
 
-      getAggregatedTotals: () => {
-        const { detailedData } = get()
+      getAggregatedTotals: (subadmins: User[]) => {
+        const { subadminEnrichments } = get()
 
-        if (detailedData.length === 0) {
-          return { totalClients: 0, totalLoans: 0 }
+        if (subadmins.length === 0) {
+          return { totalClients: 0, totalLoans: 0, totalAmount: 0 }
         }
 
         return {
-          totalClients: detailedData.reduce((sum, subadmin) => sum + (subadmin.totalClients || 0), 0),
-          totalLoans: detailedData.reduce((sum, subadmin) => sum + (subadmin.totalLoans || 0), 0)
+          totalClients: subadmins.reduce((sum, subadmin) => sum + (subadminEnrichments[subadmin.id]?.totalClients || 0), 0),
+          totalLoans: subadmins.reduce((sum, subadmin) => sum + (subadminEnrichments[subadmin.id]?.totalLoans || 0), 0),
+          totalAmount: subadmins.reduce((sum, subadmin) => sum + (subadminEnrichments[subadmin.id]?.totalAmount || 0), 0)
         }
       },
 
-      getSubadminOptions: () => {
-        const { detailedData, basicData } = get()
-        const data = detailedData.length > 0 ? detailedData : basicData
-
-        return data.map(subadmin => ({
+      getSubadminOptions: (subadmins: User[]) => {
+        return subadmins.map(subadmin => ({
           id: subadmin.id,
-          name: subadmin.name
+          name: subadmin.fullName
         }))
       },
 
       clearAllData: () => {
         set((state) => {
           state.reports = null
-          state.basicData = []
-          state.detailedData = []
-          state.lastFetch = null
-          state.lastDetailedFetch = null
+          state.subadminEnrichments = {}
+          state.lastEnrichmentFetch = null
         })
       },
 
-      clearDetailedData: () => {
+      clearEnrichmentData: () => {
         set((state) => {
-          state.detailedData = []
-          state.lastDetailedFetch = null
+          state.subadminEnrichments = {}
+          state.lastEnrichmentFetch = null
         })
       },
 
       invalidateCache: () => {
         set((state) => {
-          state.lastFetch = null
-          state.lastDetailedFetch = null
+          state.lastEnrichmentFetch = null
         })
       },
     })),
@@ -253,11 +206,8 @@ export const useAdminStore = create<AdminStore>()(
             state.dateRange.from = new Date(state.dateRange.from)
             state.dateRange.to = new Date(state.dateRange.to)
           }
-          if (state.lastFetch) {
-            state.lastFetch = new Date(state.lastFetch)
-          }
-          if (state.lastDetailedFetch) {
-            state.lastDetailedFetch = new Date(state.lastDetailedFetch)
+          if (state.lastEnrichmentFetch) {
+            state.lastEnrichmentFetch = new Date(state.lastEnrichmentFetch)
           }
           return { state }
         },
@@ -272,10 +222,8 @@ export const useAdminStore = create<AdminStore>()(
       },
       partialize: (state) => ({
         reports: state.reports,
-        basicData: state.basicData,
-        detailedData: state.detailedData,
-        lastFetch: state.lastFetch,
-        lastDetailedFetch: state.lastDetailedFetch,
+        subadminEnrichments: state.subadminEnrichments,
+        lastEnrichmentFetch: state.lastEnrichmentFetch,
         timeFilter: state.timeFilter,
         dateRange: state.dateRange,
         selectedSubadmin: state.selectedSubadmin,

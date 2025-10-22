@@ -2,44 +2,61 @@
 
 import { useCallback } from 'react'
 import { useSubadminStore } from '@/stores/subadmin'
+import { useUsersStore } from '@/stores/users'
 
 /**
  * useSubadminDashboard - Pure Consumer Hook (Layer 4)
  *
  * 100% identical pattern to useAdminDashboard:
- * - NO auto-initialization (Provider handles that)
+ * - NO auto-initialization (useSubadminDashboardData handles that)
  * - NO useEffect with API calls
- * - Only consumes data from store
+ * - Only consumes data from stores
  * - Manual methods available for specific operations
  * - useCallback with store dependencies (store methods are stable)
+ *
+ * NOTE: This is now a wrapper around useSubadminDashboardData which
+ * combines data from usersStore (canonical) + subadminStore (enrichments)
  */
 export const useSubadminDashboard = () => {
   const subadminStore = useSubadminStore()
+  const usersStore = useUsersStore()
+
+  // Get managers from usersStore (canonical source of truth)
+  const managers = usersStore.users.filter(u => u.role === 'prestamista')
 
   // Manual refresh method (for specific use cases)
   const refreshData = useCallback(() => {
-    // ✅ KISS: Direct store invalidation - provider will detect and refetch
+    // Invalidate store cache - useSubadminDashboardData will detect and refetch
     subadminStore.invalidateCache()
-  }, [subadminStore]) // ✅ Store reference is stable
+  }, [subadminStore])
 
   // Loading states - derived from store data
-  const isBasicLoading = !subadminStore.isBasicDataFresh() && subadminStore.managers.length === 0
-  const isDetailedLoading = subadminStore.managers.length > 0 && !subadminStore.hasDetailedData() && !subadminStore.isDetailedDataFresh()
-  const isInitialized = subadminStore.managers.length > 0 || subadminStore.isBasicDataFresh()
+  const isDetailedLoading = !subadminStore.isEnrichmentDataFresh() && !subadminStore.hasEnrichmentData()
+  const isInitialized = managers.length > 0
+
+  // Combine managers from usersStore with enrichments from subadminStore
+  const detailedData = managers.map(manager => ({
+    ...manager,
+    ...(subadminStore.managerEnrichments[manager.id] || {
+      totalClients: 0,
+      totalLoans: 0,
+      totalAmount: 0,
+      clients: [],
+      loans: []
+    })
+  }))
 
   return {
-    // Raw data access
-    basicData: subadminStore.managers,
-    detailedData: subadminStore.detailedManagers,
+    // Raw data access (detailedData combines usersStore + enrichments)
+    detailedData,
 
     // Aggregated totals (unfiltered - true totals)
     aggregatedTotals: subadminStore.getAggregatedTotals(),
 
     // Loading states
-    isBasicLoading,
     isDetailedLoading,
     isInitialized,
-    hasDetailedData: subadminStore.hasDetailedData(),
+    hasDetailedData: subadminStore.hasEnrichmentData(),
 
     // Filter state
     timeFilter: subadminStore.timeFilter,
@@ -49,10 +66,10 @@ export const useSubadminDashboard = () => {
     setTimeFilter: subadminStore.setTimeFilter,
     setCustomDateRange: subadminStore.setDateRange,
 
-    // Manual refresh (rarely needed since provider auto-manages)
+    // Manual refresh
     refreshData,
 
-    // No error state - provider handles errors gracefully with fallbacks
+    // No error state - handled by useSubadminDashboardData
     error: null
   }
 }
@@ -63,10 +80,13 @@ export const useSubadminDashboard = () => {
 export const useSubadminDashboardWithFilters = () => {
   const dashboardData = useSubadminDashboard()
   const subadminStore = useSubadminStore()
+  const usersStore = useUsersStore()
+
+  const managers = usersStore.users.filter(u => u.role === 'prestamista')
 
   // Export detailed data as CSV
   const exportDetailedData = useCallback(() => {
-    const detailedData = subadminStore.detailedManagers
+    const detailedData = dashboardData.detailedData
 
     if (!detailedData.length) {
       alert('No hay datos detallados disponibles para exportar')
@@ -86,13 +106,13 @@ export const useSubadminDashboardWithFilters = () => {
     csvRows.push('Manager,Email,Clientes,Préstamos,Monto Total')
 
     // Data rows
-    dataToExport.forEach(manager => {
+    dataToExport.forEach((manager: any) => {
       csvRows.push([
-        manager.name,
+        manager.fullName,
         manager.email,
-        manager.totalClients,
-        manager.totalLoans,
-        manager.totalAmount
+        manager.totalClients || 0,
+        manager.totalLoans || 0,
+        manager.totalAmount || 0
       ].join(','))
     })
 
@@ -104,7 +124,7 @@ export const useSubadminDashboardWithFilters = () => {
     link.download = `subadmin-managers-${new Date().toISOString().split('T')[0]}.csv`
     link.click()
     window.URL.revokeObjectURL(url)
-  }, [subadminStore]) // ✅ Store reference is stable
+  }, [subadminStore, dashboardData.detailedData])
 
   return {
     ...dashboardData,
@@ -112,12 +132,12 @@ export const useSubadminDashboardWithFilters = () => {
     // Additional filter state
     selectedManager: subadminStore.selectedManager,
     setSelectedManager: subadminStore.setSelectedManager,
-    managerOptions: subadminStore.getManagerOptions(),
+    managerOptions: subadminStore.getManagerOptions(managers),
 
     // Export functionality
     exportDetailedData,
 
     // Combined loading state
-    isAnyLoading: dashboardData.isBasicLoading || dashboardData.isDetailedLoading
+    isAnyLoading: dashboardData.isDetailedLoading
   }
 }

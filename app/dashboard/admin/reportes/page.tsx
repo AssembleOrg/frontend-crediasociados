@@ -17,8 +17,6 @@ export default function AdminReportsPage() {
     clearReportsError,
 
     // Progressive dashboard data for filtering
-    basicData,
-    detailedData,
     isInitialized,
     timeFilter,
     dateRange,
@@ -32,10 +30,13 @@ export default function AdminReportsPage() {
     exportDetailedData,
 
     // Combined states
-    isAnyLoading
+    isAnyLoading,
+
+    // Data counts
+    dataCount
   } = useAdminReportsWithFilters()
 
-  const handlePdfExport = async () => {
+  const handlePdfExport = async (): Promise<void> => {
     if (!reports) {
       alert('No hay datos disponibles para exportar')
       return
@@ -45,10 +46,10 @@ export default function AdminReportsPage() {
       const dataToExport: AdminReportsData = selectedSubadmin
         ? {
             ...reports,
-            subadmins: reports.subadmins.filter(subadmin => subadmin.userId === selectedSubadmin),
+            subadmins: reports.subadmins.filter((subadmin) => subadmin.userId === selectedSubadmin),
             totalUsers: 1,
-            totalClients: reports.subadmins.find(s => s.userId === selectedSubadmin)?.totalClients || 0,
-            totalLoans: reports.subadmins.find(s => s.userId === selectedSubadmin)?.totalLoans || 0,
+            totalClients: reports.subadmins.find((s) => s.userId === selectedSubadmin)?.totalClients || 0,
+            totalLoans: reports.subadmins.find((s) => s.userId === selectedSubadmin)?.totalLoans || 0,
             totalAmountLent: 0,
           }
         : reports
@@ -65,12 +66,6 @@ export default function AdminReportsPage() {
       console.error('Error generating PDF:', error)
       alert('Error al generar el PDF. Por favor, inténtelo de nuevo.')
     }
-  }
-
-  const dataCount = {
-    totalSubadmins: detailedData.length > 0 ? detailedData.length : basicData.length,
-    totalManagers: (detailedData.length > 0 ? detailedData : basicData).reduce((sum, s) => sum + s.managersCount, 0),
-    totalClients: detailedData.reduce((sum, s) => sum + (s.totalClients || 0), 0)
   }
 
   const additionalCards = null

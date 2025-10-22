@@ -4,6 +4,7 @@ import { useMemo } from 'react'
 import { DateTime } from 'luxon'
 import { ensureLuxonConfigured } from '@/lib/luxon-config'
 import { useSubadminStore } from '@/stores/subadmin'
+import { useSubadminDashboardData } from '@/hooks/useSubadminDashboardData'
 import type { ClientChartDataDto } from '@/services/manager.service'
 
 export interface ProcessedSubadminChartData {
@@ -41,12 +42,9 @@ export const useSubadminCharts = (): ProcessedSubadminChartData => {
   // Ensure Luxon is configured (lazy loaded)
   ensureLuxonConfigured()
 
+  // Get detailed managers from dashboard hook (which combines usersStore + enrichments)
+  const { detailedManagers, dateRange } = useSubadminDashboardData()
   const subadminStore = useSubadminStore()
-
-  const {
-    detailedManagers,
-    dateRange
-  } = subadminStore
 
   return useMemo((): ProcessedSubadminChartData => {
     if (!detailedManagers.length) {
@@ -56,13 +54,15 @@ export const useSubadminCharts = (): ProcessedSubadminChartData => {
       }
     }
 
-    const clientesPerManager = detailedManagers.map(manager => ({
-      name: manager.name,
+    const clientesPerManager = detailedManagers.map((manager: any) => ({
+      name: manager.fullName,
       clientCount: manager.totalClients,
       asociadoId: manager.id
     }))
 
-    const clientsEvolution = processClientsEvolution(detailedManagers, dateRange)
+    // Cast to DetailedManagerData for compatibility with processClientsEvolution
+    const detailedManagersForProcessing = detailedManagers as any[] as DetailedManagerData[]
+    const clientsEvolution = processClientsEvolution(detailedManagersForProcessing, dateRange)
 
     return {
       clientesPerManager,

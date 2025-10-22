@@ -45,9 +45,9 @@ export const apiUserToUser = (apiUser: UserResponseDto): User => ({
   updatedAt: new Date(apiUser.updatedAt),
   wallet:
     (apiUser as UserResponseDto & { wallet?: Wallet }).wallet ?? undefined,
-  clientQuota: apiUser.clientQuota ?? 0,
-  usedClientQuota: apiUser.usedClientQuota ?? 0,
-  availableClientQuota: apiUser.availableClientQuota ?? 0,
+  clientQuota: apiUser.clientQuota !== undefined ? apiUser.clientQuota : undefined,
+  usedClientQuota: apiUser.usedClientQuota !== undefined ? apiUser.usedClientQuota : undefined,
+  availableClientQuota: apiUser.availableClientQuota !== undefined ? apiUser.availableClientQuota : undefined,
 });
 
 // Transform frontend user to API create DTO

@@ -12,27 +12,25 @@ interface DateRange {
   to: Date
 }
 
-interface BasicManagerData {
-  id: string
-  name: string
-  email: string
-  clientsCount: number
-}
-
-interface DetailedManagerData extends BasicManagerData {
-  totalAmount: number
+/**
+ * Manager enrichment data - Contains data that's not in usersStore
+ * (charts, metrics, derived calculations)
+ */
+interface ManagerEnrichment {
   totalClients: number
   totalLoans: number
+  totalAmount: number
   clients: ClientChartDataDto[]
   loans: LoanChartDataDto[]
 }
 
 interface SubadminStore {
   // State - Session data that should persist
-  managers: BasicManagerData[]
-  detailedManagers: DetailedManagerData[]
-  lastFetch: Date | null
-  lastDetailedFetch: Date | null
+  // NOTE: We NO LONGER store managers/detailedManagers here
+  // Those come from usersStore (single source of truth)
+  // This store ONLY stores enrichment data that's not in usersStore
+  managerEnrichments: Record<string, ManagerEnrichment>
+  lastEnrichmentFetch: Date | null
 
   // Filters (persist during session)
   timeFilter: TimeFilter
@@ -40,10 +38,8 @@ interface SubadminStore {
   selectedManager: string | null
 
   // Simple synchronous actions only (Layer 3 - "dumb" store)
-  setManagers: (data: BasicManagerData[]) => void
-  setDetailedManagers: (data: DetailedManagerData[]) => void
-  setLastFetch: (date: Date) => void
-  setLastDetailedFetch: (date: Date) => void
+  setManagerEnrichments: (data: Record<string, ManagerEnrichment>) => void
+  setLastEnrichmentFetch: (date: Date) => void
 
   // Filter setters
   setTimeFilter: (filter: TimeFilter) => void
@@ -51,15 +47,14 @@ interface SubadminStore {
   setSelectedManager: (id: string | null) => void
 
   // Simple calculations only (Layer 3)
-  isBasicDataFresh: () => boolean
-  isDetailedDataFresh: () => boolean
-  hasDetailedData: () => boolean
+  isEnrichmentDataFresh: () => boolean
+  hasEnrichmentData: () => boolean
   getAggregatedTotals: () => { totalClients: number; totalAmount: number; totalLoans: number }
-  getManagerOptions: () => Array<{ id: string; name: string }>
+  getManagerOptions: (managers: Array<{ id: string; fullName: string }>) => Array<{ id: string; name: string }>
 
   // Clear methods
   clearAllData: () => void
-  clearDetailedData: () => void
+  clearEnrichmentData: () => void
 
   // Cache invalidation
   invalidateCache: () => void
@@ -94,38 +89,23 @@ export const useSubadminStore = create<SubadminStore>()(
   persist(
     immer((set, get) => ({
       // Initial state
-      managers: [],
-      detailedManagers: [],
-      lastFetch: null,
-      lastDetailedFetch: null,
+      managerEnrichments: {},
+      lastEnrichmentFetch: null,
       timeFilter: 'month',
       dateRange: getDateRangeForFilter('month'),
       selectedManager: null,
 
       // Simple synchronous setters (Layer 3 pattern)
-      setManagers: (data) => {
+      setManagerEnrichments: (data) => {
         set((state) => {
-          state.managers = data
-          state.lastFetch = new Date()
+          state.managerEnrichments = data
+          state.lastEnrichmentFetch = new Date()
         })
       },
 
-      setDetailedManagers: (data) => {
+      setLastEnrichmentFetch: (date) => {
         set((state) => {
-          state.detailedManagers = data
-          state.lastDetailedFetch = new Date()
-        })
-      },
-
-      setLastFetch: (date) => {
-        set((state) => {
-          state.lastFetch = date
-        })
-      },
-
-      setLastDetailedFetch: (date) => {
-        set((state) => {
-          state.lastDetailedFetch = date
+          state.lastEnrichmentFetch = date
         })
       },
 
@@ -150,71 +130,59 @@ export const useSubadminStore = create<SubadminStore>()(
       },
 
       // Simple calculations (Layer 3 - "dumb" store)
-      isBasicDataFresh: () => {
-        const lastFetch = get().lastFetch
-        if (!lastFetch) return false
-        const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000)
-        return lastFetch > fiveMinutesAgo
-      },
-
-      isDetailedDataFresh: () => {
-        const lastDetailedFetch = get().lastDetailedFetch
-        if (!lastDetailedFetch) return false
+      isEnrichmentDataFresh: () => {
+        const lastEnrichmentFetch = get().lastEnrichmentFetch
+        if (!lastEnrichmentFetch) return false
         const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000)
-        return lastDetailedFetch > tenMinutesAgo
+        return lastEnrichmentFetch > tenMinutesAgo
       },
 
-      hasDetailedData: () => {
-        return get().detailedManagers.length > 0
+      hasEnrichmentData: () => {
+        return Object.keys(get().managerEnrichments).length > 0
       },
 
       getAggregatedTotals: () => {
-        const { detailedManagers } = get()
+        const { managerEnrichments } = get()
+        const enrichments = Object.values(managerEnrichments)
 
-        if (detailedManagers.length === 0) {
+        if (enrichments.length === 0) {
           return { totalClients: 0, totalAmount: 0, totalLoans: 0 }
         }
 
         return {
-          totalClients: detailedManagers.reduce((sum, manager) => sum + (manager.totalClients || 0), 0),
-          totalAmount: detailedManagers.reduce((sum, manager) => sum + (manager.totalAmount || 0), 0),
-          totalLoans: detailedManagers.reduce((sum, manager) => sum + (manager.totalLoans || 0), 0)
+          totalClients: enrichments.reduce((sum, enrichment) => sum + (enrichment.totalClients || 0), 0),
+          totalAmount: enrichments.reduce((sum, enrichment) => sum + (enrichment.totalAmount || 0), 0),
+          totalLoans: enrichments.reduce((sum, enrichment) => sum + (enrichment.totalLoans || 0), 0)
         }
       },
 
-      getManagerOptions: () => {
-        const { detailedManagers, managers } = get()
-        const data = detailedManagers.length > 0 ? detailedManagers : managers
-
-        return data.map(manager => ({
+      getManagerOptions: (managers) => {
+        return managers.map(manager => ({
           id: manager.id,
-          name: manager.name
+          name: manager.fullName
         }))
       },
 
       // Clear methods
       clearAllData: () => {
         set((state) => {
-          state.managers = []
-          state.detailedManagers = []
-          state.lastFetch = null
-          state.lastDetailedFetch = null
+          state.managerEnrichments = {}
+          state.lastEnrichmentFetch = null
         })
       },
 
-      clearDetailedData: () => {
+      clearEnrichmentData: () => {
         set((state) => {
-          state.detailedManagers = []
-          state.lastDetailedFetch = null
+          state.managerEnrichments = {}
+          state.lastEnrichmentFetch = null
         })
       },
 
-      // Cache invalidation method - provider will detect and refetch
+      // Cache invalidation method - hook will detect and refetch
       invalidateCache: () => {
         set((state) => {
-          state.lastFetch = null
-          state.lastDetailedFetch = null
-          // Keep data but invalidate timestamps - provider will refetch
+          state.lastEnrichmentFetch = null
+          // Keep enrichment data but invalidate timestamp - hook will refetch if needed
         })
       },
     })),
@@ -222,10 +190,8 @@ export const useSubadminStore = create<SubadminStore>()(
       name: 'subadmin-session-storage',
       partialize: (state) => ({
         // Persist critical session data
-        managers: state.managers,
-        detailedManagers: state.detailedManagers,
-        lastFetch: state.lastFetch,
-        lastDetailedFetch: state.lastDetailedFetch,
+        managerEnrichments: state.managerEnrichments,
+        lastEnrichmentFetch: state.lastEnrichmentFetch,
         timeFilter: state.timeFilter,
         dateRange: state.dateRange,
         selectedManager: state.selectedManager,

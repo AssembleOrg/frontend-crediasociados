@@ -2,18 +2,22 @@
 
 import { useState, useCallback, useMemo, useEffect, useRef } from 'react'
 import { useAdminStore } from '@/stores/admin'
+import { useUsersStore } from '@/stores/users'
 import { useAuth } from '@/hooks/useAuth'
-import { reportsService } from '@/services/reports.service'
 import { managerService } from '@/services/manager.service'
-import type { TimeFilter } from '@/stores/admin'
 
-interface DateRange {
-  from: Date
-  to: Date
-}
-
+/**
+ * useAdminReportsWithFilters - Data Loading Hook for Admin Reports (Layer 3)
+ *
+ * REFACTORED - Single Source of Truth Pattern:
+ * - Reads subadmins from usersStore (canonical source)
+ * - Only fetches enrichment data (charts, metrics)
+ * - Combines at return for consumers
+ * - No duplicate API calls to reportsService.getCreatedUsers()
+ */
 export const useAdminReportsWithFilters = () => {
   const adminStore = useAdminStore()
+  const usersStore = useUsersStore()
   const { user: currentUser } = useAuth()
 
   const [isLoading, setIsLoading] = useState(false)
@@ -23,11 +27,14 @@ export const useAdminReportsWithFilters = () => {
   const initializationRef = useRef(false)
   const abortControllerRef = useRef<AbortController | null>(null)
 
-  const fetchReportsData = useCallback(async (): Promise<void> => {
-    if (!currentUser || currentUser.role !== 'admin') return
+  // Get subadmins from usersStore (canonical source of truth)
+  const subadmins = usersStore.users.filter(u => u.role === 'subadmin')
 
-    if (adminStore.hasDetailedData() && adminStore.isDetailedDataFresh()) {
-      console.log('📦 [REPORTS] Using fresh cached data')
+  const fetchEnrichmentData = useCallback(async (): Promise<void> => {
+    if (!currentUser || currentUser.role !== 'admin' || subadmins.length === 0) return
+
+    if (adminStore.hasEnrichmentData() && adminStore.isEnrichmentDataFresh()) {
+      console.log('📦 [ADMIN REPORTS] Using fresh cached enrichments')
       return
     }
 
@@ -43,95 +50,91 @@ export const useAdminReportsWithFilters = () => {
       }
       abortControllerRef.current = new AbortController()
 
-      console.log('[REPORTS] Loading reports data...')
+      console.log('[ADMIN REPORTS] Loading enrichment data (charts/metrics)...')
 
-      const subadmins = await reportsService.getCreatedUsers(currentUser.id)
+      // Only fetch enrichment data, NOT User[] data
+      const enrichmentPromises = subadmins.map(async (subadmin) => {
+        try {
+          // Read managers from usersStore, not from API
+          const managers = usersStore.users.filter(u => u.role === 'prestamista')
 
-      const detailedSubadminsData = await Promise.all(
-        subadmins.map(async (subadmin) => {
-          try {
-            const managers = await reportsService.getCreatedUsers(subadmin.id)
+          const managersWithData = await Promise.all(
+            managers.map(async (manager) => {
+              try {
+                const [clientsData, loansData] = await Promise.all([
+                  managerService.getManagerClientsChart(manager.id, {}),
+                  managerService.getManagerLoansChart(manager.id, {})
+                ])
 
-            const managersWithData = await Promise.all(
-              managers.map(async (manager) => {
-                try {
-                  const [clientsData, loansData] = await Promise.all([
-                    managerService.getManagerClientsChart(manager.id, {}),
-                    managerService.getManagerLoansChart(manager.id, {})
-                  ])
-
-                  return {
-                    id: manager.id,
-                    name: manager.fullName,
-                    email: manager.email,
-                    clients: clientsData,
-                    loans: loansData
-                  }
-                } catch (error) {
-                  console.warn(`Error loading data for manager ${manager.fullName}:`, error)
-                  return {
-                    id: manager.id,
-                    name: manager.fullName,
-                    email: manager.email,
-                    clients: [],
-                    loans: []
-                  }
+                return {
+                  id: manager.id,
+                  name: manager.fullName,
+                  email: manager.email,
+                  clients: clientsData,
+                  loans: loansData
                 }
-              })
-            )
+              } catch (error) {
+                console.warn(`Error loading data for manager ${manager.fullName}:`, error)
+                return {
+                  id: manager.id,
+                  name: manager.fullName,
+                  email: manager.email,
+                  clients: [],
+                  loans: []
+                }
+              }
+            })
+          )
 
-            const totalClients = managersWithData.reduce((sum, manager) =>
-              sum + manager.clients.length, 0
-            )
+          const totalClients = managersWithData.reduce((sum, manager) =>
+            sum + manager.clients.length, 0
+          )
 
-            const totalLoans = managersWithData.reduce((sum, manager) =>
-              sum + manager.loans.length, 0
-            )
+          const totalLoans = managersWithData.reduce((sum, manager) =>
+            sum + manager.loans.length, 0
+          )
 
-            return {
-              id: subadmin.id,
-              name: subadmin.fullName,
-              email: subadmin.email,
-              managersCount: managers.length,
-              totalClients,
-              totalLoans,
-              managers: managersWithData
-            }
+          const totalAmount = managersWithData.reduce((sum, manager) =>
+            sum + (manager.loans?.reduce((s: number, loan: any) => s + (loan.amount || 0), 0) || 0), 0
+          )
 
-          } catch (error) {
-            console.warn(`Error loading data for ${subadmin.fullName}:`, error)
-            return {
-              id: subadmin.id,
-              name: subadmin.fullName,
-              email: subadmin.email,
-              managersCount: 0,
-              totalClients: 0,
-              totalLoans: 0,
-              managers: []
-            }
-          }
-        })
-      )
+          // Store enrichment data (NOT the User object)
+          adminStore.setSubadminEnrichments(subadmin.id, {
+            totalClients,
+            totalLoans,
+            totalAmount,
+            managers: managersWithData
+          })
 
-      adminStore.setDetailedData(detailedSubadminsData)
+        } catch (error) {
+          console.warn(`Error loading enrichments for ${subadmin.fullName}:`, error)
+          adminStore.setSubadminEnrichments(subadmin.id, {
+            totalClients: 0,
+            totalLoans: 0,
+            totalAmount: 0,
+            managers: []
+          })
+        }
+      })
 
-      console.log('[REPORTS] Reports data loaded successfully')
+      await Promise.all(enrichmentPromises)
+      console.log('[ADMIN REPORTS] Enrichment data loaded successfully')
 
     } catch (err) {
       if ((err as Error).name !== 'AbortError') {
-        const errorMessage = err instanceof Error ? err.message : 'Failed to load reports data'
+        const errorMessage = err instanceof Error ? err.message : 'Failed to load enrichment data'
         setError(errorMessage)
-        console.error('Error loading reports data:', err)
+        console.error('Error loading enrichment data:', err)
       }
     } finally {
       setIsLoading(false)
       initializationRef.current = false
     }
-  }, [currentUser, adminStore])
+  }, [currentUser, adminStore, subadmins, usersStore])
 
   useEffect(() => {
-    if (currentUser && currentUser.role === 'admin') {
-      fetchReportsData()
+    if (currentUser && currentUser.role === 'admin' && subadmins.length > 0) {
+      fetchEnrichmentData()
     }
 
     return () => {
@@ -139,53 +142,59 @@ export const useAdminReportsWithFilters = () => {
         abortControllerRef.current.abort()
       }
     }
-  }, [currentUser, fetchReportsData])
+  }, [currentUser, subadmins.length, fetchEnrichmentData])
+
+  // Combine subadmins from usersStore with enrichments from adminStore
+  const detailedSubadmins = subadmins.map(subadmin => ({
+    ...subadmin,
+    ...(adminStore.subadminEnrichments[subadmin.id] || {
+      totalClients: 0,
+      totalLoans: 0,
+      totalAmount: 0,
+      managers: []
+    })
+  }))
 
   const reports = useMemo(() => {
-    if (!adminStore.detailedData.length) return null
+    if (detailedSubadmins.length === 0) return null
 
-    const subadmins = adminStore.detailedData.map(subadmin => ({
+    const subadminsReport = detailedSubadmins.map(subadmin => ({
       userId: subadmin.id,
-      userName: subadmin.name,
+      userName: subadmin.fullName,
       userEmail: subadmin.email,
-      userRole: 'subadmin',
-      totalClients: subadmin.totalClients,
-      totalLoans: subadmin.totalLoans,
-      totalAmountLent: 0,
+      userRole: 'subadmin' as const,
+      totalClients: subadmin.totalClients || 0,
+      totalLoans: subadmin.totalLoans || 0,
+      totalAmountLent: subadmin.totalAmount || 0,
       totalAmountPending: 0,
       collectionRate: 0,
-      createdAt: new Date().toISOString()
+      createdAt: subadmin.createdAt.toISOString()
     }))
 
     return {
-      totalUsers: subadmins.length,
-      totalClients: subadmins.reduce((sum, s) => sum + s.totalClients, 0),
-      totalLoans: subadmins.reduce((sum, s) => sum + s.totalLoans, 0),
-      totalAmountLent: 0,
+      totalUsers: subadminsReport.length,
+      totalClients: subadminsReport.reduce((sum, s) => sum + s.totalClients, 0),
+      totalLoans: subadminsReport.reduce((sum, s) => sum + s.totalLoans, 0),
+      totalAmountLent: subadminsReport.reduce((sum, s) => sum + s.totalAmountLent, 0),
       totalAmountPending: 0,
       averageCollectionRate: 0,
-      subadmins
+      subadmins: subadminsReport
     }
-  }, [adminStore.detailedData])
+  }, [detailedSubadmins])
 
   const subadminOptions = useMemo(() => {
-    return adminStore.detailedData.map(subadmin => ({
-      id: subadmin.id,
-      name: subadmin.name
-    }))
-  }, [adminStore.detailedData])
+    return adminStore.getSubadminOptions(subadmins)
+  }, [adminStore, subadmins])
 
   const exportDetailedData = useCallback(() => {
-    const detailedData = adminStore.detailedData
-
-    if (!detailedData.length) {
+    if (detailedSubadmins.length === 0) {
       alert('No hay datos detallados disponibles para exportar')
       return
     }
 
     const dataToExport = selectedSubadmin
-      ? detailedData.filter(subadmin => subadmin.id === selectedSubadmin)
-      : detailedData
+      ? detailedSubadmins.filter(subadmin => subadmin.id === selectedSubadmin)
+      : detailedSubadmins
 
     const csvRows = []
 
@@ -198,9 +207,9 @@ export const useAdminReportsWithFilters = () => {
           const managerLoans = manager.loans?.length || 0
 
           csvRows.push([
-            subadmin.name,
+            subadmin.fullName,
             subadmin.email,
-            subadmin.managersCount,
+            subadmin.managers.length,
             subadmin.totalClients,
             subadmin.totalLoans,
             manager.name,
@@ -210,11 +219,10 @@ export const useAdminReportsWithFilters = () => {
           ].join(','))
         })
       } else {
-        // Subadmin without managers
         csvRows.push([
-          subadmin.name,
+          subadmin.fullName,
           subadmin.email,
-          subadmin.managersCount,
+          0,
           subadmin.totalClients || 0,
           subadmin.totalLoans || 0,
           '',
@@ -233,46 +241,62 @@ export const useAdminReportsWithFilters = () => {
     link.download = `admin-reportes-detallado-${new Date().toISOString().split('T')[0]}.csv`
     link.click()
     window.URL.revokeObjectURL(url)
-  }, [adminStore.detailedData, selectedSubadmin])
+  }, [detailedSubadmins, selectedSubadmin])
 
   const refreshData = useCallback(() => {
     adminStore.invalidateCache()
-    fetchReportsData()
-  }, [adminStore, fetchReportsData])
+    fetchEnrichmentData()
+  }, [adminStore, fetchEnrichmentData])
 
   const clearError = useCallback(() => {
     setError(null)
   }, [])
 
   const dataCount = useMemo(() => {
-    const detailedData = adminStore.detailedData
     return {
-      totalSubadmins: detailedData.length,
-      totalManagers: detailedData.reduce((sum, s) => sum + s.managersCount, 0),
-      totalClients: detailedData.reduce((sum, s) => sum + (s.totalClients || 0), 0)
+      totalSubadmins: detailedSubadmins.length,
+      totalManagers: detailedSubadmins.reduce((sum, s) => sum + (s.managers?.length || 0), 0),
+      totalClients: detailedSubadmins.reduce((sum, s) => sum + (s.totalClients || 0), 0)
     }
-  }, [adminStore.detailedData])
+  }, [detailedSubadmins])
 
   return {
-    basicData: adminStore.basicData,
-    detailedData: adminStore.detailedData,
-    isBasicLoading: isLoading,
-    isDetailedLoading: false,
-    isInitialized: adminStore.detailedData.length > 0,
+    // Combined data (subadmins from usersStore + enrichments from adminStore)
+    detailedData: detailedSubadmins,
+
+    // Aggregated totals from enrichments
+    aggregatedTotals: adminStore.getAggregatedTotals(subadmins),
+
+    // Filter state
     timeFilter: adminStore.timeFilter,
     dateRange: adminStore.dateRange,
     setTimeFilter: adminStore.setTimeFilter,
     setCustomDateRange: adminStore.setDateRange,
-    refreshData,
-    reports,
+
+    // Loading & error states
+    isLoading,
+    error,
     reportsLoading: isLoading,
     reportsError: error,
     clearReportsError: clearError,
+    isInitialized: detailedSubadmins.length > 0,
+    isAnyLoading: isLoading,
+
+    // Reports data
+    reports,
+
+    // Subadmin selection
     selectedSubadmin,
     setSelectedSubadmin,
     subadminOptions,
+
+    // Export functionality
     exportDetailedData,
-    isAnyLoading: isLoading,
-    dataCount
+
+    // Data count
+    dataCount,
+
+    // Manual refresh
+    refreshData
   }
 }

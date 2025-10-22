@@ -312,9 +312,12 @@ export function UserFormModal({
             {/* Client Quota Field */}
             {(mode === 'create' && (targetRole === 'subadmin' || targetRole === 'manager')) || (mode === 'edit' && (formData.role === 'subadmin' || formData.role === 'manager')) ? (
               <>
-                {mode === 'create' && (creatorAvailableQuota !== undefined && creatorAvailableQuota > 0) && (
-                  <Alert severity="info" sx={{ mb: 2 }}>
-                    Tienes {creatorAvailableQuota} clientes disponibles de {creatorTotalQuota} para asignar a este {targetRole === 'subadmin' ? 'asociado' : 'cobrador'}
+                {mode === 'create' && (creatorAvailableQuota !== undefined) && (
+                  <Alert
+                    severity={creatorAvailableQuota > 0 ? 'info' : 'warning'}
+                    sx={{ mb: 2, fontWeight: 'bold' }}
+                  >
+                    👥 <strong>Clientes Disponibles para Asignar:</strong> {creatorAvailableQuota} de {creatorTotalQuota}
                   </Alert>
                 )}
                 <TextField

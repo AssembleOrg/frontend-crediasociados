@@ -2,12 +2,13 @@
 
 import { useState, useCallback, useEffect, useRef } from 'react'
 import { useSubadminStore } from '@/stores/subadmin'
+import { useUsersStore } from '@/stores/users'
 import { useAuth } from '@/hooks/useAuth'
-import { reportsService } from '@/services/reports.service'
 import { managerService } from '@/services/manager.service'
 
 export const useSubadminDashboardData = () => {
   const subadminStore = useSubadminStore()
+  const usersStore = useUsersStore()
   const { user: currentUser } = useAuth()
 
   const [isLoading, setIsLoading] = useState(false)
@@ -17,13 +18,17 @@ export const useSubadminDashboardData = () => {
   const initializationRef = useRef(false)
   const abortControllerRef = useRef<AbortController | null>(null)
 
+  // Get managers from usersStore (single source of truth)
+  const managers = usersStore.users.filter(u => u.role === 'prestamista')
+
   useEffect(() => {
     // Early returns for guard conditions
     if (!currentUser || currentUser.role !== 'subadmin') return
+    if (managers.length === 0) return
 
     // Use cache if fresh
-    if (subadminStore.hasDetailedData() && subadminStore.isDetailedDataFresh()) {
-      console.log('📦 [SUBADMIN DASHBOARD] Using fresh cached data')
+    if (subadminStore.hasEnrichmentData() && subadminStore.isEnrichmentDataFresh()) {
+      console.log('📦 [SUBADMIN DASHBOARD] Using fresh cached enrichment data')
       return
     }
 
@@ -42,11 +47,12 @@ export const useSubadminDashboardData = () => {
         }
         abortControllerRef.current = new AbortController()
 
-        console.log('[SUBADMIN DASHBOARD] Loading dashboard data...')
+        console.log('[SUBADMIN DASHBOARD] Enriching dashboard data...')
 
-        const managers = await reportsService.getCreatedUsers(currentUser.id)
+        // Fetch enrichment data (charts) for each manager
+        const enrichments: Record<string, any> = {}
 
-        const detailedManagersData = await Promise.all(
+        await Promise.all(
           managers.map(async (manager) => {
             try {
               const [clientsData, loansData] = await Promise.all([
@@ -54,32 +60,20 @@ export const useSubadminDashboardData = () => {
                 managerService.getManagerLoansChart(manager.id, {})
               ])
 
-              const totalClients = clientsData.length
-              const totalLoans = loansData.length
-              const totalAmount = loansData.reduce((sum, loan) => sum + (loan.amount || 0), 0)
-
-              return {
-                id: manager.id,
-                name: manager.fullName,
-                email: manager.email,
-                clientsCount: totalClients,
-                totalAmount,
-                totalClients,
-                totalLoans,
+              enrichments[manager.id] = {
+                totalClients: clientsData.length,
+                totalLoans: loansData.length,
+                totalAmount: loansData.reduce((sum, loan) => sum + (loan.amount || 0), 0),
                 clients: clientsData,
                 loans: loansData
               }
-
             } catch (error) {
-              console.warn(`Error loading data for manager ${manager.fullName}:`, error)
-              return {
-                id: manager.id,
-                name: manager.fullName,
-                email: manager.email,
-                clientsCount: 0,
-                totalAmount: 0,
+              console.warn(`Error loading enrichment data for manager ${manager.fullName}:`, error)
+              // Fallback to empty enrichment
+              enrichments[manager.id] = {
                 totalClients: 0,
                 totalLoans: 0,
+                totalAmount: 0,
                 clients: [],
                 loans: []
               }
@@ -87,9 +81,10 @@ export const useSubadminDashboardData = () => {
           })
         )
 
-        subadminStore.setDetailedManagers(detailedManagersData)
+        // Store enrichments in subadminStore
+        subadminStore.setManagerEnrichments(enrichments)
 
-        console.log('[SUBADMIN DASHBOARD] Dashboard data loaded successfully')
+        console.log('[SUBADMIN DASHBOARD] Dashboard enrichment data loaded successfully')
 
       } catch (err) {
         if ((err as Error).name !== 'AbortError') {
@@ -112,17 +107,29 @@ export const useSubadminDashboardData = () => {
       }
       initializationRef.current = false
     }
-  }, [currentUser?.id, refreshTrigger]) // Re-run on user change or manual refresh
+  }, [currentUser?.id, managers, refreshTrigger]) // Re-run when managers change or on manual refresh
 
   const refreshData = useCallback(() => {
     // Invalidate cache and trigger re-fetch
     subadminStore.invalidateCache()
     initializationRef.current = false
     setRefreshTrigger(prev => prev + 1)
-  }, [])
+  }, [subadminStore])
+
+  // Combine managers from usersStore with enrichments from subadminStore
+  const detailedManagers = managers.map(manager => ({
+    ...manager,
+    ...(subadminStore.managerEnrichments[manager.id] || {
+      totalClients: 0,
+      totalLoans: 0,
+      totalAmount: 0,
+      clients: [],
+      loans: []
+    })
+  }))
 
   return {
-    detailedManagers: subadminStore.detailedManagers,
+    detailedManagers,
     aggregatedTotals: subadminStore.getAggregatedTotals(),
     timeFilter: subadminStore.timeFilter,
     dateRange: subadminStore.dateRange,

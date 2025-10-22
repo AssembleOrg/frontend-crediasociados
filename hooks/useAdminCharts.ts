@@ -4,6 +4,7 @@ import { useMemo } from 'react'
 import { DateTime } from 'luxon'
 import { ensureLuxonConfigured } from '@/lib/luxon-config'
 import { useAdminStore } from '@/stores/admin'
+import { useUsersStore } from '@/stores/users'
 import type { ClientChartDataDto, LoanChartDataDto } from '@/services/manager.service'
 
 export interface ProcessedChartData {
@@ -26,46 +27,54 @@ export interface ProcessedChartData {
  * - Store stays "dumb" with only simple getters (Layer 3)
  * - useMemo for expensive calculations
  * - Clear separation of aggregated vs individual data filtering
+ *
+ * REFACTORED: Now reads from usersStore + adminStore enrichments directly
  */
 export const useAdminCharts = (): ProcessedChartData => {
   // Ensure Luxon is configured (lazy loaded)
   ensureLuxonConfigured()
 
+  // Read from canonical + enrichment stores directly (avoid circular dependency)
+  const usersStore = useUsersStore()
   const adminStore = useAdminStore()
 
-  // Get raw data from store
-  const {
-    basicData,
-    detailedData,
-    dateRange
-  } = adminStore
+  const subadmins = usersStore.users.filter(u => u.role === 'subadmin')
 
   // Process chart data (expensive operation) - memoized
   return useMemo((): ProcessedChartData => {
-    const dataToUse = detailedData.length > 0 ? detailedData : basicData
-
-    if (!dataToUse.length) {
+    if (!subadmins.length) {
       return {
         managersPerSubadmin: [],
         clientsEvolution: []
       }
     }
 
-    const managersPerSubadmin = dataToUse.map(subadmin => ({
-      name: subadmin.name,
-      value: subadmin.managersCount,
+    // Combine subadmins with enrichments
+    const detailedSubadmins = subadmins.map(subadmin => ({
+      ...subadmin,
+      ...(adminStore.subadminEnrichments[subadmin.id] || {
+        totalClients: 0,
+        totalLoans: 0,
+        totalAmount: 0,
+        managers: []
+      })
+    }))
+
+    const managersPerSubadmin = detailedSubadmins.map(subadmin => ({
+      name: subadmin.fullName,
+      value: subadmin.managers?.length || 0,
       subadminId: subadmin.id
     }))
 
-    const clientsEvolution = detailedData.length > 0
-      ? processClientsEvolution(detailedData, dateRange)
-      : []
+    // Cast to DetailedSubadminData for compatibility with processClientsEvolution
+    const detailedSubadminsForProcessing = detailedSubadmins as any[] as DetailedSubadminData[]
+    const clientsEvolution = processClientsEvolution(detailedSubadminsForProcessing, adminStore.dateRange)
 
     return {
       managersPerSubadmin,
       clientsEvolution
     }
-  }, [basicData, detailedData, dateRange])
+  }, [subadmins, adminStore.subadminEnrichments, adminStore.dateRange])
 }
 
 interface DetailedSubadminData {
@@ -182,11 +191,13 @@ function groupClientsByMonths(clients: any[], dateRange: { from: Date; to: Date 
 export const useAdminChartsWithMetadata = () => {
   const chartData = useAdminCharts()
   const adminStore = useAdminStore()
+  const usersStore = useUsersStore()
+  const subadmins = usersStore.users.filter(u => u.role === 'subadmin')
 
   return {
     chartData,
-    hasDetailedData: adminStore.hasDetailedData(),
-    aggregatedTotals: adminStore.getAggregatedTotals(),
-    isDataFresh: adminStore.isBasicDataFresh(),
+    hasDetailedData: adminStore.hasEnrichmentData(),
+    aggregatedTotals: adminStore.getAggregatedTotals(subadmins),
+    isLoading: !adminStore.isEnrichmentDataFresh() && !adminStore.hasEnrichmentData(),
   }
 }

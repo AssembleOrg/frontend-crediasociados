@@ -24,6 +24,7 @@ import {
 import { Person, Phone, Email, Home, Work } from '@mui/icons-material'
 import type { SelectChangeEvent } from '@mui/material/Select'
 import { useClients } from '@/hooks/useClients'
+import { useAuth } from '@/hooks/useAuth'
 import { ClientValidation } from '@/lib/validation-utils'
 import { formatDNI, formatCUIT, unformatDNI, unformatCUIT, formatPhoneNumber } from '@/lib/formatters'
 import { LATIN_AMERICAN_COUNTRIES } from '@/lib/countries'
@@ -54,6 +55,7 @@ export function ClientFormModal({
   mode
 }: ClientFormModalProps) {
   const { createClient, updateClient, isLoading, error } = useClients()
+  const { user: currentUser } = useAuth()
 
   const [formData, setFormData] = useState(INITIAL_FORM_DATA)
   const [formErrors, setFormErrors] = useState<Record<string, string>>({})
@@ -200,18 +202,34 @@ export function ClientFormModal({
         }
       }}
     >
-      <DialogTitle sx={{ 
+      <DialogTitle sx={{
         pb: 1,
         background: 'linear-gradient(135deg, #667eea 0%, #4facfe 100%)',
         color: 'white',
         borderRadius: '12px 12px 0 0'
       }}>
-        <Typography variant="h5" component="div" sx={{ fontWeight: 600 }}>
-          {title}
-        </Typography>
-        <Typography variant="body2" sx={{ opacity: 0.9, mt: 0.5 }}>
-          {mode === 'create' ? 'Completa los datos del nuevo cliente' : 'Modifica la información del cliente'}
-        </Typography>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+          <Box>
+            <Typography variant="h5" component="div" sx={{ fontWeight: 600 }}>
+              {title}
+            </Typography>
+            <Typography variant="body2" sx={{ opacity: 0.9, mt: 0.5 }}>
+              {mode === 'create' ? 'Completa los datos del nuevo cliente' : 'Modifica la información del cliente'}
+            </Typography>
+          </Box>
+
+          {/* Quota Counter - Only show in create mode and if user is prestamista */}
+          {mode === 'create' && currentUser && (currentUser.role === 'prestamista' || currentUser.role === 'manager') && (
+            <Box sx={{ textAlign: 'right' }}>
+              <Typography variant="body2" sx={{ opacity: 0.9 }}>
+                Cuota de Clientes
+              </Typography>
+              <Typography variant="h6" sx={{ fontWeight: 700, mt: 0.5 }}>
+                {currentUser.usedClientQuota ?? 0} / {currentUser.clientQuota ?? 0}
+              </Typography>
+            </Box>
+          )}
+        </Box>
       </DialogTitle>
 
       <form onSubmit={handleSubmit}>

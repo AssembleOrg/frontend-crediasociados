@@ -23,13 +23,14 @@ interface UsersStore extends UsersState {
   setUsers: (users: User[]) => void
   addUser: (user: User) => void
   updateUser: (user: User) => void
+  upsertUsers: (users: User[]) => void
   removeUser: (id: string) => void
   setSelectedUser: (user: User | null) => void
   setPagination: (pagination: UsersState['pagination']) => void
   setFilters: (filters: Partial<SearchParams>) => void
   getFilteredUsers: (searchParams?: SearchParams) => User[]
   clearUsers: () => void
-  
+
   // Centralized calculations - single source of truth
   getUsersByRole: (role: User['role']) => User[]
   getTotalUsers: () => number
@@ -105,10 +106,38 @@ export const useUsersStore = create<UsersStore>()(
         if (index !== -1) {
           state.users[index] = user
         }
-        
+
         if (state.selectedUser?.id === user.id) {
           state.selectedUser = user
         }
+      })
+    },
+
+    upsertUsers: (incomingUsers: User[]) => {
+      set((state) => {
+        incomingUsers.forEach((incomingUser) => {
+          const existingIndex = state.users.findIndex(u => u.id === incomingUser.id)
+
+          if (existingIndex === -1) {
+            // User doesn't exist, add it directly
+            state.users.push(incomingUser)
+          } else {
+            // User exists, merge intelligently to preserve rich data
+            // IMPORTANT: Prioritize INCOMING data if present, only preserve EXISTING if incoming is empty
+            // This fixes the issue where backend updates (e.g., usedClientQuota) were being overwritten by old frontend data
+            const existing = state.users[existingIndex]
+            state.users[existingIndex] = {
+              ...incomingUser,
+              // Preserve quota fields ONLY if incoming data is missing (incomplete response from backend)
+              // If backend sends any value, it means it has fresh data - use it
+              clientQuota: incomingUser.clientQuota !== undefined ? incomingUser.clientQuota : existing.clientQuota,
+              usedClientQuota: incomingUser.usedClientQuota !== undefined ? incomingUser.usedClientQuota : existing.usedClientQuota,
+              availableClientQuota: incomingUser.availableClientQuota !== undefined ? incomingUser.availableClientQuota : existing.availableClientQuota,
+              // Preserve wallet if it exists
+              wallet: incomingUser.wallet ?? existing.wallet
+            }
+          }
+        })
       })
     },
 

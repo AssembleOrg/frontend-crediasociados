@@ -52,7 +52,7 @@ export default function SubadminDashboard() {
 
   const managersForChart: ManagerAnalytics[] = detailedManagers.map(manager => ({
     managerId: manager.id,
-    managerName: manager.name,
+    managerName: manager.fullName,
     managerEmail: manager.email,
     totalClients: manager.totalClients,
     totalLoans: manager.totalLoans,

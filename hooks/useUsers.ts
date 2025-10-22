@@ -33,15 +33,15 @@ export const useUsers = () => {
   const [error, setError] = useState<string | null>(null)
 
   // Refs to prevent race conditions and duplicate requests
-  const initializationRef = useRef(false)
+  const isInFlightRef = useRef(false)
   const abortControllerRef = useRef<AbortController | null>(null)
 
   const fetchUsers = useCallback(async (params?: PaginationParams): Promise<void> => {
     if (!currentUser) return
 
-    // Prevent duplicate initialization
-    if (initializationRef.current) return
-    initializationRef.current = true
+    // Prevent DUPLICATE in-flight requests, but allow refresh after completion
+    if (isInFlightRef.current) return
+    isInFlightRef.current = true
 
     setIsLoading(true)
     setError(null)
@@ -67,7 +67,22 @@ export const useUsers = () => {
 
       const users = response.data.map(apiUserToUser)
 
-      usersStore.setUsers(users)
+      // DEBUG: Log first subadmin's clientQuota to trace data flow
+      const firstSubadmin = users.find(u => u.role === 'subadmin')
+      if (firstSubadmin) {
+        console.log('🔍 [useUsers] First subadmin:', {
+          id: firstSubadmin.id,
+          fullName: firstSubadmin.fullName,
+          clientQuota: firstSubadmin.clientQuota,
+          usedClientQuota: firstSubadmin.usedClientQuota,
+          availableClientQuota: firstSubadmin.availableClientQuota
+        })
+      }
+
+      // Use upsertUsers to preserve rich data from backend incomplete responses
+      // This ensures clientQuota, usedClientQuota, etc. are preserved even if
+      // backend endpoint doesn't include them in the response
+      usersStore.upsertUsers(users)
       usersStore.setPagination(response.meta)
       usersStore.setFilters(filters)
 
@@ -78,9 +93,9 @@ export const useUsers = () => {
       }
     } finally {
       setIsLoading(false)
-      initializationRef.current = false
+      isInFlightRef.current = false
     }
-  }, [])
+  }, [currentUser, usersStore])
 
   const createUser = useCallback(async (
     userData: Omit<User, 'id' | 'createdAt' | 'updatedAt'> & { password: string }
@@ -100,6 +115,10 @@ export const useUsers = () => {
 
       // Update the store
       usersStore.addUser(newUser)
+
+      // Refresh the user list to get updated quota data from backend
+      // (e.g., when subadmin creates a manager, subadmin's usedClientQuota changes)
+      await fetchUsers()
 
       // Invalidate related caches to ensure other views refresh
       adminStore.invalidateCache()

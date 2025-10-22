@@ -112,7 +112,7 @@ export function createHierarchicalDataProvider<TStore>() {
      * Initialize detailed data (optional for some roles)
      */
     const initializeDetailed = useCallback(async (): Promise<void> => {
-      // eslint-disable-next-line react-hooks/exhaustive-deps
+       
       if (!user || user.role !== role || !initializeDetailedData || !isDetailedDataFresh) return
 
       // Check if we have fresh detailed data
