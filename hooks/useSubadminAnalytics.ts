@@ -93,8 +93,8 @@ export const useSubadminAnalytics = () => {
       abortControllerRef.current = new AbortController()
 
       // Step 1: Get basic analytics structure (managers created by this subadmin)
-      console.log('🔍 [DEBUG] Analytics - Fetching managers for subadmin:', user.id)
-      const basicAnalytics = await analyticsService.getSubadminAnalytics(user.id)
+      console.log('🔍 [DEBUG] Analytics - Fetching managers for subadmin:', user?.id || '')
+      const basicAnalytics = await analyticsService.getSubadminAnalytics(user?.id || '')
       console.log('🔍 [DEBUG] Analytics - Basic analytics received:', basicAnalytics)
 
       if (!basicAnalytics.managers || basicAnalytics.managers.length === 0) {

@@ -10,11 +10,13 @@ import {
 } from '@mui/material';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
+import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { Logo } from './Logo';
 
 export function Navbar() {
   const router = useRouter();
   const { isAuthenticated, user, logout } = useAuth();
+  const currentUser = useCurrentUser();
 
   const handleLogin = () => {
     router.push('/login');
@@ -67,7 +69,7 @@ export function Navbar() {
                   variant='body2'
                   sx={{ color: 'text.secondary' }}
                 >
-                  Hola, {user.fullName}
+                  Hola, {currentUser?.fullName || 'Usuario'}
                 </Typography>
                 <Button
                   variant='outlined'

@@ -47,7 +47,7 @@ export const useOperativa = () => {
       setError(null)
 
       try {
-        const newIngreso = await operativaService.createIngreso(user.id, data)
+        const newIngreso = await operativaService.createIngreso(user?.id || '', data)
         operativaStore.addTransaccion(newIngreso)
 
         // Sync with finanzas
@@ -78,7 +78,7 @@ export const useOperativa = () => {
       setError(null)
 
       try {
-        const newEgreso = await operativaService.createEgreso(user.id, data)
+        const newEgreso = await operativaService.createEgreso(user?.id || '', data)
         operativaStore.addTransaccion(newEgreso)
 
         // Sync with finanzas
@@ -116,7 +116,7 @@ export const useOperativa = () => {
 
       try {
         const newIngreso = await operativaService.createIngresoFromPago(
-          user.id,
+          user?.id || '',
           subloanId,
           amount,
           clientName,
@@ -205,7 +205,7 @@ export const useOperativa = () => {
     setError(null)
 
     try {
-      const transacciones = await operativaService.getTransacciones(user.id)
+      const transacciones = await operativaService.getTransacciones(user?.id || '')
       operativaStore.setTransacciones(transacciones)
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Error cargando transacciones'

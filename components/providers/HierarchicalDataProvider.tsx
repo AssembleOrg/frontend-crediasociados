@@ -91,7 +91,7 @@ export function createHierarchicalDataProvider<TStore>() {
         }
         abortControllerRef.current = new AbortController()
 
-        await initializeBasicData(user.id)
+        await initializeBasicData(user?.id || '')
 
         console.log(`✅ [${role.toUpperCase()} PROVIDER] Basic data loaded and cached`)
 
@@ -143,7 +143,7 @@ export function createHierarchicalDataProvider<TStore>() {
         }
         detailedAbortControllerRef.current = new AbortController()
 
-        await initializeDetailedData(user.id)
+        await initializeDetailedData(user?.id || '')
 
         console.log(`✅ [${role.toUpperCase()} PROVIDER] Detailed data loaded and cached`)
 
@@ -175,7 +175,7 @@ export function createHierarchicalDataProvider<TStore>() {
         }
         reportsAbortControllerRef.current = new AbortController()
 
-        await initializeReports(user.id)
+        await initializeReports(user?.id || '')
 
         console.log(`✅ [${role.toUpperCase()} PROVIDER] Reports loaded and cached`)
 

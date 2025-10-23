@@ -47,7 +47,7 @@ export default function OperativaProvider({ children }: OperativaProviderProps) 
       console.log('🧾 [OPERATIVA PROVIDER] Inicializando datos de Operativa...');
 
       // Add timeout to prevent blocking (3 seconds for operativa)
-      const transaccionesPromise = operativaService.getTransacciones(user.id);
+      const transaccionesPromise = operativaService.getTransacciones(user?.id || '');
       const timeoutPromise = new Promise<null>((resolve) => 
         setTimeout(() => {
           console.warn('🧾 [OPERATIVA PROVIDER] Fetch timeout, continuing with empty data');

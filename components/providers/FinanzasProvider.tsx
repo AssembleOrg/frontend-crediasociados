@@ -55,11 +55,11 @@ export default function FinanzasProvider({ children }: FinanzasProviderProps) {
     try {
       console.log('💰 [FINANZAS PROVIDER] Inicializando datos de Finanzas...');
 
-      const userRole = user.role as UserRole;
+      const userRole = (user?.role || 'prestamista') as UserRole;
 
       // Get financial summary with timeout
       const summaryPromise = finanzasService.getFinancialSummary(
-        user.id,
+        user?.id || '',
         userRole === 'subadmin' ? 'subadmin' : 'manager'
       );
 
@@ -87,9 +87,9 @@ export default function FinanzasProvider({ children }: FinanzasProviderProps) {
       if (userRole === 'subadmin') {
         // Load subadmin data with graceful degradation
         const [managersData, portfolioData, capitalDist] = await Promise.allSettled([
-          finanzasService.getManagersFinancial(user.id),
-          finanzasService.getPortfolioEvolution(user.id, 30),
-          finanzasService.getCapitalDistribution(user.id)
+          finanzasService.getManagersFinancial(user?.id || ''),
+          finanzasService.getPortfolioEvolution(user?.id || '', 30),
+          finanzasService.getCapitalDistribution(user?.id || '')
         ]);
 
         if (abortController.signal.aborted) {
@@ -123,9 +123,9 @@ export default function FinanzasProvider({ children }: FinanzasProviderProps) {
       } else if (userRole === 'manager' || userRole === 'prestamista') {
         // Load manager data with graceful degradation
         const [loansData, portfolioData, incomeData] = await Promise.allSettled([
-          finanzasService.getActiveLoansFinancial(user.id),
-          finanzasService.getPortfolioEvolution(user.id, 30),
-          finanzasService.getIncomeVsExpenses(user.id, 6)
+          finanzasService.getActiveLoansFinancial(user?.id || ''),
+          finanzasService.getPortfolioEvolution(user?.id || '', 30),
+          finanzasService.getIncomeVsExpenses(user?.id || '', 6)
         ]);
 
         if (abortController.signal.aborted) {

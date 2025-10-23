@@ -116,7 +116,7 @@ export const useAdminChartData = () => {
       console.log('🔍 [DEBUG] Admin Chart Data - Starting fetch...', { timeFilter, dateRange })
 
       // Step 1: Get all subadmins created by this admin
-      const subadmins = await reportsService.getCreatedUsers(user.id)
+      const subadmins = await reportsService.getCreatedUsers(user?.id || '')
       console.log('🔍 [DEBUG] Admin Chart Data - Subadmins found:', subadmins.length)
 
       // Step 2: For each subadmin, get their managers and collect loan data

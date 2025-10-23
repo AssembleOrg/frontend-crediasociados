@@ -75,7 +75,7 @@ export const useDashboardDataProvider = () => {
  * - FinanzasProvider (nested)
  */
 export default function DashboardDataProvider({ children }: DashboardDataProviderProps) {
-  const { user } = useAuth();
+  const { user } = useAuth();  // user.id is always available (minimal auth data)
   const { token } = useAuthStore();
 
   // Stores
@@ -195,7 +195,7 @@ export default function DashboardDataProvider({ children }: DashboardDataProvide
         setTimeout(() => reject(new Error('Operativa timeout')), 3000)
       );
 
-      const transaccionesPromise = operativaService.getTransacciones(user.id);
+      const transaccionesPromise = operativaService.getTransacciones(user?.id || '');
       const transacciones = await Promise.race([transaccionesPromise, timeoutPromise]);
 
       if (transacciones) {
@@ -241,7 +241,7 @@ export default function DashboardDataProvider({ children }: DashboardDataProvide
       }
 
       // Summary with timeout
-      const summaryPromise = finanzasService.getFinancialSummary(user.id, user.role);
+      const summaryPromise = finanzasService.getFinancialSummary(user?.id || '', user?.role || 'prestamista');
       const timeoutPromise = new Promise<null>((_, reject) =>
         setTimeout(() => reject(new Error('Finanzas summary timeout')), 5000)
       );
@@ -256,17 +256,17 @@ export default function DashboardDataProvider({ children }: DashboardDataProvide
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const additionalDataPromises: Promise<any>[] = [];
 
-      if (user.role === 'subadmin') {
+      if (user?.role === 'subadmin') {
         additionalDataPromises.push(
-          finanzasService.getManagersFinancial(user.id).catch((err) => {
+          finanzasService.getManagersFinancial(user?.id || '').catch((err) => {
             console.warn('💰 Managers financial failed:', err);
             return [] as ManagerFinancialData[];
           }),
-          finanzasService.getPortfolioEvolution(user.id).catch((err) => {
+          finanzasService.getPortfolioEvolution(user?.id || '').catch((err) => {
             console.warn('💰 Portfolio evolution failed:', err);
             return [] as PortfolioEvolution[];
           }),
-          finanzasService.getCapitalDistribution(user.id).catch((err) => {
+          finanzasService.getCapitalDistribution(user?.id || '').catch((err) => {
             console.warn('💰 Capital distribution failed:', err);
             return [] as CapitalDistribution[];
           })
@@ -274,11 +274,11 @@ export default function DashboardDataProvider({ children }: DashboardDataProvide
       }
 
       additionalDataPromises.push(
-        finanzasService.getActiveLoansFinancial(user.id, user.role).catch((err) => {
+        finanzasService.getActiveLoansFinancial(user?.id || '', user?.role || 'prestamista').catch((err) => {
           console.warn('💰 Active loans failed:', err);
           return [] as ActiveLoanFinancial[];
         }),
-        finanzasService.getIncomeVsExpenses(user.id).catch((err) => {
+        finanzasService.getIncomeVsExpenses(user?.id || '').catch((err) => {
           console.warn('💰 Income vs expenses failed:', err);
           return [] as IncomeVsExpenses[];
         })

@@ -1,8 +1,9 @@
 'use client';
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/stores/auth';
+import { useUsersStore } from '@/stores/users';
 import { authService } from '@/services/auth.service';
 import { setAuthToken } from '@/services/api';
 import { apiUserToUser } from '@/types/transforms';
@@ -46,6 +47,8 @@ export const useAuth = () => {
         const user = apiUserToUser(response.user);
 
         authStore.setUser(user);
+        // Add current user to usersStore (Single Source of Truth for user data)
+        useUsersStore.getState().upsertUsers([user]);
         authStore.setTokens(response.token, response.refreshToken);
         authStore.setAuthentication(true);
 
@@ -112,8 +115,17 @@ export const useAuth = () => {
     setError(null);
   }, []);
 
+  // Memoize user object to prevent infinite loops when userId/email/role haven't changed
+  // This prevents useEffect dependencies from being triggered by object reference changes
+  const memoizedUser = useMemo(() => ({
+    id: authStore.userId,
+    email: authStore.userEmail,
+    role: authStore.userRole,
+  }), [authStore.userId, authStore.userEmail, authStore.userRole]);
+
   return {
-    user: authStore.user,
+    // Return minimal auth info
+    user: memoizedUser,
     isAuthenticated: authStore.isAuthenticated,
 
     isLoading,

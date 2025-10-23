@@ -35,19 +35,19 @@ export const useFinanzas = () => {
     setError(null)
 
     try {
-      const userRole = user.role as UserRole
+      const userRole = (user?.role || 'prestamista') as UserRole
 
       const summary = await finanzasService.getFinancialSummary(
-        user.id,
+        user?.id || '',
         userRole === 'subadmin' ? 'subadmin' : 'manager'
       )
       store.setFinancialSummary(summary)
 
       if (userRole === 'subadmin') {
         const [managersData, portfolioData, capitalDist] = await Promise.all([
-          finanzasService.getManagersFinancial(user.id),
-          finanzasService.getPortfolioEvolution(user.id, 30),
-          finanzasService.getCapitalDistribution(user.id)
+          finanzasService.getManagersFinancial(user?.id || ''),
+          finanzasService.getPortfolioEvolution(user?.id || '', 30),
+          finanzasService.getCapitalDistribution(user?.id || '')
         ])
 
         store.setManagersFinancial(managersData)
@@ -55,9 +55,9 @@ export const useFinanzas = () => {
         store.setCapitalDistribution(capitalDist)
       } else if (userRole === 'manager' || userRole === 'prestamista') {
         const [loansData, portfolioData, incomeData] = await Promise.all([
-          finanzasService.getActiveLoansFinancial(user.id),
-          finanzasService.getPortfolioEvolution(user.id, 30),
-          finanzasService.getIncomeVsExpenses(user.id, 6)
+          finanzasService.getActiveLoansFinancial(user?.id || ''),
+          finanzasService.getPortfolioEvolution(user?.id || '', 30),
+          finanzasService.getIncomeVsExpenses(user?.id || '', 6)
         ])
 
         store.setActiveLoansFinancial(loansData)

@@ -38,7 +38,7 @@ export function useSubLoans() {
     getTotalAmount,
   } = useSubLoansStore()
 
-  const hasPermissions = currentUser && ['ADMIN', 'SUBADMIN', 'MANAGER', 'prestamista'].includes(currentUser.role)
+  const hasPermissions = currentUser && ['ADMIN', 'SUBADMIN', 'MANAGER', 'prestamista'].includes(currentUser.role as string)
 
   // Note: ALL auto-initialization removed
   // Data is now initialized by SubLoansProvider at layout level using Enhanced Single Provider Pattern
@@ -175,7 +175,7 @@ export function useSubLoans() {
   }, [])
 
   const activateOverdueSubLoans = useCallback(async () => {
-    if (!currentUser || !['ADMIN', 'SUBADMIN', 'prestamista'].includes(currentUser.role)) {
+    if (!currentUser || !['ADMIN', 'SUBADMIN', 'prestamista'].includes(currentUser.role as string)) {
       setError('No tienes permisos para activar préstamos vencidos')
       return false
     }

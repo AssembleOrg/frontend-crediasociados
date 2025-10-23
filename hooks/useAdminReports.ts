@@ -58,7 +58,7 @@ export const useAdminReports = () => {
       console.log('🔍 [DEBUG] Admin Reports - Starting data fetch...')
 
       // Step 1: Get subadmins created by this admin
-      const subadmins = await reportsService.getCreatedUsers(user.id)
+      const subadmins = await reportsService.getCreatedUsers(user?.id || '')
       console.log('🔍 [DEBUG] Admin Reports - Subadmins found:', subadmins.length)
 
       // Step 2: For each subadmin, get their basic info (no loan data since admins don't typically manage loans)
@@ -106,12 +106,12 @@ export const useAdminReports = () => {
         if (adminLoans && adminLoans.length > 0) {
           adminOwnData = reportsService.calculateUserMetrics(
             {
-              id: user.id,
-              fullName: user.fullName,
-              email: user.email,
+              id: user?.id || '',
+              fullName: 'Admin',
+              email: user?.email || '',
               role: 'ADMIN',
-              createdAt: user.createdAt ? user.createdAt.toISOString() : new Date().toISOString(),
-              updatedAt: user.updatedAt ? user.updatedAt.toISOString() : new Date().toISOString(),
+              createdAt: new Date().toISOString(),
+              updatedAt: new Date().toISOString(),
               clientQuota: 0,
               usedClientQuota: 0,
               availableClientQuota: 0

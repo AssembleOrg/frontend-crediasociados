@@ -62,7 +62,7 @@ export default function SubLoansProvider({ children }: SubLoansProviderProps) {
 
   // Global initialization - ALL SubLoans data types in parallel
   const initAllSubLoansData = async (): Promise<boolean> => {
-    if (!currentUser || !['admin', 'subadmin', 'manager', 'prestamista'].includes(currentUser.role)) {
+    if (!currentUser || !['admin', 'subadmin', 'manager', 'prestamista'].includes(currentUser?.role || '')) {
       setIsInitialLoading(false);
       return false;
     }

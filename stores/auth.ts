@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
-import type { User, AuthState, Wallet } from '@/types/auth';
+import type { User, AuthState, UserRole } from '@/types/auth';
 
 // Custom cookie storage for Zustand persist
 const cookieStorage = {
@@ -23,32 +23,54 @@ const cookieStorage = {
 };
 
 /**
- * THE WAREHOUSE - Auth Store
- * "Dumb" store that only holds data and has simple, synchronous actions.
+ * THE WAREHOUSE - Auth Store (MINIMAL)
+ * "Dumb" store that ONLY holds authentication essentials.
+ * NEVER stores business data (clientQuota, wallet, etc.) - that goes to usersStore.
  * NEVER calls services or has async logic.
+ *
+ * This enforces Single Source of Truth: usersStore is canonical for ALL user data.
  */
-interface AuthStore extends AuthState {
+interface MinimalUser {
+  id: string;
+  email: string;
+  role: UserRole;
+}
+
+interface AuthStore {
+  // Authentication essentials only
+  userId: string | null;
+  userEmail: string | null;
+  userRole: UserRole | null;
+  token: string | null;
+  refreshToken: string | null;
+  isAuthenticated: boolean;
+
   // Simple synchronous setters only
   setUser: (user: User | null) => void;
   setTokens: (token: string | null, refreshToken: string | null) => void;
   setAuthentication: (isAuthenticated: boolean) => void;
   clearAuth: () => void;
   getDashboardRoute: () => string;
-  updateUserWallet: (wallet: Wallet) => void;
 }
 
 export const useAuthStore = create<AuthStore>()(
   persist(
     (set, get) => ({
-      // State
-      user: null,
+      // State - MINIMAL
+      userId: null,
+      userEmail: null,
+      userRole: null,
       token: null,
       refreshToken: null,
       isAuthenticated: false,
 
       // Simple synchronous actions only
       setUser: (user: User | null) => {
-        set({ user });
+        set({
+          userId: user?.id || null,
+          userEmail: user?.email || null,
+          userRole: user?.role || null,
+        });
       },
 
       setTokens: (token: string | null, refreshToken: string | null) => {
@@ -59,27 +81,23 @@ export const useAuthStore = create<AuthStore>()(
         set({ isAuthenticated });
       },
 
-      updateUserWallet: (wallet: Wallet) => {
-        set((state) => ({
-          user: state.user ? { ...state.user, wallet } : null,
-        }));
-      },
-
       clearAuth: () => {
         set({
-          user: null,
+          userId: null,
+          userEmail: null,
+          userRole: null,
           token: null,
           refreshToken: null,
           isAuthenticated: false,
         });
       },
 
-      // Utility function for routing
+      // Utility function for routing - uses MINIMAL auth data
       getDashboardRoute: () => {
-        const { user } = get();
-        if (!user) return '/login';
+        const { userRole } = get();
+        if (!userRole) return '/login';
 
-        switch (user.role) {
+        switch (userRole) {
           case 'admin':
             return '/dashboard/admin';
           case 'subadmin':
@@ -95,7 +113,9 @@ export const useAuthStore = create<AuthStore>()(
       name: 'auth-storage',
       storage: createJSONStorage(() => cookieStorage),
       partialize: (state) => ({
-        user: state.user,
+        userId: state.userId,
+        userEmail: state.userEmail,
+        userRole: state.userRole,
         token: state.token,
         refreshToken: state.refreshToken,
         isAuthenticated: state.isAuthenticated,

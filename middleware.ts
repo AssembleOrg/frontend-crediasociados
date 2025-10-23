@@ -33,15 +33,14 @@ export function middleware(request: NextRequest) {
       throw new Error('Invalid cookie format');
     }
     
-    const { user, isAuthenticated, token } = actualData;
+    const { userId, userRole, isAuthenticated, token } = actualData;
 
     // Validate authentication
-    if (!isAuthenticated || !user || !token) {
+    if (!isAuthenticated || !userId || !userRole || !token) {
       return NextResponse.redirect(new URL('/login', request.url));
     }
 
-    // Role-based route protection
-    const userRole = user.role;
+    // Role-based route protection uses userRole directly
 
     // Admin routes
     if (pathname.startsWith('/dashboard/admin') && userRole !== 'admin') {

@@ -28,11 +28,11 @@ import {
   Delete,
 } from '@mui/icons-material'
 import { useUsers } from '@/hooks/useUsers'
+import { useCurrentUser } from '@/hooks/useCurrentUser'
 import { UserFormModal } from '@/components/users/UserFormModal'
 import { DeleteUserConfirmDialog } from '@/components/users/DeleteUserConfirmDialog'
 import { TableSkeleton } from '@/components/ui/TableSkeleton'
 import type { User } from '@/types/auth'
-import { useAuth } from '@/hooks/useAuth'
 
 // Helper function to determine quota chip color based on available quota
 const getQuotaChipColor = (availableQuota?: number): 'success' | 'warning' | 'error' | 'default' => {
@@ -72,18 +72,16 @@ export default function ManagersPage() {
     clearError
   } = useUsers()
 
-  const { user: currentSubadmin } = useAuth()
-  
+  const currentSubadmin = useCurrentUser()
+
   // Filter prestamistas directly (MANAGER from API becomes 'prestamista' in frontend)
   const managers = useMemo(() => {
-    console.log('🔍 [DEBUG] All users received:', users.map(u => ({ id: u.id, name: u.fullName, role: u.role })))
     const filtered = users.filter(user => user.role === 'prestamista')
-    console.log('🔍 [DEBUG] Filtered prestamistas:', filtered.map(u => ({ id: u.id, name: u.fullName, role: u.role })))
     return filtered
   }, [users])
   const totalManagers = managers.length
-  
-  // Calculate available client quota for current subadmin
+
+  // Calculate available client quota for current subadmin - ALWAYS FRESH from usersStore
   const creatorAvailableQuota = useMemo(() => {
     if (!currentSubadmin) return 0
     const total = currentSubadmin.clientQuota ?? 0

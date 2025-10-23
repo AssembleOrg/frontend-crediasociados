@@ -24,7 +24,7 @@ import {
 import { Person, Phone, Email, Home, Work } from '@mui/icons-material'
 import type { SelectChangeEvent } from '@mui/material/Select'
 import { useClients } from '@/hooks/useClients'
-import { useAuth } from '@/hooks/useAuth'
+import { useCurrentUser } from '@/hooks/useCurrentUser'
 import { ClientValidation } from '@/lib/validation-utils'
 import { formatDNI, formatCUIT, unformatDNI, unformatCUIT, formatPhoneNumber } from '@/lib/formatters'
 import { LATIN_AMERICAN_COUNTRIES } from '@/lib/countries'
@@ -55,7 +55,7 @@ export function ClientFormModal({
   mode
 }: ClientFormModalProps) {
   const { createClient, updateClient, isLoading, error } = useClients()
-  const { user: currentUser } = useAuth()
+  const currentUser = useCurrentUser()
 
   const [formData, setFormData] = useState(INITIAL_FORM_DATA)
   const [formErrors, setFormErrors] = useState<Record<string, string>>({})

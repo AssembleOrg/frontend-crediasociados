@@ -18,7 +18,7 @@ export default function DolarBlueProvider({ children }: DolarBlueProviderProps) 
     setError
   } = useDolarBlueStore();
 
-  const { token, user } = useAuthStore();
+  const { token, userId } = useAuthStore();
 
   const abortControllerRef = useRef<AbortController | null>(null);
   const refreshIntervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -134,8 +134,8 @@ export default function DolarBlueProvider({ children }: DolarBlueProviderProps) 
       if (!isValid || isStale) {
         // Only ADMIN users can perform background POST refresh
         const authState = useAuthStore.getState();
-        
-        if (authState.user?.role === 'admin') {
+
+        if (authState.userRole === 'admin') {
           console.log('🔄 Starting background refresh with POST + GET (ADMIN)...');
           fetchDolarBlue(true);
         } else {
@@ -167,7 +167,8 @@ export default function DolarBlueProvider({ children }: DolarBlueProviderProps) 
         const store = useDolarBlueStore.getState();
         if (store.isDataStale()) {
           // Only ADMIN users can perform POST to update external API data
-          if (user?.role === 'admin') {
+          const authState = useAuthStore.getState();
+          if (authState.userRole === 'admin') {
             console.log('💰 Datos del dólar blue están desactualizados (>4h), ejecutando POST + GET (ADMIN)...');
             await fetchDolarBlue(false);
           } else {

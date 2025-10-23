@@ -17,7 +17,7 @@ export const useDolarBlue = () => {
     getTimeUntilRefresh
   } = useDolarBlueStore();
 
-  const { user } = useAuthStore();
+  const { userRole } = useAuthStore();
 
   const refreshManually = useCallback(async () => {
     setLoading(true);
@@ -25,7 +25,7 @@ export const useDolarBlue = () => {
 
     try {
       // Role-based refresh: ADMIN can POST + GET, others can only GET
-      const response = user?.role === 'admin' 
+      const response = userRole === 'admin' 
         ? await dolarBlueService.fetchAndUpdate()  // POST + GET for fresh data
         : await dolarBlueService.getLatest();      // GET only for existing data
       
@@ -38,7 +38,7 @@ export const useDolarBlue = () => {
 
       setCurrentRate(dolarData);
       
-      if (user?.role === 'admin') {
+      if (userRole === 'admin') {
         console.log('💰 Dólar Blue manual refresh (POST + GET - ADMIN):', { compra: response.compra, venta: response.venta });
       } else {
         console.log('📖 Dólar Blue manual refresh (GET only - READ ONLY):', { compra: response.compra, venta: response.venta });
@@ -54,7 +54,7 @@ export const useDolarBlue = () => {
     } finally {
       setLoading(false);
     }
-  }, [user?.role]);
+  }, [userRole]);
 
   return {
     currentRate,

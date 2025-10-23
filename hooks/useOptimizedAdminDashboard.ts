@@ -124,7 +124,7 @@ export const useOptimizedAdminDashboard = () => {
       console.log('🚀 [EAGER LOADING] Starting parallel data fetch...')
 
       // Step 1: Get all subadmins
-      const subadmins = await reportsService.getCreatedUsers(user.id)
+      const subadmins = await reportsService.getCreatedUsers(user?.id || '')
       console.log('📊 [EAGER LOADING] Subadmins found:', subadmins.length)
 
       // Step 2: For each subadmin, load ALL their data in parallel

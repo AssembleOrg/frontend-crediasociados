@@ -5,6 +5,7 @@ import { Box, Alert, CircularProgress, Typography } from '@mui/material'
 import { People } from '@mui/icons-material'
 import { useSubadminReportsWithFilters } from '@/hooks/useSubadminReportsWithFilters'
 import { useAuth } from '@/hooks/useAuth'
+import { useCurrentUser } from '@/hooks/useCurrentUser'
 import { StatsCard } from '@/components/dashboard/StatsCard'
 import PageHeader from '@/components/ui/PageHeader'
 import StatsGrid from '@/components/ui/StatsGrid'
@@ -14,7 +15,8 @@ import { exportService } from '@/services/export.service'
 import type { SubadminReportsData } from '@/types/export'
 
 export default function SubadminAnalyticsPage() {
-  const { user } = useAuth()
+  const { user } = useAuth()  // For auth checks only
+  const currentUser = useCurrentUser()  // For business data like fullName
   const {
     analytics,
     isLoading,
@@ -62,7 +64,7 @@ export default function SubadminAnalyticsPage() {
         }))
       }
 
-      const pdfBlob = await exportService.generateSubadminReportsPDF(reportsData, user.fullName || user.email)
+      const pdfBlob = await exportService.generateSubadminReportsPDF(reportsData, currentUser?.fullName || user?.email || 'Reporte')
 
       const url = window.URL.createObjectURL(pdfBlob)
       const link = document.createElement('a')

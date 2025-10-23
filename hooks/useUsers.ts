@@ -62,27 +62,24 @@ export const useUsers = () => {
       } else {
         // ADMIN and SUBADMIN see only users they created (hierarchical access)
         // This enforces proper role-based security as documented in adminlogs.md
-        response = await usersService.getCreatedUsers(currentUser.id, filters)
+        response = await usersService.getCreatedUsers(currentUser?.id || '', filters)
       }
 
       const users = response.data.map(apiUserToUser)
-
-      // DEBUG: Log first subadmin's clientQuota to trace data flow
-      const firstSubadmin = users.find(u => u.role === 'subadmin')
-      if (firstSubadmin) {
-        console.log('🔍 [useUsers] First subadmin:', {
-          id: firstSubadmin.id,
-          fullName: firstSubadmin.fullName,
-          clientQuota: firstSubadmin.clientQuota,
-          usedClientQuota: firstSubadmin.usedClientQuota,
-          availableClientQuota: firstSubadmin.availableClientQuota
-        })
-      }
 
       // Use upsertUsers to preserve rich data from backend incomplete responses
       // This ensures clientQuota, usedClientQuota, etc. are preserved even if
       // backend endpoint doesn't include them in the response
       usersStore.upsertUsers(users)
+
+      // CRITICAL: Ensure currentUser always persists in store
+      // When fetchUsers() only returns "created users", the currentUser might not be in the list
+      // Find currentUser in store and re-upsert to ensure they're always available
+      const fullCurrentUser = usersStore.users.find(u => u.id === currentUser?.id)
+      if (fullCurrentUser) {
+        usersStore.upsertUsers([fullCurrentUser])
+      }
+
       usersStore.setPagination(response.meta)
       usersStore.setFilters(filters)
 
@@ -95,7 +92,7 @@ export const useUsers = () => {
       setIsLoading(false)
       isInFlightRef.current = false
     }
-  }, [currentUser, usersStore])
+  }, [currentUser])
 
   const createUser = useCallback(async (
     userData: Omit<User, 'id' | 'createdAt' | 'updatedAt'> & { password: string }

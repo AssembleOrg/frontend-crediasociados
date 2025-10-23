@@ -47,7 +47,7 @@ export const useGastos = () => {
 
     try {
       // Get all expenses for user
-      const expenses = await gastosService.getExpenses(user.id)
+      const expenses = await gastosService.getExpenses(user?.id || '')
       store.setExpenses(expenses)
 
       // Get summary for current month
@@ -56,7 +56,7 @@ export const useGastos = () => {
       const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0)
 
       const monthSummary = await gastosService.getExpenseSummary(
-        user.id,
+        user?.id || '',
         startOfMonth,
         endOfMonth
       )
@@ -83,7 +83,7 @@ export const useGastos = () => {
       setError(null)
 
       try {
-        const newExpense = await gastosService.createExpense(user.id, data)
+        const newExpense = await gastosService.createExpense(user?.id || '', data)
         store.addExpense(newExpense)
 
         // Refresh summary
@@ -166,7 +166,7 @@ export const useGastos = () => {
       setError(null)
 
       try {
-        const expenses = await gastosService.getExpenses(user.id, filters)
+        const expenses = await gastosService.getExpenses(user?.id || '', filters)
         store.setExpenses(expenses)
       } catch (err) {
         const errorMessage = err instanceof Error ? err.message : 'Error cargando gastos'
@@ -190,7 +190,7 @@ export const useGastos = () => {
       const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0)
 
       const monthSummary = await gastosService.getExpenseSummary(
-        user.id,
+        user?.id || '',
         startOfMonth,
         endOfMonth
       )

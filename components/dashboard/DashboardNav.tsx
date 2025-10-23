@@ -15,12 +15,14 @@ import {
 import { AccountCircle, ExitToApp } from '@mui/icons-material';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
+import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { Logo } from '@/components/ui/Logo';
 import { RoleUtils, type UserRole } from '@/lib/role-utils';
 
 export function DashboardNav() {
   const router = useRouter();
   const { user, logout } = useAuth();
+  const currentUser = useCurrentUser();
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [isLogoutLoading, setIsLogoutLoading] = useState(false);
 
@@ -86,7 +88,7 @@ export function DashboardNav() {
               variant='body2'
               sx={{ fontWeight: 500 }}
             >
-              {user?.fullName}
+              {currentUser?.fullName}
             </Typography>
             <Typography
               variant='caption'
@@ -106,7 +108,7 @@ export function DashboardNav() {
               variant='body2'
               sx={{ fontWeight: 500 }}
             >
-              Hola, {user?.fullName?.split(' ')[0]}
+              Hola, {currentUser?.fullName?.split(' ')[0]}
             </Typography>
             <Typography
               variant='caption'
@@ -139,7 +141,7 @@ export function DashboardNav() {
                 height: { xs: 28, sm: 32 },
               }}
             >
-              {user?.fullName?.charAt(0).toUpperCase()}
+              {currentUser?.fullName?.charAt(0).toUpperCase()}
             </Avatar>
           </IconButton>
 
