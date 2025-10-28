@@ -1,31 +1,40 @@
 'use client';
 
 import { Box } from '@mui/material';
-import { RoleGuard } from '@/components/auth/RoleGuard';
 import { DashboardNav } from '@/components/dashboard/DashboardNav';
+import { AuthLoadingOverlay } from '@/components/ui/AuthLoadingOverlay';
+import DolarBlueTicker from '@/components/ui/DolarBlueTicker';
+import { useAuth } from '@/hooks/useAuth';
 
 export default function DashboardLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const { isLoading } = useAuth();
+
   return (
-    <RoleGuard allowedRoles={['admin', 'prestamista']}>
+    <Box
+      sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}
+    >
+      <DashboardNav />
+      <DolarBlueTicker />
       <Box
-        sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}
+        component='main'
+        sx={{
+          flexGrow: 1,
+          bgcolor: 'background.default',
+          p: 3,
+        }}
       >
-        <DashboardNav />
-        <Box
-          component='main'
-          sx={{
-            flexGrow: 1,
-            bgcolor: 'background.default',
-            p: 3,
-          }}
-        >
-          {children}
-        </Box>
+        {children}
       </Box>
-    </RoleGuard>
+      
+      {/* Global auth loading overlay */}
+      <AuthLoadingOverlay 
+        open={isLoading} 
+        message="Procesando autenticación..."
+      />
+    </Box>
   );
 }

@@ -1,288 +1,178 @@
-'use client';
+'use client'
 
-import { useEffect } from 'react';
-import {
-  Typography,
-  Box,
-  Paper,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Chip,
-  Button,
-} from '@mui/material';
-import {
-  TrendingUp,
-  People,
-  AccountBalance,
-  Assessment,
-  Add,
-} from '@mui/icons-material';
-import { useStatsStore } from '@/stores/stats';
-import { StatsCard } from '@/components/dashboard/StatsCard';
+import React, { useState } from 'react'
+import dynamic from 'next/dynamic'
+import { Box, Grid, Alert, Button, useMediaQuery, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material'
+import { ExpandMore, ExpandLess, Calculate } from '@mui/icons-material'
+import { useAdminDashboardData } from '@/hooks/useAdminDashboardData'
+import PageHeader from '@/components/ui/PageHeader'
+import { ChartSkeleton, BarChartSkeleton } from '@/components/ui/ChartSkeleton'
+import { StandaloneLoanSimulator } from '@/components/loans/StandaloneLoanSimulator'
+
+// Lazy load charts to reduce initial bundle size
+const ManagersPerSubadminChart = dynamic(
+  () => import('@/components/charts/ManagersPerSubadminChart'),
+  {
+    ssr: false,
+    loading: () => <ChartSkeleton title="Cobradores por Asociados" />
+  }
+)
+
+const ClientsEvolutionChart = dynamic(
+  () => import('@/components/charts/ClientsEvolutionChart'),
+  {
+    ssr: false,
+    loading: () => <BarChartSkeleton title="Clientes Nuevos por Semana" />
+  }
+)
 
 export default function AdminDashboard() {
-  const { stats, loading, actualizarStats } = useStatsStore();
+  const {
+    chartData,
+    isLoading,
+    error
+  } = useAdminDashboardData()
 
-  useEffect(() => {
-    actualizarStats();
-  }, [actualizarStats]);
+  // Responsive logic for mobile
+  const isMobile = useMediaQuery('(max-width:600px)')
+  const [showAllCharts, setShowAllCharts] = useState(false)
+  const [simulatorOpen, setSimulatorOpen] = useState(false)
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('es-AR', {
-      style: 'currency',
-      currency: 'ARS',
-    }).format(amount);
-  };
-
-  const mockPrestamistas = [
-    {
-      id: 1,
-      nombre: 'Juan Pérez',
-      email: 'juan@prestamito.com',
-      clientesActivos: 15,
-      montoTotal: 450000,
-      estado: 'activo',
-    },
-    {
-      id: 2,
-      nombre: 'María González',
-      email: 'maria@prestamito.com',
-      clientesActivos: 23,
-      montoTotal: 680000,
-      estado: 'activo',
-    },
-    {
-      id: 3,
-      nombre: 'Carlos López',
-      email: 'carlos@prestamito.com',
-      clientesActivos: 8,
-      montoTotal: 220000,
-      estado: 'inactivo',
-    },
-  ];
-
-  const getEstadoColor = (estado: string) => {
-    return estado === 'activo' ? 'success' : 'default';
-  };
-
-  if (loading) {
+  if (error) {
     return (
-      <Box
-        sx={{
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center',
-          height: 400,
-        }}
-      >
-        <Typography>Cargando estadísticas...</Typography>
+      <Box sx={{ p: 3 }}>
+        <PageHeader
+          title="Dashboard Principal"
+          subtitle="Gestión de red y análisis"
+        />
+        <Alert severity="error" sx={{ mt: 2 }}>
+          {error}
+        </Alert>
       </Box>
-    );
+    )
   }
 
   return (
-    <Box>
-      {/* Header - Responsive */}
-      <Box
-        sx={{
-          mb: 4,
-          display: 'flex',
-          flexDirection: { xs: 'column', sm: 'row' },
-          justifyContent: 'space-between',
-          alignItems: { xs: 'flex-start', sm: 'center' },
-          gap: { xs: 3, sm: 0 }
-        }}
-      >
-        <Box>
-          <Typography
-            variant='h4'
-            sx={{ 
-              fontWeight: 600, 
-              mb: 1,
-              fontSize: { xs: '1.5rem', sm: '2.125rem' }
-            }}
-          >
-            Dashboard Administrativo
-          </Typography>
-          <Typography
-            variant='body1'
-            color='text.secondary'
-          >
-            Resumen general del sistema y gestión de prestamistas
-          </Typography>
-        </Box>
+    <Box sx={{ p: 3 }}>
+      {/* Header */}
+      <PageHeader
+        title="Dashboard Principal"
+        subtitle="Gestión de red y análisis"
+      />
+
+      {/* Simulator Button */}
+      <Box sx={{ mb: 3, display: 'flex', gap: 2 }}>
         <Button
-          variant='contained'
-          startIcon={<Add />}
-          sx={{ 
-            height: 'fit-content',
-            width: { xs: '100%', sm: 'auto' }
+          variant="contained"
+          startIcon={<Calculate />}
+          onClick={() => setSimulatorOpen(true)}
+          sx={{
+            background: 'linear-gradient(135deg, #667eea 0%, #4facfe 100%)',
+            '&:hover': {
+              background: 'linear-gradient(135deg, #5a6fd8 0%, #3d8bfe 100%)',
+            },
           }}
         >
-          Nuevo Prestamista
+          Abrir Simulador de Préstamos
         </Button>
       </Box>
 
-      {/* Stats Grid */}
-      <Box
-        sx={{
-          display: 'grid',
-          gridTemplateColumns: {
-            xs: '1fr',
-            sm: 'repeat(2, 1fr)',
-            lg: 'repeat(4, 1fr)',
-          },
-          gap: 3,
-          mb: 4,
+      {/* Main Charts - Responsive Grid */}
+      <Grid container spacing={4}>
+        {/* Mobile: ManagersPerSubadmin first (always visible) */}
+        {isMobile && (
+          <Grid size={{ xs: 12 }}>
+            <ManagersPerSubadminChart
+              data={chartData.managersPerSubadmin}
+              isLoading={isLoading}
+            />
+          </Grid>
+        )}
+
+        {/* Mobile: "Ver Más" button */}
+        {isMobile && (
+          <Grid size={{ xs: 12 }}>
+            <Box sx={{
+              display: 'flex',
+              justifyContent: 'center',
+              mt: 1,
+              mb: 1
+            }}>
+              <Button
+                variant={showAllCharts ? 'outlined' : 'contained'}
+                onClick={() => setShowAllCharts(!showAllCharts)}
+                startIcon={showAllCharts ? <ExpandLess /> : <ExpandMore />}
+                fullWidth
+                sx={{ maxWidth: 400 }}
+              >
+                {showAllCharts ? 'Ocultar Estadísticas' : 'Ver Más Estadísticas'}
+              </Button>
+            </Box>
+          </Grid>
+        )}
+
+        {/* Desktop or Mobile with showAllCharts */}
+        {(!isMobile || showAllCharts) && (
+          <>
+            {!isMobile && (
+              <Grid size={{ xs: 12, lg: 6 }}>
+                <ManagersPerSubadminChart
+                  data={chartData.managersPerSubadmin}
+                  isLoading={isLoading}
+                />
+              </Grid>
+            )}
+            <Grid size={{ xs: 12, lg: 6 }}>
+              <ClientsEvolutionChart
+                data={chartData.clientsEvolution}
+                isLoading={isLoading}
+              />
+            </Grid>
+          </>
+        )}
+      </Grid>
+
+      {/* Simulator Modal */}
+      <Dialog
+        open={simulatorOpen}
+        onClose={() => setSimulatorOpen(false)}
+        maxWidth="lg"
+        fullWidth
+        PaperProps={{
+          sx: {
+            borderRadius: 3,
+            boxShadow: '0 20px 40px rgba(0,0,0,0.1)',
+          }
         }}
       >
-        <StatsCard
-          title='Total Préstamos'
-          value={stats.totalPrestamos}
-          subtitle='préstamos registrados'
-          icon={<AccountBalance />}
-          color='primary'
-          trend={{ value: 12, label: 'vs mes anterior', isPositive: true }}
-        />
-
-        <StatsCard
-          title='Monto Total'
-          value={formatCurrency(stats.montoTotalPrestado)}
-          subtitle='capital prestado'
-          icon={<TrendingUp />}
-          color='success'
-          trend={{ value: 8, label: 'vs mes anterior', isPositive: true }}
-        />
-
-        <StatsCard
-          title='Clientes Activos'
-          value={stats.clientesActivos}
-          subtitle='clientes con préstamos'
-          icon={<People />}
-          color='warning'
-          progress={Math.round((stats.clientesActivos / 120) * 100)}
-        />
-
-        <StatsCard
-          title='Tasa de Cobranza'
-          value={`${stats.tasaCobranza}%`}
-          subtitle='efectividad de cobros'
-          icon={<Assessment />}
-          color={stats.tasaCobranza > 70 ? 'success' : 'error'}
-          progress={stats.tasaCobranza}
-        />
-      </Box>
-
-      {/* Additional Stats Row */}
-      <Box
-        sx={{
-          display: 'grid',
-          gridTemplateColumns: { xs: '1fr', lg: 'repeat(2, 1fr)' },
-          gap: 3,
-          mb: 4,
-        }}
-      >
-        <StatsCard
-          title='Prestamistas'
-          value={stats.prestamistasCantidad}
-          subtitle='usuarios activos en el sistema'
-          icon={<People />}
-          color='primary'
-        />
-
-        <StatsCard
-          title='Préstamos Vencidos'
-          value={stats.prestamosVencidos}
-          subtitle='requieren seguimiento'
-          icon={<AccountBalance />}
-          color='error'
-        />
-      </Box>
-
-      {/* Prestamistas Table */}
-      <Paper elevation={1}>
-        <Box sx={{ p: 3 }}>
-          <Typography
-            variant='h6'
-            sx={{ mb: 3, fontWeight: 600 }}
+        <DialogTitle sx={{
+          pb: 1,
+          background: 'linear-gradient(135deg, #667eea 0%, #4facfe 100%)',
+          color: 'white',
+          borderRadius: '12px 12px 0 0'
+        }}>
+          Simulador de Préstamos
+        </DialogTitle>
+        <DialogContent sx={{ p: 0 }}>
+          <Box sx={{ p: 3 }}>
+            <StandaloneLoanSimulator />
+          </Box>
+        </DialogContent>
+        <DialogActions sx={{ p: 3, gap: 2 }}>
+          <Button
+            onClick={() => setSimulatorOpen(false)}
+            variant="outlined"
+            size="large"
+            sx={{
+              borderRadius: 2,
+              px: 4,
+              py: 1.5
+            }}
           >
-            Prestamistas Registrados
-          </Typography>
-
-          <TableContainer>
-            <Table size="small">
-              <TableHead>
-                <TableRow>
-                  <TableCell>Prestamista</TableCell>
-                  <TableCell align='right'>Monto Total</TableCell>
-                  <TableCell align='center'>Estado</TableCell>
-                  <TableCell align='center' sx={{ display: { xs: 'none', sm: 'table-cell' } }}>
-                    Clientes
-                  </TableCell>
-                  <TableCell align='center' sx={{ display: { xs: 'none', lg: 'table-cell' } }}>
-                    Acciones
-                  </TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {mockPrestamistas.map((prestamista) => (
-                  <TableRow
-                    key={prestamista.id}
-                    hover
-                  >
-                    <TableCell>
-                      <Typography
-                        variant='subtitle2'
-                        sx={{ fontWeight: 500 }}
-                      >
-                        {prestamista.nombre}
-                      </Typography>
-                      {/* Info adicional en mobile */}
-                      <Typography 
-                        variant='caption' 
-                        color='text.secondary'
-                        sx={{ display: { xs: 'block', sm: 'none' } }}
-                      >
-                        {prestamista.clientesActivos} clientes • {prestamista.email}
-                      </Typography>
-                    </TableCell>
-                    <TableCell align='right'>
-                      <Typography
-                        variant='body2'
-                        sx={{ fontWeight: 500 }}
-                      >
-                        {formatCurrency(prestamista.montoTotal)}
-                      </Typography>
-                    </TableCell>
-                    <TableCell align='center'>
-                      <Chip
-                        label={prestamista.estado}
-                        color={getEstadoColor(prestamista.estado)}
-                        size='small'
-                      />
-                    </TableCell>
-                    <TableCell align='center' sx={{ display: { xs: 'none', sm: 'table-cell' } }}>
-                      {prestamista.clientesActivos}
-                    </TableCell>
-                    <TableCell align='center' sx={{ display: { xs: 'none', lg: 'table-cell' } }}>
-                      <Button
-                        size='small'
-                        variant='outlined'
-                      >
-                        Ver Detalle
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </TableContainer>
-        </Box>
-      </Paper>
+            Cerrar
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
-  );
+  )
 }

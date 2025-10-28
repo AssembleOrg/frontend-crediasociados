@@ -9,25 +9,28 @@ import {
   Container,
 } from '@mui/material';
 import { useRouter } from 'next/navigation';
-import { useAuthStore } from '@/stores/auth';
+import { useAuth } from '@/hooks/useAuth';
+import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { Logo } from './Logo';
 
 export function Navbar() {
   const router = useRouter();
-  const { isAuthenticated, user, logout } = useAuthStore();
+  const { isAuthenticated, user, logout } = useAuth();
+  const currentUser = useCurrentUser();
 
   const handleLogin = () => {
     router.push('/login');
   };
 
-  const handleLogout = () => {
-    logout();
+  const handleLogout = async () => {
+    await logout();
     router.push('/');
   };
 
   const handleDashboard = () => {
-    const route = useAuthStore.getState().getDashboardRoute();
-    router.push(route);
+    if (user?.role === 'admin') router.push('/dashboard/admin');
+    else if (user?.role === 'subadmin') router.push('/dashboard/subadmin');
+    else if (user?.role === 'prestamista') router.push('/dashboard/prestamista');
   };
 
   return (
@@ -66,7 +69,7 @@ export function Navbar() {
                   variant='body2'
                   sx={{ color: 'text.secondary' }}
                 >
-                  Hola, {user.name}
+                  Hola, {currentUser?.fullName || 'Usuario'}
                 </Typography>
                 <Button
                   variant='outlined'
@@ -84,14 +87,24 @@ export function Navbar() {
                 </Button>
               </>
             ) : (
-              <Button
-                variant='contained'
-                color='primary'
-                onClick={handleLogin}
-                sx={{ px: 3, py: 1 }}
-              >
-                Iniciar Sesión
-              </Button>
+              <>
+                <Button
+                  variant='outlined'
+                  color='primary'
+                  onClick={() => router.push('/consulta')}
+                  sx={{ px: 3, py: 1 }}
+                >
+                  Consultar Préstamo
+                </Button>
+                <Button
+                  variant='contained'
+                  color='primary'
+                  onClick={handleLogin}
+                  sx={{ px: 3, py: 1 }}
+                >
+                  Iniciar Sesión
+                </Button>
+              </>
             )}
           </Box>
         </Container>

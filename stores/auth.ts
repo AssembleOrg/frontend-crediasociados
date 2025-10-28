@@ -1,96 +1,131 @@
-import { create } from 'zustand'
-import { persist } from 'zustand/middleware'
-import type { User, AuthState, UserRole } from '@/types/auth'
+import { create } from 'zustand';
+import { persist, createJSONStorage } from 'zustand/middleware';
+import type { User, AuthState, UserRole } from '@/types/auth';
 
-interface AuthStore extends AuthState {
-  login: (email: string, password: string) => Promise<{ success: boolean; user: User | null }>
-  logout: () => void
-  setLoading: (loading: boolean) => void
-  getDashboardRoute: () => string
+// Custom cookie storage for Zustand persist
+const cookieStorage = {
+  getItem: (key: string): string | null => {
+    if (typeof window === 'undefined') return null;
+    const cookies = document.cookie.split(';');
+    const cookie = cookies.find((c) => c.trim().startsWith(`${key}=`));
+    return cookie ? decodeURIComponent(cookie.split('=')[1]) : null;
+  },
+  setItem: (key: string, value: string): void => {
+    if (typeof window === 'undefined') return;
+    document.cookie = `${key}=${encodeURIComponent(
+      value
+    )}; path=/; max-age=86400; SameSite=Lax`;
+  },
+  removeItem: (key: string): void => {
+    if (typeof window === 'undefined') return;
+    document.cookie = `${key}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT`;
+  },
+};
+
+/**
+ * THE WAREHOUSE - Auth Store (MINIMAL)
+ * "Dumb" store that ONLY holds authentication essentials.
+ * NEVER stores business data (clientQuota, wallet, etc.) - that goes to usersStore.
+ * NEVER calls services or has async logic.
+ *
+ * This enforces Single Source of Truth: usersStore is canonical for ALL user data.
+ */
+interface MinimalUser {
+  id: string;
+  email: string;
+  role: UserRole;
+}
+
+interface AuthStore {
+  // Authentication essentials only
+  userId: string | null;
+  userEmail: string | null;
+  userRole: UserRole | null;
+  token: string | null;
+  refreshToken: string | null;
+  isAuthenticated: boolean;
+
+  // Simple synchronous setters only
+  setUser: (user: User | null) => void;
+  setTokens: (token: string | null, refreshToken: string | null) => void;
+  setAuthentication: (isAuthenticated: boolean) => void;
+  clearAuth: () => void;
+  getDashboardRoute: () => string;
 }
 
 export const useAuthStore = create<AuthStore>()(
   persist(
     (set, get) => ({
-      user: null,
+      // State - MINIMAL
+      userId: null,
+      userEmail: null,
+      userRole: null,
       token: null,
+      refreshToken: null,
       isAuthenticated: false,
-      isLoading: false,
 
-      setLoading: (loading: boolean) => set({ isLoading: loading }),
-
-      login: async (email: string, password: string) => {
-        set({ isLoading: true })
-        
-        try {
-          // Simulación de autenticación - aquí conectarías con tu backend
-          await new Promise(resolve => setTimeout(resolve, 1000))
-          
-          // Mock de usuarios para desarrollo - Solo Admin y Prestamista
-          const mockUsers: Record<string, User> = {
-            'admin@prestamito.com': { 
-              id: '1', 
-              email: 'admin@prestamito.com', 
-              name: 'Administrador', 
-              role: 'admin' 
-            },
-            'prestamista@prestamito.com': { 
-              id: '2', 
-              email: 'prestamista@prestamito.com', 
-              name: 'Juan Pérez', 
-              role: 'prestamista' 
-            }
-          }
-
-          const user = mockUsers[email]
-          if (user && password === 'password') {
-            const token = `token-${user.id}-${Date.now()}`
-            set({ 
-              user, 
-              token, 
-              isAuthenticated: true, 
-              isLoading: false 
-            })
-            console.log('Auth store updated with user:', user)
-            return { success: true, user }
-          }
-          
-          set({ isLoading: false })
-          return { success: false, user: null }
-        } catch (error) {
-          set({ isLoading: false })
-          return { success: false, user: null }
-        }
+      // Simple synchronous actions only
+      setUser: (user: User | null) => {
+        set({
+          userId: user?.id || null,
+          userEmail: user?.email || null,
+          userRole: user?.role || null,
+        });
       },
 
-      logout: () => {
-        set({ 
-          user: null, 
-          token: null, 
+      setTokens: (token: string | null, refreshToken: string | null) => {
+        set({ token, refreshToken });
+      },
+
+      setAuthentication: (isAuthenticated: boolean) => {
+        set({ isAuthenticated });
+      },
+
+      clearAuth: () => {
+        set({
+          userId: null,
+          userEmail: null,
+          userRole: null,
+          token: null,
+          refreshToken: null,
           isAuthenticated: false,
-          isLoading: false
-        })
+        });
       },
 
+      // Utility function for routing - uses MINIMAL auth data
       getDashboardRoute: () => {
-        const { user } = get()
-        if (!user) return '/login'
-        
-        switch (user.role) {
-          case 'admin': return '/dashboard/admin'
-          case 'prestamista': return '/dashboard/prestamista'
-          default: return '/login'
+        const { userRole } = get();
+        if (!userRole) return '/login';
+
+        switch (userRole) {
+          case 'admin':
+            return '/dashboard/admin';
+          case 'subadmin':
+            return '/dashboard/subadmin';
+          case 'prestamista':
+            return '/dashboard/prestamista';
+          default:
+            return '/login';
         }
-      }
+      },
     }),
     {
       name: 'auth-storage',
-      partialize: (state) => ({ 
-        user: state.user, 
-        token: state.token, 
-        isAuthenticated: state.isAuthenticated 
+      storage: createJSONStorage(() => cookieStorage),
+      partialize: (state) => ({
+        userId: state.userId,
+        userEmail: state.userEmail,
+        userRole: state.userRole,
+        token: state.token,
+        refreshToken: state.refreshToken,
+        isAuthenticated: state.isAuthenticated,
       }),
-      skipHydration: false, // Asegurar hidratación correcta
+      skipHydration: false,
+      onRehydrateStorage: () => (state, error) => {
+        if (error) {
+          console.error('Zustand rehydration error:', error);
+        }
+      },
     }
   )
-)
+);

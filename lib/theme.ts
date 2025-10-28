@@ -6,7 +6,7 @@ export const theme = createTheme({
     values: {
       xs: 0,
       sm: 600,
-      md: 1600,
+      md: 1280,
       lg: 1900,
       xl: 2560,
     },
@@ -58,8 +58,11 @@ export const theme = createTheme({
         root: {
           textTransform: 'none',
           borderRadius: 8,
-          padding: '8px 24px',
+          padding: '6px 14px',
           fontWeight: 500,
+        },
+        sizeSmall: {
+          padding: '4px 10px',
         },
       },
     },

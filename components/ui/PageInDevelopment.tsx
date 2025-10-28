@@ -1,6 +1,6 @@
 'use client'
 
-import { Box, Container, Typography, Button, Paper } from '@mui/material'
+import { Container, Typography, Button, Paper } from '@mui/material'
 import { Construction, ArrowBack } from '@mui/icons-material'
 import { useRouter } from 'next/navigation'
 

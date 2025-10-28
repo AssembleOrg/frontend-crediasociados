@@ -24,25 +24,24 @@ export function Logo({
   return (
     <Box
       sx={{
+        position: 'relative',
         display: 'flex',
         alignItems: 'center',
-        '& img': {
-          objectFit: 'contain',
-        },
+        width: width,
+        height: height,
+        minWidth: { xs: finalMobileWidth, md: width },
+        minHeight: height,
       }}
       className={className}
     >
       <Image
         src='/crediasociados-logo.webp'
         alt='Prestamito - Sistema de Gestión de Préstamos'
-        width={width}
-        height={height}
+        fill
         priority={priority}
+        fetchPriority={priority ? 'high' : 'auto'}
         style={{
-          width: 'auto',
-          height: '100%',
-          maxWidth: width,
-          maxHeight: height,
+          objectFit: 'contain',
         }}
         sizes={`(max-width: 768px) ${finalMobileWidth}px, ${width}px`}
       />

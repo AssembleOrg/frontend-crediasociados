@@ -8,26 +8,21 @@ import {
   ListItemIcon,
   ListItemText,
 } from '@mui/material';
-import { Dashboard, People, Assessment, Settings } from '@mui/icons-material';
+import { Dashboard, People, Analytics } from '@mui/icons-material';
 import { useRouter, usePathname } from 'next/navigation';
 import { QuickActions } from '@/components/dashboard/QuickActions';
 
 const adminMenuItems = [
   { label: 'Dashboard', icon: <Dashboard />, path: '/dashboard/admin' },
   {
-    label: 'Prestamistas',
-    icon: <People />,
-    path: '/dashboard/admin/usuarios',
-  },
-  {
     label: 'Reportes',
-    icon: <Assessment />,
+    icon: <Analytics />,
     path: '/dashboard/admin/reportes',
   },
   {
-    label: 'Configuración',
-    icon: <Settings />,
-    path: '/dashboard/admin/config',
+    label: 'Cobradores',
+    icon: <People />,
+    path: '/dashboard/admin/subadmins',
   },
 ];
 
@@ -39,19 +34,14 @@ const adminQuickActions = [
     variant: 'contained' as const,
   },
   {
-    label: 'Prestamistas',
-    icon: <People />,
-    path: '/dashboard/admin/usuarios',
-  },
-  {
     label: 'Reportes',
-    icon: <Assessment />,
+    icon: <Analytics />,
     path: '/dashboard/admin/reportes',
   },
   {
-    label: 'Configuración',
-    icon: <Settings />,
-    path: '/dashboard/admin/config',
+    label: 'Cobradores',
+    icon: <People />,
+    path: '/dashboard/admin/subadmins',
   },
 ];
 
@@ -119,6 +109,7 @@ export default function AdminLayout({
         sx={{
           flexGrow: 1,
           minWidth: 0,
+          minHeight: 'calc(100vh - 80px)'
         }}
       >
         {/* QuickActions - Solo Mobile */}

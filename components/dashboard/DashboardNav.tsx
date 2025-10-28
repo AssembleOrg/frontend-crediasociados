@@ -10,16 +10,21 @@ import {
   MenuItem,
   Avatar,
   Box,
+  CircularProgress,
 } from '@mui/material';
 import { AccountCircle, ExitToApp } from '@mui/icons-material';
-import { useAuthStore } from '@/stores/auth';
-import { useNavigation } from '@/hooks/useNavigation';
+import { useRouter } from 'next/navigation';
+import { useAuth } from '@/hooks/useAuth';
+import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { Logo } from '@/components/ui/Logo';
+import { RoleUtils, type UserRole } from '@/lib/role-utils';
 
 export function DashboardNav() {
-  const { user, logout } = useAuthStore();
-  const { navigateToHome } = useNavigation();
+  const router = useRouter();
+  const { user, logout } = useAuth();
+  const currentUser = useCurrentUser();
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+  const [isLogoutLoading, setIsLogoutLoading] = useState(false);
 
   const handleMenu = (event: React.MouseEvent<HTMLElement>) => {
     setAnchorEl(event.currentTarget);
@@ -29,10 +34,20 @@ export function DashboardNav() {
     setAnchorEl(null);
   };
 
-  const handleLogout = () => {
-    logout();
-    navigateToHome();
+  const handleLogout = async () => {
+    setIsLogoutLoading(true);
     handleClose();
+    
+    try {
+      await logout();
+      // No necesitamos router.push() porque logout() ya maneja el redirect
+    } catch (error) {
+      console.error('Error during logout:', error);
+      // En caso de error, forzar redirect
+      router.replace('/login');
+    } finally {
+      setIsLogoutLoading(false);
+    }
   };
 
   const handleProfile = () => {
@@ -40,23 +55,6 @@ export function DashboardNav() {
     handleClose();
   };
 
-  const getRoleDisplayName = (role: string) => {
-    const roleNames = {
-      admin: 'Administrador',
-      prestamista: 'Prestamista',
-      cliente: 'Cliente',
-    };
-    return roleNames[role as keyof typeof roleNames] || role;
-  };
-
-  const getRoleColor = (role: string) => {
-    const roleColors = {
-      admin: '#d32f2f',
-      prestamista: '#1976d2',
-      cliente: '#388e3c',
-    };
-    return roleColors[role as keyof typeof roleColors] || '#666';
-  };
 
   return (
     <AppBar
@@ -71,7 +69,7 @@ export function DashboardNav() {
             display: 'flex',
             alignItems: 'center',
           }}
-          onClick={navigateToHome}
+          onClick={() => router.push('/')}
         >
           <Logo
             width={140}
@@ -90,29 +88,38 @@ export function DashboardNav() {
               variant='body2'
               sx={{ fontWeight: 500 }}
             >
-              {user?.name}
+              {currentUser?.fullName}
             </Typography>
             <Typography
               variant='caption'
               sx={{
-                color: getRoleColor(user?.role || ''),
+                color: RoleUtils.getRoleColor((user?.role || '') as UserRole),
                 fontWeight: 600,
               }}
             >
-              {getRoleDisplayName(user?.role || '')}
+              {RoleUtils.getRoleDisplayName((user?.role || '') as UserRole)}
             </Typography>
           </Box>
 
-          {/* Nombre compacto en mobile */}
-          <Typography
-            variant='body2'
-            sx={{
-              fontWeight: 500,
-              display: { xs: 'block', sm: 'none' },
-            }}
+          <Box
+            sx={{ textAlign: 'right', display: { xs: 'block', sm: 'none' } }}
           >
-            Hola, {user?.name?.split(' ')[0]}
-          </Typography>
+            <Typography
+              variant='body2'
+              sx={{ fontWeight: 500 }}
+            >
+              Hola, {currentUser?.fullName?.split(' ')[0]}
+            </Typography>
+            <Typography
+              variant='caption'
+              sx={{
+                color: RoleUtils.getRoleColor((user?.role || '') as UserRole),
+                fontWeight: 600,
+              }}
+            >
+              {RoleUtils.getRoleDisplayName((user?.role || '') as UserRole)}
+            </Typography>
+          </Box>
 
           <IconButton
             size='medium'
@@ -134,7 +141,7 @@ export function DashboardNav() {
                 height: { xs: 28, sm: 32 },
               }}
             >
-              {user?.name?.charAt(0).toUpperCase()}
+              {currentUser?.fullName?.charAt(0).toUpperCase()}
             </Avatar>
           </IconButton>
 
@@ -157,9 +164,13 @@ export function DashboardNav() {
               <AccountCircle sx={{ mr: 1 }} />
               Mi Perfil
             </MenuItem>
-            <MenuItem onClick={handleLogout}>
-              <ExitToApp sx={{ mr: 1 }} />
-              Cerrar Sesión
+            <MenuItem onClick={handleLogout} disabled={isLogoutLoading}>
+              {isLogoutLoading ? (
+                <CircularProgress size={16} sx={{ mr: 1 }} />
+              ) : (
+                <ExitToApp sx={{ mr: 1 }} />
+              )}
+              {isLogoutLoading ? 'Cerrando sesión...' : 'Cerrar Sesión'}
             </MenuItem>
           </Menu>
         </Box>
