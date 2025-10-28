@@ -220,8 +220,9 @@ export function useExport() {
         amount: principalAmount,
         baseInterestRate: parseFloat(formData.baseInterestRate),
         paymentFrequency: formData.paymentFrequency,
-        numberOfInstallments: parseInt(formData.totalPayments),
-        startDate: formData.firstDueDate?.toISOString() || new Date().toISOString(),
+        totalPayments: parseInt(formData.totalPayments),
+        firstDueDate: formData.firstDueDate?.toISOString() || simulatedLoans[0]?.dueDate.toISOString(),
+        createdAt: new Date().toISOString(),
         description: formData.description,
         clientId: formData.clientId,
         status: 'SIMULATION'

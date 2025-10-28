@@ -2,51 +2,72 @@ import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import type { User, AuthState, UserRole } from '@/types/auth';
 
-// Custom cookie storage for Zustand persist
-const cookieStorage = {
+// Hybrid storage: cookies for tokens (secure), localStorage for user data (no size limit)
+const hybridStorage = {
   getItem: (key: string): string | null => {
     if (typeof window === 'undefined') return null;
+    
+    // Try localStorage first (preferred for large data)
+    const localValue = localStorage.getItem(key);
+    if (localValue) return localValue;
+    
+    // Fallback to cookies for backward compatibility
     const cookies = document.cookie.split(';');
     const cookie = cookies.find((c) => c.trim().startsWith(`${key}=`));
     return cookie ? decodeURIComponent(cookie.split('=')[1]) : null;
   },
   setItem: (key: string, value: string): void => {
     if (typeof window === 'undefined') return;
-    document.cookie = `${key}=${encodeURIComponent(
-      value
-    )}; path=/; max-age=86400; SameSite=Lax`;
+    
+    // Store in localStorage (no size limit)
+    localStorage.setItem(key, value);
+    
+    // Also set a lightweight cookie for token/auth checks
+    // Only store essential auth data in cookie (< 4KB limit)
+    try {
+      const data = JSON.parse(value);
+      const lightweightData = {
+        userId: data.state?.userId || data.userId,
+        userRole: data.state?.userRole || data.userRole,
+        token: data.state?.token || data.token,
+        refreshToken: data.state?.refreshToken || data.refreshToken,
+        isAuthenticated: data.state?.isAuthenticated || data.isAuthenticated,
+      };
+      const cookieValue = encodeURIComponent(JSON.stringify(lightweightData));
+      document.cookie = `${key}-token=${cookieValue}; path=/; max-age=259200; SameSite=Lax`; // 3 days
+    } catch (e) {
+      console.warn('Failed to set auth cookie:', e);
+    }
   },
   removeItem: (key: string): void => {
     if (typeof window === 'undefined') return;
+    localStorage.removeItem(key);
     document.cookie = `${key}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT`;
+    document.cookie = `${key}-token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT`;
   },
 };
 
 /**
- * THE WAREHOUSE - Auth Store (MINIMAL)
- * "Dumb" store that ONLY holds authentication essentials.
- * NEVER stores business data (clientQuota, wallet, etc.) - that goes to usersStore.
+ * THE WAREHOUSE - Auth Store
+ * Single Source of Truth for authenticated user data + auth tokens.
+ * Data persisted in localStorage (unlimited size) + lightweight cookie for tokens.
  * NEVER calls services or has async logic.
- *
- * This enforces Single Source of Truth: usersStore is canonical for ALL user data.
  */
-interface MinimalUser {
-  id: string;
-  email: string;
-  role: UserRole;
-}
-
 interface AuthStore {
-  // Authentication essentials only
+  // Authentication essentials
   userId: string | null;
   userEmail: string | null;
   userRole: UserRole | null;
   token: string | null;
   refreshToken: string | null;
   isAuthenticated: boolean;
+  
+  // Complete current user data (persisted - survives F5)
+  currentUser: User | null;
 
   // Simple synchronous setters only
   setUser: (user: User | null) => void;
+  updateCurrentUser: (user: User) => void;
   setTokens: (token: string | null, refreshToken: string | null) => void;
   setAuthentication: (isAuthenticated: boolean) => void;
   clearAuth: () => void;
@@ -56,13 +77,14 @@ interface AuthStore {
 export const useAuthStore = create<AuthStore>()(
   persist(
     (set, get) => ({
-      // State - MINIMAL
+      // State
       userId: null,
       userEmail: null,
       userRole: null,
       token: null,
       refreshToken: null,
       isAuthenticated: false,
+      currentUser: null,
 
       // Simple synchronous actions only
       setUser: (user: User | null) => {
@@ -70,6 +92,16 @@ export const useAuthStore = create<AuthStore>()(
           userId: user?.id || null,
           userEmail: user?.email || null,
           userRole: user?.role || null,
+          currentUser: user,
+        });
+      },
+
+      updateCurrentUser: (user: User) => {
+        set({
+          currentUser: user,
+          userId: user.id,
+          userEmail: user.email,
+          userRole: user.role,
         });
       },
 
@@ -89,6 +121,7 @@ export const useAuthStore = create<AuthStore>()(
           token: null,
           refreshToken: null,
           isAuthenticated: false,
+          currentUser: null,
         });
       },
 
@@ -111,7 +144,7 @@ export const useAuthStore = create<AuthStore>()(
     }),
     {
       name: 'auth-storage',
-      storage: createJSONStorage(() => cookieStorage),
+      storage: createJSONStorage(() => hybridStorage),
       partialize: (state) => ({
         userId: state.userId,
         userEmail: state.userEmail,
@@ -119,11 +152,18 @@ export const useAuthStore = create<AuthStore>()(
         token: state.token,
         refreshToken: state.refreshToken,
         isAuthenticated: state.isAuthenticated,
+        currentUser: state.currentUser,
       }),
       skipHydration: false,
       onRehydrateStorage: () => (state, error) => {
         if (error) {
           console.error('Zustand rehydration error:', error);
+        } else {
+          console.log('✅ Auth store rehydrated successfully', {
+            hasUser: !!state?.currentUser,
+            userId: state?.userId,
+            isAuthenticated: state?.isAuthenticated,
+          });
         }
       },
     }

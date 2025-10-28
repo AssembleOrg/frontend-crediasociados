@@ -8,7 +8,7 @@ import {
   ListItemIcon,
   ListItemText,
 } from '@mui/material';
-import { Dashboard, People, Analytics, AttachMoney, Receipt, Payment } from '@mui/icons-material';
+import { Dashboard, People, Analytics, Receipt, Payment } from '@mui/icons-material';
 import { useRouter, usePathname } from 'next/navigation';
 import { QuickActions } from '@/components/dashboard/QuickActions';
 import DashboardDataProvider from '@/components/providers/DashboardDataProvider';
@@ -30,11 +30,11 @@ const subadminMenuItems = [
     icon: <People />,
     path: '/dashboard/subadmin/usuarios',
   },
-  {
-    label: 'Finanzas',
-    icon: <AttachMoney />,
-    path: '/dashboard/subadmin/finanzas',
-  },
+  // {
+  //   label: 'Finanzas',
+  //   icon: <AttachMoney />,
+  //   path: '/dashboard/subadmin/finanzas',
+  // },
   {
     label: 'Operativa',
     icon: <Receipt />,
@@ -63,11 +63,11 @@ const subadminQuickActions = [
     icon: <People />,
     path: '/dashboard/subadmin/usuarios',
   },
-  {
-    label: 'Finanzas',
-    icon: <AttachMoney />,
-    path: '/dashboard/subadmin/finanzas',
-  },
+  // {
+  //   label: 'Finanzas',
+  //   icon: <AttachMoney />,
+  //   path: '/dashboard/subadmin/finanzas',
+  // },
   {
     label: 'Operativa',
     icon: <Receipt />,

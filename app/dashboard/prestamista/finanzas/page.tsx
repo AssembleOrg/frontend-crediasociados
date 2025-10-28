@@ -6,18 +6,17 @@ import { TrendingUp, AccountBalance, Savings, Receipt } from '@mui/icons-materia
 import { useRouter } from 'next/navigation'
 import PageHeader from '@/components/ui/PageHeader'
 import { StatsCard } from '@/components/dashboard/StatsCard'
-import { WalletBalanceCard } from '@/components/wallet/WalletBalanceCard'
+// import { WalletBalanceCard } from '@/components/wallet/WalletBalanceCard'
 import { useFinanzas } from '@/hooks/useFinanzas'
-import { useWallet } from '@/hooks/useWallet'
 
 export default function PrestamistaFinanzasPage() {
   const router = useRouter()
   const { financialSummary, isLoading, error } = useFinanzas()
-  const {
-    wallet,
-    isLoading: walletIsLoading,
-    refetchWallet,
-  } = useWallet()
+  // const {
+  //   wallet,
+  //   isLoading: walletIsLoading,
+  //   refetchWallet,
+  // } = useWallet()
 
   if (error) {
     return (
@@ -44,14 +43,14 @@ export default function PrestamistaFinanzasPage() {
       />
 
       {/* Wallet Balance Section */}
-      <Box sx={{ mb: 4 }}>
+      {/* <Box sx={{ mb: 4 }}>
         <WalletBalanceCard
           wallet={wallet}
           isLoading={walletIsLoading}
           onRefresh={refetchWallet}
           showDetails={true}
         />
-      </Box>
+      </Box> */}
 
       {/* Stats Cards - 4 essential cards (2x2 mobile, 1x4 desktop) */}
       <Grid container spacing={3} sx={{ mb: 4 }}>

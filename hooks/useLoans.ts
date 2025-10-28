@@ -5,6 +5,8 @@ import { useSubadminStore } from '@/stores/subadmin'
 import { useAuth } from '@/hooks/useAuth'
 import { useSubLoansProviderContext } from '@/components/providers/SubLoansProvider'
 import { loansService } from '@/services/loans.service'
+import { subLoansLookupService } from '@/services/subloans-lookup.service'
+import { useSubLoansStore } from '@/stores/sub-loans'
 import { apiLoanToLoan, loanToCreateDto } from '@/types/transforms'
 import type { Loan, PaginationParams, CreateLoanDto } from '@/types/auth'
 
@@ -21,6 +23,7 @@ export function useLoans() {
   const { user: currentUser } = useAuth()
   const adminStore = useAdminStore()
   const subadminStore = useSubadminStore()
+  const subLoansStore = useSubLoansStore()
 
   // Make SubLoansProvider context optional for admin users
   const subLoansContext = (() => {
@@ -105,6 +108,8 @@ export function useLoans() {
       setLoading(true)
       setError(null)
 
+      console.log('🔄 Creating loan...')
+      
       // TODO: Fix loanToCreateDto transform to accept CreateLoanDto directly
       // const createDto = loanToCreateDto(loanData)
       const apiLoan = await loansService.createLoan(loanData)
@@ -112,13 +117,31 @@ export function useLoans() {
 
       addLoan(newLoan)
 
+      console.log('✅ Loan created, refreshing all related data...')
+
       // Invalidate related caches to ensure other views refresh
       adminStore.invalidateCache()
       subadminStore.invalidateCache()
 
-      // ✅ ARCHITECTURAL FIX: Trigger provider refresh to update all related data
-      // Following "Layout Provides, Pages Consume" - provider is single source of truth
-      await refreshData()
+      // ✅ CRITICAL: Refresh BOTH loans AND subloans data
+      // This ensures the loan details modal shows the correct subloans immediately
+      try {
+        // Refresh provider data (if available)
+        await refreshData()
+        
+        // ✅ CRITICAL: Clear cache to force fresh data with client info
+        console.log('🧹 Clearing subloans lookup cache...')
+        subLoansLookupService.clearCache()
+        
+        // ✅ FORCE REFRESH: Fetch fresh subloans with client info
+        console.log('🔄 Fetching fresh subloans data with client names...')
+        const freshSubLoans = await subLoansLookupService.getAllSubLoansWithClientInfo()
+        subLoansStore.setAllSubLoansWithClient(freshSubLoans)
+        console.log('✅ SubLoans refreshed with client data:', freshSubLoans.length)
+      } catch (refreshError) {
+        console.error('⚠️ Error refreshing data after loan creation:', refreshError)
+        // Don't throw - loan was created successfully
+      }
 
       return newLoan
     } catch (error) {
@@ -128,7 +151,7 @@ export function useLoans() {
     } finally {
       setLoading(false)
     }
-  }, [refreshData])
+  }, [refreshData, subLoansStore])
 
   const deleteLoan = useCallback(async (id: string) => {
     try {
@@ -153,6 +176,49 @@ export function useLoans() {
     }
   }, [refreshData])
 
+  const deleteLoanPermanently = useCallback(async (id: string) => {
+    try {
+      setLoading(true)
+      setError(null)
+
+      console.log('🗑️ Permanently deleting loan:', id)
+      const result = await loansService.deleteLoanPermanently(id)
+      removeLoan(id)
+
+      console.log('✅ Loan deleted, refreshing all related data...')
+
+      // Invalidate related caches to ensure other views refresh
+      adminStore.invalidateCache()
+      subadminStore.invalidateCache()
+      
+      // ✅ CRITICAL: Refresh BOTH loans AND subloans data
+      try {
+        await refreshData()
+        
+        // ✅ CRITICAL: Clear cache to force fresh data
+        console.log('🧹 Clearing subloans lookup cache...')
+        subLoansLookupService.clearCache()
+        
+        // ✅ FORCE REFRESH: Fetch fresh subloans with client info
+        console.log('🔄 Fetching fresh subloans data with client names...')
+        const freshSubLoans = await subLoansLookupService.getAllSubLoansWithClientInfo()
+        subLoansStore.setAllSubLoansWithClient(freshSubLoans)
+        console.log('✅ SubLoans refreshed with client data:', freshSubLoans.length)
+      } catch (refreshError) {
+        console.error('⚠️ Error refreshing data after loan deletion:', refreshError)
+        // Don't throw - loan was deleted successfully
+      }
+
+      return result
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Error desconocido'
+      setError(`Error al eliminar préstamo: ${errorMessage}`)
+      throw error
+    } finally {
+      setLoading(false)
+    }
+  }, [refreshData, subLoansStore])
+
   return {
     loans,
     isLoading,
@@ -161,6 +227,7 @@ export function useLoans() {
     fetchLoanById,
     createLoan,
     deleteLoan,
+    deleteLoanPermanently,
     reset,
     getTotalLoans,
     getActiveLoansByStatus,

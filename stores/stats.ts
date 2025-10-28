@@ -150,6 +150,11 @@ export const useStatsStore = create<StatsStore>()(
       });
     },
 
+    // Alias for clearStats (used by cache manager)
+    clearCache: () => {
+      get().clearStats();
+    },
+
     // Centralized calculations - single source of truth
     getStatsByPeriod: (periodo: StatsState['selectedPeriod']) => {
       return get().periodStats.filter((stat) => stat.periodo === periodo);

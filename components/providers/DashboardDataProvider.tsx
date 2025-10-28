@@ -8,7 +8,7 @@ import { useAuthStore } from '@/stores/auth';
 import { subLoansLookupService } from '@/services/subloans-lookup.service';
 import { subLoansService } from '@/services/sub-loans.service';
 import { loansService } from '@/services/loans.service';
-import { operativaService } from '@/services/operativa.service';
+// import operativaService from '@/services/operativa.service'; // ⚠️ Disabled until backend ready
 import { finanzasService } from '@/services/finanzas.service';
 
 // Stores
@@ -95,6 +95,7 @@ export default function DashboardDataProvider({ children }: DashboardDataProvide
   // Race condition prevention
   const isInitializedRef = useRef(false);
   const abortControllerRef = useRef<AbortController | null>(null);
+  const hasTokenRef = useRef(false); // ✅ Track if we've seen the token
   
   // Cache to prevent redundant fetches
   const dataCache = useRef<{
@@ -127,7 +128,7 @@ export default function DashboardDataProvider({ children }: DashboardDataProvide
       ]);
 
       const timeoutPromise = new Promise<null>((_, reject) =>
-        setTimeout(() => reject(new Error('SubLoans timeout')), 5000)
+        setTimeout(() => reject(new Error('SubLoans timeout')), 15000)
       );
 
       const result = await Promise.race([dataPromise, timeoutPromise]);
@@ -180,8 +181,17 @@ export default function DashboardDataProvider({ children }: DashboardDataProvide
 
   /**
    * Initialize Operativa data
+   * ⚠️ DISABLED: Operativa endpoints not ready yet
    */
   const initOperativa = async (): Promise<void> => {
+    console.log('🧾 [DASHBOARD PROVIDER] Skipping Operativa - endpoints not implemented yet');
+    
+    // Gracefully set empty data
+    operativaStore.setTransacciones([]);
+    setLoadingStates((prev) => ({ ...prev, operativa: false }));
+    
+    // TODO: Uncomment when backend endpoints are ready
+    /*
     if (!user) {
       console.log('🧾 [DASHBOARD PROVIDER] Skipping Operativa - no user');
       return;
@@ -211,6 +221,7 @@ export default function DashboardDataProvider({ children }: DashboardDataProvide
     } finally {
       setLoadingStates((prev) => ({ ...prev, operativa: false }));
     }
+    */
   };
 
   /**
@@ -334,19 +345,27 @@ export default function DashboardDataProvider({ children }: DashboardDataProvide
    * Initialize ALL dashboard data in PARALLEL
    */
   const initAllData = async (): Promise<void> => {
+    // ✅ Wait for both user AND token to be available
     if (!user || !token) {
+      console.log('⏳ [DASHBOARD PROVIDER] Waiting for auth...', { 
+        hasUser: !!user, 
+        hasToken: !!token 
+      });
       setIsInitialLoading(false);
       return;
     }
 
+    // ✅ Prevent duplicate initialization
     if (isInitializedRef.current) {
       console.log('🔄 [DASHBOARD PROVIDER] Already initialized, skipping...');
       return;
     }
 
     isInitializedRef.current = true;
+    hasTokenRef.current = true; // ✅ Mark that we've seen the token
 
     console.log('🚀 [DASHBOARD PROVIDER] Initializing ALL dashboard data in PARALLEL...');
+    console.log('✅ Auth ready:', { userId: user.id, role: user.role, hasToken: !!token });
     console.time('🚀 Total Dashboard Load');
 
     try {
@@ -399,10 +418,23 @@ export default function DashboardDataProvider({ children }: DashboardDataProvide
     await initAllData();
   };
 
-  // Auto-initialize when user is available
+  // Auto-initialize when user AND token are available
   useEffect(() => {
-    if (user && token) {
+    console.log('🔍 [DASHBOARD PROVIDER] useEffect triggered', {
+      hasUser: !!user,
+      userId: user?.id,
+      hasToken: !!token,
+      tokenLength: token?.length,
+      isInitialized: isInitializedRef.current
+    });
+
+    // ✅ CRITICAL: Only initialize once we have BOTH user AND token
+    if (user && token && !isInitializedRef.current) {
+      console.log('✅ [DASHBOARD PROVIDER] Auth ready, initializing data...');
       initAllData();
+    } else if (!user || !token) {
+      console.log('⏳ [DASHBOARD PROVIDER] Still waiting for auth...');
+      setIsInitialLoading(false);
     }
 
     // Cleanup on unmount

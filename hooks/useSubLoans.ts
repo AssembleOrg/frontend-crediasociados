@@ -110,14 +110,45 @@ export function useSubLoans() {
     }
   }, [])
 
+  // ✅ Prevent race conditions: use ref to track if component is mounted
+  const isMountedRef = useRef(true)
+  const isLoadingRef = useRef(false) // ✅ Track if fetch is already in progress
+  
+  useEffect(() => {
+    isMountedRef.current = true
+    return () => {
+      isMountedRef.current = false
+    }
+  }, [])
+
   const fetchAllSubLoansWithClientInfo = useCallback(async (params?: PaginationParams) => {
-    if (!hasPermissions) return
+    if (!hasPermissions) {
+      console.log('⚠️ No permissions to fetch subloans')
+      return
+    }
+
+    // ✅ Prevent duplicate simultaneous calls
+    if (isLoadingRef.current) {
+      console.log('⏳ Already fetching subloans, skipping duplicate call')
+      return
+    }
 
     try {
+      isLoadingRef.current = true
       setLoading(true)
       setError(null)
+      
+      console.log('🔄 Fetching all subloans with client info...')
 
       const enrichedSubLoans = await subLoansLookupService.getAllSubLoansWithClientInfo(params)
+      
+      // ✅ Only update state if component is still mounted
+      if (!isMountedRef.current) {
+        console.log('⚠️ Component unmounted, skipping state update')
+        return
+      }
+      
+      console.log('✅ Fetched subloans:', enrichedSubLoans.length)
 
       // FILTER: Only show subloans for loans owned by the current manager
       // This prevents 403 errors when trying to register payments for other managers' loans
@@ -171,6 +202,7 @@ export function useSubLoans() {
       setError(`Error al cargar préstamos con información de cliente: ${errorMessage}`)
     } finally {
       setLoading(false)
+      isLoadingRef.current = false // ✅ Always reset loading ref
     }
   }, [])
 

@@ -46,12 +46,21 @@ class UsersService {
     id: string,
     userData: UpdateUserDto
   ): Promise<UserResponseDto> {
-    const response = await api.put(`/users/${id}`, userData);
+    const response = await api.patch(`/users/${id}`, userData);
     return response.data.data;
   }
 
   async deleteUser(id: string): Promise<void> {
     await api.delete(`/users/${id}`);
+  }
+
+  async recalculateUserQuota(id: string): Promise<{
+    message: string;
+    previousUsedQuota: number;
+    newUsedQuota: number;
+  }> {
+    const response = await api.post(`/users/${id}/recalculate-quota`);
+    return response.data;
   }
 
   async getUserHierarchy(id: string): Promise<any> {
@@ -64,6 +73,7 @@ class UsersService {
     params: PaginationParams = {}
   ): Promise<PaginatedResponse<UserResponseDto>> {
     const searchParams = new URLSearchParams();
+    console.log('🔍 [DEBUG] getCreatedUsers params:', params, id);
 
     if (params.page) searchParams.append('page', params.page.toString());
     if (params.limit) searchParams.append('limit', params.limit.toString());

@@ -1,7 +1,8 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import dynamic from 'next/dynamic'
+import { usePathname } from 'next/navigation'
 import { useSubLoans } from '@/hooks/useSubLoans'
 import {
   Box,
@@ -62,10 +63,24 @@ function isFilteredStats(stats: FilteredStats | LegacyStats): stats is FilteredS
 }
 
 export default function CobrosPage() {
+  const pathname = usePathname()
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0])
   const {
     allSubLoansWithClient,
+    fetchAllSubLoansWithClientInfo,
   } = useSubLoans()
+
+  // ✅ Refetch data when page mounts or route changes
+  useEffect(() => {
+    console.log('🔄 Cobros page mounted/changed')
+    
+    // Always fetch on mount to ensure fresh data
+    // The hook itself will prevent duplicate calls if already loading
+    console.log('📥 Fetching latest subloans data...')
+    fetchAllSubLoansWithClientInfo()
+    
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pathname]) // Only depend on pathname to avoid infinite loops
   
   // Filtering system
   const { 
@@ -329,6 +344,10 @@ export default function CobrosPage() {
             : selectedPaymentClient?.clientName || 'Cliente'
         }
         mode={paymentModalMode}
+        onPaymentSuccess={() => {
+          console.log('💰 Payment registered successfully, refetching data...')
+          fetchAllSubLoansWithClientInfo()
+        }}
       />
     </Box>
   )

@@ -139,5 +139,10 @@ export const useClientsStore = create<ClientsStore>()(
         }
       })
     },
+
+    // Alias for clearClients (used by cache manager)
+    clearCache: () => {
+      get().clearClients()
+    },
   }))
 )

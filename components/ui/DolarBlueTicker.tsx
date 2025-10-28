@@ -6,7 +6,6 @@ import {
   TrendingUp,
   DollarSign,
   Clock,
-  AlertCircle,
   RefreshCw,
 } from 'lucide-react';
 import { useDolarBlue } from '@/hooks/useDolarBlue';
@@ -157,7 +156,7 @@ const DolarBlueTicker = memo(function DolarBlueTicker({
         className={className}
         onClick={showRefreshButton ? refresh : undefined}
       >
-        <AlertCircle
+        {/* <AlertCircle
           size={18}
           style={{ color: '#f44336' }}
         />
@@ -167,7 +166,7 @@ const DolarBlueTicker = memo(function DolarBlueTicker({
         >
           Error en conexión financiera{' '}
           {showRefreshButton && '• Click para reintentar'}
-        </Typography>
+        </Typography> */}
       </Box>
     );
   }

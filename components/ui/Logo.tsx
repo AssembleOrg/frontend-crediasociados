@@ -36,7 +36,7 @@ export function Logo({
     >
       <Image
         src='/crediasociados-logo.webp'
-        alt='Prestamito - Sistema de Gestión de Préstamos'
+        alt='Crediasociados - Sistema de Gestión de Préstamos'
         fill
         priority={priority}
         fetchPriority={priority ? 'high' : 'auto'}

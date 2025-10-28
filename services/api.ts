@@ -1,7 +1,10 @@
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
 import type { ApiError } from '@/types/auth';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
+// Use Next.js proxy in browser, direct URL in server-side
+const API_BASE_URL = typeof window === 'undefined' 
+  ? process.env.NEXT_PUBLIC_API_URL  // Server-side: use full URL
+  : '/api';  // Client-side: use Next.js proxy
 
 const api: AxiosInstance = axios.create({
   baseURL: API_BASE_URL,
@@ -9,6 +12,7 @@ const api: AxiosInstance = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
+  withCredentials: false, // Set to true if using cookies for auth
 });
 
 let currentToken: string | null = null;

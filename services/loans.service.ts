@@ -67,11 +67,9 @@ class LoansService {
       );
 
       const createdLoanData = response.data.data;
-      if (
-        !createdLoanData.loan ||
-        !createdLoanData.subLoans ||
-        !createdLoanData.walletTransaction
-      ) {
+      
+      // Backend returns the loan object directly (not nested in .loan)
+      if (!createdLoanData || !createdLoanData.id) {
         console.error(
           '🚨 [ERROR] loans.service - La respuesta de la API no tiene la estructura esperada para un préstamo nuevo.'
         );
@@ -83,13 +81,14 @@ class LoansService {
       console.log(
         '✅ [SUCCESS] loans.service - Préstamo creado exitosamente:',
         {
-          loanId: createdLoanData.loan.id,
-          clientId: createdLoanData.loan.clientId,
-          walletTransactionId: createdLoanData.walletTransaction.id,
+          loanId: createdLoanData.id,
+          loanTrack: createdLoanData.loanTrack,
+          clientId: createdLoanData.clientId,
+          subLoansCount: createdLoanData.subLoans?.length || 0,
         }
       );
 
-      return createdLoanData.loan;
+      return createdLoanData;
     } catch (error: any) {
       console.error('🚨 [ERROR] loans.service - Error creando préstamo:', {
         message: error.message,
@@ -111,6 +110,18 @@ class LoansService {
 
   async deleteLoan(id: string): Promise<void> {
     await api.delete(`/loans/${id}`);
+  }
+
+  async deleteLoanPermanently(id: string): Promise<{
+    message: string
+    loanTrack: string
+    montoDevuelto: number
+    totalPrestamo: number
+    totalPagado: number
+    newWalletBalance: number
+  }> {
+    const response = await api.delete(`/loans/${id}/permanent`);
+    return response.data.data;
   }
 
   async getLoanByTracking(

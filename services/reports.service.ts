@@ -45,6 +45,7 @@ export interface SubadminReportData extends BaseReportMetrics {
 class ReportsService {
   /**
    * Get users created by a specific user (admin -> subadmins, subadmin -> managers)
+   * ✅ Uses correct backend endpoint: /users/:id/created-users
    */
   async getCreatedUsers(userId: string): Promise<UserResponseDto[]> {
     const response = await api.get(`/users/${userId}/created-users`, {
@@ -52,6 +53,15 @@ class ReportsService {
     })
 
     return response.data.data?.data || response.data.data || []
+  }
+
+  /**
+   * Get users created by the authenticated user
+   * ✅ Uses new backend endpoint: /users/created
+   */
+  async getMyCreatedUsers(filters?: { role?: 'SUBADMIN' | 'MANAGER' }): Promise<UserResponseDto[]> {
+    const response = await api.get('/users/created', { params: filters })
+    return response.data.data || response.data || []
   }
 
   /**

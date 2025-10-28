@@ -15,6 +15,35 @@ interface ActivationResultDto {
 }
 
 /**
+ * SubLoan with client information (from backend)
+ * Used for reports and analytics
+ */
+export interface SubLoanWithClientDto {
+  id: string
+  loanId: string
+  amount: number
+  totalAmount: number
+  paidAmount: number
+  status: 'PENDING' | 'PARTIAL' | 'PAID' | 'OVERDUE'
+  dueDate: string
+  paymentNumber: number
+  createdAt: string
+  loan: {
+    id: string
+    loanTrack: string
+    amount: number
+    currency: string
+    paymentFrequency: string
+  }
+  client: {
+    id: string
+    fullName: string
+    dni?: string
+    phone?: string
+  }
+}
+
+/**
  * THE MESSENGER - SubLoans Service
  * Simple, testable functions that only communicate with the API.
  *
@@ -64,6 +93,19 @@ class SubLoansService {
   async getSubLoansByLoanId(loanId: string): Promise<SubLoanResponseDto[]> {
     const response = await api.get(`/subloans/loan/${loanId}`);
     return response.data.data;
+  }
+
+  /**
+   * ✅ NEW: Get subloans with client information for reports
+   * Uses backend endpoint: GET /subloans/with-client-info
+   */
+  async getSubLoansWithClientInfo(filters?: {
+    status?: 'PENDING' | 'PARTIAL' | 'PAID' | 'OVERDUE'
+    dueDateFrom?: string  // ISO 8601
+    dueDateTo?: string    // ISO 8601
+  }): Promise<SubLoanWithClientDto[]> {
+    const response = await api.get('/subloans/with-client-info', { params: filters });
+    return response.data.data || response.data || [];
   }
 
   /**

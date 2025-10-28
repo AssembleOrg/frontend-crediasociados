@@ -59,7 +59,8 @@ export const PaymentSuccessModal: React.FC<PaymentSuccessModalProps> = ({
           gap: 1.5,
           pb: 1,
           borderBottom: 1,
-          borderColor: 'divider'
+          borderColor: 'divider',
+          fontWeight: 600
         }}
       >
         <SuccessIcon
@@ -68,9 +69,7 @@ export const PaymentSuccessModal: React.FC<PaymentSuccessModalProps> = ({
             fontSize: 28
           }}
         />
-        <Typography variant="h6" sx={{ fontWeight: 600 }}>
-          ✅ Pago registrado exitosamente
-        </Typography>
+        ✅ Pago registrado exitosamente
       </DialogTitle>
 
       <DialogContent sx={{ pt: 3 }}>

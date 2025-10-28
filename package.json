@@ -1,5 +1,5 @@
 {
-  "name": "frontend-prestamito",
+  "name": "frontend-crediasociados",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -11,6 +11,9 @@
     "analyze": "ANALYZE=true next build"
   },
   "dependencies": {
+    "@dnd-kit/core": "^6.3.1",
+    "@dnd-kit/sortable": "^10.0.0",
+    "@dnd-kit/utilities": "^3.2.2",
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.1",
     "@mui/icons-material": "^7.3.1",
@@ -38,6 +41,7 @@
     "@types/react-dom": "^19",
     "axios": "^1.11.0",
     "babel-plugin-react-compiler": "^19.1.0-rc.3",
+    "critters": "^0.0.25",
     "eslint": "^9",
     "eslint-config-next": "15.4.6",
     "openapi-typescript": "^7.9.1",

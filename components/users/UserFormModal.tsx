@@ -15,7 +15,19 @@ import {
   Select,
   FormControl,
   InputLabel,
+  IconButton,
+  InputAdornment,
+  LinearProgress,
+  Paper,
+  Chip,
 } from '@mui/material'
+import {
+  Visibility,
+  VisibilityOff,
+  PeopleAlt,
+  CheckCircle,
+  Warning,
+} from '@mui/icons-material'
 import { UserValidation } from '@/lib/validation-utils'
 import { RoleUtils, type UserRole, ROLE_DISPLAY_NAMES } from '@/lib/role-utils'
 import type { User } from '@/types/auth'
@@ -42,10 +54,8 @@ const INITIAL_FORM_DATA = {
   email: '',
   password: '',
   phone: '',
-  dni: '',
-  cuit: '',
   role: 'manager' as UserRole,
-  clientQuota: 50  // ← NUEVO: Default 50 clientes
+  clientQuota: '50'  // ← String to allow empty input
 }
 
 export function UserFormModal({
@@ -65,6 +75,7 @@ export function UserFormModal({
 
   const [formData, setFormData] = useState(INITIAL_FORM_DATA)
   const [formErrors, setFormErrors] = useState<Record<string, string>>({})
+  const [showPassword, setShowPassword] = useState(false)
 
   // Initialize form data when user changes (for edit mode)
   useEffect(() => {
@@ -74,10 +85,8 @@ export function UserFormModal({
         email: user.email || '',
         password: '', // Never pre-fill password for security
         phone: user.phone || '',
-        dni: user.dni || '',
-        cuit: user.cuit || '',
         role: user.role as UserRole,
-        clientQuota: user.clientQuota || 50  // ← NUEVO: Read from user
+        clientQuota: user.clientQuota ? user.clientQuota.toString() : '50'
       })
     } else if (mode === 'create') {
       setFormData({
@@ -119,9 +128,15 @@ export function UserFormModal({
   }
 
   const validateForm = () => {
+    // Convert formData to match User type for validation
+    const dataToValidate = {
+      ...formData,
+      clientQuota: parseInt(formData.clientQuota) || 0
+    }
+    
     const errors = mode === 'create' 
-      ? UserValidation.validateCreateUser(formData)
-      : UserValidation.validateUpdateUser(formData)
+      ? UserValidation.validateCreateUser(dataToValidate)
+      : UserValidation.validateUpdateUser(dataToValidate)
 
     // Additional password validation for create mode
     if (mode === 'create' && !formData.password?.trim()) {
@@ -132,18 +147,30 @@ export function UserFormModal({
 
     // Validate clientQuota for SUBADMIN or MANAGER creation
     if (mode === 'create' && (targetRole === 'subadmin' || targetRole === 'manager')) {
-      if (formData.clientQuota <= 0) {
+      const quotaValue = parseInt(formData.clientQuota) || 0
+      if (quotaValue <= 0) {
         errors.clientQuota = 'La cuota de clientes debe ser mayor a 0'
-      } else if (creatorAvailableQuota !== undefined && creatorAvailableQuota > 0 && formData.clientQuota > creatorAvailableQuota) {
+      } else if (creatorAvailableQuota !== undefined && creatorAvailableQuota > 0 && quotaValue > creatorAvailableQuota) {
         errors.clientQuota = `Solo tienes ${creatorAvailableQuota} clientes disponibles para asignar`
       }
     }
     
     // Validate clientQuota for SUBADMIN or MANAGER edit
-    if (mode === 'edit' && user && (formData.role === 'subadmin' || formData.role === 'manager')) {
+    if (mode === 'edit' && user && (formData.role === 'subadmin' || formData.role === 'manager' || formData.role === 'prestamista')) {
       const usedQuota = user.usedClientQuota ?? 0
-      if (formData.clientQuota < usedQuota) {
+      const currentQuota = user.clientQuota ?? 0
+      const quotaValue = parseInt(formData.clientQuota) || 0
+      
+      // Check if reducing below used quota
+      if (quotaValue < usedQuota) {
         errors.clientQuota = `No puedes reducir la cuota por debajo de ${usedQuota} (clientes actualmente usados)`
+      } 
+      // Check if increasing beyond creator's available quota
+      else if (creatorAvailableQuota !== undefined && quotaValue > currentQuota) {
+        const increaseAmount = quotaValue - currentQuota
+        if (increaseAmount > creatorAvailableQuota) {
+          errors.clientQuota = `Solo puedes aumentar hasta ${currentQuota + creatorAvailableQuota} (tienes ${creatorAvailableQuota} disponibles)`
+        }
       }
     }
 
@@ -163,10 +190,10 @@ export function UserFormModal({
       fullName: formData.fullName,
       email: formData.email,
       phone: formData.phone || undefined,
-      dni: formData.dni || undefined,
-      cuit: formData.cuit || undefined,
       role: formData.role,
-      clientQuota: (targetRole === 'subadmin' || targetRole === 'manager' || formData.role === 'subadmin' || formData.role === 'manager') ? formData.clientQuota : undefined
+      clientQuota: (targetRole === 'subadmin' || targetRole === 'manager' || formData.role === 'subadmin' || formData.role === 'manager' || formData.role === 'prestamista') 
+        ? (parseInt(formData.clientQuota) || 0) 
+        : undefined
     }
 
     let result: boolean
@@ -194,8 +221,19 @@ export function UserFormModal({
   const handleClose = () => {
     setFormData(INITIAL_FORM_DATA)
     setFormErrors({})
+    setShowPassword(false)
     onClose()
   }
+
+  const handleTogglePasswordVisibility = () => {
+    setShowPassword(!showPassword)
+  }
+
+  // Calculate quota percentage and remaining
+  const quotaPercentage = creatorTotalQuota && creatorTotalQuota > 0
+    ? ((creatorTotalQuota - (creatorAvailableQuota || 0)) / creatorTotalQuota) * 100
+    : 0
+  const quotaUsed = (creatorTotalQuota || 0) - (creatorAvailableQuota || 0)
 
   // Don't render if in edit mode but no user provided
   if (mode === 'edit' && !user) {
@@ -212,24 +250,138 @@ export function UserFormModal({
     <Dialog 
       open={open} 
       onClose={handleClose}
-      maxWidth="sm"
+      maxWidth="md"
       fullWidth
+      scroll="paper"
+      PaperProps={{
+        sx: {
+          borderRadius: { xs: 2, sm: 3 },
+          boxShadow: '0 20px 40px rgba(0,0,0,0.1)',
+          m: { xs: 0.5, sm: 2 },
+          maxHeight: { xs: '100%', sm: 'calc(100% - 64px)' },
+          width: { xs: '100%', sm: 'auto' },
+        }
+      }}
     >
-      <DialogTitle>
-        <Typography variant="h6" component="div">
-          {title}
-        </Typography>
+      <DialogTitle
+        sx={{
+          pb: 2,
+          px: { xs: 2, sm: 3 },
+          pt: { xs: 2, sm: 3 },
+          background: 'linear-gradient(135deg, #667eea 0%, #4facfe 100%)',
+          color: 'white',
+          borderRadius: { xs: 0, sm: '12px 12px 0 0' },
+        }}
+      >
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+          {/* Title Section */}
+          <Box>
+            <Typography 
+              variant="h5" 
+              component="div" 
+              sx={{ 
+                fontWeight: 600, 
+                mb: 0.5,
+                fontSize: { xs: '1.25rem', sm: '1.5rem' }
+              }}
+            >
+              {title}
+            </Typography>
+            <Typography 
+              variant="body2" 
+              sx={{ 
+                opacity: 0.9,
+                fontSize: { xs: '0.875rem', sm: '0.875rem' }
+              }}
+            >
+              {mode === 'create' 
+                ? `Completa los datos del nuevo ${RoleUtils.getRoleDisplayName(targetRole).toLowerCase()}` 
+                : 'Modifica la información del usuario'}
+            </Typography>
+          </Box>
+
+          {/* Quota Display - Show in create mode or edit mode for users with quota */}
+          {creatorAvailableQuota !== undefined && creatorTotalQuota !== undefined && 
+           (mode === 'create' || (mode === 'edit' && user && (user.role === 'subadmin' || user.role === 'prestamista'))) && (
+            <Paper
+              elevation={0}
+              sx={{
+                p: 2,
+                bgcolor: 'rgba(255, 255, 255, 0.95)',
+                borderRadius: 2,
+                width: '100%',
+              }}
+            >
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+                <PeopleAlt sx={{ fontSize: { xs: 18, sm: 20 }, color: 'primary.main' }} />
+                <Typography 
+                  variant="caption" 
+                  color="text.secondary" 
+                  sx={{ 
+                    fontWeight: 600,
+                    fontSize: { xs: '0.75rem', sm: '0.75rem' }
+                  }}
+                >
+                  Cuota de Clientes
+                </Typography>
+              </Box>
+              <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 1, mb: 1 }}>
+                <Typography 
+                  variant="h4" 
+                  sx={{ 
+                    fontWeight: 700, 
+                    color: creatorAvailableQuota > 0 ? 'success.main' : 'error.main',
+                    fontSize: { xs: '1.75rem', sm: '2rem' }
+                  }}
+                >
+                  {creatorAvailableQuota}
+                </Typography>
+                <Typography 
+                  variant="body1" 
+                  color="text.secondary"
+                  sx={{ fontSize: { xs: '0.875rem', sm: '1rem' } }}
+                >
+                  / {creatorTotalQuota} disponibles
+                </Typography>
+              </Box>
+              <LinearProgress 
+                variant="determinate" 
+                value={quotaPercentage} 
+                sx={{ 
+                  height: { xs: 8, sm: 6 }, 
+                  borderRadius: 1,
+                  bgcolor: 'grey.200',
+                  '& .MuiLinearProgress-bar': {
+                    bgcolor: quotaPercentage > 80 ? 'error.main' : quotaPercentage > 50 ? 'warning.main' : 'success.main',
+                    borderRadius: 1,
+                  }
+                }} 
+              />
+              <Typography 
+                variant="caption" 
+                color="text.secondary" 
+                sx={{ 
+                  mt: 0.5, 
+                  display: 'block',
+                  fontSize: { xs: '0.7rem', sm: '0.75rem' }
+                }}
+              >
+                {quotaUsed} asignados
+              </Typography>
+            </Paper>
+          )}
+        </Box>
       </DialogTitle>
 
       <form onSubmit={handleSubmit}>
-        <DialogContent>
+        <DialogContent sx={{ px: { xs: 2, sm: 3 }, py: { xs: 2, sm: 3 } }}>
           {error && (
             <Alert severity="error" sx={{ mb: 2 }}>
               {error}
             </Alert>
           )}
 
-          <Box sx={{ display: 'grid', gap: 2, pt: 1 }}>
+          <Box sx={{ display: 'grid', gap: { xs: 2, sm: 2.5 } }}>
             <TextField
               label="Nombre Completo"
               value={formData.fullName}
@@ -254,13 +406,28 @@ export function UserFormModal({
 
             <TextField
               label={mode === 'create' ? 'Contraseña' : 'Nueva Contraseña (dejar vacío para no cambiar)'}
-              type="password"
+              type={showPassword ? 'text' : 'password'}
               value={formData.password}
               onChange={handleInputChange('password')}
               error={!!formErrors.password}
-              helperText={formErrors.password}
+              helperText={formErrors.password || (mode === 'create' ? 'Mínimo 6 caracteres' : undefined)}
               required={mode === 'create'}
               fullWidth
+              InputProps={{
+                endAdornment: (
+                  <InputAdornment position="end">
+                    <IconButton
+                      onClick={handleTogglePasswordVisibility}
+                      onMouseDown={(e) => e.preventDefault()}
+                      edge="end"
+                      aria-label="toggle password visibility"
+                      size="small"
+                    >
+                      {showPassword ? <VisibilityOff /> : <Visibility />}
+                    </IconButton>
+                  </InputAdornment>
+                ),
+              }}
             />
 
             <TextField
@@ -272,24 +439,13 @@ export function UserFormModal({
               fullWidth
             />
 
-            <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2 }}>
-              <TextField
-                label="DNI"
-                value={formData.dni}
-                onChange={handleInputChange('dni')}
-                error={!!formErrors.dni}
-                helperText={formErrors.dni}
-                fullWidth
-              />
-
-              <TextField
-                label="CUIT"
-                value={formData.cuit}
-                onChange={handleInputChange('cuit')}
-                error={!!formErrors.cuit}
-                helperText={formErrors.cuit}
-                fullWidth
-              />
+            <Box 
+              sx={{ 
+                display: 'grid', 
+                gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, 
+                gap: 2 
+              }}
+            >
             </Box>
 
             {(mode === 'create' || allowRoleChange) && (
@@ -310,27 +466,131 @@ export function UserFormModal({
             )}
 
             {/* Client Quota Field */}
-            {(mode === 'create' && (targetRole === 'subadmin' || targetRole === 'manager')) || (mode === 'edit' && (formData.role === 'subadmin' || formData.role === 'manager')) ? (
-              <>
-                {mode === 'create' && (creatorAvailableQuota !== undefined) && (
-                  <Alert
-                    severity={creatorAvailableQuota > 0 ? 'info' : 'warning'}
-                    sx={{ mb: 2, fontWeight: 'bold' }}
+            {(mode === 'create' && (targetRole === 'subadmin' || targetRole === 'manager')) || (mode === 'edit' && (formData.role === 'subadmin' || formData.role === 'manager' || formData.role === 'prestamista')) ? (
+              <Paper
+                elevation={0}
+                sx={{
+                  p: { xs: 2, sm: 2.5 },
+                  bgcolor: 'primary.lighter',
+                  border: '2px solid',
+                  borderColor: 'primary.light',
+                  borderRadius: 2,
+                }}
+              >
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+                  <PeopleAlt sx={{ fontSize: { xs: 20, sm: 24 }, color: 'primary.main' }} />
+                  <Typography 
+                    variant="subtitle1" 
+                    sx={{ 
+                      fontWeight: 600, 
+                      color: 'primary.main',
+                      fontSize: { xs: '0.9rem', sm: '1rem' }
+                    }}
                   >
-                    👥 <strong>Clientes Disponibles para Asignar:</strong> {creatorAvailableQuota} de {creatorTotalQuota}
+                    Cuota de Clientes para este {targetRole === 'subadmin' ? 'Asociado' : 'Cobrador'}
+                  </Typography>
+                </Box>
+
+                {creatorAvailableQuota !== undefined && creatorTotalQuota !== undefined && (
+                  <Alert
+                    severity={mode === 'create' ? (creatorAvailableQuota > 0 ? 'success' : 'warning') : 'info'}
+                    icon={mode === 'create' ? (creatorAvailableQuota > 0 ? <CheckCircle /> : <Warning />) : <PeopleAlt />}
+                    sx={{ 
+                      mb: 2,
+                      '& .MuiAlert-message': {
+                        width: '100%'
+                      }
+                    }}
+                  >
+                    <Box>
+                      <Typography 
+                        variant="body2" 
+                        sx={{ 
+                          fontWeight: 600, 
+                          mb: 1,
+                          fontSize: { xs: '0.85rem', sm: '0.875rem' }
+                        }}
+                      >
+                        {mode === 'create' 
+                          ? (creatorAvailableQuota > 0 
+                              ? `Tienes ${creatorAvailableQuota} clientes disponibles para asignar` 
+                              : '⚠️ No tienes clientes disponibles para asignar')
+                          : `Cuota disponible del creador para asignar`
+                        }
+                      </Typography>
+                      <Box 
+                        sx={{ 
+                          display: 'flex', 
+                          alignItems: 'center', 
+                          gap: { xs: 1, sm: 2 }, 
+                          mt: 1,
+                          flexWrap: 'wrap'
+                        }}
+                      >
+                        <Chip 
+                          label={`${quotaUsed} usados`} 
+                          size="small" 
+                          color="default" 
+                          sx={{ 
+                            fontWeight: 600,
+                            fontSize: { xs: '0.7rem', sm: '0.8125rem' }
+                          }}
+                        />
+                        <Chip 
+                          label={`${creatorAvailableQuota} disponibles`} 
+                          size="small" 
+                          color={creatorAvailableQuota > 0 ? 'success' : 'error'}
+                          sx={{ 
+                            fontWeight: 600,
+                            fontSize: { xs: '0.7rem', sm: '0.8125rem' }
+                          }}
+                        />
+                        <Chip 
+                          label={`${creatorTotalQuota} total`} 
+                          size="small" 
+                          color="primary" 
+                          sx={{ 
+                            fontWeight: 600,
+                            fontSize: { xs: '0.7rem', sm: '0.8125rem' }
+                          }}
+                        />
+                      </Box>
+                      {mode === 'edit' && user && (
+                        <Box sx={{ mt: 1, pt: 1, borderTop: '1px solid rgba(0,0,0,0.1)' }}>
+                          <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>
+                            Cuota actual del usuario:
+                          </Typography>
+                          <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                            <Chip 
+                              label={`${user.usedClientQuota ?? 0} usados`} 
+                              size="small" 
+                              variant="outlined"
+                              sx={{ fontSize: { xs: '0.7rem', sm: '0.75rem' } }}
+                            />
+                            <Chip 
+                              label={`${user.clientQuota ?? 0} asignados`} 
+                              size="small" 
+                              variant="outlined"
+                              color="primary"
+                              sx={{ fontSize: { xs: '0.7rem', sm: '0.75rem' } }}
+                            />
+                          </Box>
+                        </Box>
+                      )}
+                    </Box>
                   </Alert>
                 )}
+
                 <TextField
-                  label="Cuota de Clientes"
+                  label="Número de Clientes a Asignar"
                   type="number"
                   value={formData.clientQuota}
                   onChange={(e) => {
-                    const value = Math.max(1, parseInt(e.target.value) || 50)
+                    const inputValue = e.target.value
                     setFormData(prev => ({
                       ...prev,
-                      clientQuota: value
+                      clientQuota: inputValue
                     }))
-                    // Clear error if exists
                     if (formErrors.clientQuota) {
                       setFormErrors(prev => ({
                         ...prev,
@@ -339,28 +599,90 @@ export function UserFormModal({
                     }
                   }}
                   error={!!formErrors.clientQuota}
-                  helperText={formErrors.clientQuota || (targetRole === 'subadmin' ? "Número máximo de clientes que puede distribuir este asociado" : "Número máximo de clientes que puede crear este cobrador")}
+                  helperText={
+                    formErrors.clientQuota || 
+                    (mode === 'edit' && user
+                      ? `Mínimo: ${user.usedClientQuota ?? 0} (usados) | Máximo: ${(user.clientQuota ?? 0) + (creatorAvailableQuota || 0)} (actual + disponibles)`
+                      : (targetRole === 'subadmin' 
+                          ? "Este asociado podrá distribuir esta cantidad de clientes entre sus cobradores" 
+                          : "Este cobrador podrá crear hasta esta cantidad de clientes")
+                    )
+                  }
                   fullWidth
                   InputProps={{
-                    inputProps: { min: 1, max: creatorAvailableQuota && creatorAvailableQuota > 0 ? creatorAvailableQuota : 500 }
+                    inputProps: { 
+                      min: mode === 'edit' && user ? (user.usedClientQuota ?? 0) : 1,
+                      max: mode === 'edit' && user 
+                        ? (user.clientQuota ?? 0) + (creatorAvailableQuota || 0)
+                        : (creatorAvailableQuota || undefined),
+                    },
+                    sx: {
+                      bgcolor: 'white',
+                      '& input[type=number]': {
+                        MozAppearance: 'textfield',
+                      },
+                      '& input[type=number]::-webkit-outer-spin-button': {
+                        WebkitAppearance: 'none',
+                        margin: 0,
+                      },
+                      '& input[type=number]::-webkit-inner-spin-button': {
+                        WebkitAppearance: 'none',
+                        margin: 0,
+                      },
+                    }
+                  }}
+                  sx={{
+                    '& .MuiOutlinedInput-root': {
+                      bgcolor: 'white',
+                    }
                   }}
                 />
-              </>
+              </Paper>
             ) : null}
           </Box>
         </DialogContent>
 
-        <DialogActions sx={{ p: 3 }}>
+        <DialogActions 
+          sx={{ 
+            p: { xs: 2, sm: 3 }, 
+            gap: { xs: 1.5, sm: 2 },
+            flexDirection: { xs: 'column', sm: 'row' },
+            '& > button': {
+              width: { xs: '100%', sm: 'auto' },
+              minWidth: { sm: 120 },
+            }
+          }}
+        >
           <Button 
             onClick={handleClose}
             disabled={isLoading}
+            variant="outlined"
+            size="large"
+            fullWidth={false}
+            sx={{
+              order: { xs: 2, sm: 1 },
+              py: { xs: 1.5, sm: 1 },
+            }}
           >
             Cancelar
           </Button>
           <Button 
             type="submit"
             variant="contained"
-            disabled={isLoading}
+            disabled={isLoading || (mode === 'create' && creatorAvailableQuota === 0)}
+            size="large"
+            fullWidth={false}
+            sx={{
+              order: { xs: 1, sm: 2 },
+              py: { xs: 1.5, sm: 1 },
+              background: 'linear-gradient(135deg, #667eea 0%, #4facfe 100%)',
+              '&:hover': {
+                background: 'linear-gradient(135deg, #5a6fd8 0%, #3d8bfe 100%)',
+              },
+              '&:disabled': {
+                background: 'rgba(0, 0, 0, 0.12)',
+              },
+            }}
           >
             {isLoading ? loadingText : submitText}
           </Button>

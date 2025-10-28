@@ -1,7 +1,7 @@
 'use client'
 
 import { Box, Paper, List, ListItem, ListItemIcon, ListItemText } from '@mui/material'
-import { Dashboard, People, AccountBalance, Payment, AttachMoney, Receipt, Analytics } from '@mui/icons-material'
+import { Dashboard, People, AccountBalance, Analytics, Route } from '@mui/icons-material'
 import { useRouter, usePathname } from 'next/navigation'
 import { QuickActions } from '@/components/dashboard/QuickActions'
 import DashboardDataProvider from '@/components/providers/DashboardDataProvider'
@@ -11,9 +11,10 @@ const prestamistaMenuItems = [
   { label: 'Reportes', icon: <Analytics />, path: '/dashboard/prestamista/reportes' },
   { label: 'Clientes', icon: <People />, path: '/dashboard/prestamista/clientes' },
   { label: 'Préstamos', icon: <AccountBalance />, path: '/dashboard/prestamista/prestamos' },
-  { label: 'Cobros Diarios', icon: <Payment />, path: '/dashboard/prestamista/cobros' },
-  { label: 'Finanzas', icon: <AttachMoney />, path: '/dashboard/prestamista/finanzas' },
-  { label: 'Operativa', icon: <Receipt />, path: '/dashboard/prestamista/operativo' },
+  { label: 'Ruta del Día', icon: <Route />, path: '/dashboard/prestamista/rutas' },
+  // { label: 'Cobros Diarios', icon: <Payment />, path: '/dashboard/prestamista/cobros' },
+  // { label: 'Finanzas', icon: <AttachMoney />, path: '/dashboard/prestamista/finanzas' },
+  // { label: 'Operativa', icon: <Receipt />, path: '/dashboard/prestamista/operativo' },
 ]
 
 const quickActions = [
@@ -21,9 +22,10 @@ const quickActions = [
   { label: 'Reportes', icon: <Analytics />, path: '/dashboard/prestamista/reportes' },
   { label: 'Clientes', icon: <People />, path: '/dashboard/prestamista/clientes' },
   { label: 'Préstamos', icon: <AccountBalance />, path: '/dashboard/prestamista/prestamos' },
-  { label: 'Cobros', icon: <Payment />, path: '/dashboard/prestamista/cobros' },
-  { label: 'Finanzas', icon: <AttachMoney />, path: '/dashboard/prestamista/finanzas' },
-  { label: 'Operativa', icon: <Receipt />, path: '/dashboard/prestamista/operativo' },
+  { label: 'Ruta', icon: <Route />, path: '/dashboard/prestamista/rutas' },
+  // { label: 'Cobros', icon: <Payment />, path: '/dashboard/prestamista/cobros' },
+  // { label: 'Finanzas', icon: <AttachMoney />, path: '/dashboard/prestamista/finanzas' },
+  // { label: 'Operativa', icon: <Receipt />, path: '/dashboard/prestamista/operativo' },
 ]
 
 export default function PrestamistaLayout({

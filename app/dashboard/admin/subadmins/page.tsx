@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import {
   Typography,
   Box,
@@ -28,7 +28,8 @@ import {
   Delete,
 } from '@mui/icons-material';
 import { useUsers } from '@/hooks/useUsers';
-import { useMemo } from 'react';
+import { useCurrentUser } from '@/hooks/useCurrentUser';
+import { useAuth } from '@/hooks/useAuth';
 import { RoleUtils, type UserRole } from '@/lib/role-utils';
 import { UserFormModal } from '@/components/users/UserFormModal';
 import { DeleteUserConfirmDialog } from '@/components/users/DeleteUserConfirmDialog';
@@ -44,7 +45,10 @@ export default function SubadminsPage() {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
 
-  const { users, isLoading, error, createUser, updateUser, deleteUser } = useUsers();
+  const { users, isLoading, error, createUser, updateUser, deleteUser, fetchUsers } = useUsers();
+  const currentAdmin = useCurrentUser(); // Get current admin user
+  const { refreshCurrentUser } = useAuth();
+  
   const subadmins = useMemo(() => 
     users.filter(user => user.role === 'subadmin'), 
     [users]
@@ -83,11 +87,18 @@ export default function SubadminsPage() {
     handleMenuClose();
   };
 
-  const handleCloseModals = () => {
+  const handleCloseModals = useCallback(async () => {
+    setIsCreateModalOpen(false);
     setIsEditModalOpen(false);
     setIsDeleteDialogOpen(false);
     setSelectedSubadmin(null);
-  };
+    
+    // ✅ REHIDRATACIÓN: Refrescar datos después de cerrar modales
+    await Promise.all([
+      fetchUsers(), // Actualiza lista de subadmins
+      refreshCurrentUser(), // Actualiza cuotas del admin actual
+    ]);
+  }, [fetchUsers, refreshCurrentUser]);
 
   const calculateQuotaPercentage = (used: number, total: number): number => {
     if (total === 0) return 0;
@@ -100,10 +111,23 @@ export default function SubadminsPage() {
     return 'success';
   };
 
-  const totalAvailableQuota = subadmins.reduce(
-    (sum, subadmin) => sum + ((subadmin.clientQuota ?? 0) - (subadmin.usedClientQuota ?? 0)),
-    0
-  );
+  // Calculate admin's available quota (for creating subadmins)
+  const adminAvailableQuota = useMemo(() => {
+    if (!currentAdmin) return undefined;
+    const total = currentAdmin.clientQuota ?? 0;
+    const used = currentAdmin.usedClientQuota ?? 0;
+    return Math.max(0, total - used);
+  }, [currentAdmin]);
+
+  const adminTotalQuota = useMemo(() => {
+    if (!currentAdmin) return undefined;
+    return currentAdmin.clientQuota ?? 0;
+  }, [currentAdmin]);
+
+  // const totalAvailableQuota = subadmins.reduce(
+  //   (sum, subadmin) => sum + ((subadmin.clientQuota ?? 0) - (subadmin.usedClientQuota ?? 0)),
+  //   0
+  // );
 
   return (
     <Box>
@@ -135,13 +159,17 @@ export default function SubadminsPage() {
           >
             Gestiona los asociados que crean y supervisan cobradores
           </Typography>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
             <Typography variant='body2' color='text.secondary'>
               Clientes disponibles para asignar:
             </Typography>
             <Chip
-              label={totalAvailableQuota}
-              color='primary'
+              label={
+                adminAvailableQuota !== undefined && adminTotalQuota !== undefined
+                  ? `${adminAvailableQuota} / ${adminTotalQuota}`
+                  : '0 / 0'
+              }
+              color={adminAvailableQuota && adminAvailableQuota > 0 ? 'success' : 'default'}
               size='small'
               sx={{ fontWeight: 600 }}
             />
@@ -374,6 +402,8 @@ export default function SubadminsPage() {
         updateUser={updateUser}
         isLoading={isLoading}
         error={error}
+        creatorAvailableQuota={adminAvailableQuota}
+        creatorTotalQuota={adminTotalQuota}
       />
 
       <UserFormModal
@@ -385,6 +415,9 @@ export default function SubadminsPage() {
         updateUser={updateUser}
         isLoading={isLoading}
         error={error}
+        allowRoleChange={false}
+        creatorAvailableQuota={adminAvailableQuota}
+        creatorTotalQuota={adminTotalQuota}
       />
 
       <DeleteUserConfirmDialog

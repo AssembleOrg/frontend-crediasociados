@@ -2,9 +2,11 @@
 
 import { useState, useCallback, useEffect, useRef } from 'react'
 import { useUsersStore } from '@/stores/users'
+import { useAuthStore } from '@/stores/auth'
 import { useAdminStore } from '@/stores/admin'
 import { useSubadminStore } from '@/stores/subadmin'
 import { useAuth } from '@/hooks/useAuth'
+import { useCurrentUser } from '@/hooks/useCurrentUser'
 import { usersService } from '@/services/users.service'
 import { apiUserToUser, userToCreateDto, userToUpdateDto } from '@/types/transforms'
 import type {
@@ -27,7 +29,8 @@ export const useUsers = () => {
   const usersStore = useUsersStore()
   const adminStore = useAdminStore()
   const subadminStore = useSubadminStore()
-  const { user: currentUser } = useAuth()
+  const { user: authUser } = useAuth()
+  const currentUser = useCurrentUser() // Full user with quotas
 
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -37,7 +40,7 @@ export const useUsers = () => {
   const abortControllerRef = useRef<AbortController | null>(null)
 
   const fetchUsers = useCallback(async (params?: PaginationParams): Promise<void> => {
-    if (!currentUser) return
+    if (!authUser) return
 
     // Prevent DUPLICATE in-flight requests, but allow refresh after completion
     if (isInFlightRef.current) return
@@ -56,13 +59,13 @@ export const useUsers = () => {
       const filters = { ...usersStore.filters, ...params }
       let response
 
-      if (currentUser.role === 'superadmin') {
+      if (authUser.role === 'superadmin') {
         // Only SUPERADMIN can see ALL users
         response = await usersService.getUsers(filters)
       } else {
         // ADMIN and SUBADMIN see only users they created (hierarchical access)
         // This enforces proper role-based security as documented in adminlogs.md
-        response = await usersService.getCreatedUsers(currentUser?.id || '', filters)
+        response = await usersService.getCreatedUsers(authUser?.id || '', filters)
       }
 
       const users = response.data.map(apiUserToUser)
@@ -75,7 +78,7 @@ export const useUsers = () => {
       // CRITICAL: Ensure currentUser always persists in store
       // When fetchUsers() only returns "created users", the currentUser might not be in the list
       // Find currentUser in store and re-upsert to ensure they're always available
-      const fullCurrentUser = usersStore.users.find(u => u.id === currentUser?.id)
+      const fullCurrentUser = usersStore.users.find(u => u.id === authUser?.id)
       if (fullCurrentUser) {
         usersStore.upsertUsers([fullCurrentUser])
       }
@@ -92,7 +95,7 @@ export const useUsers = () => {
       setIsLoading(false)
       isInFlightRef.current = false
     }
-  }, [currentUser])
+  }, [authUser])
 
   const createUser = useCallback(async (
     userData: Omit<User, 'id' | 'createdAt' | 'updatedAt'> & { password: string }
@@ -116,6 +119,21 @@ export const useUsers = () => {
       // Refresh the user list to get updated quota data from backend
       // (e.g., when subadmin creates a manager, subadmin's usedClientQuota changes)
       await fetchUsers()
+
+      // CRITICAL: Fetch current user's updated data to refresh quota information
+      // This ensures that creatorAvailableQuota is immediately updated in the UI
+      if (currentUser?.id) {
+        try {
+          const updatedCurrentUser = await usersService.getUserById(currentUser.id)
+          const transformedUser = apiUserToUser(updatedCurrentUser)
+          usersStore.updateUser(transformedUser)
+          // Update authStore (persisted - survives F5)
+          useAuthStore.getState().updateCurrentUser(transformedUser)
+        } catch (error) {
+          // Silent fail - fetchUsers() should have gotten most data
+          console.warn('Failed to fetch updated current user data:', error)
+        }
+      }
 
       // Invalidate related caches to ensure other views refresh
       adminStore.invalidateCache()
@@ -144,7 +162,7 @@ export const useUsers = () => {
     } finally {
       setIsLoading(false)
     }
-  }, [])
+  }, [currentUser?.id, fetchUsers])
 
   const updateUser = useCallback(async (
     id: string, 
@@ -166,6 +184,20 @@ export const useUsers = () => {
       // Update the store
       usersStore.updateUser(updatedUser)
 
+      // CRITICAL: Fetch current user's updated data if quota changed
+      // This ensures quota changes are reflected immediately
+      if (currentUser?.id && userData.clientQuota !== undefined) {
+        try {
+          const updatedCurrentUser = await usersService.getUserById(currentUser.id)
+          const transformedUser = apiUserToUser(updatedCurrentUser)
+          usersStore.updateUser(transformedUser)
+          // Update authStore (persisted - survives F5)
+          useAuthStore.getState().updateCurrentUser(transformedUser)
+        } catch (error) {
+          console.warn('Failed to fetch updated current user data:', error)
+        }
+      }
+
       // Invalidate related caches to ensure other views refresh
       adminStore.invalidateCache()
       subadminStore.invalidateCache()
@@ -180,7 +212,7 @@ export const useUsers = () => {
     } finally {
       setIsLoading(false)
     }
-  }, [])
+  }, [currentUser?.id])
 
   const deleteUser = useCallback(async (id: string): Promise<boolean> => {
     setIsLoading(true)
@@ -192,6 +224,20 @@ export const useUsers = () => {
 
       // Update the store
       usersStore.removeUser(id)
+
+      // CRITICAL: Fetch current user's updated data to refresh quota
+      // When a user is deleted, the creator's usedClientQuota decreases
+      if (currentUser?.id) {
+        try {
+          const updatedCurrentUser = await usersService.getUserById(currentUser.id)
+          const transformedUser = apiUserToUser(updatedCurrentUser)
+          usersStore.updateUser(transformedUser)
+          // Update authStore (persisted - survives F5)
+          useAuthStore.getState().updateCurrentUser(transformedUser)
+        } catch (error) {
+          console.warn('Failed to fetch updated current user data:', error)
+        }
+      }
 
       // Invalidate related caches to ensure other views refresh
       adminStore.invalidateCache()
@@ -207,7 +253,7 @@ export const useUsers = () => {
     } finally {
       setIsLoading(false)
     }
-  }, [])
+  }, [currentUser?.id])
 
   const getUserById = useCallback(async (id: string): Promise<User | null> => {
     setIsLoading(true)
@@ -237,6 +283,22 @@ export const useUsers = () => {
 
   useEffect(() => {
     if (currentUser) {
+      // CRITICAL: Fetch complete user data if quotas are missing (after F5)
+      // This ensures currentUser in authStore always has complete data
+      const hasIncompleteData = 
+        currentUser.clientQuota === undefined || 
+        currentUser.usedClientQuota === undefined ||
+        currentUser.availableClientQuota === undefined;
+      
+      if (hasIncompleteData && currentUser.id) {
+        console.log('🔄 Detected incomplete user data after F5, fetching complete data...');
+        getUserById(currentUser.id).then((completeUser) => {
+          if (completeUser) {
+            useAuthStore.getState().updateCurrentUser(completeUser);
+          }
+        });
+      }
+      
       fetchUsers()
     }
 
@@ -245,7 +307,7 @@ export const useUsers = () => {
         abortControllerRef.current.abort()
       }
     }
-  }, [currentUser])
+  }, [currentUser?.id]) // Only depend on ID to avoid infinite loops
 
   const clearError = useCallback(() => {
     setError(null)
