@@ -6,9 +6,11 @@ import { Box, Grid, CircularProgress, Typography, Button, useMediaQuery, Dialog,
 import { ExpandMore, ExpandLess, Calculate } from '@mui/icons-material'
 import PageHeader from '@/components/ui/PageHeader'
 import { WalletBalanceCard } from '@/components/wallet/WalletBalanceCard'
+import { ManagerDashboardCards } from '@/components/dashboard/ManagerDashboardCards'
 import { usePrestamistaDashboardData } from '@/hooks/usePrestamistaDashboardData'
 import { usePrestamistaCharts } from '@/hooks/usePrestamistaCharts'
 import { useWallet } from '@/hooks/useWallet'
+import { useManagerDashboard } from '@/hooks/useManagerDashboard'
 import { ChartSkeleton, BarChartSkeleton } from '@/components/ui/ChartSkeleton'
 import { StandaloneLoanSimulator } from '@/components/loans/StandaloneLoanSimulator'
 
@@ -54,6 +56,9 @@ export default function PrestamistaDashboard() {
     refetchWallet,
   } = useWallet()
 
+  // Manager dashboard data (for cards)
+  const { data: managerData, isLoading: managerDataLoading } = useManagerDashboard()
+
   // Responsive logic for mobile
   const isMobile = useMediaQuery('(max-width:600px)')
   const [showAllCharts, setShowAllCharts] = useState(false)
@@ -80,14 +85,20 @@ export default function PrestamistaDashboard() {
       />
 
       {/* Wallet Balance Section */}
-      <Box sx={{ mb: 4 }}>
+      {/* <Box sx={{ mb: 4 }}>
         <WalletBalanceCard
           wallet={wallet}
           isLoading={walletIsLoading}
           onRefresh={refetchWallet}
           showDetails={true}
         />
-      </Box>
+      </Box> */}
+
+      {/* Manager Dashboard Cards */}
+      <ManagerDashboardCards 
+        data={managerData}
+        isLoading={managerDataLoading}
+      />
 
       {/* Simulator Button */}
       <Box sx={{ mb: 3, display: 'flex', gap: 2 }}>

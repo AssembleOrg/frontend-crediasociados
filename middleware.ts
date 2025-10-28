@@ -8,8 +8,11 @@ import type { NextRequest } from 'next/server';
 export function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
   
-  // Check for auth storage cookie
-  const authCookie = request.cookies.get('auth-storage');
+  // Check for auth token cookie (lightweight version for middleware)
+  const authTokenCookie = request.cookies.get('auth-storage-token');
+  
+  // Fallback to old cookie format for backward compatibility
+  const authCookie = authTokenCookie || request.cookies.get('auth-storage');
   
   if (!authCookie) {
     return NextResponse.redirect(new URL('/login', request.url));
@@ -20,16 +23,27 @@ export function middleware(request: NextRequest) {
     const decodedValue = decodeURIComponent(authCookie.value);
     const authData = JSON.parse(decodedValue);
     
-    // Handle different Zustand persist formats
+    // Handle different formats
     let actualData;
-    if (authData.state) {
-      // Format: { state: { user, token, ... }, version: 0 }
+    
+    // New lightweight format (from hybridStorage)
+    if (authData.userId && authData.token) {
+      actualData = {
+        userId: authData.userId,
+        userRole: authData.userRole,
+        isAuthenticated: authData.isAuthenticated,
+        token: authData.token,
+      };
+    }
+    // Old Zustand persist format
+    else if (authData.state) {
       actualData = authData.state;
-    } else if (authData.user !== undefined) {
-      // Direct format: { user, token, ... }
+    } 
+    // Direct format
+    else if (authData.user !== undefined) {
       actualData = authData;
-    } else {
-      // Unexpected format
+    } 
+    else {
       throw new Error('Invalid cookie format');
     }
     

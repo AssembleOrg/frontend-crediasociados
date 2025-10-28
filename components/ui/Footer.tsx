@@ -5,7 +5,7 @@ import { Logo } from './Logo';
 
 export function Footer() {
   const whatsappMessage = encodeURIComponent(
-    'Hola Pistech, me comunico a través de la web de Prestamito, estoy interesado en sus servicios digitales'
+    'Hola Pistech, me comunico a través de la web de Crediasociados, estoy interesado en sus servicios digitales'
   );
 
   return (
@@ -72,7 +72,7 @@ export function Footer() {
             variant='body2'
             color='text.secondary'
           >
-            © {new Date().getFullYear()} Prestamito. Todos los derechos
+            © {new Date().getFullYear()} Crediasociados. Todos los derechos
             reservados.
           </Typography>
           <Typography

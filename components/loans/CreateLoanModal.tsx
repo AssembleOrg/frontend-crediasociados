@@ -304,8 +304,7 @@ export function CreateLoanModal({
   }
 
   const handleLoanCreated = () => {
-    // Solo cerrar cuando se cree exitosamente el préstamo
-    setSimulationModalOpen(false)
+    // Close the parent CreateLoanModal to show only the success modal
     onClose()
   }
 
@@ -403,35 +402,62 @@ export function CreateLoanModal({
       onClose={() => {}} // Prevent closing on outside click
       maxWidth="lg"
       fullWidth
+      fullScreen={false}
+      scroll="paper"
       PaperProps={{
         sx: {
-          borderRadius: 3,
+          borderRadius: { xs: 0, sm: 3 },
           boxShadow: '0 20px 40px rgba(0,0,0,0.1)',
+          m: { xs: 0, sm: 2 },
+          maxHeight: { xs: '100vh', sm: '95vh' },
+          width: { xs: '100%', sm: 'auto' },
         }
       }}
     >
       <DialogTitle sx={{ 
-        pb: 1,
+        pb: { xs: 1.5, sm: 1 },
+        pt: { xs: 2, sm: 2 },
+        px: { xs: 2, sm: 3 },
         background: 'linear-gradient(135deg, #667eea 0%, #4facfe 100%)',
         color: 'white',
-        borderRadius: '12px 12px 0 0'
+        borderRadius: { xs: 0, sm: '12px 12px 0 0' }
       }}>
-        <Typography variant="h5" component="div" sx={{ fontWeight: 600 }}>
+        <Typography 
+          variant="h5" 
+          component="div" 
+          sx={{ 
+            fontWeight: 600,
+            fontSize: { xs: '1.25rem', sm: '1.5rem' }
+          }}
+        >
           {title}
         </Typography>
-        <Typography variant="body2" sx={{ opacity: 0.9, mt: 0.5 }}>
+        <Typography 
+          variant="body2" 
+          sx={{ 
+            opacity: 0.9, 
+            mt: 0.5,
+            fontSize: { xs: '0.8rem', sm: '0.875rem' }
+          }}
+        >
           Configura los parámetros del préstamo y simula las cuotas
         </Typography>
       </DialogTitle>
 
       <DialogContent sx={{ p: 0 }}>
-        <Box sx={{ p: 3 }}>
+        <Box sx={{ p: { xs: 2, sm: 3 } }}>
           {/* Client Selection Card */}
-          <Card sx={{ mb: 3, borderRadius: 2, boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}>
-            <CardContent sx={{ p: 3 }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                <Person sx={{ mr: 1, color: 'primary.main' }} />
-                <Typography variant="h6" sx={{ fontWeight: 600 }}>
+          <Card sx={{ mb: { xs: 2, sm: 3 }, borderRadius: 2, boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}>
+            <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', mb: { xs: 1.5, sm: 2 } }}>
+                <Person sx={{ mr: 1, color: 'primary.main', fontSize: { xs: '1.25rem', sm: '1.5rem' } }} />
+                <Typography 
+                  variant="h6" 
+                  sx={{ 
+                    fontWeight: 600,
+                    fontSize: { xs: '1rem', sm: '1.25rem' }
+                  }}
+                >
                   Selección de Cliente
                 </Typography>
               </Box>
@@ -473,24 +499,44 @@ export function CreateLoanModal({
           </Card>
 
           {/* Loan Amount Card */}
-          <Card sx={{ mb: 3, borderRadius: 2, boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}>
-            <CardContent sx={{ p: 3 }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', mb: 2, justifyContent: 'space-between' }}>
+          <Card sx={{ mb: { xs: 2, sm: 3 }, borderRadius: 2, boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}>
+            <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
+              <Box sx={{ 
+                display: 'flex', 
+                alignItems: { xs: 'flex-start', sm: 'center' }, 
+                mb: { xs: 1.5, sm: 2 }, 
+                justifyContent: 'space-between',
+                flexDirection: { xs: 'column', sm: 'row' },
+                gap: { xs: 1, sm: 0 }
+              }}>
                 <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                  <AttachMoney sx={{ mr: 1, color: 'primary.main' }} />
-                  <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                  <AttachMoney sx={{ mr: 1, color: 'primary.main', fontSize: { xs: '1.25rem', sm: '1.5rem' } }} />
+                  <Typography 
+                    variant="h6" 
+                    sx={{ 
+                      fontWeight: 600,
+                      fontSize: { xs: '1rem', sm: '1.25rem' }
+                    }}
+                  >
                     Monto del Préstamo
                   </Typography>
                 </Box>
                 {wallet && (
                   <Box sx={{
-                    p: 1,
+                    p: { xs: 0.75, sm: 1 },
                     bgcolor: 'success.lighter',
                     borderRadius: 1,
                     border: '1px solid',
                     borderColor: 'success.light'
                   }}>
-                    <Typography variant="caption" sx={{ color: 'success.main', fontWeight: 600 }}>
+                    <Typography 
+                      variant="caption" 
+                      sx={{ 
+                        color: 'success.main', 
+                        fontWeight: 600,
+                        fontSize: { xs: '0.7rem', sm: '0.75rem' }
+                      }}
+                    >
                       Disponible: ${wallet.balance.toLocaleString('es-AR')} {wallet.currency}
                     </Typography>
                   </Box>
@@ -558,36 +604,78 @@ export function CreateLoanModal({
                 {/* Resumen del cálculo */}
                 {formData.amount && formData.baseInterestRate && (
                   <Box sx={{ 
-                    p: 2, 
+                    p: { xs: 1.5, sm: 2 }, 
                     bgcolor: 'primary.50', 
                     borderRadius: 2, 
                     border: '1px solid',
                     borderColor: 'primary.200'
                   }}>
-                    <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1, color: 'primary.main' }}>
+                    <Typography 
+                      variant="subtitle2" 
+                      sx={{ 
+                        fontWeight: 600, 
+                        mb: 1, 
+                        color: 'primary.main',
+                        fontSize: { xs: '0.9rem', sm: '1rem' }
+                      }}
+                    >
                       Resumen del Préstamo
                     </Typography>
                     <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <Typography variant="body2" color="text.secondary">
+                      <Typography 
+                        variant="body2" 
+                        color="text.secondary"
+                        sx={{ fontSize: { xs: '0.8rem', sm: '0.875rem' } }}
+                      >
                         Monto base:
                       </Typography>
-                      <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                      <Typography 
+                        variant="body2" 
+                        sx={{ 
+                          fontWeight: 500,
+                          fontSize: { xs: '0.8rem', sm: '0.875rem' }
+                        }}
+                      >
                         ${parseFloat(unformatAmount(formData.amount) || '0').toLocaleString('es-AR')}
                       </Typography>
                     </Box>
                     <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <Typography variant="body2" color="text.secondary">
+                      <Typography 
+                        variant="body2" 
+                        color="text.secondary"
+                        sx={{ fontSize: { xs: '0.8rem', sm: '0.875rem' } }}
+                      >
                         Interés ({formData.baseInterestRate}%):
                       </Typography>
-                      <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                      <Typography 
+                        variant="body2" 
+                        sx={{ 
+                          fontWeight: 500,
+                          fontSize: { xs: '0.8rem', sm: '0.875rem' }
+                        }}
+                      >
                         ${(parseFloat(unformatAmount(formData.amount) || '0') * parseFloat(formData.baseInterestRate || '0') / 100).toLocaleString('es-AR')}
                       </Typography>
                     </Box>
                     <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 1, pt: 1, borderTop: '1px solid', borderColor: 'primary.200' }}>
-                      <Typography variant="subtitle1" sx={{ fontWeight: 600, color: 'primary.main' }}>
+                      <Typography 
+                        variant="subtitle1" 
+                        sx={{ 
+                          fontWeight: 600, 
+                          color: 'primary.main',
+                          fontSize: { xs: '0.9rem', sm: '1rem' }
+                        }}
+                      >
                         Total a prestar:
                       </Typography>
-                      <Typography variant="h6" sx={{ fontWeight: 700, color: 'primary.main' }}>
+                      <Typography 
+                        variant="h6" 
+                        sx={{ 
+                          fontWeight: 700, 
+                          color: 'primary.main',
+                          fontSize: { xs: '1.1rem', sm: '1.25rem' }
+                        }}
+                      >
                         ${totalAmount.toLocaleString('es-AR')}
                       </Typography>
                     </Box>
@@ -598,17 +686,23 @@ export function CreateLoanModal({
           </Card>
 
           {/* Interest Rates Card */}
-          <Card sx={{ mb: 3, borderRadius: 2, boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}>
-            <CardContent sx={{ p: 3 }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                <Percent sx={{ mr: 1, color: 'primary.main' }} />
-                <Typography variant="h6" sx={{ fontWeight: 600 }}>
+          <Card sx={{ mb: { xs: 2, sm: 3 }, borderRadius: 2, boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}>
+            <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', mb: { xs: 1.5, sm: 2 } }}>
+                <Percent sx={{ mr: 1, color: 'primary.main', fontSize: { xs: '1.25rem', sm: '1.5rem' } }} />
+                <Typography 
+                  variant="h6" 
+                  sx={{ 
+                    fontWeight: 600,
+                    fontSize: { xs: '1rem', sm: '1.25rem' }
+                  }}
+                >
                   Tasas de Interés
                 </Typography>
               </Box>
               
-              <Box sx={{ display: 'flex', gap: 2, flexDirection: { xs: 'column', sm: 'row' } }}>
-                <Box sx={{ display: 'flex', alignItems: 'flex-end', gap: 0.5, flex: 1 }}>
+              <Box sx={{ display: 'flex', gap: 2, flexDirection: { xs: 'column', sm: 'row' }, alignItems: 'flex-start' }}>
+                <Box sx={{ display: 'flex', alignItems: 'flex-end', gap: 0.5, flex: 1, width: { xs: '100%', sm: 'auto' } }}>
                   <TextField
                     label="Tasa de Interés Base"
                     type="number"
@@ -636,7 +730,7 @@ export function CreateLoanModal({
                       },
                     }}
                   />
-                  <Tooltip title='Redondear cuota hacia arriba'>
+                  {/* <Tooltip title='Redondear cuota hacia arriba'>
                     <span>
                       <IconButton
                         size='small'
@@ -717,36 +811,44 @@ export function CreateLoanModal({
                         <KeyboardArrowDown />
                       </IconButton>
                     </span>
-                  </Tooltip>
+                  </Tooltip> */}
                 </Box>
-                <TextField
-                  label="Tasa de Penalización"
-                  type="number"
-                  value="0"
-                  fullWidth
-                  helperText="Se aplicará 0% por defecto"
-                  InputProps={{
-                    endAdornment: <InputAdornment position="end">%</InputAdornment>,
-                  }}
-                  sx={{
-                    '& .MuiOutlinedInput-root': {
-                      borderRadius: 2,
-                    },
-                    '& .MuiInputBase-input.Mui-disabled': {
-                      WebkitTextFillColor: '#666'
-                    }
-                  }}
-                />
+                <Box sx={{ flex: 1, width: { xs: '100%', sm: 'auto' } }}>
+                  <TextField
+                    label="Tasa de Penalización"
+                    type="number"
+                    value="0"
+                    fullWidth
+                    helperText="Se aplicará 0% por defecto"
+                    InputProps={{
+                      endAdornment: <InputAdornment position="end">%</InputAdornment>,
+                    }}
+                    sx={{
+                      '& .MuiOutlinedInput-root': {
+                        borderRadius: 2,
+                      },
+                      '& .MuiInputBase-input.Mui-disabled': {
+                        WebkitTextFillColor: '#666'
+                      }
+                    }}
+                  />
+                </Box>
               </Box>
             </CardContent>
           </Card>
 
           {/* Payment Schedule Card */}
-          <Card sx={{ mb: 3, borderRadius: 2, boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}>
-            <CardContent sx={{ p: 3 }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                <CalendarToday sx={{ mr: 1, color: 'primary.main' }} />
-                <Typography variant="h6" sx={{ fontWeight: 600 }}>
+          <Card sx={{ mb: { xs: 2, sm: 3 }, borderRadius: 2, boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}>
+            <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', mb: { xs: 1.5, sm: 2 } }}>
+                <CalendarToday sx={{ mr: 1, color: 'primary.main', fontSize: { xs: '1.25rem', sm: '1.5rem' } }} />
+                <Typography 
+                  variant="h6" 
+                  sx={{ 
+                    fontWeight: 600,
+                    fontSize: { xs: '1rem', sm: '1.25rem' }
+                  }}
+                >
                   Cronograma de Pagos
                 </Typography>
               </Box>
@@ -846,16 +948,25 @@ export function CreateLoanModal({
           </Card>
 
           {/* Live Preview Card */}
-          {livePreview && (
+          {/* {livePreview && (
             <Card sx={{
               borderRadius: 2,
               boxShadow: '0 4px 12px rgba(0,0,0,0.05)',
               background: 'linear-gradient(135deg, #667eea15 0%, #4facfe15 100%)',
               border: '2px solid',
-              borderColor: 'primary.main'
+              borderColor: 'primary.main',
+              mb: { xs: 2, sm: 3 }
             }}>
-              <CardContent sx={{ p: 3 }}>
-                <Typography variant="h6" sx={{ fontWeight: 600, mb: 2, color: 'primary.main' }}>
+              <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
+                <Typography 
+                  variant="h6" 
+                  sx={{ 
+                    fontWeight: 600, 
+                    mb: { xs: 1.5, sm: 2 }, 
+                    color: 'primary.main',
+                    fontSize: { xs: '1rem', sm: '1.25rem' }
+                  }}
+                >
                   📊 Vista Previa en Tiempo Real
                 </Typography>
 
@@ -910,14 +1021,20 @@ export function CreateLoanModal({
                 </Alert>
               </CardContent>
             </Card>
-          )}
+          )} */}
 
           {/* Description Card */}
           <Card sx={{ borderRadius: 2, boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}>
-            <CardContent sx={{ p: 3 }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                <Description sx={{ mr: 1, color: 'primary.main' }} />
-                <Typography variant="h6" sx={{ fontWeight: 600 }}>
+            <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', mb: { xs: 1.5, sm: 2 } }}>
+                <Description sx={{ mr: 1, color: 'primary.main', fontSize: { xs: '1.25rem', sm: '1.5rem' } }} />
+                <Typography 
+                  variant="h6" 
+                  sx={{ 
+                    fontWeight: 600,
+                    fontSize: { xs: '1rem', sm: '1.25rem' }
+                  }}
+                >
                   Información Adicional
                 </Typography>
               </Box>
@@ -943,15 +1060,22 @@ export function CreateLoanModal({
 
       <Divider />
 
-      <DialogActions sx={{ p: 3, gap: 2 }}>
+      <DialogActions sx={{ 
+        p: { xs: 2, sm: 3 }, 
+        gap: { xs: 1.5, sm: 2 },
+        flexDirection: { xs: 'column', sm: 'row' }
+      }}>
         <Button
           onClick={handleClose}
           variant="outlined"
           size="large"
+          fullWidth
           sx={{ 
             borderRadius: 2,
-            px: 4,
-            py: 1.5
+            px: { xs: 3, sm: 4 },
+            py: { xs: 1.25, sm: 1.5 },
+            order: { xs: 2, sm: 1 },
+            minWidth: { xs: '100%', sm: 'auto' }
           }}
         >
           Cancelar
@@ -961,10 +1085,13 @@ export function CreateLoanModal({
           variant="contained"
           disabled={isSimulating}
           size="large"
+          fullWidth
           sx={{ 
             borderRadius: 2,
-            px: 4,
-            py: 1.5,
+            px: { xs: 3, sm: 4 },
+            py: { xs: 1.25, sm: 1.5 },
+            order: { xs: 1, sm: 2 },
+            minWidth: { xs: '100%', sm: 'auto' },
             background: 'linear-gradient(135deg, #667eea 0%, #4facfe 100%)',
             '&:hover': {
               background: 'linear-gradient(135deg, #5a6fd8 0%, #3d8bfe 100%)',

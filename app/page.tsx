@@ -281,7 +281,7 @@ export default function Home() {
                 variant='body1'
                 sx={{ mb: 4, fontSize: '1.1rem', color: 'text.secondary' }}
               >
-                Con Prestamito automatizas tu operación completa: desde el
+                Con Crediasociados automatizas tu operación completa: desde el
                 primer contacto con el cliente hasta el último pago. Más
                 control, menos tiempo invertido, mejores resultados.
               </Typography>
@@ -315,7 +315,7 @@ export default function Home() {
               >
                 <Image
                   src='/mac-dashboard-1440x1440.png'
-                  alt='Equipo de prestamistas exitosos usando Prestamito'
+                  alt='Equipo de prestamistas exitosos usando Crediasociados'
                   fill
                   style={{
                     objectFit: 'cover',
@@ -427,7 +427,7 @@ export default function Home() {
             }}
           >
             Únete a cientos de prestamistas que ya aumentaron sus ganancias con
-            Prestamito
+            Crediasociados
           </Typography>
           <Button
             variant='contained'

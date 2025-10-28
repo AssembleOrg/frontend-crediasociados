@@ -62,6 +62,7 @@ interface LoanSimulationModalProps {
 export function LoanSimulationModal({
   open,
   onClose,
+  onLoanCreated,
   simulatedLoans,
   formData,
   clientName = 'Cliente seleccionado'
@@ -109,7 +110,13 @@ export function LoanSimulationModal({
       setLoanTrackingNumber(loan.loanTrack)
       
       console.log('✅ Préstamo creado exitosamente:', loan.loanTrack)
+      
+      // ✅ First close the parent CreateLoanModal (blue background)
+      
+      // ✅ Then show success modal on top
       setSuccess(true)
+      // onLoanCreated?.()
+
 
     } catch (err: unknown) {
       setError((err as Error).message || 'Error al crear el préstamo')

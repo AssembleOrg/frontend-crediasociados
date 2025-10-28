@@ -47,7 +47,7 @@ class ReportsService {
    * Get users created by a specific user (admin -> subadmins, subadmin -> managers)
    */
   async getCreatedUsers(userId: string): Promise<UserResponseDto[]> {
-    const response = await api.get(`/users/${userId}/created-users`, {
+    const response = await api.get(`/users/${userId}created-users`, {
       params: { limit: 100 } // Increased from 20 to support more managers/subadmins
     })
 

@@ -20,7 +20,7 @@ const adminMenuItems = [
     path: '/dashboard/admin/reportes',
   },
   {
-    label: 'Cobradores',
+    label: 'Asociados',
     icon: <People />,
     path: '/dashboard/admin/subadmins',
   },
@@ -39,7 +39,7 @@ const adminQuickActions = [
     path: '/dashboard/admin/reportes',
   },
   {
-    label: 'Cobradores',
+    label: 'Asociados',
     icon: <People />,
     path: '/dashboard/admin/subadmins',
   },

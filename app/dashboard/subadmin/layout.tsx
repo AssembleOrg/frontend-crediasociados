@@ -30,11 +30,11 @@ const subadminMenuItems = [
     icon: <People />,
     path: '/dashboard/subadmin/usuarios',
   },
-  {
-    label: 'Finanzas',
-    icon: <AttachMoney />,
-    path: '/dashboard/subadmin/finanzas',
-  },
+  // {
+  //   label: 'Finanzas',
+  //   icon: <AttachMoney />,
+  //   path: '/dashboard/subadmin/finanzas',
+  // },
   {
     label: 'Operativa',
     icon: <Receipt />,
@@ -63,11 +63,11 @@ const subadminQuickActions = [
     icon: <People />,
     path: '/dashboard/subadmin/usuarios',
   },
-  {
-    label: 'Finanzas',
-    icon: <AttachMoney />,
-    path: '/dashboard/subadmin/finanzas',
-  },
+  // {
+  //   label: 'Finanzas',
+  //   icon: <AttachMoney />,
+  //   path: '/dashboard/subadmin/finanzas',
+  // },
   {
     label: 'Operativa',
     icon: <Receipt />,

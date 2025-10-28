@@ -116,21 +116,29 @@ class ExportService {
   private transformLoanToPDFData(loanData: ExportLoanData): LoanPDFData {
     const { loan, client, subLoans } = loanData;
 
+    // Check if this is a simulation (presupuesto)
+    const isSimulation = loan.loanTrack === 'PRESUPUESTO' || loan.id === 'simulation';
+
+    // Calculate totals from actual subloan data
+    const totalAmount = subLoans.reduce((sum, s) => sum + (s.totalAmount || 0), 0);
+    const totalPrincipal = subLoans.reduce((sum, s) => sum + (s.amount || 0), 0);
+    const totalInterest = totalAmount - totalPrincipal;
+
     // Calculate remaining balance
     const totalPaid = subLoans.reduce((sum, s) => {
       if (s.status === 'PAID') return sum + (s.totalAmount || 0)
       if (s.status === 'PARTIAL') return sum + (s.paidAmount || 0)
       return sum
     }, 0)
-    const remainingBalance = loan.amount - totalPaid
+    const remainingBalance = totalAmount - totalPaid
 
     return {
       // Loan Information
       loanId: loan.id,
       loanTrack: loan.loanTrack,
       amount: loan.amount,
-      baseInterestRate: 0, // NOTE: Interest rate removed per client request (feedback.md)
-      totalAmount: loan.amount, // Changed: Show only capital, no interest
+      baseInterestRate: isSimulation ? (loan.baseInterestRate || 0) : 0,
+      totalAmount: isSimulation ? totalAmount : loan.amount,
       paymentFrequency: loan.paymentFrequency,
       numberOfInstallments: loan.totalPayments,
       startDate: new Date(loan.firstDueDate || loan.createdAt).toLocaleDateString('es-AR'),
@@ -144,20 +152,20 @@ class ExportService {
       clientCUIT: client.cuit,
       clientAddress: client.address,
 
-      // Payment Schedule - Without interest
+      // Payment Schedule - Use actual subloan data
       paymentSchedule: subLoans.map((subLoan, idx) => ({
         paymentNumber: subLoan.paymentNumber ?? (idx + 1),
         dueDate: new Date(subLoan.dueDate).toLocaleDateString('es-AR'),
         principalAmount: subLoan.amount,
-        totalAmount: subLoan.amount, // Changed: Show only principal, no interest
+        totalAmount: subLoan.totalAmount || subLoan.amount,
         status: subLoan.status
       })),
 
-      // Summary - Without interest per client request
+      // Summary - Use calculated totals
       summary: {
-        totalPrincipal: loan.amount,
-        totalInterest: 0, // NOTE: Interest removed per client request (feedback.md)
-        totalAmount: loan.amount, // Changed: Show only capital, no interest
+        totalPrincipal: totalPrincipal,
+        totalInterest: isSimulation ? totalInterest : 0,
+        totalAmount: isSimulation ? totalAmount : loan.amount,
         numberOfPayments: loan.totalPayments,
         frequency: getFrequencyLabel(loan.paymentFrequency),
         remainingBalance
@@ -165,7 +173,7 @@ class ExportService {
 
       // Metadata
       generatedAt: new Date().toLocaleString('es-AR'),
-      generatedBy: 'Prestamito - Sistema de Gestión de Préstamos'
+      generatedBy: 'Crediasociados - Sistema de Gestión de Préstamos'
     };
   }
   
@@ -340,11 +348,7 @@ class ExportService {
           {/* Loan Details */}
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Detalles del Préstamo</Text>
-            <View style={styles.row}>
-              <Text style={styles.label}>ID Préstamo:</Text>
-              <Text style={styles.value}>{data.loanId}</Text>
-            </View>
-            {data.loanTrack && (
+            {data.loanTrack && data.loanTrack !== 'PRESUPUESTO' && (
               <View style={styles.row}>
                 <Text style={styles.label}>Código de Seguimiento:</Text>
                 <Text style={styles.value}>{data.loanTrack}</Text>
@@ -354,6 +358,12 @@ class ExportService {
               <Text style={styles.label}>Monto Solicitado:</Text>
               <Text style={styles.value}>${data.amount.toLocaleString('es-AR')}</Text>
             </View>
+            {data.summary.totalInterest > 0 && (
+              <View style={styles.row}>
+                <Text style={styles.label}>Interés:</Text>
+                <Text style={styles.value}>${data.summary.totalInterest.toLocaleString('es-AR')}</Text>
+              </View>
+            )}
             <View style={styles.row}>
               <Text style={styles.label}>Monto Total a Devolver:</Text>
               <Text style={styles.value}>${data.totalAmount.toLocaleString('es-AR')}</Text>
@@ -384,16 +394,25 @@ class ExportService {
                 <Text style={styles.tableCellHeader}>Cuota</Text>
                 <Text style={styles.tableCellHeader}>Fecha Venc.</Text>
                 <Text style={styles.tableCellHeader}>Capital</Text>
+                {data.summary.totalInterest > 0 && (
+                  <Text style={styles.tableCellHeader}>Interés</Text>
+                )}
                 <Text style={styles.tableCellHeader}>Total</Text>
               </View>
-              {data.paymentSchedule.map((payment, index) => (
-                <View key={index} style={styles.tableRow}>
-                  <Text style={styles.tableCell}>#{payment.paymentNumber}</Text>
-                  <Text style={styles.tableCell}>{payment.dueDate}</Text>
-                  <Text style={styles.tableCell}>${payment.principalAmount.toLocaleString('es-AR')}</Text>
-                  <Text style={styles.tableCell}>${payment.totalAmount.toLocaleString('es-AR')}</Text>
-                </View>
-              ))}
+              {data.paymentSchedule.map((payment, index) => {
+                const interestAmount = payment.totalAmount - payment.principalAmount;
+                return (
+                  <View key={index} style={styles.tableRow}>
+                    <Text style={styles.tableCell}>#{payment.paymentNumber}</Text>
+                    <Text style={styles.tableCell}>{payment.dueDate}</Text>
+                    <Text style={styles.tableCell}>${payment.principalAmount.toLocaleString('es-AR')}</Text>
+                    {data.summary.totalInterest > 0 && (
+                      <Text style={styles.tableCell}>${interestAmount.toLocaleString('es-AR')}</Text>
+                    )}
+                    <Text style={styles.tableCell}>${payment.totalAmount.toLocaleString('es-AR')}</Text>
+                  </View>
+                );
+              })}
             </View>
           </View>
           
@@ -415,7 +434,7 @@ class ExportService {
       reportTitle: 'Reporte Administrativo',
       reportType: 'Resumen Ejecutivo de Subadministradores',
       generatedAt: new Date().toLocaleString('es-AR'),
-      generatedBy: 'Prestamito - Sistema de Gestión de Préstamos',
+      generatedBy: 'Crediasociados - Sistema de Gestión de Préstamos',
 
       // Summary
       summary: {
@@ -449,7 +468,7 @@ class ExportService {
       reportTitle: 'Reporte de Sub-Administrador',
       reportType: `Resumen de Managers - ${subadminName}`,
       generatedAt: new Date().toLocaleString('es-AR'),
-      generatedBy: 'Prestamito - Sistema de Gestión de Préstamos',
+      generatedBy: 'Crediasociados - Sistema de Gestión de Préstamos',
       subadminName,
 
       // Summary

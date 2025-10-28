@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useCallback } from 'react'
 import {
   Box,
   Paper,
@@ -31,27 +31,33 @@ import type { Client } from '@/types/auth'
 export default function ClientesPage() {
   const {
     clients,
-    getTotalClients,
+    pagination,
     isLoading,
     error,
+    fetchClients,
     deleteClient,
     clearError
   } = useClients()
 
-  const [page, setPage] = useState(0)
-  const [rowsPerPage, setRowsPerPage] = useState(10)
   const [createModalOpen, setCreateModalOpen] = useState(false)
   const [editModalOpen, setEditModalOpen] = useState(false)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [selectedClient, setSelectedClient] = useState<Client | null>(null)
 
+  // Use server-side pagination from the store
+  const page = (pagination?.page || 1) - 1 // MUI uses 0-based indexing
+  const rowsPerPage = pagination?.limit || 10
+  const totalClients = pagination?.total || 0
+
   const handleChangePage = (event: unknown, newPage: number) => {
-    setPage(newPage)
+    // Fetch new page from backend (MUI is 0-based, backend is 1-based)
+    fetchClients({ page: newPage + 1, limit: rowsPerPage })
   }
 
   const handleChangeRowsPerPage = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setRowsPerPage(parseInt(event.target.value, 10))
-    setPage(0)
+    const newLimit = parseInt(event.target.value, 10)
+    // Fetch with new limit from page 1
+    fetchClients({ page: 1, limit: newLimit })
   }
 
   const handleEdit = (client: Client) => {
@@ -64,12 +70,15 @@ export default function ClientesPage() {
     setDeleteDialogOpen(true)
   }
 
-  const handleCloseModals = () => {
+  const handleCloseModals = useCallback(async () => {
     setCreateModalOpen(false)
     setEditModalOpen(false)
     setDeleteDialogOpen(false)
     setSelectedClient(null)
-  }
+    
+    // ✅ REHIDRATACIÓN: Refrescar datos después de cerrar modales
+    await fetchClients()
+  }, [fetchClients])
 
   return (
     <Box sx={{ p: 3 }}>
@@ -103,60 +112,58 @@ export default function ClientesPage() {
         {/* Desktop Table - lg+ */}
         <Box sx={{ display: { xs: 'none', lg: 'block' } }}>
           <TableContainer>
-            {isLoading ? (
-              <TableSkeleton columns={7} />
-            ) : (
-              <Table>
-                <TableHead>
-                  <TableRow sx={{ bgcolor: 'grey.50' }}>
-                    <TableCell><strong>Nombre Completo</strong></TableCell>
-                    <TableCell><strong>DNI</strong></TableCell>
-                    <TableCell><strong>Email</strong></TableCell>
-                    <TableCell><strong>Teléfono</strong></TableCell>
-                    <TableCell><strong>Ocupación</strong></TableCell>
-                    <TableCell><strong>Estado</strong></TableCell>
-                    <TableCell align="center"><strong>Acciones</strong></TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {clients
-                    .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
-                    .map((client) => (
-                      <TableRow key={client.id} hover>
-                        <TableCell>{client.fullName}</TableCell>
-                        <TableCell>{client.dni || 'N/A'}</TableCell>
-                        <TableCell>{client.email || 'N/A'}</TableCell>
-                        <TableCell>{client.phone || 'N/A'}</TableCell>
-                        <TableCell>{client.job || 'N/A'}</TableCell>
-                        <TableCell>
-                          <Chip
-                            label="Activo"
-                            color="success"
-                            size="small"
-                            variant="outlined"
-                          />
-                        </TableCell>
-                        <TableCell align="center">
-                          <IconButton
-                            size="small"
-                            onClick={() => handleEdit(client)}
-                            color="primary"
-                          >
-                            <Edit />
-                          </IconButton>
-                          <IconButton
-                            size="small"
-                            onClick={() => handleDelete(client)}
-                            color="error"
-                          >
-                            <Delete />
-                          </IconButton>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                </TableBody>
-              </Table>
-            )}
+            <Table>
+              <TableHead>
+                <TableRow sx={{ bgcolor: 'grey.50' }}>
+                  <TableCell><strong>Nombre Completo</strong></TableCell>
+                  <TableCell><strong>DNI</strong></TableCell>
+                  <TableCell><strong>Email</strong></TableCell>
+                  <TableCell><strong>Teléfono</strong></TableCell>
+                  <TableCell><strong>Ocupación</strong></TableCell>
+                  <TableCell><strong>Estado</strong></TableCell>
+                  <TableCell align="center"><strong>Acciones</strong></TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {isLoading ? (
+                  <TableSkeleton columns={7} />
+                ) : (
+                  clients.map((client) => (
+                    <TableRow key={client.id} hover>
+                      <TableCell>{client.fullName}</TableCell>
+                      <TableCell>{client.dni || 'N/A'}</TableCell>
+                      <TableCell>{client.email || 'N/A'}</TableCell>
+                      <TableCell>{client.phone || 'N/A'}</TableCell>
+                      <TableCell>{client.job || 'N/A'}</TableCell>
+                      <TableCell>
+                        <Chip
+                          label="Activo"
+                          color="success"
+                          size="small"
+                          variant="outlined"
+                        />
+                      </TableCell>
+                      <TableCell align="center">
+                        <IconButton
+                          size="small"
+                          onClick={() => handleEdit(client)}
+                          color="primary"
+                        >
+                          <Edit />
+                        </IconButton>
+                        <IconButton
+                          size="small"
+                          onClick={() => handleDelete(client)}
+                          color="error"
+                        >
+                          <Delete />
+                        </IconButton>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
           </TableContainer>
         </Box>
 
@@ -176,23 +183,21 @@ export default function ClientesPage() {
               ))}
             </Box>
           ) : (
-            clients
-              .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
-              .map((client) => (
-                <ClientCard
-                  key={client.id}
-                  client={client}
-                  onEdit={handleEdit}
-                  onDelete={handleDelete}
-                />
-              ))
+            clients.map((client) => (
+              <ClientCard
+                key={client.id}
+                client={client}
+                onEdit={handleEdit}
+                onDelete={handleDelete}
+              />
+            ))
           )}
         </Box>
 
         {/* Pagination - Shared for both layouts */}
         <TablePagination
           component="div"
-          count={getTotalClients()}
+          count={totalClients}
           page={page}
           onPageChange={handleChangePage}
           rowsPerPage={rowsPerPage}

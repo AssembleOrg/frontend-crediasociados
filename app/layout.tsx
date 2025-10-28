@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { ThemeProvider } from "@/lib/ThemeProvider";
 import DolarBlueProvider from "@/components/providers/DolarBlueProvider";
+import { CacheResetProvider } from "@/components/providers/CacheResetProvider";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -19,7 +20,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Prestamito - Gestión de Préstamos",
+  title: "Crediasociados - Gestión de Préstamos",
   description: "Plataforma moderna para gestionar préstamos y clientes de forma simple y profesional",
 };
 
@@ -42,9 +43,11 @@ export default function RootLayout({
       </head>
       <body className={`${geistSans.variable} ${geistMono.variable}`}>
         <ThemeProvider>
-          <DolarBlueProvider>
-            {children}
-          </DolarBlueProvider>
+          <CacheResetProvider>
+            <DolarBlueProvider>
+              {children}
+            </DolarBlueProvider>
+          </CacheResetProvider>
         </ThemeProvider>
       </body>
     </html>

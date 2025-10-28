@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import {
   Dialog,
   DialogTitle,
@@ -19,7 +19,8 @@ import {
   Checkbox,
   FormControlLabel,
   Alert,
-  Chip
+  Chip,
+  CircularProgress
 } from '@mui/material'
 import { Payment, CalendarToday, AttachMoney, PictureAsPdf, Info } from '@mui/icons-material'
 import { formatAmount, unformatAmount } from '@/lib/formatters'
@@ -37,6 +38,7 @@ interface PaymentModalProps {
   subloans?: SubLoanWithClientInfo[]
   clientName: string
   mode?: 'single' | 'selector'
+  onPaymentSuccess?: () => void // Callback to refetch data after successful payment
 }
 
 export const PaymentModal: React.FC<PaymentModalProps> = ({
@@ -45,7 +47,8 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
   subloan,
   subloans = [],
   clientName,
-  mode = 'single'
+  mode = 'single',
+  onPaymentSuccess
 }) => {
   const { createIngresoFromPago } = useOperativa()
 
@@ -53,7 +56,9 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
   const [paymentAmount, setPaymentAmount] = useState<string>('')
   const [paymentDate, setPaymentDate] = useState<string>(new Date().toISOString().split('T')[0])
   const [notes, setNotes] = useState<string>('')
-  const [generatePDF, setGeneratePDF] = useState<boolean>(true) // Default: generate PDF
+  const [generatePDF, setGeneratePDF] = useState<boolean>(false) // Default: do not generate PDF
+  const [isRegistering, setIsRegistering] = useState<boolean>(false) // ✅ Loading state for button
+  const [hasUserEdited, setHasUserEdited] = useState<boolean>(false) // ✅ Track if user manually edited the amount
   const [paymentPreview, setPaymentPreview] = useState<{
     remainingAfterPayment: number
     status: 'PARTIAL' | 'PAID'
@@ -75,45 +80,48 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
     pdfGenerated: boolean
   } | null>(null)
 
-  const currentSubloan = mode === 'single' ? subloan :
-    subloans.find(s => s.id === selectedSubloanId)
+  const currentSubloan = useMemo(() => {
+    return mode === 'single' ? subloan : subloans.find(s => s.id === selectedSubloanId)
+  }, [mode, subloan, subloans, selectedSubloanId])
 
-  // Reset form when modal opens/closes or subloan changes
+  // Reset form ONLY when modal opens. Avoid depending on object props to prevent unwanted resets.
   useEffect(() => {
-    if (open) {
-      if (mode === 'single' && subloan) {
-        setSelectedSubloanId(subloan.id ?? '')
+    if (!open) return
+    setHasUserEdited(false) // Reset edit flag when modal opens
+    if (mode === 'single' && subloan) {
+      setSelectedSubloanId(subloan.id ?? '')
+      // Auto-fill with pending amount (partial payments allowed)
+      const pendingAmount = (subloan.totalAmount ?? 0) - (subloan.paidAmount || 0)
+      setPaymentAmount(pendingAmount.toString())
+    } else if (mode === 'selector' && subloans.length > 0) {
+      const firstPending = subloans.find(s => s.status !== 'PAID')
+      if (firstPending) {
+        setSelectedSubloanId(firstPending.id ?? '')
         // Auto-fill with pending amount (partial payments allowed)
-        const pendingAmount = (subloan.totalAmount ?? 0) - (subloan.paidAmount || 0)
-        setPaymentAmount(formatAmount(pendingAmount.toString()))
-      } else if (mode === 'selector' && subloans.length > 0) {
-        const firstPending = subloans.find(s => s.status !== 'PAID')
-        if (firstPending) {
-          setSelectedSubloanId(firstPending.id ?? '')
-          // Auto-fill with pending amount (partial payments allowed)
-          const pendingAmount = (firstPending.totalAmount ?? 0) - (firstPending.paidAmount || 0)
-          setPaymentAmount(formatAmount(pendingAmount.toString()))
-        } else {
-          setPaymentAmount('')
-        }
+        const pendingAmount = (firstPending.totalAmount ?? 0) - (firstPending.paidAmount || 0)
+        setPaymentAmount(pendingAmount.toString())
+      } else {
+        setPaymentAmount('')
       }
-      setPaymentDate(new Date().toISOString().split('T')[0])
-      setNotes('')
     }
-  }, [open, subloan, subloans, mode])
+    setPaymentDate(new Date().toISOString().split('T')[0])
+    setNotes('')
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, mode])
 
   // Auto-fill payment amount when subloan selection changes in selector mode
+  // BUT only if user hasn't manually edited the amount
   useEffect(() => {
-    if (open && mode === 'selector' && selectedSubloanId && currentSubloan) {
+    if (open && mode === 'selector' && selectedSubloanId && currentSubloan && !hasUserEdited) {
       const pendingAmount = (currentSubloan.totalAmount ?? 0) - (currentSubloan.paidAmount || 0)
-      setPaymentAmount(formatAmount(pendingAmount.toString()))
+      setPaymentAmount(pendingAmount.toString())
     }
-  }, [selectedSubloanId, currentSubloan, open, mode])
+  }, [selectedSubloanId, open, mode, hasUserEdited])
 
   // Calculate payment preview (status changes)
   useEffect(() => {
     if (currentSubloan && paymentAmount) {
-      const amountValue = parseFloat(unformatAmount(paymentAmount)) || 0
+      const amountValue = parseFloat(paymentAmount) || 0
       const pendingAmount = (currentSubloan.totalAmount ?? 0) - (currentSubloan.paidAmount || 0)
       const remainingAfterPayment = Math.max(0, pendingAmount - amountValue)
       const isPartial = amountValue > 0 && remainingAfterPayment > 0
@@ -132,8 +140,11 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
   const handleRegisterPayment = async () => {
     if (!currentSubloan) return
 
+    // ✅ Set loading state to disable button
+    setIsRegistering(true)
+
     try {
-      const amountValue = parseFloat(unformatAmount(paymentAmount))
+      const amountValue = parseFloat(paymentAmount)
 
       // Register payment using the real payments service endpoint
       // This updates the SubLoan status and creates the payment record
@@ -197,6 +208,11 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
           pdfGenerated: generatePDF
         })
         setSuccessModalOpen(true)
+
+        // ✅ Trigger refetch callback after successful payment
+        if (onPaymentSuccess) {
+          onPaymentSuccess()
+        }
       }
     } catch (error) {
       console.error('Payment registration error:', error)
@@ -209,6 +225,9 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
                        'Error al registrar el pago. Por favor intenta nuevamente.'
       setErrorMessage(String(errorMsg))
       setErrorModalOpen(true)
+    } finally {
+      // ✅ Always reset loading state
+      setIsRegistering(false)
     }
   }
 
@@ -237,7 +256,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
   }
 
   const pendingSubloans = subloans.filter(s => s.status !== 'PAID')
-  const canRegister = currentSubloan && paymentAmount && parseFloat(unformatAmount(paymentAmount)) > 0
+  const canRegister = currentSubloan && paymentAmount && parseFloat(paymentAmount) > 0
 
   if (!currentSubloan && mode === 'single') {
     return null
@@ -249,23 +268,51 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
       onClose={onClose}
       maxWidth="md"
       fullWidth
+      scroll="paper"
       PaperProps={{
         sx: {
-          borderRadius: 3,
-          maxHeight: '90vh'
+          borderRadius: { xs: 0, sm: 3 },
+          maxHeight: { xs: '100vh', sm: '90vh' },
+          m: { xs: 0, sm: 2 },
+          width: { xs: '100%', sm: 'auto' }
         }
       }}
     >
-      <DialogTitle>
+      <DialogTitle
+        sx={{
+          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+          color: 'white',
+          p: { xs: 2, sm: 3 }
+        }}
+      >
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-          <Payment color="primary" />
-          <Typography variant="h6">
-            Registrar Pago {mode === 'selector' && '- Seleccionar Cuota'}
-          </Typography>
+          <Payment sx={{ fontSize: { xs: '1.5rem', sm: '2rem' } }} />
+          <Box>
+            <Typography 
+              variant="h6" 
+              sx={{ 
+                fontWeight: 600,
+                fontSize: { xs: '1.1rem', sm: '1.25rem' }
+              }}
+            >
+              Registrar Pago
+            </Typography>
+            {mode === 'selector' && (
+              <Typography 
+                variant="caption" 
+                sx={{ 
+                  opacity: 0.9,
+                  fontSize: { xs: '0.75rem', sm: '0.8125rem' }
+                }}
+              >
+                Selecciona la cuota a pagar
+              </Typography>
+            )}
+          </Box>
         </Box>
       </DialogTitle>
 
-      <DialogContent sx={{ pb: 2 }}>
+      <DialogContent sx={{ p: { xs: 2, sm: 3 } }}>
         <Box sx={{ mb: 3 }}>
           <Typography variant="h6" gutterBottom>
             Cliente: {clientName}
@@ -305,50 +352,81 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
           <>
             <Box
               sx={{
-                p: 3,
-                bgcolor: '#f8f9fa',
+                p: { xs: 2, sm: 2.5 },
+                background: 'linear-gradient(135deg, #667eea15 0%, #764ba215 100%)',
                 borderRadius: 2,
-                border: 1,
-                borderColor: 'grey.300',
+                border: '2px solid',
+                borderColor: 'primary.main',
                 mb: 3
               }}
             >
-              <Typography variant="h6" gutterBottom>
+              <Typography 
+                variant="subtitle1" 
+                sx={{ 
+                  fontWeight: 600, 
+                  mb: 2,
+                  fontSize: { xs: '1rem', sm: '1.1rem' }
+                }}
+              >
                 Cuota #{currentSubloan.paymentNumber ?? '?'}
               </Typography>
-              <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(3, 1fr)' }, gap: 2 }}>
-                <Box>
-                  <Typography variant="body2" color="text.secondary">
+              <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(3, 1fr)' }, gap: { xs: 1.5, sm: 2 } }}>
+                <Box sx={{ textAlign: 'center', p: { xs: 1.5, sm: 2 }, bgcolor: 'white', borderRadius: 2 }}>
+                  <Typography 
+                    variant="caption" 
+                    color="text.secondary"
+                    sx={{ fontSize: { xs: '0.7rem', sm: '0.75rem' } }}
+                  >
                     Monto Total
                   </Typography>
-                  <Typography variant="h6" fontWeight="bold">
-                    {formatCurrency(currentSubloan.totalAmount ?? 0)}
+                  <Typography 
+                    variant="h6" 
+                    fontWeight="bold"
+                    sx={{ fontSize: { xs: '1rem', sm: '1.25rem' } }}
+                  >
+                    $ {formatAmount((currentSubloan.totalAmount ?? 0).toString())}
                   </Typography>
                 </Box>
-                <Box>
-                  <Typography variant="body2" color="text.secondary">
+                <Box sx={{ textAlign: 'center', p: { xs: 1.5, sm: 2 }, bgcolor: 'white', borderRadius: 2 }}>
+                  <Typography 
+                    variant="caption" 
+                    color="text.secondary"
+                    sx={{ fontSize: { xs: '0.7rem', sm: '0.75rem' } }}
+                  >
                     Monto Pagado
                   </Typography>
-                  <Typography variant="h6" fontWeight="bold" color="success.main">
-                    {formatCurrency(currentSubloan.paidAmount || 0)}
+                  <Typography 
+                    variant="h6" 
+                    fontWeight="bold" 
+                    color="success.main"
+                    sx={{ fontSize: { xs: '1rem', sm: '1.25rem' } }}
+                  >
+                    $ {formatAmount((currentSubloan.paidAmount || 0).toString())}
                   </Typography>
                 </Box>
-                <Box>
-                  <Typography variant="body2" color="text.secondary">
+                <Box sx={{ textAlign: 'center', p: { xs: 1.5, sm: 2 }, bgcolor: 'white', borderRadius: 2 }}>
+                  <Typography 
+                    variant="caption" 
+                    color="text.secondary"
+                    sx={{ fontSize: { xs: '0.7rem', sm: '0.75rem' } }}
+                  >
                     Saldo Pendiente
                   </Typography>
-                  <Typography variant="h6" fontWeight="bold" color="error.main">
-                    {formatCurrency((currentSubloan.totalAmount ?? 0) - (currentSubloan.paidAmount || 0))}
+                  <Typography 
+                    variant="h6" 
+                    fontWeight="bold" 
+                    color="error.main"
+                    sx={{ fontSize: { xs: '1rem', sm: '1.25rem' } }}
+                  >
+                    $ {formatAmount(((currentSubloan.totalAmount ?? 0) - (currentSubloan.paidAmount || 0)).toString())}
                   </Typography>
                 </Box>
               </Box>
             </Box>
 
-            <Divider sx={{ mb: 3 }} />
-
             {/* Payment Form */}
-            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2, mb: 3 }}>
-              <TextField
+            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: { xs: 2, sm: 2 }, mb: 3 }}>
+              {/* <TextField
                 label="Fecha de Pago"
                 type="date"
                 value={paymentDate}
@@ -356,26 +434,37 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
                 InputProps={{
                   startAdornment: (
                     <InputAdornment position="start">
-                      <CalendarToday />
+                      <CalendarToday sx={{ fontSize: { xs: '1.1rem', sm: '1.25rem' } }} />
                     </InputAdornment>
                   ),
+                  sx: {
+                    borderRadius: 2,
+                  }
                 }}
                 InputLabelProps={{
                   shrink: true,
                 }}
                 fullWidth
-              />
+              /> */}
               <TextField
                 label="Monto a Registrar"
                 type="text"
-                value={paymentAmount}
-                onChange={(e) => setPaymentAmount(e.target.value)}
+                value={formatAmount(paymentAmount)}
+                onChange={(e) => {
+                  setHasUserEdited(true) // Mark as edited
+                  const raw = unformatAmount(e.target.value)
+                  setPaymentAmount(raw)
+                }}
+                inputMode="numeric"
                 InputProps={{
                   startAdornment: (
                     <InputAdornment position="start">
                       <AttachMoney />
                     </InputAdornment>
                   ),
+                  sx: {
+                    borderRadius: 2,
+                  }
                 }}
                 helperText={`Pendiente: $${formatAmount(((currentSubloan.totalAmount ?? 0) - (currentSubloan.paidAmount || 0)).toString())} - Puedes pagar parcialmente`}
                 fullWidth
@@ -446,17 +535,44 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
         )}
       </DialogContent>
 
-      <DialogActions sx={{ p: 3, gap: 1 }}>
-        <Button onClick={onClose} variant="outlined">
+      <Divider />
+      
+      <DialogActions sx={{ 
+        p: { xs: 2, sm: 3 }, 
+        gap: { xs: 1.5, sm: 2 },
+        flexDirection: { xs: 'column', sm: 'row' }
+      }}>
+        <Button 
+          onClick={onClose} 
+          variant="outlined"
+          fullWidth
+          sx={{
+            borderRadius: 2,
+            py: { xs: 1.25, sm: 1.5 },
+            order: { xs: 2, sm: 1 },
+            minWidth: { xs: '100%', sm: 'auto' }
+          }}
+        >
           Cancelar
         </Button>
         <Button
           onClick={handleRegisterPayment}
           variant="contained"
-          disabled={!canRegister}
-          startIcon={<Payment />}
+          disabled={!canRegister || isRegistering}
+          startIcon={isRegistering ? <CircularProgress size={20} color="inherit" /> : <Payment />}
+          fullWidth
+          sx={{
+            borderRadius: 2,
+            py: { xs: 1.25, sm: 1.5 },
+            order: { xs: 1, sm: 2 },
+            minWidth: { xs: '100%', sm: 'auto' },
+            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+            '&:hover': {
+              background: 'linear-gradient(135deg, #5a6fd8 0%, #6a4292 100%)',
+            }
+          }}
         >
-          Registrar Pago
+          {isRegistering ? 'Registrando...' : 'Registrar Pago'}
         </Button>
       </DialogActions>
 

@@ -38,7 +38,10 @@ export default function LoginPage() {
     const success = await login(formData);
 
     if (success) {
-      navigateToDashboard();
+      // Small delay to ensure Zustand persist has synced
+      setTimeout(() => {
+        navigateToDashboard();
+      }, 100);
     }
   };
 

@@ -183,6 +183,14 @@ export const useUsersStore = create<UsersStore>()(
       })
     },
 
+    // Clear cache for fresh data fetch
+    clearCache: () => {
+      set((state) => {
+        state.users = []
+        state.selectedUser = null
+      })
+    },
+
     getUsersByRole: (role: User['role']) => {
       return get().users.filter(user => user.role === role)
     },

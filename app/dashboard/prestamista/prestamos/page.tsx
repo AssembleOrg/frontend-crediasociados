@@ -6,11 +6,12 @@ import { Add, AttachMoney, Savings, TrendingUp } from '@mui/icons-material'
 import { useRouter } from 'next/navigation'
 import { useLoans } from '@/hooks/useLoans'
 import { useSubLoans } from '@/hooks/useSubLoans'
-import { useFinanzas } from '@/hooks/useFinanzas'
+import { useManagerDashboard } from '@/hooks/useManagerDashboard'
 import { LoansTable } from '@/components/loans/LoansTable'
 import { ExportButtons } from '@/components/export/ExportButtons'
 import { LoansFilterPanel } from '@/components/filters/LoansFilterPanel'
 import { useLoansFilters } from '@/hooks/useLoansFilters'
+import { ManagerDashboardCards } from '@/components/dashboard/ManagerDashboardCards'
 
 // New reusable components
 import PageHeader from '@/components/ui/PageHeader'
@@ -25,7 +26,7 @@ export default function PrestamosAnalyticsPage() {
   const { loans, error } = useLoans()
   const { allSubLoansWithClient, isLoading: subLoansLoading } = useSubLoans()
   const { filteredLoans, filterStats, hasActiveFilters } = useLoansFilters()
-  const { financialSummary, isLoading: finanzasLoading } = useFinanzas()
+  const { data: managerData, isLoading: managerDataLoading, refetch: refetchManagerData } = useManagerDashboard()
 
   // Modal states
   const [selectedLoanId, setSelectedLoanId] = useState<string | null>(null)
@@ -91,52 +92,11 @@ export default function PrestamosAnalyticsPage() {
         </Alert>
       )}
 
-      {/* Tu Cartera Stats - 2x2 Grid */}
-      <Grid container spacing={3} sx={{ mb: 3 }}>
-        <Grid size={{ xs: 12, sm: 6, lg: 3 }}>
-          <StatsCard
-            title="Capital Disponible"
-            value={`$${financialSummary?.capitalDisponible.toLocaleString('es-AR') || 0}`}
-            subtitle="disponible para prestar"
-            icon={<Savings />}
-            color="success"
-            isLoading={finanzasLoading}
-          />
-        </Grid>
-
-        <Grid size={{ xs: 12, sm: 6, lg: 3 }}>
-          <StatsCard
-            title="Capital Asignado"
-            value={`$${financialSummary?.capitalAsignado.toLocaleString('es-AR') || 0}`}
-            subtitle="total asignado"
-            icon={<AttachMoney />}
-            color="primary"
-            isLoading={finanzasLoading}
-          />
-        </Grid>
-
-        <Grid size={{ xs: 12, sm: 6, lg: 3 }}>
-          <StatsCard
-            title="Recaudado Este Mes"
-            value={`$${financialSummary?.recaudadoEsteMes.toLocaleString('es-AR') || 0}`}
-            subtitle="pagos recibidos"
-            icon={<TrendingUp />}
-            color="success"
-            isLoading={finanzasLoading}
-          />
-        </Grid>
-
-        <Grid size={{ xs: 12, sm: 6, lg: 3 }}>
-          <StatsCard
-            title="Valor de Cartera"
-            value={`$${financialSummary?.valorCartera.toLocaleString('es-AR') || 0}`}
-            subtitle="valor total"
-            icon={<TrendingUp />}
-            color="primary"
-            isLoading={finanzasLoading}
-          />
-        </Grid>
-      </Grid>
+      {/* Tu Cartera Stats - Manager Dashboard Cards */}
+      <ManagerDashboardCards 
+        data={managerData}
+        isLoading={managerDataLoading}
+      />
 
       {/* Filter Panel */}
       <Box sx={{ mb: 3 }}>
@@ -177,6 +137,7 @@ export default function PrestamosAnalyticsPage() {
         <LoansTable
           loans={displayLoans}
           onViewDetails={handleViewDetails}
+          onLoanDeleted={refetchManagerData}
         />
 
         {/* Quick Actions */}

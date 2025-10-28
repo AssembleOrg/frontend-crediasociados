@@ -17,28 +17,33 @@ import {
   LinearProgress,
   Card,
   CardContent,
-  IconButton
+  IconButton,
+  Snackbar,
+  Alert as MuiAlert
 } from '@mui/material'
 import {
   Visibility,
   MonetizationOn,
   Person,
-  PictureAsPdf
+  PictureAsPdf,
+  DeleteForever
 } from '@mui/icons-material'
 import { useLoans } from '@/hooks/useLoans'
 import { useSubLoans } from '@/hooks/useSubLoans'
 import { useExport } from '@/hooks/useExport'
 import { useClients } from '@/hooks/useClients'
+import { DeleteLoanConfirmModal } from '@/components/loans/DeleteLoanConfirmModal'
 import { getFrequencyLabel, getStatusLabel } from '@/lib/formatters'
 import type { Loan } from '@/types/auth'
 
 interface LoansTableProps {
   loans?: Loan[] // Optional external loans data (for filtering)
   onViewDetails?: (loanId: string) => void
+  onLoanDeleted?: () => void // Callback to refresh dashboard data after deletion
 }
 
-export function LoansTable({ loans: externalLoans, onViewDetails }: LoansTableProps) {
-  const { loans: hookLoans, isLoading } = useLoans()
+export function LoansTable({ loans: externalLoans, onViewDetails, onLoanDeleted }: LoansTableProps) {
+  const { loans: hookLoans, isLoading, deleteLoanPermanently } = useLoans()
   const { allSubLoansWithClient } = useSubLoans()
   const { exportLoanToPDF, canExport } = useExport()
   const { clients } = useClients()
@@ -47,6 +52,14 @@ export function LoansTable({ loans: externalLoans, onViewDetails }: LoansTablePr
   const loans = externalLoans || hookLoans
   const [page, setPage] = useState(0)
   const [rowsPerPage, setRowsPerPage] = useState(10)
+  
+  // Delete modal state
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false)
+  const [loanToDelete, setLoanToDelete] = useState<Loan | null>(null)
+  
+  // Success snackbar state
+  const [successMessage, setSuccessMessage] = useState<string | null>(null)
+  const [snackbarOpen, setSnackbarOpen] = useState(false)
 
   // Get client info from multiple sources (supports both new and existing loans)
   const getClientDisplay = (loanId: string) => {
@@ -154,6 +167,36 @@ export function LoansTable({ loans: externalLoans, onViewDetails }: LoansTablePr
   const handleChangeRowsPerPage = (event: React.ChangeEvent<HTMLInputElement>) => {
     setRowsPerPage(parseInt(event.target.value, 10))
     setPage(0)
+  }
+
+  const handleDeleteClick = (loan: Loan) => {
+    setLoanToDelete(loan)
+    setDeleteModalOpen(true)
+  }
+
+  const handleDeleteConfirm = async () => {
+    if (!loanToDelete) return
+
+    try {
+      const result = await deleteLoanPermanently(loanToDelete.id)
+      setSuccessMessage(
+        `Préstamo ${result.loanTrack} eliminado. Monto devuelto: $${result.montoDevuelto.toLocaleString('es-AR')}`
+      )
+      setSnackbarOpen(true)
+      setDeleteModalOpen(false)
+      setLoanToDelete(null)
+      
+      // Refresh dashboard data (cards) after successful deletion
+      onLoanDeleted?.()
+    } catch (error) {
+      // Error is already handled by the modal
+      throw error
+    }
+  }
+
+  const handleCloseSnackbar = () => {
+    setSnackbarOpen(false)
+    setSuccessMessage(null)
   }
 
   if (isLoading) {
@@ -298,6 +341,19 @@ export function LoansTable({ loans: externalLoans, onViewDetails }: LoansTablePr
                         >
                           <PictureAsPdf fontSize="small" />
                         </IconButton>
+                        <IconButton 
+                          size="small" 
+                          onClick={() => handleDeleteClick(loan)}
+                          title="Eliminar Permanentemente"
+                          sx={{
+                            color: 'error.dark',
+                            '&:hover': {
+                              backgroundColor: 'error.100'
+                            }
+                          }}
+                        >
+                          <DeleteForever fontSize="small" />
+                        </IconButton>
                       </Box>
                     </TableCell>
                   </TableRow>
@@ -386,6 +442,21 @@ export function LoansTable({ loans: externalLoans, onViewDetails }: LoansTablePr
                   >
                     <PictureAsPdf fontSize="small" />
                   </IconButton>
+                  <IconButton 
+                    size="small" 
+                    onClick={() => handleDeleteClick(loan)}
+                    title="Eliminar"
+                    sx={{
+                      color: 'error.dark',
+                      border: 1,
+                      borderColor: 'error.dark',
+                      '&:hover': {
+                        backgroundColor: 'error.100'
+                      }
+                    }}
+                  >
+                    <DeleteForever fontSize="small" />
+                  </IconButton>
                 </Box>
               </CardContent>
             </Card>
@@ -406,6 +477,35 @@ export function LoansTable({ loans: externalLoans, onViewDetails }: LoansTablePr
           `${from}-${to} de ${count !== -1 ? count : `más de ${to}`}`
         }
       />
+
+      {/* Delete Confirmation Modal */}
+      <DeleteLoanConfirmModal
+        open={deleteModalOpen}
+        onClose={() => {
+          setDeleteModalOpen(false)
+          setLoanToDelete(null)
+        }}
+        onConfirm={handleDeleteConfirm}
+        loanTrack={loanToDelete?.loanTrack}
+        loanAmount={loanToDelete?.amount}
+      />
+
+      {/* Success Snackbar */}
+      <Snackbar
+        open={snackbarOpen}
+        autoHideDuration={6000}
+        onClose={handleCloseSnackbar}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <MuiAlert
+          onClose={handleCloseSnackbar}
+          severity="success"
+          variant="filled"
+          sx={{ width: '100%' }}
+        >
+          {successMessage}
+        </MuiAlert>
+      </Snackbar>
     </Paper>
   )
 }

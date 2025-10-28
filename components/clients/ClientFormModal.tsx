@@ -28,6 +28,7 @@ import { useCurrentUser } from '@/hooks/useCurrentUser'
 import { ClientValidation } from '@/lib/validation-utils'
 import { formatDNI, formatCUIT, unformatDNI, unformatCUIT, formatPhoneNumber } from '@/lib/formatters'
 import { LATIN_AMERICAN_COUNTRIES } from '@/lib/countries'
+import { AddressAutocomplete } from '@/components/ui/AddressAutocomplete'
 import type { Client } from '@/types/auth'
 
 interface ClientFormModalProps {
@@ -409,27 +410,20 @@ export function ClientFormModal({
                 </Box>
                 
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-                  <TextField
-                    label="Dirección"
-                    value={formData.address}
-                    onChange={handleInputChange('address')}
+                  <AddressAutocomplete
+                    label="Dirección (lugar de cobro)"
+                    placeholder="Ej: Av. Corrientes 1234, Buenos Aires, Argentina"
+                    value={formData.address || ''}
+                    onChange={(newAddress) => {
+                      setFormData(prev => ({ ...prev, address: newAddress }))
+                      // Clear error when user types
+                      if (formErrors.address) {
+                        setFormErrors(prev => ({ ...prev, address: '' }))
+                      }
+                    }}
                     error={!!formErrors.address}
                     helperText={formErrors.address}
                     fullWidth
-                    multiline
-                    rows={2}
-                    InputProps={{
-                      startAdornment: (
-                        <InputAdornment position="start" sx={{ alignSelf: 'flex-start', mt: 1 }}>
-                          <Home color="action" />
-                        </InputAdornment>
-                      ),
-                    }}
-                    sx={{
-                      '& .MuiOutlinedInput-root': {
-                        borderRadius: 2,
-                      }
-                    }}
                   />
 
                   <TextField

@@ -1,37 +1,32 @@
 'use client'
 
-import { useMemo } from 'react'
 import { useAuthStore } from '@/stores/auth'
-import { useUsersStore } from '@/stores/users'
+import { useEffect } from 'react'
 
 /**
  * useCurrentUser Hook
  *
- * ALWAYS returns fresh user data from usersStore (Single Source of Truth).
- * Never uses stale authStore data.
+ * Returns the authenticated user from authStore (Single Source of Truth).
+ * Data is persisted in localStorage and survives F5.
  *
- * Use this hook whenever you need to access business data:
+ * Use this hook whenever you need to access the logged-in user's data:
  * - clientQuota, usedClientQuota, availableClientQuota
  * - wallet balance
- * - Any other user fields that might be updated after login
+ * - Any other user fields
  *
- * useAuth() should ONLY be used for:
- * - Authentication checks (isAuthenticated)
- * - Role-based routing (user.role)
- * - API tokens (token, refreshToken)
- * - Logout operations
+ * The hook automatically updates when the user data changes in authStore.
  */
 export const useCurrentUser = () => {
-  const authStore = useAuthStore()
-  const usersStore = useUsersStore()
-
-  const currentUser = useMemo(() => {
-    if (!authStore.userId) return null
-
-    const user = usersStore.users.find((u) => u.id === authStore.userId)
-
-    return user || null
-  }, [usersStore.users, authStore.userId])
-
+  const currentUser = useAuthStore((state) => state.currentUser)
+  
+  useEffect(() => {
+    console.log('🔍 useCurrentUser hook:', {
+      hasUser: !!currentUser,
+      userId: currentUser?.id,
+      clientQuota: currentUser?.clientQuota,
+      usedClientQuota: currentUser?.usedClientQuota,
+    })
+  }, [currentUser])
+  
   return currentUser
 }
