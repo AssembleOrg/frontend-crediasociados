@@ -10,7 +10,6 @@ import {
   Paper,
   Card,
   CardContent,
-  IconButton,
   Chip,
   Skeleton,
   Snackbar,
@@ -65,7 +64,6 @@ interface SortableRouteItemProps {
 
 function SortableRouteItem({ item, index, onPayment }: SortableRouteItemProps) {
   const {
-    attributes,
     listeners,
     setNodeRef,
     transform,

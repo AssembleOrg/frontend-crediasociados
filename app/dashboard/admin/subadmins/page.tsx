@@ -124,10 +124,10 @@ export default function SubadminsPage() {
     return currentAdmin.clientQuota ?? 0;
   }, [currentAdmin]);
 
-  const totalAvailableQuota = subadmins.reduce(
-    (sum, subadmin) => sum + ((subadmin.clientQuota ?? 0) - (subadmin.usedClientQuota ?? 0)),
-    0
-  );
+  // const totalAvailableQuota = subadmins.reduce(
+  //   (sum, subadmin) => sum + ((subadmin.clientQuota ?? 0) - (subadmin.usedClientQuota ?? 0)),
+  //   0
+  // );
 
   return (
     <Box>

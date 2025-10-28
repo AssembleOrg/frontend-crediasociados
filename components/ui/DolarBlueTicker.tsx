@@ -6,7 +6,6 @@ import {
   TrendingUp,
   DollarSign,
   Clock,
-  AlertCircle,
   RefreshCw,
 } from 'lucide-react';
 import { useDolarBlue } from '@/hooks/useDolarBlue';

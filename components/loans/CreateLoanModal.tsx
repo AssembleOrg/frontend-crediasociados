@@ -16,8 +16,6 @@ import {
   Select,
   MenuItem,
   InputAdornment,
-  IconButton,
-  Tooltip,
   Card,
   CardContent,
   Divider,
@@ -28,8 +26,6 @@ import {
   Percent,
   CalendarToday,
   Description,
-  KeyboardArrowUp,
-  KeyboardArrowDown,
 } from '@mui/icons-material'
 import { useClients } from '@/hooks/useClients'
 import { useWallet } from '@/hooks/useWallet'
@@ -38,11 +34,6 @@ import { VisualCalendar } from '@/components/ui/VisualCalendar'
 import { useBuenosAiresDate } from '@/hooks/useBuenosAiresDate'
 import { formatAmount, unformatAmount } from '@/lib/formatters'
 import { ValidationUtils } from '@/lib/validation-utils'
-import {
-  findRoundedInterestRateUp,
-  findRoundedInterestRateDown,
-  isNiceRoundNumber,
-} from '@/lib/installment-rounding'
 
 
 interface CreateLoanModalProps {
@@ -84,7 +75,7 @@ export function CreateLoanModal({
   const [simulatedLoans, setSimulatedLoans] = useState<SubLoan[]>([])
   const [isSimulating, setIsSimulating] = useState(false)
   const [simulationModalOpen, setSimulationModalOpen] = useState(false)
-  const [livePreview, setLivePreview] = useState<{
+  const [_livePreview, setLivePreview] = useState<{
     totalAmount: number
     installmentAmount: number
     totalInterest: number

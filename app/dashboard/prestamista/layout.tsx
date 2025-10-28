@@ -1,7 +1,7 @@
 'use client'
 
 import { Box, Paper, List, ListItem, ListItemIcon, ListItemText } from '@mui/material'
-import { Dashboard, People, AccountBalance, Payment, AttachMoney, Receipt, Analytics, Route } from '@mui/icons-material'
+import { Dashboard, People, AccountBalance, Analytics, Route } from '@mui/icons-material'
 import { useRouter, usePathname } from 'next/navigation'
 import { QuickActions } from '@/components/dashboard/QuickActions'
 import DashboardDataProvider from '@/components/providers/DashboardDataProvider'

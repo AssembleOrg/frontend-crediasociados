@@ -8,7 +8,7 @@ import {
   ListItemIcon,
   ListItemText,
 } from '@mui/material';
-import { Dashboard, People, Analytics, AttachMoney, Receipt, Payment } from '@mui/icons-material';
+import { Dashboard, People, Analytics, Receipt, Payment } from '@mui/icons-material';
 import { useRouter, usePathname } from 'next/navigation';
 import { QuickActions } from '@/components/dashboard/QuickActions';
 import DashboardDataProvider from '@/components/providers/DashboardDataProvider';

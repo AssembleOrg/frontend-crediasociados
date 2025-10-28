@@ -263,7 +263,6 @@ export function RouteExpenseModal({
               onChange={(e) => {
                 // Only allow numbers and format with thousands separator
                 const value = e.target.value.replace(/[^\d]/g, '');
-                const formatted = value ? parseInt(value).toLocaleString('es-AR') : '';
                 setAmount(value);
               }}
               disabled={isSubmitting}

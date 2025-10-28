@@ -8,7 +8,6 @@ import PageHeader from '@/components/ui/PageHeader'
 import { StatsCard } from '@/components/dashboard/StatsCard'
 // import { WalletBalanceCard } from '@/components/wallet/WalletBalanceCard'
 import { useFinanzas } from '@/hooks/useFinanzas'
-import { useWallet } from '@/hooks/useWallet'
 
 export default function PrestamistaFinanzasPage() {
   const router = useRouter()

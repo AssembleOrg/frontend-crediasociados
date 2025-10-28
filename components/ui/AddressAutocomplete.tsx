@@ -248,7 +248,7 @@ export function AddressAutocomplete({
         />
       )}
       renderOption={(props, option, state) => {
-        const { key, ...restProps } = props as any
+        const { key: _key, ...restProps } = props
         return (
           <Box
             component="li"

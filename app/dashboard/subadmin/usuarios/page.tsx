@@ -128,11 +128,6 @@ export default function ManagersPage() {
     return currentSubadmin.clientQuota ?? 0;
   }, [currentSubadmin]);
 
-  const totalAvailableQuota = managers.reduce(
-    (sum, manager) => sum + ((manager.clientQuota ?? 0) - (manager.usedClientQuota ?? 0)),
-    0
-  );
-
   return (
     <Box>
       <Box

@@ -1,8 +1,8 @@
 'use client'
 
 import { useState } from 'react'
-import { Box, Button, Alert, Grid } from '@mui/material'
-import { Add, AttachMoney, Savings, TrendingUp } from '@mui/icons-material'
+import { Box, Button, Alert,  } from '@mui/material'
+import { Add} from '@mui/icons-material'
 import { useRouter } from 'next/navigation'
 import { useLoans } from '@/hooks/useLoans'
 import { useSubLoans } from '@/hooks/useSubLoans'
@@ -15,7 +15,6 @@ import { ManagerDashboardCards } from '@/components/dashboard/ManagerDashboardCa
 
 // New reusable components
 import PageHeader from '@/components/ui/PageHeader'
-import { StatsCard } from '@/components/dashboard/StatsCard'
 import LoanDetailsModal from '@/components/loans/modals/LoanDetailsModal'
 
 // Utilities

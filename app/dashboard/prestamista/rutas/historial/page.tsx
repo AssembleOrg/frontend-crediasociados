@@ -18,7 +18,6 @@ import {
 import {
   History,
   Refresh,
-  FilterList,
   ExpandMore,
   ExpandLess,
   CalendarToday,
@@ -26,7 +25,6 @@ import {
 import { usePathname } from 'next/navigation';
 import { useCollectionRoutes } from '@/hooks/useCollectionRoutes';
 import { RouteStats } from '@/components/routes/RouteStats';
-import { CollectionRoute } from '@/services/collection-routes.service';
 import { DateTime } from 'luxon';
 
 /**
@@ -38,7 +36,7 @@ export default function RutasHistorialPage() {
   const { routes, isLoading, error, fetchRoutes } = useCollectionRoutes();
 
   const [expandedRouteId, setExpandedRouteId] = useState<string | null>(null);
-  const [dateFilter, setDateFilter] = useState({
+  const [dateFilter ] = useState({
     dateFrom: DateTime.now().startOf('month').toISODate() || '',
     dateTo: DateTime.now().endOf('month').toISODate() || '',
   });

@@ -62,7 +62,6 @@ interface LoanSimulationModalProps {
 export function LoanSimulationModal({
   open,
   onClose,
-  onLoanCreated,
   simulatedLoans,
   formData,
   clientName = 'Cliente seleccionado'

@@ -41,24 +41,9 @@ const CustomTooltip = ({ active, payload }: TooltipProps) => {
   return null
 }
 
-interface CustomLabelProps {
-  cx: number
-  cy: number
-  midAngle: number
-  innerRadius: number
-  outerRadius: number
-  percent: number
-  index: number
-}
-
-const renderCustomLabel = ({
-  cx,
-  cy,
-  midAngle,
-  innerRadius,
-  outerRadius,
-  percent,
-}: CustomLabelProps) => {
+const renderCustomLabel = (props: any) => {
+  const { cx, cy, midAngle, innerRadius, outerRadius, percent } = props
+  
   // Solo mostrar si el porcentaje es >= 5%
   if (percent < 0.05) return null
 
@@ -205,7 +190,7 @@ const PaymentsDistributionChart = memo(function PaymentsDistributionChart({ data
           justifyContent: 'center',
         }}
       >
-        {data.map((item, index) => {
+        {data.map((item, _index) => {
           const percentage = ((item.value / totalPayments) * 100).toFixed(1)
           return (
             <Box

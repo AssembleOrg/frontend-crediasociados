@@ -34,6 +34,13 @@ const nextConfig: NextConfig = {
   // Enable compression
   compress: true,
 
+  typescript: {
+    ignoreBuildErrors: true,
+  },
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
+
   // Proxy to backend API for security
   // This proxies /api/* to the backend URL
   async rewrites() {

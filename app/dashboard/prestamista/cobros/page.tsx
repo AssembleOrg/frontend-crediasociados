@@ -68,7 +68,6 @@ export default function CobrosPage() {
   const {
     allSubLoansWithClient,
     fetchAllSubLoansWithClientInfo,
-    isLoading
   } = useSubLoans()
 
   // ✅ Refetch data when page mounts or route changes

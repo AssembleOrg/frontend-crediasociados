@@ -22,7 +22,7 @@ import {
   Chip,
   CircularProgress
 } from '@mui/material'
-import { Payment, CalendarToday, AttachMoney, PictureAsPdf, Info } from '@mui/icons-material'
+import { Payment, AttachMoney, PictureAsPdf, Info } from '@mui/icons-material'
 import { formatAmount, unformatAmount } from '@/lib/formatters'
 import { generatePaymentPDF } from '@/utils/pdf/paymentReceipt'
 import { useOperativa } from '@/hooks/useOperativa'

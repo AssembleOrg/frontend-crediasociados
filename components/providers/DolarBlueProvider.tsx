@@ -18,7 +18,7 @@ export default function DolarBlueProvider({ children }: DolarBlueProviderProps) 
     setError
   } = useDolarBlueStore();
 
-  const { token, userId } = useAuthStore();
+  const { token } = useAuthStore();
 
   const abortControllerRef = useRef<AbortController | null>(null);
   const refreshIntervalRef = useRef<NodeJS.Timeout | null>(null);

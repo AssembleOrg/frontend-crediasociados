@@ -7,7 +7,6 @@ import {
   Pie,
   Cell,
   ResponsiveContainer,
-  Legend,
   Tooltip,
   BarChart,
   Bar,
@@ -54,6 +53,7 @@ const MODERN_COLORS = [
 // CUSTOM LABEL CON PORCENTAJE
 // ============================================================================
 
+//eslint-disable-next-line @typescript-eslint/no-explicit-any
 const renderCustomLabel = (props: any) => {
   const { cx, cy, midAngle, innerRadius, outerRadius, percent } = props;
   
@@ -203,14 +203,14 @@ export function ImprovedPieChart({
               cx="50%"
               cy="50%"
               labelLine={false}
-              label={showPercentage ? (renderCustomLabel as any) : false}
+              label={showPercentage ? (renderCustomLabel) : false}
               outerRadius="80%"
               innerRadius="40%"
               fill="#8884d8"
               dataKey="value"
               paddingAngle={2}
             >
-              {data.map((entry, index) => (
+              {data.map((_entry, index) => (
                 <Cell
                   key={`cell-${index}`}
                   fill={MODERN_COLORS[index % MODERN_COLORS.length]}

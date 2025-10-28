@@ -5,7 +5,6 @@ import dynamic from 'next/dynamic'
 import { Box, Grid, CircularProgress, Typography, Button, useMediaQuery, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material'
 import { ExpandMore, ExpandLess, Calculate } from '@mui/icons-material'
 import PageHeader from '@/components/ui/PageHeader'
-import { WalletBalanceCard } from '@/components/wallet/WalletBalanceCard'
 import { ManagerDashboardCards } from '@/components/dashboard/ManagerDashboardCards'
 import { usePrestamistaDashboardData } from '@/hooks/usePrestamistaDashboardData'
 import { usePrestamistaCharts } from '@/hooks/usePrestamistaCharts'
@@ -50,11 +49,6 @@ export default function PrestamistaDashboard() {
   const chartData = usePrestamistaCharts(clients, loans, subLoans)
 
   // Wallet management
-  const {
-    wallet,
-    isLoading: walletIsLoading,
-    refetchWallet,
-  } = useWallet()
 
   // Manager dashboard data (for cards)
   const { data: managerData, isLoading: managerDataLoading } = useManagerDashboard()
