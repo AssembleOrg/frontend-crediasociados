@@ -136,13 +136,20 @@ export function LoansTable({ loans: externalLoans, onViewDetails, onLoanDeleted 
     }
   }
 
-  type LoanLike = { totalPayments?: number }
+  type LoanLike = { id?: string; totalPayments?: number }
   const getProgressInfo = (loan: LoanLike) => {
-    // TODO: Cuando tengamos subloans, calcular progreso real
     const totalPayments = loan.totalPayments || 0
-    const completedPayments = 0 // TODO: Contar subloans pagados
+
+    // Count paid subloans for this loan
+    const loanSubLoans = allSubLoansWithClient.filter(
+      (sub) => sub.loanId === loan.id
+    )
+    const completedPayments = loanSubLoans.filter(
+      (sub) => sub.status === 'PAID'
+    ).length
+
     const progress = totalPayments > 0 ? (completedPayments / totalPayments) * 100 : 0
-    
+
     return { totalPayments, completedPayments, progress }
   }
 

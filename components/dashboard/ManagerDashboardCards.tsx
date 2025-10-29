@@ -1,6 +1,6 @@
 'use client'
 
-import { Card, CardContent, Typography, Box, Skeleton, Stack } from '@mui/material'
+import { Card, CardContent, Typography, Box, Skeleton } from '@mui/material'
 import { AccountBalanceWallet, TrendingUp, Payment, ShowChart, Lock } from '@mui/icons-material'
 import type { ManagerDashboardData } from '@/services/manager.service'
 
@@ -32,7 +32,7 @@ function StatCard({ title, value, subtitle, icon, color, isLoading }: StatCardPr
         },
       }}
     >
-      <CardContent sx={{ p: 3 }}>
+      <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
           <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 500 }}>
             {title}
@@ -61,11 +61,18 @@ function StatCard({ title, value, subtitle, icon, color, isLoading }: StatCardPr
         ) : (
           <>
             <Typography
-              variant="h4"
+              variant="h5"
               sx={{
                 fontWeight: 700,
                 mb: 0.5,
                 color: 'text.primary',
+                fontSize: {
+                  xs: '1.25rem',
+                  sm: '1.5rem',
+                  lg: '1.75rem',
+                },
+                lineHeight: 1.2,
+                wordBreak: 'break-word',
               }}
             >
               ${value.toLocaleString('es-AR')}
@@ -86,14 +93,12 @@ export function ManagerDashboardCards({ data, isLoading }: ManagerDashboardCards
 
   return (
     <Box sx={{ mb: 4 }}>
-      <Stack
-        direction={{ xs: 'column', sm: 'row' }}
-        spacing={3}
+      <Box
         sx={{
           display: 'grid',
           gridTemplateColumns: {
-            xs: '1fr',
-            sm: 'repeat(2, 1fr)',
+            xs: 'repeat(2, 1fr)',
+            sm: 'repeat(3, 1fr)',
             lg: 'repeat(5, 1fr)',
           },
           gap: 3,
@@ -143,7 +148,7 @@ export function ManagerDashboardCards({ data, isLoading }: ManagerDashboardCards
           color="#9c27b0"
           isLoading={isLoading}
         />
-      </Stack>
+      </Box>
     </Box>
   )
 }

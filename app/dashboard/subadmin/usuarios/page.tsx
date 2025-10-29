@@ -20,13 +20,7 @@ import {
   MenuItem,
   useTheme,
 } from '@mui/material';
-import {
-  Search,
-  Add,
-  MoreVert,
-  Edit,
-  Delete,
-} from '@mui/icons-material';
+import { Search, Add, MoreVert, Edit, Delete } from '@mui/icons-material';
 import { useUsers } from '@/hooks/useUsers';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { useAuth } from '@/hooks/useAuth';
@@ -40,18 +34,28 @@ export default function ManagersPage() {
 
   const [searchTerm, setSearchTerm] = useState('');
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
-  const [selectedManagerId, setSelectedManagerId] = useState<string | null>(null);
+  const [selectedManagerId, setSelectedManagerId] = useState<string | null>(
+    null
+  );
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
 
-  const { users, isLoading, error, createUser, updateUser, deleteUser, fetchUsers } = useUsers();
+  const {
+    users,
+    isLoading,
+    error,
+    createUser,
+    updateUser,
+    deleteUser,
+    fetchUsers,
+  } = useUsers();
   const currentSubadmin = useCurrentUser();
   const { refreshCurrentUser } = useAuth();
-  
+
   // Filter prestamistas directly (MANAGER from API becomes 'prestamista' in frontend)
-  const managers = useMemo(() => 
-    users.filter(user => user.role === 'prestamista'), 
+  const managers = useMemo(
+    () => users.filter((user) => user.role === 'prestamista'),
     [users]
   );
 
@@ -94,7 +98,7 @@ export default function ManagersPage() {
     setIsEditModalOpen(false);
     setIsDeleteDialogOpen(false);
     setSelectedManagerId(null);
-    
+
     // ✅ REHIDRATACIÓN: Refrescar datos después de cerrar modales
     console.log('🔄 Starting data refresh...');
     await Promise.all([
@@ -109,7 +113,9 @@ export default function ManagersPage() {
     return Math.round((used / total) * 100);
   };
 
-  const getQuotaColor = (percentage: number): 'success' | 'warning' | 'error' => {
+  const getQuotaColor = (
+    percentage: number
+  ): 'success' | 'warning' | 'error' => {
     if (percentage >= 90) return 'error';
     if (percentage >= 70) return 'warning';
     return 'success';
@@ -158,17 +164,32 @@ export default function ManagersPage() {
           >
             Gestiona los cobradores que crean y gestionan clientes
           </Typography>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
-            <Typography variant='body2' color='text.secondary'>
+          <Box
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 1,
+              flexWrap: 'wrap',
+            }}
+          >
+            <Typography
+              variant='body2'
+              color='text.secondary'
+            >
               Clientes disponibles para asignar:
             </Typography>
             <Chip
               label={
-                creatorAvailableQuota !== undefined && creatorTotalQuota !== undefined
+                creatorAvailableQuota !== undefined &&
+                creatorTotalQuota !== undefined
                   ? `${creatorAvailableQuota} / ${creatorTotalQuota}`
                   : '0 / 0'
               }
-              color={creatorAvailableQuota && creatorAvailableQuota > 0 ? 'success' : 'default'}
+              color={
+                creatorAvailableQuota && creatorAvailableQuota > 0
+                  ? 'success'
+                  : 'default'
+              }
               size='small'
               sx={{ fontWeight: 600 }}
             />
@@ -254,7 +275,10 @@ export default function ManagersPage() {
             </TableHead>
             <TableBody>
               {isLoading ? (
-                <TableSkeleton columns={7} rows={8} />
+                <TableSkeleton
+                  columns={7}
+                  rows={8}
+                />
               ) : (
                 <>
                   {filteredManagers.map((manager) => (
@@ -280,13 +304,21 @@ export default function ManagersPage() {
                           color='text.secondary'
                           sx={{ display: { xs: 'block', sm: 'none' }, mt: 0.5 }}
                         >
-                          Rol: {RoleUtils.getRoleDisplayName(manager.role as UserRole)} • Creado:{' '}
+                          <Box
+                            component='span'
+                            sx={{ fontWeight: 600 }}
+                          >
+                            Cuota: {manager.clientQuota ?? 0}
+                          </Box>
+                          {' • Creado: '}
                           {formatDate(manager.createdAt.toISOString())}
                         </Typography>
                       </TableCell>
                       <TableCell align='center'>
                         <Chip
-                          label={RoleUtils.getRoleDisplayName(manager.role as UserRole)}
+                          label={RoleUtils.getRoleDisplayName(
+                            manager.role as UserRole
+                          )}
                           color='primary'
                           size='small'
                         />
@@ -295,7 +327,10 @@ export default function ManagersPage() {
                         align='center'
                         sx={{ display: { xs: 'none', sm: 'table-cell' } }}
                       >
-                        <Typography variant='body2' sx={{ fontWeight: 600 }}>
+                        <Typography
+                          variant='body2'
+                          sx={{ fontWeight: 600 }}
+                        >
                           {manager.clientQuota ?? 0}
                         </Typography>
                       </TableCell>
@@ -303,12 +338,30 @@ export default function ManagersPage() {
                         align='center'
                         sx={{ display: { xs: 'none', md: 'table-cell' } }}
                       >
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, justifyContent: 'center' }}>
-                          <Typography variant='body2' sx={{ fontWeight: 500 }}>
+                        <Box
+                          sx={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 1,
+                            justifyContent: 'center',
+                          }}
+                        >
+                          <Typography
+                            variant='body2'
+                            sx={{ fontWeight: 500 }}
+                          >
                             {manager.usedClientQuota ?? 0}
                           </Typography>
-                          <Typography variant='caption' color='text.secondary'>
-                            ({calculateQuotaPercentage(manager.usedClientQuota ?? 0, manager.clientQuota ?? 0)}%)
+                          <Typography
+                            variant='caption'
+                            color='text.secondary'
+                          >
+                            (
+                            {calculateQuotaPercentage(
+                              manager.usedClientQuota ?? 0,
+                              manager.clientQuota ?? 0
+                            )}
+                            %)
                           </Typography>
                         </Box>
                       </TableCell>
@@ -317,8 +370,16 @@ export default function ManagersPage() {
                         sx={{ display: { xs: 'none', lg: 'table-cell' } }}
                       >
                         <Chip
-                          label={(manager.clientQuota ?? 0) - (manager.usedClientQuota ?? 0)}
-                          color={getQuotaColor(calculateQuotaPercentage(manager.usedClientQuota ?? 0, manager.clientQuota ?? 0))}
+                          label={
+                            (manager.clientQuota ?? 0) -
+                            (manager.usedClientQuota ?? 0)
+                          }
+                          color={getQuotaColor(
+                            calculateQuotaPercentage(
+                              manager.usedClientQuota ?? 0,
+                              manager.clientQuota ?? 0
+                            )
+                          )}
                           variant='outlined'
                           size='small'
                           sx={{ fontWeight: 600 }}

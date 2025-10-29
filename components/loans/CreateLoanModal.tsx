@@ -19,6 +19,7 @@ import {
   Card,
   CardContent,
   Divider,
+  Autocomplete,
 } from '@mui/material'
 import {
   Person,
@@ -75,7 +76,7 @@ export function CreateLoanModal({
   const [simulatedLoans, setSimulatedLoans] = useState<SubLoan[]>([])
   const [isSimulating, setIsSimulating] = useState(false)
   const [simulationModalOpen, setSimulationModalOpen] = useState(false)
-  const [_livePreview, setLivePreview] = useState<{
+  const [livePreview, setLivePreview] = useState<{
     totalAmount: number
     installmentAmount: number
     totalInterest: number
@@ -454,29 +455,37 @@ export function CreateLoanModal({
               </Box>
               
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-                <FormControl error={!!formErrors.clientId} fullWidth>
-                  <InputLabel>Cliente</InputLabel>
-                  <Select
-                    value={formData.clientId}
-                    onChange={(e) => handleSelectChange('clientId', e.target.value)}
-                    label="Cliente"
-                    disabled={clientsLoading}
-                    sx={{
-                      borderRadius: 2,
-                    }}
-                  >
-                    {clients.map((client) => (
-                      <MenuItem key={client.id} value={client.id}>
-                        {client.fullName} {client.dni ? `(DNI: ${client.dni})` : ''} {client.cuit ? `(CUIT: ${client.cuit})` : ''}
-                      </MenuItem>
-                    ))}
-                  </Select>
-                  {formErrors.clientId && (
-                    <Typography variant="caption" color="error" sx={{ mt: 1 }}>
-                      {formErrors.clientId}
-                    </Typography>
+                <Autocomplete
+                  options={clients}
+                  getOptionLabel={(option) =>
+                    `${option.fullName}${option.dni ? ` (DNI: ${option.dni})` : ''}${option.cuit ? ` (CUIT: ${option.cuit})` : ''}`
+                  }
+                  value={clients.find(c => c.id === formData.clientId) || null}
+                  onChange={(_, newValue) => {
+                    handleSelectChange('clientId', newValue?.id || '')
+                    if (newValue && formErrors.clientId) {
+                      setFormErrors(prev => ({ ...prev, clientId: '' }))
+                    }
+                  }}
+                  renderInput={(params) => (
+                    <TextField
+                      {...params}
+                      label="Cliente"
+                      placeholder="Buscar cliente por nombre, DNI o CUIT..."
+                      error={!!formErrors.clientId}
+                      helperText={formErrors.clientId}
+                    />
                   )}
-                </FormControl>
+                  loading={clientsLoading}
+                  disabled={clientsLoading}
+                  fullWidth
+                  noOptionsText="No se encontraron clientes"
+                  sx={{
+                    '& .MuiOutlinedInput-root': {
+                      borderRadius: 2,
+                    }
+                  }}
+                />
 
                 {selectedClient && (
                   <Alert severity="info" sx={{ borderRadius: 2 }}>
@@ -631,16 +640,16 @@ export function CreateLoanModal({
                       </Typography>
                     </Box>
                     <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <Typography 
-                        variant="body2" 
+                      <Typography
+                        variant="body2"
                         color="text.secondary"
                         sx={{ fontSize: { xs: '0.8rem', sm: '0.875rem' } }}
                       >
                         Interés ({formData.baseInterestRate}%):
                       </Typography>
-                      <Typography 
-                        variant="body2" 
-                        sx={{ 
+                      <Typography
+                        variant="body2"
+                        sx={{
                           fontWeight: 500,
                           fontSize: { xs: '0.8rem', sm: '0.875rem' }
                         }}
@@ -648,6 +657,26 @@ export function CreateLoanModal({
                         ${(parseFloat(unformatAmount(formData.amount) || '0') * parseFloat(formData.baseInterestRate || '0') / 100).toLocaleString('es-AR')}
                       </Typography>
                     </Box>
+                    {formData.totalPayments && (
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <Typography
+                          variant="body2"
+                          color="text.secondary"
+                          sx={{ fontSize: { xs: '0.8rem', sm: '0.875rem' } }}
+                        >
+                          Valor por cuota:
+                        </Typography>
+                        <Typography
+                          variant="body2"
+                          sx={{
+                            fontWeight: 500,
+                            fontSize: { xs: '0.8rem', sm: '0.875rem' }
+                          }}
+                        >
+                          ${(totalAmount / parseInt(formData.totalPayments)).toLocaleString('es-AR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+                        </Typography>
+                      </Box>
+                    )}
                     <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 1, pt: 1, borderTop: '1px solid', borderColor: 'primary.200' }}>
                       <Typography 
                         variant="subtitle1" 
@@ -938,81 +967,6 @@ export function CreateLoanModal({
             </CardContent>
           </Card>
 
-          {/* Live Preview Card */}
-          {/* {livePreview && (
-            <Card sx={{
-              borderRadius: 2,
-              boxShadow: '0 4px 12px rgba(0,0,0,0.05)',
-              background: 'linear-gradient(135deg, #667eea15 0%, #4facfe15 100%)',
-              border: '2px solid',
-              borderColor: 'primary.main',
-              mb: { xs: 2, sm: 3 }
-            }}>
-              <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
-                <Typography 
-                  variant="h6" 
-                  sx={{ 
-                    fontWeight: 600, 
-                    mb: { xs: 1.5, sm: 2 }, 
-                    color: 'primary.main',
-                    fontSize: { xs: '1rem', sm: '1.25rem' }
-                  }}
-                >
-                  📊 Vista Previa en Tiempo Real
-                </Typography>
-
-                <Box sx={{
-                  display: 'grid',
-                  gridTemplateColumns: { xs: '1fr', sm: 'repeat(3, 1fr)' },
-                  gap: 2
-                }}>
-                  <Box sx={{ textAlign: 'center', p: 2, bgcolor: 'white', borderRadius: 2 }}>
-                    <Typography variant="body2" color="text.secondary" gutterBottom>
-                      Valor por Cuota
-                    </Typography>
-                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 0.5 }}>
-                      <Typography
-                        variant="h5"
-                        fontWeight="bold"
-                        sx={{ color: isNiceRoundNumber(livePreview.installmentAmount) ? '#22c55e' : 'success.main' }}
-                      >
-                        ${livePreview.installmentAmount.toLocaleString('es-AR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
-                      </Typography>
-                      {isNiceRoundNumber(livePreview.installmentAmount) && (
-                        <Typography variant="caption" sx={{ color: '#22c55e', fontWeight: 600 }}>
-                          ✓
-                        </Typography>
-                      )}
-                    </Box>
-                  </Box>
-
-                  <Box sx={{ textAlign: 'center', p: 2, bgcolor: 'white', borderRadius: 2 }}>
-                    <Typography variant="body2" color="text.secondary" gutterBottom>
-                      Total a Devolver
-                    </Typography>
-                    <Typography variant="h5" fontWeight="bold" color="primary.main">
-                      ${livePreview.totalAmount.toLocaleString('es-AR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
-                    </Typography>
-                  </Box>
-
-                  <Box sx={{ textAlign: 'center', p: 2, bgcolor: 'white', borderRadius: 2 }}>
-                    <Typography variant="body2" color="text.secondary" gutterBottom>
-                      Total de Intereses
-                    </Typography>
-                    <Typography variant="h5" fontWeight="bold" color="warning.main">
-                      ${livePreview.totalInterest.toLocaleString('es-AR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
-                    </Typography>
-                  </Box>
-                </Box>
-
-                <Alert severity="info" sx={{ mt: 2 }}>
-                  <Typography variant="caption">
-                    💡 Estos valores se actualizan automáticamente mientras editas. Usa las flechas en la tasa de interés para redondear las cuotas. Haz clic en &quot;Simular Préstamo&quot; para ver el cronograma completo de pagos.
-                  </Typography>
-                </Alert>
-              </CardContent>
-            </Card>
-          )} */}
 
           {/* Description Card */}
           <Card sx={{ borderRadius: 2, boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}>

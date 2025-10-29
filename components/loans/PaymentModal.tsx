@@ -74,6 +74,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
     paymentNumber: number
     amount: number
     paymentDate: Date
+    loanTrack?: string
     status: 'PARTIAL' | 'PAID'
     remainingAmount: number
     notes?: string
@@ -183,7 +184,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
               paymentNumber: currentSubloan.paymentNumber ?? 0,
               amount: amountValue,
               paymentDate: new Date(paymentDate),
-              loanTrack: 'N/A',
+              loanTrack: currentSubloan.loanTrack || 'N/A',
               status: newStatus,
               remainingAmount: remainingAfterPayment,
               notes: notes || undefined

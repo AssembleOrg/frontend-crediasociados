@@ -137,8 +137,8 @@ class ExportService {
       loanId: loan.id,
       loanTrack: loan.loanTrack,
       amount: loan.amount,
-      baseInterestRate: isSimulation ? (loan.baseInterestRate || 0) : 0,
-      totalAmount: isSimulation ? totalAmount : loan.amount,
+      baseInterestRate: loan.baseInterestRate || 0,
+      totalAmount: totalAmount,
       paymentFrequency: loan.paymentFrequency,
       numberOfInstallments: loan.totalPayments,
       startDate: new Date(loan.firstDueDate || loan.createdAt).toLocaleDateString('es-AR'),
@@ -164,8 +164,8 @@ class ExportService {
       // Summary - Use calculated totals
       summary: {
         totalPrincipal: totalPrincipal,
-        totalInterest: isSimulation ? totalInterest : 0,
-        totalAmount: isSimulation ? totalAmount : loan.amount,
+        totalInterest: totalInterest,
+        totalAmount: totalAmount,
         numberOfPayments: loan.totalPayments,
         frequency: getFrequencyLabel(loan.paymentFrequency),
         remainingBalance
@@ -183,13 +183,18 @@ class ExportService {
   private transformLoanToExcelData = (loanData: ExportLoanData): ExcelLoanData => {
     const { loan, client, subLoans } = loanData;
 
-    // Calculate remaining balance
+    // Calculate total amount (principal + interest) from subloans
+    const totalAmount = subLoans.reduce((sum, s) => sum + (s.totalAmount || 0), 0)
+
+    // Calculate amount paid
     const totalPaid = subLoans.reduce((sum, s) => {
       if (s.status === 'PAID') return sum + (s.totalAmount || 0)
       if (s.status === 'PARTIAL') return sum + (s.paidAmount || 0)
       return sum
     }, 0)
-    const remainingBalance = loan.amount - totalPaid
+
+    // Calculate remaining balance using totalAmount (with interest)
+    const remainingBalance = totalAmount - totalPaid
 
     return {
       'ID Préstamo': loan.id,
@@ -199,7 +204,7 @@ class ExportService {
       'Monto Prestado': loan.amount,
       // NOTE: Interest rate removed per client request (feedback.md)
       // 'Tasa Interés (%)': formatInterestRate(loan.baseInterestRate),
-      'Monto Total': loan.amount, // Changed: Show only capital, no interest
+      'Monto Total': totalAmount,
       'Resta Abonar': remainingBalance,
       'Frecuencia': getFrequencyLabel(loan.paymentFrequency),
       'Cantidad Cuotas': loan.totalPayments,

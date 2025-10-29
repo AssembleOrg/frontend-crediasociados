@@ -13,8 +13,6 @@ import {
   Chip,
   Autocomplete,
   TextField,
-  ToggleButton,
-  ToggleButtonGroup
 } from '@mui/material'
 import { 
   FilterList, 
@@ -127,82 +125,55 @@ export function LoansFilterPanel({ variant: _variant = 'expanded', onClose }: Lo
 
         {/* Loan Status Filter */}
         <Box sx={{ mt: 2, mb: 2 }}>
-          <Typography variant="subtitle2" gutterBottom>
+          <Typography variant="subtitle2" gutterBottom sx={{ mb: 1.5, fontWeight: 600 }}>
             Estado de Cuotas
           </Typography>
-          <ToggleButtonGroup
-            value={filters.loanStatus || 'ALL'}
-            exclusive
-            onChange={(_, value) => handleLoanStatusFilter(value)}
-            size="small"
-            fullWidth
-            sx={{
-              display: 'flex',
-              flexWrap: 'wrap',
-              gap: 1,
-              '& .MuiToggleButton-root': {
-                borderRadius: 2,
-                border: '1px solid',
-                px: 2,
-                py: 1,
-                flex: '1 1 auto',
-                minWidth: 'auto'
-              }
-            }}
-          >
-            <ToggleButton
-              value="ALL"
+          <Box sx={{
+            display: 'flex',
+            flexWrap: 'wrap',
+            gap: 1
+          }}>
+            <Chip
+              label="Todos"
+              onClick={() => handleLoanStatusFilter('ALL')}
+              color={filters.loanStatus === 'ALL' || !filters.loanStatus ? 'primary' : 'default'}
+              variant={filters.loanStatus === 'ALL' || !filters.loanStatus ? 'filled' : 'outlined'}
               sx={{
-                color: 'primary.main',
-                borderColor: 'primary.main',
-                '&.Mui-selected': {
-                  backgroundColor: 'primary.main',
-                  color: 'white'
-                }
+                fontWeight: filters.loanStatus === 'ALL' || !filters.loanStatus ? 600 : 400,
+                cursor: 'pointer'
               }}
-            >
-              Todos
-            </ToggleButton>
-            <ToggleButton
-              value="PENDING"
+            />
+            <Chip
+              label="Pendiente"
+              onClick={() => handleLoanStatusFilter('PENDING')}
+              color={filters.loanStatus === 'PENDING' ? 'warning' : 'default'}
+              variant={filters.loanStatus === 'PENDING' ? 'filled' : 'outlined'}
               sx={{
-                color: 'default',
-                borderColor: 'default',
-                '&.Mui-selected': {
-                  backgroundColor: 'default',
-                  color: 'white'
-                }
+                fontWeight: filters.loanStatus === 'PENDING' ? 600 : 400,
+                cursor: 'pointer'
               }}
-            >
-              Pendiente
-            </ToggleButton>
-            <ToggleButton
-              value="PARTIAL"
+            />
+            <Chip
+              label="Pago Parcial"
+              onClick={() => handleLoanStatusFilter('PARTIAL')}
+              color={filters.loanStatus === 'PARTIAL' ? 'info' : 'default'}
+              variant={filters.loanStatus === 'PARTIAL' ? 'filled' : 'outlined'}
               sx={{
-                color: 'info.main',
-                borderColor: 'info.main',
-                '&.Mui-selected': {
-                  backgroundColor: 'info.main',
-                  color: 'white'
-                }
+                fontWeight: filters.loanStatus === 'PARTIAL' ? 600 : 400,
+                cursor: 'pointer'
               }}
-            >
-              Parcial
-            </ToggleButton>
-            <ToggleButton
-              value="PAID"
+            />
+            <Chip
+              label="Pagado"
+              onClick={() => handleLoanStatusFilter('PAID')}
+              color={filters.loanStatus === 'PAID' ? 'success' : 'default'}
+              variant={filters.loanStatus === 'PAID' ? 'filled' : 'outlined'}
               sx={{
-                color: 'success.main',
-                borderColor: 'success.main',
-                '&.Mui-selected': {
-                  backgroundColor: 'success.main',
-                  color: 'white'
-                }
+                fontWeight: filters.loanStatus === 'PAID' ? 600 : 400,
+                cursor: 'pointer'
               }}
-            >
-              Pagado
-            </ToggleButton>
-          </ToggleButtonGroup>
+            />
+          </Box>
         </Box>
 
         {/* Filter Summary */}

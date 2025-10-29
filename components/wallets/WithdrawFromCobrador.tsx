@@ -116,7 +116,7 @@ export const WithdrawFromCobrador: React.FC<WithdrawFromCobradoProps> = ({
         p: 2.5
       }}>
         <TrendingDown sx={{ fontSize: 24 }} />
-        <Typography variant="h6" sx={{ fontWeight: 600 }}>
+        <Typography component="span" variant="h6" sx={{ fontWeight: 600 }}>
           {selectedCobrador ? `Retirar de ${selectedCobrador.fullName}` : 'Retirar de Cobrador'}
         </Typography>
       </DialogTitle>

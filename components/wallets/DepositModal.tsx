@@ -92,7 +92,7 @@ export const DepositModal: React.FC<DepositModalProps> = ({
         p: 2.5
       }}>
         <TrendingUp sx={{ fontSize: 24 }} />
-        <Typography variant="h6" sx={{ fontWeight: 600 }}>
+        <Typography component="span" variant="h6" sx={{ fontWeight: 600 }}>
           Hacer Depósito
         </Typography>
       </DialogTitle>

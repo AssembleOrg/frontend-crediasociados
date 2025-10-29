@@ -1,143 +1,158 @@
-import { subLoansService } from './sub-loans.service'
-import { loansService } from './loans.service'
-import { clientsService } from './clients.service'
-import type { components } from '@/types/api-generated'
-import type { PaginationParams, LoanListResponseDto } from '@/types/auth'
-import type { SubLoanResponseDto } from '@/types/export'
+import { subLoansService } from './sub-loans.service';
+import { loansService } from './loans.service';
+import { clientsService } from './clients.service';
+import type { components } from '@/types/api-generated';
+import type { PaginationParams, LoanListResponseDto } from '@/types/auth';
+import type { SubLoanResponseDto } from '@/types/export';
 
-type ClientResponseDto = components['schemas']['ClientResponseDto']
+type ClientResponseDto = components['schemas']['ClientResponseDto'];
 
 export interface SubLoanWithClientInfo {
-  id?: string
-  loanId?: string
-  amount?: number
-  paidAmount?: number
-  status?: string
-  dueDate?: string
-  createdAt?: string
-  paymentNumber?: number
-  totalAmount?: number
-  clientId?: string
-  clientName?: string
-  clientFullData?: ClientResponseDto
+  id?: string;
+  loanId?: string;
+  loanTrack?: string;
+  amount?: number;
+  paidAmount?: number;
+  status?: string;
+  dueDate?: string;
+  createdAt?: string;
+  paymentNumber?: number;
+  totalAmount?: number;
+  clientId?: string;
+  clientName?: string;
+  clientFullData?: ClientResponseDto;
 }
 
 /**
  * SubLoans Lookup Service
- * 
+ *
  * Combines SubLoans with Client information by:
  * SubLoan.loanId → Loan.clientId → Client.fullName
- * 
+ *
  * This service handles the complex relationship resolution
  * between SubLoans, Loans, and Clients.
  */
 class SubLoansLookupService {
-  private loansCache: Map<string, LoanListResponseDto> = new Map()
-  private clientsCache: Map<string, ClientResponseDto> = new Map()
-  private loansLoadingPromise: Promise<void> | null = null
-  private clientsLoadingPromise: Promise<void> | null = null
-  
+  private loansCache: Map<string, LoanListResponseDto> = new Map();
+  private clientsCache: Map<string, ClientResponseDto> = new Map();
+  private loansLoadingPromise: Promise<void> | null = null;
+  private clientsLoadingPromise: Promise<void> | null = null;
+
   /**
    * Clear caches - useful for forcing fresh data
    */
   clearCache(): void {
-    this.loansCache.clear()
-    this.clientsCache.clear()
+    this.loansCache.clear();
+    this.clientsCache.clear();
   }
 
   /**
    * Get all SubLoans enriched with client information
    */
-  async getAllSubLoansWithClientInfo(params?: PaginationParams): Promise<SubLoanWithClientInfo[]> {
+  async getAllSubLoansWithClientInfo(
+    params?: PaginationParams
+  ): Promise<SubLoanWithClientInfo[]> {
     try {
       // 1. Get all subloans
-      const subLoans = await subLoansService.getAllSubLoans()
+      const subLoans = await subLoansService.getAllSubLoans();
 
       if (subLoans.length === 0) {
-        return []
+        return [];
       }
 
       // 2. Get loans mapping (loanId → clientId)
-      await this.loadLoansCache()
+      await this.loadLoansCache();
 
       // 3. Get clients data
-      await this.loadClientsCache()
+      await this.loadClientsCache();
 
       // 4. Enrich subloans with client info (with lazy loading for missing clients)
       const enrichedSubLoans: SubLoanWithClientInfo[] = await Promise.all(
-        subLoans.map(async subLoan => {
-          const loan = this.loansCache.get(subLoan.loanId)
-          const clientId = loan?.client?.id
-          
+        subLoans.map(async (subLoan) => {
+          const loan = this.loansCache.get(subLoan.loanId);
+          const clientId = loan?.client?.id;
+
           // Try cache first, then lazy load if needed
-          let client = clientId ? this.clientsCache.get(clientId) : undefined
+          let client = clientId ? this.clientsCache.get(clientId) : undefined;
           if (!client && clientId) {
-            const loadedClient = await this.loadClientById(clientId)
-            client = loadedClient || undefined
+            const loadedClient = await this.loadClientById(clientId);
+            client = loadedClient || undefined;
           }
 
           return {
             ...subLoan,
+            loanTrack: loan?.loanTrack,
             clientId,
             clientName: client?.fullName,
-            clientFullData: client
-          }
+            clientFullData: client,
+          };
         })
-      )
+      );
 
-      return enrichedSubLoans
-
+      return enrichedSubLoans;
     } catch (error) {
-      console.error('Error al enriquecer subpréstamos con información del cliente:', error)
-      throw new Error('No se pudieron cargar los datos de cuotas. Por favor, intente nuevamente.')
+      console.error(
+        'Error al enriquecer subpréstamos con información del cliente:',
+        error
+      );
+      throw new Error(
+        'No se pudieron cargar los datos de cuotas. Por favor, intente nuevamente.'
+      );
     }
   }
 
   /**
    * Get today due SubLoans enriched with client information
    */
-  async getTodayDueSubLoansWithClientInfo(params?: PaginationParams): Promise<SubLoanWithClientInfo[]> {
+  async getTodayDueSubLoansWithClientInfo(
+    params?: PaginationParams
+  ): Promise<SubLoanWithClientInfo[]> {
     try {
       // 1. Get today due subloans
-      const subLoans = await subLoansService.getTodayDueSubLoans()
+      const subLoans = await subLoansService.getTodayDueSubLoans();
 
       if (subLoans.length === 0) {
-        return []
+        return [];
       }
 
       // 2. Get loans mapping (loanId → clientId)
-      await this.loadLoansCache()
+      await this.loadLoansCache();
 
       // 3. Get clients data
-      await this.loadClientsCache()
+      await this.loadClientsCache();
 
       // 4. Enrich subloans with client info (with lazy loading for missing clients)
       const enrichedSubLoans: SubLoanWithClientInfo[] = await Promise.all(
-        subLoans.map(async subLoan => {
-          const loan = this.loansCache.get(subLoan.loanId)
-          const clientId = loan?.client?.id
-          
+        subLoans.map(async (subLoan) => {
+          const loan = this.loansCache.get(subLoan.loanId);
+          const clientId = loan?.client?.id;
+
           // Try cache first, then lazy load if needed
-          let client = clientId ? this.clientsCache.get(clientId) : undefined
+          let client = clientId ? this.clientsCache.get(clientId) : undefined;
           if (!client && clientId) {
-            const loadedClient = await this.loadClientById(clientId)
-            client = loadedClient || undefined
+            const loadedClient = await this.loadClientById(clientId);
+            client = loadedClient || undefined;
           }
 
           return {
             ...subLoan,
+            loanTrack: loan?.loanTrack,
             clientId,
             clientName: client?.fullName,
-            clientFullData: client
-          }
+            clientFullData: client,
+          };
         })
-      )
+      );
 
-      return enrichedSubLoans
-
+      return enrichedSubLoans;
     } catch (error) {
-      console.error('Error al enriquecer subpréstamos vencidos hoy con información del cliente:', error)
-      throw new Error('No se pudieron cargar los datos de cuotas vencidas. Por favor, intente nuevamente.')
+      console.error(
+        'Error al enriquecer subpréstamos vencidos hoy con información del cliente:',
+        error
+      );
+      throw new Error(
+        'No se pudieron cargar los datos de cuotas vencidas. Por favor, intente nuevamente.'
+      );
     }
   }
 
@@ -146,29 +161,29 @@ class SubLoansLookupService {
    */
   private async loadLoansCache(): Promise<void> {
     if (this.loansCache.size > 0) {
-      return
+      return;
     }
 
     if (this.loansLoadingPromise) {
-      await this.loansLoadingPromise
-      return
+      await this.loansLoadingPromise;
+      return;
     }
 
     this.loansLoadingPromise = (async () => {
       try {
-        const loans = await loansService.getActiveLoansWithClientId()
-        loans.forEach(loan => {
-          this.loansCache.set(loan.id, loan)
-        })
+        const loans = await loansService.getActiveLoansWithClientId();
+        loans.forEach((loan) => {
+          this.loansCache.set(loan.id, loan);
+        });
       } catch (error) {
-        console.error('Error al cargar caché de préstamos:', error)
-        throw error
+        console.error('Error al cargar caché de préstamos:', error);
+        throw error;
       } finally {
-        this.loansLoadingPromise = null
+        this.loansLoadingPromise = null;
       }
-    })()
+    })();
 
-    await this.loansLoadingPromise
+    await this.loansLoadingPromise;
   }
 
   /**
@@ -177,54 +192,65 @@ class SubLoansLookupService {
    */
   private async loadClientsCache(): Promise<void> {
     if (this.clientsCache.size > 0) {
-      return
+      return;
     }
 
     if (this.clientsLoadingPromise) {
-      await this.clientsLoadingPromise
-      return
+      await this.clientsLoadingPromise;
+      return;
     }
 
     this.clientsLoadingPromise = (async () => {
       try {
-        const clientsResponse = await clientsService.getClients({ page: 1, limit: 20 })
-        const clients = clientsResponse.data
-        clients.forEach(client => {
-          this.clientsCache.set(client.id, client)
-        })
+        const clientsResponse = await clientsService.getClients({
+          page: 1,
+          limit: 20,
+        });
+        const clients = clientsResponse.data;
+        clients.forEach((client) => {
+          this.clientsCache.set(client.id, client);
+        });
 
         if (clientsResponse.meta && clientsResponse.meta.totalPages > 1) {
-          console.log(`Note: ${clientsResponse.meta.totalPages - 1} more pages available (${clientsResponse.meta.total - clients.length} more clients)`)
+          console.log(
+            `Note: ${
+              clientsResponse.meta.totalPages - 1
+            } more pages available (${
+              clientsResponse.meta.total - clients.length
+            } more clients)`
+          );
         }
       } catch (error) {
-        console.error('Error al cargar caché de clientes:', error)
-        throw error
+        console.error('Error al cargar caché de clientes:', error);
+        throw error;
       } finally {
-        this.clientsLoadingPromise = null
+        this.clientsLoadingPromise = null;
       }
-    })()
+    })();
 
-    await this.clientsLoadingPromise
+    await this.clientsLoadingPromise;
   }
 
   /**
    * Load a specific client by ID if not in cache
    * This allows lazy loading of clients that weren't in the first page
    */
-  private async loadClientById(clientId: string): Promise<ClientResponseDto | null> {
+  private async loadClientById(
+    clientId: string
+  ): Promise<ClientResponseDto | null> {
     if (this.clientsCache.has(clientId)) {
-      return this.clientsCache.get(clientId) || null
+      return this.clientsCache.get(clientId) || null;
     }
 
     try {
-      console.log('Loading specific client from API:', clientId)
-      const client = await clientsService.getClientById(clientId)
-      this.clientsCache.set(client.id, client)
-      console.log('Client loaded and cached:', client.fullName)
-      return client
+      console.log('Loading specific client from API:', clientId);
+      const client = await clientsService.getClientById(clientId);
+      this.clientsCache.set(client.id, client);
+      console.log('Client loaded and cached:', client.fullName);
+      return client;
     } catch (error) {
-      console.error('Error al cargar cliente específico:', clientId, error)
-      return null
+      console.error('Error al cargar cliente específico:', clientId, error);
+      return null;
     }
   }
 
@@ -232,15 +258,15 @@ class SubLoansLookupService {
    * Get client info by loan ID
    */
   async getClientByLoanId(loanId: string): Promise<ClientResponseDto | null> {
-    await this.loadLoansCache()
-    await this.loadClientsCache()
+    await this.loadLoansCache();
+    await this.loadClientsCache();
 
-    const loan = this.loansCache.get(loanId)
-    if (!loan?.client?.id) return null
+    const loan = this.loansCache.get(loanId);
+    if (!loan?.client?.id) return null;
 
-    return this.clientsCache.get(loan.client?.id) || null
+    return this.clientsCache.get(loan.client?.id) || null;
   }
 }
 
-export const subLoansLookupService = new SubLoansLookupService()
-export default subLoansLookupService
+export const subLoansLookupService = new SubLoansLookupService();
+export default subLoansLookupService;
