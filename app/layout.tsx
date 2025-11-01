@@ -22,6 +22,7 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Crediasociados - Gestión de Préstamos",
   description: "Plataforma moderna para gestionar préstamos y clientes de forma simple y profesional",
+  manifest: "/site.webmanifest",
 };
 
 export default function RootLayout({
