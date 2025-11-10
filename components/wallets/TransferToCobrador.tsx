@@ -59,11 +59,12 @@ export const TransferToCobrador: React.FC<TransferToCobradoProps> = ({
   const amountValue = parseFloat(unformatAmount(transferAmount)) || 0
   const remainingBalance = currentBalance - amountValue
 
+  // ✅ RESTRICCIÓN REMOVIDA: Las wallets pueden ser negativas sin límite
   const canTransfer =
     selectedCobradoId &&
     transferAmount &&
-    amountValue > 0 &&
-    amountValue <= currentBalance
+    amountValue > 0
+    // amountValue <= currentBalance // Ya no se valida el balance disponible
 
   const handleTransfer = async () => {
     if (!selectedCobrado || !canTransfer) return
@@ -181,8 +182,8 @@ export const TransferToCobrador: React.FC<TransferToCobradoProps> = ({
               fullWidth
               placeholder="$0"
               disabled={isSubmitting}
-              helperText={`Disponible: $${formatAmount(currentBalance.toString())}`}
-              error={amountValue > currentBalance && transferAmount !== ''}
+              helperText={`Balance actual: $${formatAmount(currentBalance.toString())} (puede ser negativo)`}
+              // error={amountValue > currentBalance && transferAmount !== ''} // Ya no se muestra error por saldo insuficiente
             />
 
             {/* Notes Input */}

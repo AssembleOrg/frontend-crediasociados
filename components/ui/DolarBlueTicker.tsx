@@ -66,7 +66,7 @@ const DolarBlueTicker = memo(function DolarBlueTicker({
             variant='body2'
             sx={{ fontWeight: 600, fontSize: '0.9rem', color: '#e0e0e0' }}
           >
-            DÓLAR BLUE
+            COTIZACIÓN
           </Typography>
 
           <Chip
@@ -194,7 +194,7 @@ const DolarBlueTicker = memo(function DolarBlueTicker({
         variant='body2'
         sx={{ fontWeight: 600, fontSize: '0.9rem', color: '#e0e0e0' }}
       >
-        DÓLAR BLUE
+        COTIZACIÓN
       </Typography>
 
       <Chip

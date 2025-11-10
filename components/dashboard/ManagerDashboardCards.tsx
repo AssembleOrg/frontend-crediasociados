@@ -1,13 +1,9 @@
 'use client'
 
-import { Card, CardContent, Typography, Box, Skeleton, Stack } from '@mui/material'
-import { AccountBalanceWallet, TrendingUp, Payment, ShowChart, Lock } from '@mui/icons-material'
-import type { ManagerDashboardData } from '@/services/manager.service'
-
-interface ManagerDashboardCardsProps {
-  data: ManagerDashboardData | null
-  isLoading: boolean
-}
+import { useState, useEffect } from 'react'
+import { Card, CardContent, Typography, Box, Skeleton, Stack, Alert } from '@mui/material'
+import { TrendingUp, TrendingDown, Receipt, AccountBalance } from '@mui/icons-material'
+import { dailySummaryService, type DailySummaryResponse } from '@/services/daily-summary.service'
 
 interface StatCardProps {
   title: string
@@ -19,6 +15,9 @@ interface StatCardProps {
 }
 
 function StatCard({ title, value, subtitle, icon, color, isLoading }: StatCardProps) {
+  const isNegative = value < 0
+  const displayValue = Math.abs(value)
+
   return (
     <Card
       sx={{
@@ -68,7 +67,7 @@ function StatCard({ title, value, subtitle, icon, color, isLoading }: StatCardPr
                 color: 'text.primary',
               }}
             >
-              ${value.toLocaleString('es-AR')}
+              {isNegative && '-'}${displayValue.toLocaleString('es-AR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
             </Typography>
             <Typography variant="body2" color="text.secondary">
               {subtitle}
@@ -80,12 +79,42 @@ function StatCard({ title, value, subtitle, icon, color, isLoading }: StatCardPr
   )
 }
 
-export function ManagerDashboardCards({ data, isLoading }: ManagerDashboardCardsProps) {
-  // Calculate locked amount: Valor de Cartera - Capital Disponible
-  const lockedAmount = (data?.valorCartera || 0) - (data?.capitalDisponible || 0)
+export function ManagerDashboardCards() {
+  const [dailySummary, setDailySummary] = useState<DailySummaryResponse | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    const loadDailySummary = async () => {
+      try {
+        setIsLoading(true)
+        setError(null)
+        const data = await dailySummaryService.getOwnDailySummary()
+        setDailySummary(data)
+      } catch (err: any) {
+        console.error('Error loading daily summary:', err)
+        setError(err.response?.data?.message || 'Error al cargar el resumen diario')
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    loadDailySummary()
+  }, [])
+
+  if (error) {
+    return (
+      <Box sx={{ mb: 4 }}>
+        <Alert severity="error">{error}</Alert>
+      </Box>
+    )
+  }
 
   return (
     <Box sx={{ mb: 4 }}>
+      <Typography variant="h6" fontWeight={600} sx={{ mb: 2 }}>
+        Resumen de Hoy
+      </Typography>
       <Stack
         direction={{ xs: 'column', sm: 'row' }}
         spacing={3}
@@ -94,57 +123,47 @@ export function ManagerDashboardCards({ data, isLoading }: ManagerDashboardCards
           gridTemplateColumns: {
             xs: '1fr',
             sm: 'repeat(2, 1fr)',
-            lg: 'repeat(5, 1fr)',
+            lg: 'repeat(4, 1fr)',
           },
           gap: 3,
         }}
       >
         <StatCard
-          title="Capital Disponible"
-          value={data?.capitalDisponible || 0}
-          subtitle="disponible para prestar"
-          icon={<AccountBalanceWallet sx={{ fontSize: 28 }} />}
+          title="Cobrado Hoy"
+          value={dailySummary?.collected?.total || 0}
+          subtitle={`${dailySummary?.collected?.count || 0} cobros realizados`}
+          icon={<TrendingUp sx={{ fontSize: 28 }} />}
           color="#4caf50"
           isLoading={isLoading}
         />
 
         <StatCard
-          title="Capital Asignado"
-          value={data?.capitalAsignado || 0}
-          subtitle="total asignado"
-          icon={<Payment sx={{ fontSize: 28 }} />}
+          title="Prestado Hoy"
+          value={dailySummary?.loaned?.total || 0}
+          subtitle={`${dailySummary?.loaned?.count || 0} préstamos otorgados`}
+          icon={<AccountBalance sx={{ fontSize: 28 }} />}
           color="#2196f3"
           isLoading={isLoading}
         />
 
         <StatCard
-          title="Dinero Bloqueado"
-          value={lockedAmount}
-          subtitle="en préstamos activos"
-          icon={<Lock sx={{ fontSize: 28 }} />}
-          color="#f44336"
-          isLoading={isLoading}
-        />
-
-        <StatCard
-          title="Recaudado Este Mes"
-          value={data?.recaudadoEsteMes || 0}
-          subtitle="pagos recibidos"
-          icon={<TrendingUp sx={{ fontSize: 28 }} />}
+          title="Gastos Hoy"
+          value={dailySummary?.expenses?.total || 0}
+          subtitle={`${dailySummary?.expenses?.count || 0} gastos registrados`}
+          icon={<Receipt sx={{ fontSize: 28 }} />}
           color="#ff9800"
           isLoading={isLoading}
         />
 
         <StatCard
-          title="Valor de Cartera"
-          value={data?.valorCartera || 0}
-          subtitle="valor total"
-          icon={<ShowChart sx={{ fontSize: 28 }} />}
-          color="#9c27b0"
+          title="Balance Neto"
+          value={dailySummary?.summary?.netBalance || 0}
+          subtitle="del día"
+          icon={<TrendingDown sx={{ fontSize: 28 }} />}
+          color={dailySummary?.summary?.netBalance && dailySummary.summary.netBalance >= 0 ? "#4caf50" : "#f44336"}
           isLoading={isLoading}
         />
       </Stack>
     </Box>
   )
 }
-

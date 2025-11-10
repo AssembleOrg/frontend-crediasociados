@@ -87,12 +87,12 @@ export class ValidationUtils {
       return ValidationMessages.amount
     }
     
-    // Validate minimum amount (default: $1000 for Argentine pesos)
+    // Validate minimum amount
     if (min !== undefined && numericValue < min) {
       return ValidationMessages.amountMin(min)
     }
     
-    // Validate maximum amount (default: $100,000,000 for Argentine pesos)
+    // Validate maximum amount
     if (max !== undefined && numericValue > max) {
       return ValidationMessages.amountMax(max)
     }

@@ -3,6 +3,7 @@
 import { Box, Typography, Chip, Tooltip, useTheme, useMediaQuery } from '@mui/material'
 import { CheckCircle, RadioButtonUnchecked, Warning, Error } from '@mui/icons-material'
 import type { SubLoanWithClientInfo } from '@/services/subloans-lookup.service'
+import { DateTime } from 'luxon'
 
 interface LoanTimelineProps {
   clientName: string
@@ -15,7 +16,7 @@ interface TimelineNodeProps {
   subloan: SubLoanWithClientInfo
   index: number
   isLast: boolean
-  getUrgencyLevel: (dueDate?: string) => 'overdue' | 'today' | 'soon' | 'future'
+  getUrgencyLevel: (subloan: SubLoanWithClientInfo) => 'overdue' | 'today' | 'soon' | 'future'
   compact?: boolean
   onPaymentClick?: (subloan: SubLoanWithClientInfo) => void
 }
@@ -27,7 +28,7 @@ const TimelineNode: React.FC<TimelineNodeProps> = ({
   compact = false,
   onPaymentClick
 }) => {
-  const urgency = getUrgencyLevel(subloan.dueDate)
+  const urgency = getUrgencyLevel(subloan)
   const isPaid = subloan.status === 'PAID'
   const isPartial = subloan.status === 'PARTIAL'
 
@@ -103,22 +104,19 @@ const TimelineNode: React.FC<TimelineNodeProps> = ({
       return `Pagado parcial: $${paidAmount.toLocaleString()} (Resta: $${pending.toLocaleString()})`
     }
 
-    if (!subloan.dueDate) return 'Sin fecha vencimiento'
+    // Use overdueDate if available, otherwise fallback to dueDate
+    const dateToCheck = subloan.overdueDate || subloan.dueDate
+    if (!dateToCheck) return 'Sin fecha vencimiento'
 
-    // Use only date part to avoid timezone issues
-    const today = new Date()
-    today.setHours(0, 0, 0, 0)
+    // Use Luxon for date calculations
+    const today = DateTime.now().setZone('America/Argentina/Buenos_Aires').startOf('day')
+    const targetDate = DateTime.fromISO(dateToCheck).setZone('America/Argentina/Buenos_Aires').startOf('day')
+    const diffDays = Math.round(targetDate.diff(today, 'days').days)
 
-    const dueDate = new Date(subloan.dueDate)
-    dueDate.setHours(0, 0, 0, 0)
-
-    const diffTime = dueDate.getTime() - today.getTime()
-    const diffDays = diffTime / (1000 * 60 * 60 * 24)
-
-    if (diffDays < 0) return `${Math.abs(Math.round(diffDays))} día${Math.abs(Math.round(diffDays)) === 1 ? '' : 's'} vencida`
+    if (diffDays < 0) return `${Math.abs(diffDays)} día${Math.abs(diffDays) === 1 ? '' : 's'} vencida`
     if (diffDays === 0) return 'Vence hoy'
     if (diffDays === 1) return 'Vence mañana'
-    return `En ${Math.round(diffDays)} día${Math.round(diffDays) === 1 ? '' : 's'}`
+    return `En ${diffDays} día${diffDays === 1 ? '' : 's'}`
   }
 
   return (
@@ -152,7 +150,8 @@ const TimelineNode: React.FC<TimelineNodeProps> = ({
           flexDirection: 'column',
           alignItems: 'center',
           position: 'relative',
-          minWidth: compact ? 60 : 80,
+          minWidth: compact ? 70 : 100,
+          flex: compact ? '0 0 70px' : '0 0 100px',
           cursor: !isPaid && onPaymentClick ? 'pointer' : 'default',
           '&:hover': {
             transform: !isPaid && onPaymentClick ? 'scale(1.05)' : 'none',
@@ -180,7 +179,7 @@ const TimelineNode: React.FC<TimelineNodeProps> = ({
               position: 'absolute',
               top: compact ? 16 : 20,
               left: '50%',
-              right: compact ? -30 : -40,
+              right: compact ? -35 : -50,
               height: 2,
               bgcolor: isPaid ? '#4caf50' : '#e0e0e0',
               zIndex: 0
@@ -289,19 +288,20 @@ export const LoanTimeline: React.FC<LoanTimelineProps> = ({
   const theme = useTheme()
   const isMobile = useMediaQuery(theme.breakpoints.down('md'))
 
-  // Helper function to determine urgency based on due date
-  const getUrgencyLevel = (dueDate?: string): 'overdue' | 'today' | 'soon' | 'future' => {
-    if (!dueDate) return 'future'
+  // Helper function to determine urgency based on overdue date using Luxon
+  const getUrgencyLevel = (subloan: SubLoanWithClientInfo): 'overdue' | 'today' | 'soon' | 'future' => {
+    // Use overdueDate if available, otherwise fallback to dueDate
+    const dateToCheck = subloan.overdueDate || subloan.dueDate
+    if (!dateToCheck) return 'future'
 
-    // Use only date part to avoid timezone issues
-    const today = new Date()
-    today.setHours(0, 0, 0, 0)
+    // Get today in Buenos Aires timezone using Luxon
+    const today = DateTime.now().setZone('America/Argentina/Buenos_Aires').startOf('day')
+    
+    // Parse the date to check using Luxon
+    const targetDate = DateTime.fromISO(dateToCheck).setZone('America/Argentina/Buenos_Aires').startOf('day')
 
-    const due = new Date(dueDate)
-    due.setHours(0, 0, 0, 0)
-
-    const diffTime = due.getTime() - today.getTime()
-    const diffDays = diffTime / (1000 * 60 * 60 * 24)
+    // Calculate difference in days (only comparing the date part)
+    const diffDays = targetDate.diff(today, 'days').days
 
     if (diffDays < 0) return 'overdue'
     if (diffDays === 0) return 'today'
@@ -330,12 +330,11 @@ export const LoanTimeline: React.FC<LoanTimelineProps> = ({
 
   // Format currency
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('es-AR', {
-      style: 'currency',
-      currency: 'ARS',
+    // Formato genérico sin especificar país o moneda
+    return `$${new Intl.NumberFormat('es', {
       minimumFractionDigits: 0,
       maximumFractionDigits: 0
-    }).format(amount)
+    }).format(amount)}`
   }
 
   // Determine remaining amount color
@@ -407,8 +406,10 @@ export const LoanTimeline: React.FC<LoanTimelineProps> = ({
           display: 'flex',
           overflowX: 'auto',
           pb: 2,
+          gap: { xs: 1, sm: 2 },
+          justifyContent: sortedSubLoans.length <= 10 ? 'space-evenly' : 'flex-start',
           '&::-webkit-scrollbar': {
-            height: 6
+            height: 8
           },
           '&::-webkit-scrollbar-track': {
             bgcolor: '#f1f1f1',

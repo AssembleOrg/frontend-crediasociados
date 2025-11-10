@@ -63,13 +63,14 @@ export function calculateLoan(
 }
 
 /**
- * Formatea cantidad como moneda argentina
+ * Formatea cantidad como moneda
  */
 export function formatCurrency(amount: number): string {
-  return new Intl.NumberFormat('es-AR', {
-    style: 'currency',
-    currency: 'ARS',
-  }).format(amount);
+  // Formato genérico sin especificar país o moneda
+  return `$${new Intl.NumberFormat('es', {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2,
+  }).format(amount)}`;
 }
 
 /**

@@ -293,12 +293,7 @@ export function LoanFormModal({
                 fullWidth
               />
 
-              {/* Currency selector removed - Always ARS per client request */}
-              <Box sx={{ display: 'none' }}>
-                <Typography variant="caption" color="text.secondary">
-                  Moneda: Pesos Argentinos (ARS)
-                </Typography>
-              </Box>
+              {/* Selector de moneda removido - sistema agnóstico de moneda */}
             </Box>
 
             {/* Interest Rates */}

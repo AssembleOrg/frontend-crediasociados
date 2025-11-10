@@ -116,7 +116,7 @@ export const DepositModal: React.FC<DepositModalProps> = ({
                 placeholder="$0"
                 disabled={isSubmitting}
                 autoFocus
-                helperText="Ingresa el monto en pesos argentinos"
+                helperText="Ingresa el monto a depositar"
               />
             </Box>
 
@@ -148,14 +148,7 @@ export const DepositModal: React.FC<DepositModalProps> = ({
                         ${formatAmount(amountValue.toString())}
                       </Typography>
                     </Box>
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <Typography variant="caption" color="text.secondary">
-                        Moneda:
-                      </Typography>
-                      <Typography variant="caption" sx={{ fontWeight: 600 }}>
-                        ARS
-                      </Typography>
-                    </Box>
+                    {/* Moneda removida - sistema agnóstico de moneda */}
                   </Box>
                 </CardContent>
               </Card>

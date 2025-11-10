@@ -60,7 +60,7 @@ export const unformatPhoneNumber = (value: string): string => {
 }
 
 // Amount formatting with thousands separator and decimal support
-// Argentine format: 1.234.567,89 (dots for thousands, comma for decimals)
+// Format: 1.234.567,89 (dots for thousands, comma for decimals)
 export const formatAmount = (value: string): string => {
   // Handle empty string
   if (!value) return ''
@@ -112,7 +112,7 @@ export const formatAmount = (value: string): string => {
 }
 
 // Remove formatting from amounts and convert to parseFloat-compatible format
-// Converts Argentine format (1.234.567,89) to JavaScript format (1234567.89)
+// Converts format (1.234.567,89) to JavaScript format (1234567.89)
 export const unformatAmount = (value: string): string => {
   // Remove thousands separators (dots)
   let cleaned = value.replace(/\./g, '')

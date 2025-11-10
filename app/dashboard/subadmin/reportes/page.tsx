@@ -1,132 +1,40 @@
 'use client'
 
-import React from 'react'
-import { Box, Alert, CircularProgress, Typography } from '@mui/material'
-import { People } from '@mui/icons-material'
-import { useSubadminReportsWithFilters } from '@/hooks/useSubadminReportsWithFilters'
-import { useAuth } from '@/hooks/useAuth'
-import { useCurrentUser } from '@/hooks/useCurrentUser'
-import { StatsCard } from '@/components/dashboard/StatsCard'
+import React, { useState, useMemo } from 'react'
+import { 
+  Box, 
+  Alert, 
+  CircularProgress, 
+  Typography, 
+  Paper,
+  Autocomplete,
+  TextField,
+  Divider
+} from '@mui/material'
+import { People, Assessment } from '@mui/icons-material'
+import { useUsers } from '@/hooks/useUsers'
+import CollectorReportView from '@/components/reports/CollectorReportView'
 import PageHeader from '@/components/ui/PageHeader'
-import StatsGrid from '@/components/ui/StatsGrid'
-import ManagerStatsTable from '@/components/analytics/ManagerStatsTable'
-import SubadminFiltersAndExport from '@/components/charts/SubadminFiltersAndExport'
-import { exportService } from '@/services/export.service'
-import type { SubadminReportsData } from '@/types/export'
 
 export default function SubadminAnalyticsPage() {
-  const { user } = useAuth()  // For auth checks only
-  const currentUser = useCurrentUser()  // For business data like fullName
-  const {
-    analytics,
-    isLoading,
-    isInitialized,
-    error,
-    clearError,
-    refreshAnalytics,
-    filteredManagers,
-    filteredTotals,
-    selectedManager,
-    setSelectedManager,
-    managerOptions,
-    exportDetailedData,
-    timeFilter,
-    dateRange,
-    setTimeFilter,
-    setCustomDateRange,
-    hasManagers
-  } = useSubadminReportsWithFilters()
+  const { users, isLoading } = useUsers()
+  const [selectedManager, setSelectedManager] = useState<string | null>(null)
 
-  const handlePdfExport = async () => {
-    if (!analytics || !user) {
-      alert('No hay datos disponibles para exportar')
-      return
-    }
+  // Filter managers (prestamistas)
+  const managers = useMemo(() => {
+    return users.filter(user => user.role === 'prestamista')
+  }, [users])
+  const selectedManagerData = managers.find(m => m.id === selectedManager)
 
-    try {
-      const managersForExport = selectedManager
-        ? analytics.managers.filter(m => m.managerId === selectedManager)
-        : analytics.managers
-
-      const reportsData: SubadminReportsData = {
-        totalManagers: managersForExport.length,
-        totalClients: managersForExport.reduce((sum, m) => sum + m.totalClients, 0),
-        totalLoans: managersForExport.reduce((sum, m) => sum + m.totalLoans, 0),
-        totalAmountLent: managersForExport.reduce((sum, m) => sum + m.totalAmountLent, 0),
-        managers: managersForExport.map(manager => ({
-          id: manager.managerId,
-          name: manager.managerName,
-          email: manager.managerEmail,
-          totalClients: manager.totalClients,
-          totalLoans: manager.totalLoans,
-          totalAmountLent: manager.totalAmountLent,
-          createdAt: manager.createdAt
-        }))
-      }
-
-      const pdfBlob = await exportService.generateSubadminReportsPDF(reportsData, currentUser?.fullName || user?.email || 'Reporte')
-
-      const url = window.URL.createObjectURL(pdfBlob)
-      const link = document.createElement('a')
-      link.href = url
-      link.download = `subadmin-reportes${selectedManager ? '-filtrado' : ''}-${new Date().toISOString().split('T')[0]}.pdf`
-      link.click()
-      window.URL.revokeObjectURL(url)
-    } catch (error) {
-      console.error('Error generating PDF:', error)
-      alert('Error al generar el PDF. Por favor, inténtelo de nuevo.')
-    }
-  }
-
-  if (isLoading && !isInitialized) {
+  if (isLoading) {
     return (
       <Box sx={{ p: 3, display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 400 }}>
         <Box sx={{ textAlign: 'center' }}>
           <CircularProgress size={40} sx={{ mb: 2 }} />
           <Typography variant="body1" color="text.secondary">
-            Cargando datos de reportes...
+            Cargando cobradores...
           </Typography>
         </Box>
-      </Box>
-    )
-  }
-
-  if (error) {
-    return (
-      <Box sx={{ p: 3 }}>
-        <PageHeader
-          title="Reportes"
-          subtitle="Panel de métricas de tus managers"
-        />
-        <Alert
-          severity="error"
-          onClose={clearError}
-          action={
-            <Typography
-              variant="body2"
-              sx={{ cursor: 'pointer', textDecoration: 'underline' }}
-              onClick={refreshAnalytics}
-            >
-              Reintentar
-            </Typography>
-          }
-        >
-          {error}
-        </Alert>
-      </Box>
-    )
-  }
-
-  if (!analytics) {
-    return (
-      <Box sx={{ p: 3 }}>
-        <PageHeader
-          title="Reportes"
-          subtitle="Panel de métricas de tus managers"
-        />
-        <Alert severity="info">
-          No hay datos de reportes disponibles.
-        </Alert>
       </Box>
     )
   }
@@ -134,101 +42,73 @@ export default function SubadminAnalyticsPage() {
   return (
     <Box sx={{ p: 3 }}>
       <PageHeader
-        title="Reportes"
-        subtitle="Panel de métricas de tus managers"
+        title="Reportes de Cobradores"
+        subtitle="Consulta los reportes detallados de tus cobradores"
       />
 
-      {hasManagers && (
-        <SubadminFiltersAndExport
-          currentFilter={timeFilter}
-          dateRange={dateRange}
-          onFilterChange={setTimeFilter}
-          onCustomDateChange={setCustomDateRange}
-          selectedManager={selectedManager}
-          managerOptions={managerOptions}
-          onManagerChange={setSelectedManager}
-          onExportExcel={exportDetailedData}
-          onExportPdf={handlePdfExport}
-          isLoading={isLoading}
-          dataCount={{
-            totalManagers: filteredTotals.totalManagers,
-            totalClients: filteredTotals.totalClients
-          }}
-        />
-      )}
-
-      {/* Loading overlay for refresh */}
-      {isLoading && isInitialized && (
-        <Box sx={{ position: 'relative' }}>
-          <Box
-            sx={{
-              position: 'absolute',
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              bgcolor: 'background.paper',
-              opacity: 0.8,
-              zIndex: 1,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center'
-            }}
-          >
-            <CircularProgress size={24} />
-          </Box>
+      {/* Manager Selector */}
+      <Paper sx={{ p: 3, mb: 3 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+          <Assessment sx={{ color: 'primary.main', fontSize: 28 }} />
+          <Typography variant="h6" fontWeight={600}>
+            Selecciona un Cobrador
+          </Typography>
         </Box>
-      )}
-
-      <StatsGrid columns={{ xs: 2, sm: 2, lg: filteredTotals.totalLoans > 0 ? 4 : 2 }}>
-        <StatsCard
-          title="Cobradores"
-          value={filteredTotals.totalManagers}
-          subtitle={`${filteredTotals.totalManagers === 1 ? 'cobrador' : 'cobradores'}`}
-          icon={<People />}
-          color="primary"
-        />
-
-        <StatsCard
-          title="Clientes"
-          value={filteredTotals.totalClients}
-          subtitle={`${filteredTotals.totalClients === 1 ? 'cliente' : 'clientes'}`}
-          icon={<People />}
-          color="primary"
-        />
-
-        {filteredTotals.totalLoans > 0 && (
-          <>
-            <StatsCard
-              title="Préstamos"
-              value={filteredTotals.totalLoans}
-              subtitle={`${filteredTotals.totalLoans === 1 ? 'préstamo' : 'préstamos'}`}
-              icon={<People />}
-              color="success"
-            />
-
-            <StatsCard
-              title="Dinero Prestado"
-              value={`$${filteredTotals.totalAmountLent.toLocaleString()}`}
-              subtitle="monto total prestado"
-              icon={<People />}
-              color="success"
-            />
-          </>
+        <Divider sx={{ mb: 3 }} />
+        
+        {managers.length === 0 ? (
+          <Alert severity="info">
+            No hay cobradores registrados aún. Crea un cobrador desde la sección "Cobradores" para ver sus reportes.
+          </Alert>
+        ) : (
+          <Autocomplete
+            options={managers}
+            getOptionLabel={(option) => `${option.fullName} (${option.email})`}
+            value={selectedManagerData || null}
+            onChange={(_, newValue) => setSelectedManager(newValue?.id || null)}
+            renderInput={(params) => (
+              <TextField
+                {...params}
+                label="Buscar cobrador"
+                placeholder="Escribe el nombre o email del cobrador"
+                variant="outlined"
+              />
+            )}
+            renderOption={(props, option) => (
+              <Box component="li" {...props}>
+                <Box>
+                  <Typography variant="body1" fontWeight={500}>
+                    {option.fullName}
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    {option.email}
+                  </Typography>
+                </Box>
+              </Box>
+            )}
+            noOptionsText="No se encontraron cobradores"
+          />
         )}
-      </StatsGrid>
+      </Paper>
 
-
-      <Box sx={{ mt: 4 }}>
-        <Typography variant="h6" gutterBottom sx={{ mb: 2 }}>
-          Lista de Cobradores
-        </Typography>
-        <ManagerStatsTable
-          managers={filteredManagers}
-          isLoading={isLoading}
+      {/* Report View */}
+      {selectedManager ? (
+        <CollectorReportView
+          managerId={selectedManager}
+          title={`Reporte de ${selectedManagerData?.fullName || 'Cobrador'}`}
+          subtitle={`Selecciona una semana para ver el reporte de cobros de ${selectedManagerData?.fullName || 'este cobrador'}`}
         />
-      </Box>
-
+      ) : managers.length > 0 ? (
+        <Paper sx={{ p: 6, textAlign: 'center' }}>
+          <Assessment sx={{ fontSize: 64, color: 'text.disabled', mb: 2 }} />
+          <Typography variant="h6" color="text.secondary" gutterBottom>
+            Selecciona un cobrador para ver su reporte
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            Usa el selector de arriba para elegir un cobrador y consultar sus reportes semanales
+          </Typography>
+        </Paper>
+      ) : null}
     </Box>
   )
 }

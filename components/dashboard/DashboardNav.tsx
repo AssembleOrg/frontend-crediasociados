@@ -11,13 +11,17 @@ import {
   Avatar,
   Box,
   CircularProgress,
+  Snackbar,
+  Alert,
 } from '@mui/material';
-import { AccountCircle, ExitToApp } from '@mui/icons-material';
+import { AccountCircle, ExitToApp, LockReset } from '@mui/icons-material';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { Logo } from '@/components/ui/Logo';
 import { RoleUtils, type UserRole } from '@/lib/role-utils';
+import { ChangePasswordModal } from '@/components/users/ChangePasswordModal';
+import api from '@/services/api';
 
 export function DashboardNav() {
   const router = useRouter();
@@ -25,6 +29,11 @@ export function DashboardNav() {
   const currentUser = useCurrentUser();
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [isLogoutLoading, setIsLogoutLoading] = useState(false);
+  const [changePasswordModalOpen, setChangePasswordModalOpen] = useState(false);
+  const [changePasswordLoading, setChangePasswordLoading] = useState(false);
+  const [changePasswordError, setChangePasswordError] = useState<string | null>(null);
+  const [showToast, setShowToast] = useState(false);
+  const [toastMessage, setToastMessage] = useState('');
 
   const handleMenu = (event: React.MouseEvent<HTMLElement>) => {
     setAnchorEl(event.currentTarget);
@@ -55,8 +64,34 @@ export function DashboardNav() {
     handleClose();
   };
 
+  const handleOpenChangePassword = () => {
+    handleClose();
+    setChangePasswordModalOpen(true);
+    setChangePasswordError(null);
+  };
+
+  const handleChangePassword = async (userId: string, newPassword: string): Promise<boolean> => {
+    setChangePasswordLoading(true);
+    setChangePasswordError(null);
+
+    try {
+      await api.post('/auth/change-password', { newPassword });
+      setChangePasswordModalOpen(false);
+      setToastMessage('✅ Contraseña cambiada exitosamente');
+      setShowToast(true);
+      return true;
+    } catch (error: any) {
+      const errorMessage = error?.response?.data?.message || error?.message || 'Error al cambiar la contraseña';
+      setChangePasswordError(errorMessage);
+      return false;
+    } finally {
+      setChangePasswordLoading(false);
+    }
+  };
+
 
   return (
+    <>
     <AppBar
       position='sticky'
       elevation={1}
@@ -164,6 +199,10 @@ export function DashboardNav() {
               <AccountCircle sx={{ mr: 1 }} />
               Mi Perfil
             </MenuItem>
+            <MenuItem onClick={handleOpenChangePassword}>
+              <LockReset sx={{ mr: 1 }} />
+              Cambiar Contraseña
+            </MenuItem>
             <MenuItem onClick={handleLogout} disabled={isLogoutLoading}>
               {isLogoutLoading ? (
                 <CircularProgress size={16} sx={{ mr: 1 }} />
@@ -176,5 +215,29 @@ export function DashboardNav() {
         </Box>
       </Toolbar>
     </AppBar>
+
+    <ChangePasswordModal
+      open={changePasswordModalOpen}
+      onClose={() => {
+        setChangePasswordModalOpen(false);
+        setChangePasswordError(null);
+      }}
+      user={currentUser}
+      onChangePassword={handleChangePassword}
+      isLoading={changePasswordLoading}
+      error={changePasswordError}
+    />
+
+    <Snackbar
+      open={showToast}
+      autoHideDuration={4000}
+      onClose={() => setShowToast(false)}
+      anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+    >
+      <Alert onClose={() => setShowToast(false)} severity="success" sx={{ width: '100%' }}>
+        {toastMessage}
+      </Alert>
+    </Snackbar>
+    </>
   );
 }

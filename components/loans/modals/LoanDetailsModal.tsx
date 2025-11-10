@@ -59,14 +59,14 @@ export default function LoanDetailsModal({
     <Dialog
       open={open}
       onClose={onClose}
-      maxWidth="lg"
+      maxWidth="xl"
       fullWidth
       PaperProps={{
         sx: {
-          width: { xs: '95vw', sm: '90vw', md: '1400px' },
+          width: { xs: '95vw', sm: '95vw', md: '95vw' },
           height: { xs: '90vh', sm: 'auto' },
-          maxWidth: 'none',
-          m: { xs: 1, sm: 3 },
+          maxWidth: '1800px',
+          m: { xs: 1, sm: 2 },
           borderRadius: { xs: 2, sm: 3 },
         },
       }}
@@ -78,7 +78,7 @@ export default function LoanDetailsModal({
         </Box>
       </DialogTitle>
       
-      <DialogContent sx={{ p: { xs: 2, sm: 4 }, overflow: 'auto' }}>
+      <DialogContent sx={{ p: { xs: 2, sm: 3 }, overflow: 'auto' }}>
         {isLoading ? (
           <Box sx={{ textAlign: 'center', py: 4 }}>
             <Typography variant="h6" color="text.secondary" gutterBottom>
@@ -216,23 +216,6 @@ export default function LoanDetailsModal({
             />
 
             {/* Actions Section */}
-            {onGoToCobros && (
-              <Box sx={{ mt: 4, p: 3, bgcolor: '#f3f4f6', borderRadius: 2 }}>
-                <Typography variant="h6" gutterBottom>
-                  Acciones Rápidas
-                </Typography>
-                <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                  Gestiona los cobros y pagos de este préstamo
-                </Typography>
-                <Button
-                  variant="contained"
-                  color="primary"
-                  onClick={onGoToCobros}
-                >
-                  Ir a Gestión de Cobros
-                </Button>
-              </Box>
-            )}
           </Box>
         )}
       </DialogContent>

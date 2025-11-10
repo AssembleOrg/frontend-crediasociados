@@ -55,7 +55,8 @@ const INITIAL_FORM_DATA = {
   password: '',
   phone: '',
   role: 'manager' as UserRole,
-  clientQuota: '50'  // ← String to allow empty input
+  clientQuota: '50',  // ← String to allow empty input
+  commission: ''  // Commission percentage for managers
 }
 
 export function UserFormModal({
@@ -86,7 +87,8 @@ export function UserFormModal({
         password: '', // Never pre-fill password for security
         phone: user.phone || '',
         role: user.role as UserRole,
-        clientQuota: user.clientQuota ? user.clientQuota.toString() : '50'
+        clientQuota: user.clientQuota ? user.clientQuota.toString() : '50',
+        commission: user.commission !== undefined && user.commission !== null ? user.commission.toString() : ''
       })
     } else if (mode === 'create') {
       setFormData({
@@ -131,7 +133,8 @@ export function UserFormModal({
     // Convert formData to match User type for validation
     const dataToValidate = {
       ...formData,
-      clientQuota: parseInt(formData.clientQuota) || 0
+      clientQuota: parseInt(formData.clientQuota) || 0,
+      commission: formData.commission ? parseFloat(formData.commission) : undefined
     }
     
     const errors = mode === 'create' 
@@ -143,6 +146,16 @@ export function UserFormModal({
       errors.password = 'La contraseña es requerida'
     } else if (mode === 'create' && formData.password && formData.password.length < 6) {
       errors.password = 'La contraseña debe tener al menos 6 caracteres'
+    }
+
+    // Validate commission for MANAGER
+    if ((mode === 'create' && targetRole === 'manager') || (mode === 'edit' && formData.role === 'manager')) {
+      const commissionValue = parseFloat(formData.commission)
+      if (!formData.commission || isNaN(commissionValue)) {
+        errors.commission = 'La comisión es requerida para cobradores'
+      } else if (commissionValue < 0 || commissionValue > 100) {
+        errors.commission = 'La comisión debe estar entre 0 y 100%'
+      }
     }
 
     // Validate clientQuota for SUBADMIN or MANAGER creation
@@ -193,6 +206,9 @@ export function UserFormModal({
       role: formData.role,
       clientQuota: (targetRole === 'subadmin' || targetRole === 'manager' || formData.role === 'subadmin' || formData.role === 'manager' || formData.role === 'prestamista') 
         ? (parseInt(formData.clientQuota) || 0) 
+        : undefined,
+      commission: (targetRole === 'manager' || formData.role === 'manager')
+        ? (parseFloat(formData.commission) || 0)
         : undefined
     }
 
@@ -464,6 +480,27 @@ export function UserFormModal({
                 </Select>
               </FormControl>
             )}
+
+            {/* Commission Field - Only for Managers */}
+            {(mode === 'create' && targetRole === 'manager') || (mode === 'edit' && formData.role === 'manager') ? (
+              <TextField
+                label="Comisión (%)"
+                type="number"
+                value={formData.commission}
+                onChange={handleInputChange('commission')}
+                error={!!formErrors.commission}
+                helperText={formErrors.commission || 'Porcentaje de comisión para el cobrador (requerido, ej: 10 para 10%)'}
+                required
+                fullWidth
+                InputProps={{
+                  inputProps: { 
+                    min: 0,
+                    max: 100,
+                    step: 0.01
+                  }
+                }}
+              />
+            ) : null}
 
             {/* Client Quota Field */}
             {(mode === 'create' && (targetRole === 'subadmin' || targetRole === 'manager')) || (mode === 'edit' && (formData.role === 'subadmin' || formData.role === 'manager' || formData.role === 'prestamista')) ? (

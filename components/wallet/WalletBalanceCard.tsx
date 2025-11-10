@@ -45,12 +45,11 @@ export const WalletBalanceCard: React.FC<WalletBalanceCardProps> = ({
 }) => {
   const formatCurrency = (amount: number | null | undefined): string => {
     if (amount === null || amount === undefined) return '$0';
-    return new Intl.NumberFormat('es-AR', {
-      style: 'currency',
-      currency: 'ARS',
+    // Formato genérico sin especificar país o moneda
+    return `$${new Intl.NumberFormat('es', {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
-    }).format(amount);
+    }).format(amount)}`;
   };
 
   if (isLoading) {

@@ -16,7 +16,7 @@ const CURRENCY_COLORS = {
 };
 
 const CURRENCY_LABELS = {
-  ARS: 'Pesos',
+  ARS: 'Moneda',
 };
 
 const CustomTooltip = ({ active, payload }: ChartTooltipProps) => {

@@ -57,11 +57,12 @@ export const WithdrawFromCobrador: React.FC<WithdrawFromCobradoProps> = ({
   const cobradoBalance = selectedCobrado?.wallet?.balance ?? 0
   const amountValue = parseFloat(unformatAmount(withdrawAmount)) || 0
 
+  // ✅ RESTRICCIÓN REMOVIDA: Las wallets pueden ser negativas sin límite
   const canWithdraw =
     selectedCobradoId &&
     withdrawAmount &&
-    amountValue > 0 &&
-    amountValue <= cobradoBalance
+    amountValue > 0
+    // amountValue <= cobradoBalance // Ya no se valida el balance disponible
 
   const handleWithdraw = async () => {
     if (!selectedCobrado || !canWithdraw) return
@@ -182,8 +183,8 @@ export const WithdrawFromCobrador: React.FC<WithdrawFromCobradoProps> = ({
               fullWidth
               placeholder="$0"
               disabled={isSubmitting || !selectedCobradoId}
-              helperText={`Disponible: $${formatAmount(cobradoBalance.toString())}`}
-              error={amountValue > cobradoBalance && withdrawAmount !== ''}
+                helperText={`Balance actual: $${formatAmount(cobradoBalance.toString())} (puede ser negativo)`}
+              // error={amountValue > cobradoBalance && withdrawAmount !== ''} // Ya no se muestra error por saldo insuficiente
             />
 
             {/* Notes */}

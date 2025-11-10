@@ -154,12 +154,11 @@ export function RouteExpenseModal({
   };
 
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('es-AR', {
-      style: 'currency',
-      currency: 'ARS',
+    // Formato genérico sin especificar país o moneda
+    return `$${new Intl.NumberFormat('es', {
       minimumFractionDigits: 0,
       maximumFractionDigits: 0,
-    }).format(amount);
+    }).format(amount)}`;
   };
 
   const totalExpenses = expenses.reduce((sum, exp) => sum + exp.amount, 0);

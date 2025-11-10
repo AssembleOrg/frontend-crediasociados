@@ -135,13 +135,15 @@ class LoansService {
   }
 
   /**
+   * ✅ MÉTODO DEPRECADO: Las wallets pueden ser negativas sin límite
    * Helper: Validate if loan can be created with available wallet balance
    * NOTE: Backend performs the actual validation and transaction
-   * This is for frontend pre-validation only
+   * This is for frontend pre-validation only - REMOVED wallet balance restrictions
    *
    * @param loanAmount The amount to loan
    * @param availableBalance The available balance in manager's wallet
    * @returns Object with validation result and message
+   * @deprecated Las wallets ya no tienen restricciones de balance mínimo
    */
   validateLoanAgainstBalance(
     loanAmount: number,
@@ -151,18 +153,24 @@ class LoansService {
     message: string;
     insufficientBy?: number;
   } {
-    if (loanAmount > availableBalance) {
-      return {
-        isValid: false,
-        message: `Saldo insuficiente. Necesita $${loanAmount.toFixed(2)} pero solo tiene $${availableBalance.toFixed(2)}`,
-        insufficientBy: loanAmount - availableBalance,
-      };
-    }
-
+    // ✅ SIEMPRE RETORNA VÁLIDO - Las wallets pueden ser negativas
     return {
       isValid: true,
-      message: 'Saldo disponible suficiente',
+      message: 'Las wallets pueden tener balance negativo sin restricciones',
     };
+    
+    // Código anterior comentado:
+    // if (loanAmount > availableBalance) {
+    //   return {
+    //     isValid: false,
+    //     message: `Saldo insuficiente. Necesita $${loanAmount.toFixed(2)} pero solo tiene $${availableBalance.toFixed(2)}`,
+    //     insufficientBy: loanAmount - availableBalance,
+    //   };
+    // }
+    // return {
+    //   isValid: true,
+    //   message: 'Saldo disponible suficiente',
+    // };
   }
 }
 

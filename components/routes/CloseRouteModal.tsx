@@ -34,12 +34,11 @@ export function CloseRouteModal({ open, onClose, route, onConfirm }: CloseRouteM
   const [error, setError] = useState<string | null>(null);
 
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('es-AR', {
-      style: 'currency',
-      currency: 'ARS',
+    // Formato genérico sin especificar país o moneda
+    return `$${new Intl.NumberFormat('es', {
       minimumFractionDigits: 0,
       maximumFractionDigits: 0,
-    }).format(amount);
+    }).format(amount)}`;
   };
 
   const handleConfirm = async () => {

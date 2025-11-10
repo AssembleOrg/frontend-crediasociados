@@ -412,7 +412,7 @@ export function ClientFormModal({
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
                   <AddressAutocomplete
                     label="Dirección (lugar de cobro)"
-                    placeholder="Ej: Av. Corrientes 1234, Buenos Aires, Argentina"
+                    placeholder="Ej: Calle Principal 1234, Ciudad"
                     value={formData.address || ''}
                     onChange={(newAddress) => {
                       setFormData(prev => ({ ...prev, address: newAddress }))

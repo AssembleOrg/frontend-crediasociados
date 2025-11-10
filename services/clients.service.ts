@@ -53,6 +53,33 @@ class ClientsService {
     const response = await api.get(`/clients/search?q=${encodeURIComponent(query)}`)
     return response.data.data
   }
+
+  /**
+   * Search client by DNI or CUIT
+   * @param dni - DNI to search
+   * @param cuit - CUIT to search
+   * @returns Client found or null
+   */
+  async searchByDniOrCuit(dni?: string, cuit?: string): Promise<ClientResponseDto | null> {
+    const params = new URLSearchParams()
+    if (dni) params.append('dni', dni)
+    if (cuit) params.append('cuit', cuit)
+
+    const queryString = params.toString()
+    if (!queryString) {
+      throw new Error('DNI or CUIT is required')
+    }
+
+    try {
+      const response = await api.get(`/clients/search?${queryString}`)
+      return response.data.data
+    } catch (error: any) {
+      if (error?.response?.status === 404) {
+        return null
+      }
+      throw error
+    }
+  }
 }
 
 export const clientsService = new ClientsService()

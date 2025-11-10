@@ -218,15 +218,14 @@ export function formatDaysUntilDue(daysUntilDue: number): string {
 }
 
 /**
- * Formatea el monto en pesos argentinos
+ * Formatea el monto como moneda
  */
 export function formatCurrency(amount: number): string {
-  return new Intl.NumberFormat('es-AR', {
-    style: 'currency',
-    currency: 'ARS',
+  // Formato genérico sin especificar país o moneda
+  return `$${new Intl.NumberFormat('es', {
     minimumFractionDigits: 0,
     maximumFractionDigits: 0,
-  }).format(amount);
+  }).format(amount)}`;
 }
 
 /**

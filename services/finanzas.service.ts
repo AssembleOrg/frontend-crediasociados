@@ -9,7 +9,7 @@
 
 import api from './api'
 import { loansService } from './loans.service'
-import { operativaService } from './operativa.service'
+import operativaService from './operativa.service'
 import type { LoanResponseDto, UserResponseDto } from '@/types/auth'
 import type { Transaccion } from '@/types/operativa'
 import type {

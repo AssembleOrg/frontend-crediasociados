@@ -126,6 +126,7 @@ export interface User {
   clientQuota?: number;
   usedClientQuota?: number;
   availableClientQuota?: number;
+  commission?: number; // Commission percentage for managers
 }
 
 // Frontend domain type for Clients
@@ -186,6 +187,12 @@ export interface AuthState {
   token: string | null;
   refreshToken: string | null;
   isAuthenticated: boolean;
+}
+
+// Change Password types
+export interface ChangePasswordDto {
+  userId: string;
+  newPassword: string;
 }
 
 // API Error types

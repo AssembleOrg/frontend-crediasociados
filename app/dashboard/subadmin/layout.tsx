@@ -15,11 +15,11 @@ import DashboardDataProvider from '@/components/providers/DashboardDataProvider'
 
 const subadminMenuItems = [
   { label: 'Dashboard', icon: <Dashboard />, path: '/dashboard/subadmin' },
-  {
-    label: 'Cobros',
-    icon: <Payment />,
-    path: '/dashboard/subadmin/cobros',
-  },
+  // {
+  //   label: 'Cobros',
+  //   icon: <Payment />,
+  //   path: '/dashboard/subadmin/cobros',
+  // },
   {
     label: 'Reportes',
     icon: <Analytics />,
@@ -48,11 +48,11 @@ const subadminQuickActions = [
     icon: <Dashboard />,
     path: '/dashboard/subadmin',
   },
-  {
-    label: 'Cobros',
-    icon: <Payment />,
-    path: '/dashboard/subadmin/cobros',
-  },
+  // {
+  //   label: 'Cobros',
+  //   icon: <Payment />,
+  //   path: '/dashboard/subadmin/cobros',
+  // },
   {
     label: 'Reportes',
     icon: <Analytics />,

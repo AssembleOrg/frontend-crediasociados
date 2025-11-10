@@ -35,11 +35,11 @@ interface LoanDetailsProps {
 
 export default function LoanDetails({ loanDetails }: LoanDetailsProps) {
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('es-AR', {
-      style: 'currency',
-      currency: 'ARS',
-      minimumFractionDigits: 0
-    }).format(amount)
+    // Formato genérico sin especificar país o moneda
+    return `$${new Intl.NumberFormat('es', {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 2
+    }).format(amount)}`
   }
 
   const formatDate = (dateString: string) => {

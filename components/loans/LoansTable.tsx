@@ -136,26 +136,110 @@ export function LoansTable({ loans: externalLoans, onViewDetails, onLoanDeleted 
     }
   }
 
-  type LoanLike = { totalPayments?: number }
+  type LoanLike = { totalPayments?: number; id: string }
   const getProgressInfo = (loan: LoanLike) => {
-    // TODO: Cuando tengamos subloans, calcular progreso real
     const totalPayments = loan.totalPayments || 0
-    const completedPayments = 0 // TODO: Contar subloans pagados
+    
+    // Get all subloans for this loan
+    const loanSubLoans = allSubLoansWithClient.filter(subloan => subloan.loanId === loan.id)
+    
+    // Count only PAID and PARTIAL for the numeric progress
+    const completedPayments = loanSubLoans.filter(
+      sl => sl.status === 'PAID' || sl.status === 'PARTIAL'
+    ).length
+    
+    // Calculate percentage for the numeric display
     const progress = totalPayments > 0 ? (completedPayments / totalPayments) * 100 : 0
     
-    return { totalPayments, completedPayments, progress }
+    // Group subloans by status for visual progress
+    const statusGroups = {
+      paid: loanSubLoans.filter(sl => sl.status === 'PAID').length,
+      partial: loanSubLoans.filter(sl => sl.status === 'PARTIAL').length,
+      overdue: loanSubLoans.filter(sl => sl.status === 'OVERDUE').length,
+      pending: loanSubLoans.filter(sl => sl.status === 'PENDING').length,
+    }
+    
+    return { totalPayments, completedPayments, progress, statusGroups }
   }
 
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('es-AR', {
-      style: 'currency',
-      currency: 'ARS',
-      minimumFractionDigits: 0
-    }).format(amount)
+    // Formato genérico sin especificar país o moneda
+    return `$${new Intl.NumberFormat('es', {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 2
+    }).format(amount)}`
   }
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('es-AR')
+  }
+
+  // Multi-color progress bar component
+  const MultiColorProgressBar = ({ loanId, totalPayments }: { 
+    loanId: string
+    totalPayments: number 
+  }) => {
+    if (totalPayments === 0) {
+      return (
+        <Box sx={{ 
+          width: '100%', 
+          height: 8, 
+          bgcolor: 'grey.200', 
+          borderRadius: 1 
+        }} />
+      )
+    }
+
+    // Get all subloans for this loan and sort by payment number
+    const loanSubLoans = allSubLoansWithClient
+      .filter(subloan => subloan.loanId === loanId)
+      .sort((a, b) => (a.paymentNumber || 0) - (b.paymentNumber || 0))
+
+    // Create an array representing each payment slot
+    const paymentSlots = Array.from({ length: totalPayments }, (_, index) => {
+      const subloan = loanSubLoans.find(sl => (sl.paymentNumber || 0) === index + 1)
+      return subloan?.status || 'PENDING'
+    })
+
+    const segmentWidth = 100 / totalPayments
+
+    const getColorForStatus = (status: string) => {
+      switch (status) {
+        case 'PAID':
+          return '#4caf50' // green
+        case 'PARTIAL':
+          return '#ff9800' // orange/yellow
+        case 'OVERDUE':
+          return '#f44336' // red
+        case 'PENDING':
+        default:
+          return '#e0e0e0' // grey
+      }
+    }
+
+    return (
+      <Box sx={{ 
+        width: '100%', 
+        height: 8, 
+        bgcolor: 'grey.200', 
+        borderRadius: 1,
+        overflow: 'hidden',
+        display: 'flex',
+        gap: '1px'
+      }}>
+        {paymentSlots.map((status, index) => (
+          <Box
+            key={index}
+            sx={{
+              width: `${segmentWidth}%`,
+              height: '100%',
+              bgcolor: getColorForStatus(status),
+              transition: 'all 0.3s ease',
+            }}
+          />
+        ))}
+      </Box>
+    )
   }
 
   const paginatedLoans = loans.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
@@ -244,7 +328,7 @@ export function LoansTable({ loans: externalLoans, onViewDetails, onLoanDeleted 
             </TableHead>
             <TableBody>
               {paginatedLoans.map((loan) => {
-                const { totalPayments, completedPayments, progress } = getProgressInfo(loan)
+                const { totalPayments, completedPayments, progress, statusGroups } = getProgressInfo(loan)
                 
                 return (
                   <TableRow 
@@ -303,11 +387,9 @@ export function LoansTable({ loans: externalLoans, onViewDetails, onLoanDeleted 
                             {completedPayments} de {totalPayments}
                           </Typography>
                         </Box>
-                        <LinearProgress 
-                          variant="determinate" 
-                          value={progress} 
-                          sx={{ height: 6, borderRadius: 1 }}
-                          color={progress === 100 ? 'success' : 'primary'}
+                        <MultiColorProgressBar 
+                          loanId={loan.id}
+                          totalPayments={totalPayments}
                         />
                       </Box>
                     </TableCell>
@@ -367,7 +449,7 @@ export function LoansTable({ loans: externalLoans, onViewDetails, onLoanDeleted 
       {/* Mobile Cards */}
       <Box sx={{ display: { xs: 'block', lg: 'none' }, p: 2 }}>
         {paginatedLoans.map((loan) => {
-          const { totalPayments, completedPayments, progress } = getProgressInfo(loan)
+          const { totalPayments, completedPayments, progress, statusGroups } = getProgressInfo(loan)
           
           return (
             <Card key={loan.id} sx={{ mb: 2 }}>
@@ -403,16 +485,13 @@ export function LoansTable({ loans: externalLoans, onViewDetails, onLoanDeleted 
                     <Typography variant="caption" color="text.secondary">
                       Progreso de pagos
                     </Typography>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      <Typography variant="body2">
-                        {completedPayments}/{totalPayments}
-                      </Typography>
-                      <LinearProgress 
-                        variant="determinate" 
-                        value={progress} 
-                        sx={{ flexGrow: 1, height: 6, borderRadius: 1 }}
-                      />
-                    </Box>
+                    <Typography variant="body2" sx={{ mb: 0.5 }}>
+                      {completedPayments}/{totalPayments}
+                    </Typography>
+                    <MultiColorProgressBar 
+                      loanId={loan.id}
+                      totalPayments={totalPayments}
+                    />
                   </Box>
                 </Box>
                 

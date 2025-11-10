@@ -1,6 +1,6 @@
 import api, { setAuthToken } from './api'
 import type { components } from '@/types/api-generated'
-import type { LoginResponse, RefreshResponse } from '@/types/auth'
+import type { LoginResponse, RefreshResponse, ChangePasswordDto } from '@/types/auth'
 
 type LoginRequest = components['schemas']['LoginDto']
 type RefreshRequest = components['schemas']['RefreshTokenDto']
@@ -51,6 +51,10 @@ class AuthService {
 
   clearAuth(): void {
     setAuthToken(null)
+  }
+
+  async changePassword(changePasswordData: ChangePasswordDto): Promise<void> {
+    await api.post('/auth/change-password', changePasswordData)
   }
 }
 

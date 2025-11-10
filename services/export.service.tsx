@@ -358,19 +358,9 @@ class ExportService {
               <Text style={styles.label}>Monto Solicitado:</Text>
               <Text style={styles.value}>${data.amount.toLocaleString('es-AR')}</Text>
             </View>
-            {data.summary.totalInterest > 0 && (
-              <View style={styles.row}>
-                <Text style={styles.label}>Interés:</Text>
-                <Text style={styles.value}>${data.summary.totalInterest.toLocaleString('es-AR')}</Text>
-              </View>
-            )}
             <View style={styles.row}>
               <Text style={styles.label}>Monto Total a Devolver:</Text>
               <Text style={styles.value}>${data.totalAmount.toLocaleString('es-AR')}</Text>
-            </View>
-            <View style={styles.row}>
-              <Text style={styles.label}>Resta Abonar:</Text>
-              <Text style={styles.value}>${data.summary.remainingBalance.toLocaleString('es-AR')}</Text>
             </View>
             <View style={styles.row}>
               <Text style={styles.label}>Frecuencia de Pago:</Text>
@@ -392,23 +382,14 @@ class ExportService {
             <View style={styles.table}>
               <View style={styles.tableHeader}>
                 <Text style={styles.tableCellHeader}>Cuota</Text>
-                <Text style={styles.tableCellHeader}>Fecha Venc.</Text>
-                <Text style={styles.tableCellHeader}>Capital</Text>
-                {data.summary.totalInterest > 0 && (
-                  <Text style={styles.tableCellHeader}>Interés</Text>
-                )}
-                <Text style={styles.tableCellHeader}>Total</Text>
+                <Text style={styles.tableCellHeader}>Fecha Pago</Text>
+                <Text style={styles.tableCellHeader}>Total a Pagar</Text>
               </View>
               {data.paymentSchedule.map((payment, index) => {
-                const interestAmount = payment.totalAmount - payment.principalAmount;
                 return (
                   <View key={index} style={styles.tableRow}>
                     <Text style={styles.tableCell}>#{payment.paymentNumber}</Text>
                     <Text style={styles.tableCell}>{payment.dueDate}</Text>
-                    <Text style={styles.tableCell}>${payment.principalAmount.toLocaleString('es-AR')}</Text>
-                    {data.summary.totalInterest > 0 && (
-                      <Text style={styles.tableCell}>${interestAmount.toLocaleString('es-AR')}</Text>
-                    )}
                     <Text style={styles.tableCell}>${payment.totalAmount.toLocaleString('es-AR')}</Text>
                   </View>
                 );

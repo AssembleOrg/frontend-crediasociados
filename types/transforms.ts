@@ -48,6 +48,7 @@ export const apiUserToUser = (apiUser: UserResponseDto): User => ({
   clientQuota: apiUser.clientQuota !== undefined ? apiUser.clientQuota : undefined,
   usedClientQuota: apiUser.usedClientQuota !== undefined ? apiUser.usedClientQuota : undefined,
   availableClientQuota: apiUser.availableClientQuota !== undefined ? apiUser.availableClientQuota : undefined,
+  commission: (apiUser as any).commission !== undefined ? (apiUser as any).commission : undefined,
 });
 
 // Transform frontend user to API create DTO
@@ -60,7 +61,8 @@ export const userToCreateDto = (
   phone: user.phone,
   role: REVERSE_ROLE_MAP[user.role] || 'MANAGER',
   clientQuota: (user as any)?.clientQuota,
-});
+  commission: user.commission,
+} as CreateUserDto);
 
 // Transform frontend user to API update DTO
 export const userToUpdateDto = (
@@ -75,6 +77,7 @@ export const userToUpdateDto = (
   if (user.role !== undefined)
     dto.role = REVERSE_ROLE_MAP[user.role] || 'MANAGER';
   if (user.clientQuota !== undefined) dto.clientQuota = user.clientQuota;
+  if (user.commission !== undefined) (dto as any).commission = user.commission;
 
   return dto;
 };

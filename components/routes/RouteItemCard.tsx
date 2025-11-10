@@ -51,12 +51,11 @@ export function RouteItemCard({
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('es-AR', {
-      style: 'currency',
-      currency: 'ARS',
+    // Formato genérico sin especificar país o moneda
+    return `$${new Intl.NumberFormat('es', {
       minimumFractionDigits: 0,
       maximumFractionDigits: 0,
-    }).format(amount);
+    }).format(amount)}`;
   };
 
   const formatDate = (dateString: string) => {

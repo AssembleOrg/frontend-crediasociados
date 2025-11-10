@@ -249,10 +249,6 @@ export function LoanSimulationModal({
                     <Typography variant="h6">${parseFloat(formData.amount).toLocaleString()}</Typography>
                   </Box>
                   <Box>
-                    <Typography variant="body2" color="text.secondary">Interés:</Typography>
-                    <Typography variant="h6" color="warning.main">${totalInterest.toLocaleString()}</Typography>
-                  </Box>
-                  <Box>
                     <Typography variant="body2" color="text.secondary">Total a Cobrar:</Typography>
                     <Typography variant="h6" color="primary.main">${totalWithInterest.toLocaleString()}</Typography>
                   </Box>
@@ -271,9 +267,6 @@ export function LoanSimulationModal({
                 <Box sx={{ display: 'grid', gap: 1 }}>
                   <Typography variant="body2">
                     <strong>Tasa base:</strong> {formData.baseInterestRate}%
-                  </Typography>
-                  <Typography variant="body2">
-                    <strong>Penalización:</strong> 0% (por defecto)
                   </Typography>
                   <Typography variant="body2">
                     <strong>Frecuencia:</strong> {getFrequencyLabel(formData.paymentFrequency)}
@@ -318,14 +311,12 @@ export function LoanSimulationModal({
                   <TableCell><strong>Cuota</strong></TableCell>
                   <TableCell align="right"><strong>Fecha Venc.</strong></TableCell>
                   <TableCell align="right"><strong>Principal</strong></TableCell>
-                  <TableCell align="right"><strong>Interés</strong></TableCell>
                   <TableCell align="right"><strong>Total</strong></TableCell>
                   <TableCell align="center"><strong>Estado</strong></TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
                 {simulatedLoans.map((loan) => {
-                  const interestAmount = loan.totalAmount - loan.amount
                   return (
                     <TableRow 
                       key={loan.paymentNumber}
@@ -347,11 +338,6 @@ export function LoanSimulationModal({
                       <TableCell align="right">
                         <Typography variant="body2">
                           ${loan.amount.toFixed(2)}
-                        </Typography>
-                      </TableCell>
-                      <TableCell align="right">
-                        <Typography variant="body2" color="warning.main">
-                          ${interestAmount.toFixed(2)}
                         </Typography>
                       </TableCell>
                       <TableCell align="right">

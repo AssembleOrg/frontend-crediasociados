@@ -19,11 +19,11 @@ import {
   Card,
   CardContent,
   Divider,
+  Autocomplete,
+  CircularProgress,
 } from '@mui/material'
 import {
-  Person,
   AttachMoney,
-  Percent,
   CalendarToday,
   Description,
 } from '@mui/icons-material'
@@ -34,6 +34,9 @@ import { VisualCalendar } from '@/components/ui/VisualCalendar'
 import { useBuenosAiresDate } from '@/hooks/useBuenosAiresDate'
 import { formatAmount, unformatAmount } from '@/lib/formatters'
 import { ValidationUtils } from '@/lib/validation-utils'
+import { clientsService } from '@/services/clients.service'
+import { apiClientToClient } from '@/types/transforms'
+import type { Client } from '@/types/auth'
 
 
 interface CreateLoanModalProps {
@@ -81,6 +84,12 @@ export function CreateLoanModal({
     totalInterest: number
   } | null>(null)
 
+  // Client search states
+  const [searchInput, setSearchInput] = useState('')
+  const [searchResults, setSearchResults] = useState<Client[]>([])
+  const [isSearching, setIsSearching] = useState(false)
+  const [selectedClient, setSelectedClient] = useState<Client | null>(null)
+
   // Reset form cuando se cierra el modal
   useEffect(() => {
     if (!open) {
@@ -100,8 +109,54 @@ export function CreateLoanModal({
       setSimulatedLoans([])
       setSimulationModalOpen(false)
       setLivePreview(null)
+      setSearchInput('')
+      setSearchResults([])
+      setSelectedClient(null)
     }
   }, [open])
+
+  // Search clients after 2 characters
+  useEffect(() => {
+    const searchClients = async () => {
+      if (searchInput.length < 2) {
+        setSearchResults([])
+        return
+      }
+
+      setIsSearching(true)
+      try {
+        // Try to search by DNI or CUIT
+        const result = await clientsService.searchByDniOrCuit(searchInput, searchInput)
+        if (result) {
+          // Convert ClientResponseDto to Client
+          const clientConverted = apiClientToClient(result)
+          setSearchResults([clientConverted])
+        } else {
+          // If not found by DNI/CUIT, show all clients from the hook
+          const filtered = clients.filter(client =>
+            client.fullName.toLowerCase().includes(searchInput.toLowerCase()) ||
+            client.dni?.includes(searchInput) ||
+            client.cuit?.includes(searchInput)
+          )
+          setSearchResults(filtered)
+        }
+      } catch (error) {
+        console.error('Error searching clients:', error)
+        // Fallback to local filtering
+        const filtered = clients.filter(client =>
+          client.fullName.toLowerCase().includes(searchInput.toLowerCase()) ||
+          client.dni?.includes(searchInput) ||
+          client.cuit?.includes(searchInput)
+        )
+        setSearchResults(filtered)
+      } finally {
+        setIsSearching(false)
+      }
+    }
+
+    const timeoutId = setTimeout(searchClients, 300)
+    return () => clearTimeout(timeoutId)
+  }, [searchInput, clients])
 
   // Live preview calculation - updates as user types
   useEffect(() => {
@@ -193,13 +248,14 @@ export function CreateLoanModal({
       errors.totalPayments = 'El número de pagos debe ser al menos 1'
     }
 
-    // Validate wallet balance
-    if (wallet && formData.amount) {
-      const loanAmount = parseFloat(unformatAmount(formData.amount)) || 0
-      if (loanAmount > wallet.balance) {
-        errors.amount = `Saldo insuficiente. Disponible: $${wallet.balance.toLocaleString('es-AR')}`
-      }
-    }
+    // ✅ RESTRICCIÓN REMOVIDA: Las wallets pueden ser negativas sin límite
+    // Las validaciones de saldo se manejan en el backend si es necesario
+    // if (wallet && formData.amount) {
+    //   const loanAmount = parseFloat(unformatAmount(formData.amount)) || 0
+    //   if (loanAmount > wallet.balance) {
+    //     errors.amount = `Saldo insuficiente. Disponible: $${wallet.balance.toLocaleString('es-AR')}`
+    //   }
+    // }
 
     setFormErrors(errors)
     return Object.keys(errors).length === 0
@@ -303,8 +359,6 @@ export function CreateLoanModal({
     setSimulatedLoans([])
     onClose()
   }
-
-  const selectedClient = clients.find(c => c.id === formData.clientId)
 
   // Calcular fecha automática basada en frecuencia de pago
   const calculateAutomaticDate = (): Date => {
@@ -431,430 +485,257 @@ export function CreateLoanModal({
             fontSize: { xs: '0.8rem', sm: '0.875rem' }
           }}
         >
-          Configura los parámetros del préstamo y simula las cuotas
+          Genera un nuevo préstamo con cronograma de pagos
         </Typography>
       </DialogTitle>
 
       <DialogContent sx={{ p: 0 }}>
-        <Box sx={{ p: { xs: 2, sm: 3 } }}>
-          {/* Client Selection Card */}
-          <Card sx={{ mb: { xs: 2, sm: 3 }, borderRadius: 2, boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}>
-            <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', mb: { xs: 1.5, sm: 2 } }}>
-                <Person sx={{ mr: 1, color: 'primary.main', fontSize: { xs: '1.25rem', sm: '1.5rem' } }} />
-                <Typography 
-                  variant="h6" 
-                  sx={{ 
-                    fontWeight: 600,
-                    fontSize: { xs: '1rem', sm: '1.25rem' }
+        {/* Single Unified Card with Blue Gradient Background */}
+        <Box sx={{ 
+          p: { xs: 2, sm: 3 },
+          background: 'linear-gradient(135deg, #667eea 0%, #4facfe 100%)',
+        }}>
+          <Card sx={{ 
+            borderRadius: 3, 
+            boxShadow: '0 8px 32px rgba(0,0,0,0.15)',
+            overflow: 'visible'
+          }}>
+            <CardContent sx={{ p: { xs: 2.5, sm: 4 } }}>
+              {/* Client Selection with Search */}
+              <Box sx={{ mb: 3 }}>
+                <Autocomplete
+                  fullWidth
+                  options={searchInput.length >= 2 ? searchResults : clients}
+                  getOptionLabel={(option) => {
+                    const parts = [option.fullName]
+                    if (option.dni) parts.push(`DNI: ${option.dni}`)
+                    if (option.cuit) parts.push(`CUIT: ${option.cuit}`)
+                    return parts.join(' • ')
                   }}
-                >
-                  Selección de Cliente
-                </Typography>
-              </Box>
-              
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-                <FormControl error={!!formErrors.clientId} fullWidth>
-                  <InputLabel>Cliente</InputLabel>
-                  <Select
-                    value={formData.clientId}
-                    onChange={(e) => handleSelectChange('clientId', e.target.value)}
-                    label="Cliente"
-                    disabled={clientsLoading}
-                    sx={{
-                      borderRadius: 2,
-                    }}
-                  >
-                    {clients.map((client) => (
-                      <MenuItem key={client.id} value={client.id}>
-                        {client.fullName} {client.dni ? `(DNI: ${client.dni})` : ''} {client.cuit ? `(CUIT: ${client.cuit})` : ''}
-                      </MenuItem>
-                    ))}
-                  </Select>
-                  {formErrors.clientId && (
-                    <Typography variant="caption" color="error" sx={{ mt: 1 }}>
-                      {formErrors.clientId}
-                    </Typography>
+                  value={selectedClient}
+                  onChange={(_, newValue) => {
+                    setSelectedClient(newValue)
+                    handleSelectChange('clientId', newValue?.id || '')
+                  }}
+                  inputValue={searchInput}
+                  onInputChange={(_, newInputValue) => {
+                    setSearchInput(newInputValue)
+                  }}
+                  loading={isSearching}
+                  loadingText="Buscando..."
+                  noOptionsText={searchInput.length < 2 ? "Escribe al menos 2 caracteres" : "No se encontraron clientes"}
+                  disabled={clientsLoading}
+                  renderInput={(params) => (
+                    <TextField
+                      {...params}
+                      label="Cliente *"
+                      error={!!formErrors.clientId}
+                      helperText={formErrors.clientId || "Busca por nombre, DNI o CUIT"}
+                      sx={{ 
+                        '& .MuiOutlinedInput-root': { 
+                          borderRadius: 2, 
+                          bgcolor: 'grey.50' 
+                        } 
+                      }}
+                      InputProps={{
+                        ...params.InputProps,
+                        endAdornment: (
+                          <>
+                            {isSearching ? <CircularProgress color="inherit" size={20} /> : null}
+                            {params.InputProps.endAdornment}
+                          </>
+                        ),
+                      }}
+                    />
                   )}
-                </FormControl>
+                  renderOption={(props, option) => (
+                    <li {...props} key={option.id}>
+                      <Box>
+                        <Typography variant="body2" fontWeight={600}>
+                          {option.fullName}
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          {option.dni && `DNI: ${option.dni}`}
+                          {option.dni && option.cuit && ' • '}
+                          {option.cuit && `CUIT: ${option.cuit}`}
+                        </Typography>
+                      </Box>
+                    </li>
+                  )}
+                />
 
                 {selectedClient && (
-                  <Alert severity="info" sx={{ borderRadius: 2 }}>
-                    Cliente seleccionado: <strong>{selectedClient.fullName}</strong>
-                    {selectedClient.phone && ` • Tel: ${selectedClient.phone}`}
-                    {selectedClient.email && ` • Email: ${selectedClient.email}`}
+                  <Alert severity="info" sx={{ mt: 2, borderRadius: 2 }}>
+                    <strong>{selectedClient.fullName}</strong>
+                    {selectedClient.phone && ` • ${selectedClient.phone}`}
+                    {selectedClient.email && ` • ${selectedClient.email}`}
                   </Alert>
                 )}
               </Box>
-            </CardContent>
-          </Card>
 
-          {/* Loan Amount Card */}
-          <Card sx={{ mb: { xs: 2, sm: 3 }, borderRadius: 2, boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}>
-            <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
-              <Box sx={{ 
-                display: 'flex', 
-                alignItems: { xs: 'flex-start', sm: 'center' }, 
-                mb: { xs: 1.5, sm: 2 }, 
-                justifyContent: 'space-between',
-                flexDirection: { xs: 'column', sm: 'row' },
-                gap: { xs: 1, sm: 0 }
-              }}>
-                <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                  <AttachMoney sx={{ mr: 1, color: 'primary.main', fontSize: { xs: '1.25rem', sm: '1.5rem' } }} />
-                  <Typography 
-                    variant="h6" 
-                    sx={{ 
-                      fontWeight: 600,
-                      fontSize: { xs: '1rem', sm: '1.25rem' }
-                    }}
-                  >
-                    Monto del Préstamo
-                  </Typography>
-                </Box>
+              <Divider sx={{ my: 3 }} />
+
+              {/* Loan Amount and Interest - Compact Layout */}
+              <Typography 
+                variant="h6" 
+                sx={{ 
+                  mb: 2, 
+                  fontWeight: 600, 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  gap: 1,
+                  color: 'primary.main'
+                }}
+              >
+                <AttachMoney /> Monto del Préstamo
                 {wallet && (
                   <Box sx={{
-                    p: { xs: 0.75, sm: 1 },
+                    ml: 'auto',
+                    px: 1.5,
+                    py: 0.5,
                     bgcolor: 'success.lighter',
                     borderRadius: 1,
                     border: '1px solid',
                     borderColor: 'success.light'
                   }}>
-                    <Typography 
-                      variant="caption" 
-                      sx={{ 
-                        color: 'success.main', 
-                        fontWeight: 600,
-                        fontSize: { xs: '0.7rem', sm: '0.75rem' }
-                      }}
-                    >
-                      Disponible: ${wallet.balance.toLocaleString('es-AR')} {wallet.currency}
+                    <Typography variant="caption" sx={{ color: 'success.main', fontWeight: 600 }}>
+                      Disponible: ${wallet.balance.toLocaleString('es-AR')}
                     </Typography>
                   </Box>
                 )}
+              </Typography>
+
+              <Box sx={{ 
+                display: 'grid', 
+                gridTemplateColumns: { xs: '1fr', sm: '2fr 1fr' }, 
+                gap: 2, 
+                mb: 3 
+              }}>
+                <TextField
+                  label="Monto del Préstamo"
+                  type="text"
+                  value={formatAmount(formData.amount || '')}
+                  onChange={(e) => {
+                    const unformattedValue = unformatAmount(e.target.value);
+                    setFormData(prev => ({ ...prev, amount: unformattedValue }));
+                    if (formErrors.amount) {
+                      setFormErrors(prev => ({ ...prev, amount: '' }));
+                    }
+                  }}
+                  error={!!formErrors.amount}
+                  helperText={formErrors.amount || 'Ingresa el monto a prestar (ej: 1.000.000)'}
+                  required
+                  fullWidth
+                  InputProps={{
+                    startAdornment: <InputAdornment position="start">$</InputAdornment>,
+                  }}
+                  sx={{ 
+                    '& .MuiOutlinedInput-root': { borderRadius: 2, bgcolor: 'grey.50' },
+                  }}
+                />
+
+                <TextField
+                  label="Tasa de Interés Base"
+                  type="number"
+                  value={formData.baseInterestRate}
+                  onChange={handleInputChange('baseInterestRate')}
+                  error={!!formErrors.baseInterestRate}
+                  helperText={formErrors.baseInterestRate || 'Ej: 12'}
+                  required
+                  fullWidth
+                  InputProps={{
+                    endAdornment: <InputAdornment position="end">%</InputAdornment>,
+                  }}
+                  sx={{ 
+                    '& .MuiOutlinedInput-root': { borderRadius: 2, bgcolor: 'grey.50' },
+                    '& input[type=number]': { MozAppearance: 'textfield' },
+                    '& input[type=number]::-webkit-outer-spin-button, & input[type=number]::-webkit-inner-spin-button': { display: 'none' },
+                  }}
+                />
               </Box>
 
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-                <Box sx={{ display: 'flex', gap: 2, flexDirection: { xs: 'column', sm: 'row' } }}>
-                  <TextField
-                    label="Monto del Préstamo"
-                    type="text"
-                    value={formatAmount(formData.amount || '')}
-                    onChange={(e) => {
-                      const unformattedValue = unformatAmount(e.target.value);
-                      setFormData(prev => ({
-                        ...prev,
-                        amount: unformattedValue
-                      }));
-                      // Clear error if exists
-                      if (formErrors.amount) {
-                        setFormErrors(prev => ({
-                          ...prev,
-                          amount: ''
-                        }));
-                      }
-                    }}
-                    error={!!formErrors.amount}
-                    helperText={formErrors.amount || 'Ingresa el monto a prestar (ej: 1.000.000)'}
-                    required
-                    fullWidth
-                    InputProps={{
-                      startAdornment: <InputAdornment position="start">$</InputAdornment>,
-                    }}
-                    sx={{
-                      '& .MuiOutlinedInput-root': {
-                        borderRadius: 2,
-                      },
-                      '& input[type=number]': {
-                        MozAppearance: 'textfield',
-                      },
-                      '& input[type=number]::-webkit-outer-spin-button': {
-                        WebkitAppearance: 'none',
-                        margin: 0,
-                      },
-                      '& input[type=number]::-webkit-inner-spin-button': {
-                        WebkitAppearance: 'none',
-                        margin: 0,
-                      },
-                    }}
-                  />
-                  <TextField
-                    label="Moneda"
-                    value="ARS - Peso Argentino"
-                    disabled
-                    fullWidth
-                    helperText="Solo se manejan préstamos en pesos argentinos"
-                    sx={{
-                      '& .MuiOutlinedInput-root': {
-                        borderRadius: 2,
-                      }
-                    }}
-                  />
-                </Box>
-
-                {/* Resumen del cálculo */}
-                {formData.amount && formData.baseInterestRate && (
-                  <Box sx={{ 
-                    p: { xs: 1.5, sm: 2 }, 
-                    bgcolor: 'primary.50', 
-                    borderRadius: 2, 
-                    border: '1px solid',
-                    borderColor: 'primary.200'
-                  }}>
-                    <Typography 
-                      variant="subtitle2" 
-                      sx={{ 
-                        fontWeight: 600, 
-                        mb: 1, 
-                        color: 'primary.main',
-                        fontSize: { xs: '0.9rem', sm: '1rem' }
-                      }}
-                    >
-                      Resumen del Préstamo
-                    </Typography>
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <Typography 
-                        variant="body2" 
-                        color="text.secondary"
-                        sx={{ fontSize: { xs: '0.8rem', sm: '0.875rem' } }}
-                      >
+              {/* Summary Preview - Inline */}
+              {formData.amount && formData.baseInterestRate && (
+                <Box sx={{ 
+                  p: 2, 
+                  mb: 3,
+                  bgcolor: 'primary.50', 
+                  borderRadius: 2, 
+                  border: '2px solid',
+                  borderColor: 'primary.200'
+                }}>
+                  <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1.5, color: 'primary.main' }}>
+                    Resumen del Préstamo
+                  </Typography>
+                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2 }}>
+                    <Box sx={{ flex: 1, minWidth: 120 }}>
+                      <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>
                         Monto base:
                       </Typography>
-                      <Typography 
-                        variant="body2" 
-                        sx={{ 
-                          fontWeight: 500,
-                          fontSize: { xs: '0.8rem', sm: '0.875rem' }
-                        }}
-                      >
+                      <Typography variant="body1" fontWeight={600}>
                         ${parseFloat(unformatAmount(formData.amount) || '0').toLocaleString('es-AR')}
                       </Typography>
                     </Box>
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <Typography 
-                        variant="body2" 
-                        color="text.secondary"
-                        sx={{ fontSize: { xs: '0.8rem', sm: '0.875rem' } }}
-                      >
+                    <Box sx={{ flex: 1, minWidth: 120 }}>
+                      <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>
                         Interés ({formData.baseInterestRate}%):
                       </Typography>
-                      <Typography 
-                        variant="body2" 
-                        sx={{ 
-                          fontWeight: 500,
-                          fontSize: { xs: '0.8rem', sm: '0.875rem' }
-                        }}
-                      >
+                      <Typography variant="body1" fontWeight={600} color="warning.main">
                         ${(parseFloat(unformatAmount(formData.amount) || '0') * parseFloat(formData.baseInterestRate || '0') / 100).toLocaleString('es-AR')}
                       </Typography>
                     </Box>
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 1, pt: 1, borderTop: '1px solid', borderColor: 'primary.200' }}>
-                      <Typography 
-                        variant="subtitle1" 
-                        sx={{ 
-                          fontWeight: 600, 
-                          color: 'primary.main',
-                          fontSize: { xs: '0.9rem', sm: '1rem' }
-                        }}
-                      >
+                    <Box sx={{ flex: 1, minWidth: 120, textAlign: { xs: 'left', sm: 'right' } }}>
+                      <Typography variant="caption" color="primary.main" sx={{ display: 'block', mb: 0.5, fontWeight: 600 }}>
                         Total a prestar:
                       </Typography>
-                      <Typography 
-                        variant="h6" 
-                        sx={{ 
-                          fontWeight: 700, 
-                          color: 'primary.main',
-                          fontSize: { xs: '1.1rem', sm: '1.25rem' }
-                        }}
-                      >
+                      <Typography variant="h6" fontWeight={700} color="primary.main">
                         ${totalAmount.toLocaleString('es-AR')}
                       </Typography>
                     </Box>
                   </Box>
-                )}
-              </Box>
-            </CardContent>
-          </Card>
-
-          {/* Interest Rates Card */}
-          <Card sx={{ mb: { xs: 2, sm: 3 }, borderRadius: 2, boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}>
-            <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', mb: { xs: 1.5, sm: 2 } }}>
-                <Percent sx={{ mr: 1, color: 'primary.main', fontSize: { xs: '1.25rem', sm: '1.5rem' } }} />
-                <Typography 
-                  variant="h6" 
-                  sx={{ 
-                    fontWeight: 600,
-                    fontSize: { xs: '1rem', sm: '1.25rem' }
-                  }}
-                >
-                  Tasas de Interés
-                </Typography>
-              </Box>
-              
-              <Box sx={{ display: 'flex', gap: 2, flexDirection: { xs: 'column', sm: 'row' }, alignItems: 'flex-start' }}>
-                <Box sx={{ display: 'flex', alignItems: 'flex-end', gap: 0.5, flex: 1, width: { xs: '100%', sm: 'auto' } }}>
-                  <TextField
-                    label="Tasa de Interés Base"
-                    type="number"
-                    value={formData.baseInterestRate}
-                    onChange={handleInputChange('baseInterestRate')}
-                    error={!!formErrors.baseInterestRate}
-                    helperText={formErrors.baseInterestRate || 'Porcentaje de interés aplicado al monto total'}
-                    required
-                    fullWidth
-                    InputProps={{
-                      endAdornment: <InputAdornment position="end">%</InputAdornment>,
-                    }}
-                    sx={{
-                      '& .MuiOutlinedInput-root': {
-                        borderRadius: 2,
-                      },
-                      '& input[type=number]': {
-                        MozAppearance: 'textfield',
-                      },
-                      '& input[type=number]::-webkit-outer-spin-button': {
-                        display: 'none',
-                      },
-                      '& input[type=number]::-webkit-inner-spin-button': {
-                        display: 'none',
-                      },
-                    }}
-                  />
-                  {/* <Tooltip title='Redondear cuota hacia arriba'>
-                    <span>
-                      <IconButton
-                        size='small'
-                        onClick={() => {
-                          if (formData.amount && formData.totalPayments && formData.baseInterestRate) {
-                            const result = findRoundedInterestRateUp({
-                              baseAmount: parseFloat(unformatAmount(formData.amount)),
-                              totalPayments: parseInt(formData.totalPayments),
-                              currentInterestRate: parseFloat(formData.baseInterestRate),
-                            });
-                            if (result) {
-                              setFormData(prev => ({
-                                ...prev,
-                                baseInterestRate: result.interestRate.toFixed(2),
-                              }));
-                            }
-                          }
-                        }}
-                        disabled={!formData.amount || !formData.totalPayments || !formData.baseInterestRate}
-                        sx={{
-                          bgcolor: 'primary.lighter',
-                          border: '2px solid',
-                          borderColor: 'primary.main',
-                          color: 'primary.main',
-                          borderRadius: 1,
-                          '&:hover': {
-                            bgcolor: 'primary.light',
-                            borderColor: 'primary.dark',
-                          },
-                          '&:disabled': {
-                            bgcolor: 'action.disabledBackground',
-                            borderColor: 'action.disabled',
-                            color: 'action.disabled',
-                          },
-                        }}
-                      >
-                        <KeyboardArrowUp />
-                      </IconButton>
-                    </span>
-                  </Tooltip>
-                  <Tooltip title='Redondear cuota hacia abajo'>
-                    <span>
-                      <IconButton
-                        size='small'
-                        onClick={() => {
-                          if (formData.amount && formData.totalPayments && formData.baseInterestRate) {
-                            const result = findRoundedInterestRateDown({
-                              baseAmount: parseFloat(unformatAmount(formData.amount)),
-                              totalPayments: parseInt(formData.totalPayments),
-                              currentInterestRate: parseFloat(formData.baseInterestRate),
-                            });
-                            if (result) {
-                              setFormData(prev => ({
-                                ...prev,
-                                baseInterestRate: result.interestRate.toFixed(2),
-                              }));
-                            }
-                          }
-                        }}
-                        disabled={!formData.amount || !formData.totalPayments || !formData.baseInterestRate}
-                        sx={{
-                          bgcolor: 'primary.lighter',
-                          border: '2px solid',
-                          borderColor: 'primary.main',
-                          color: 'primary.main',
-                          borderRadius: 1,
-                          '&:hover': {
-                            bgcolor: 'primary.light',
-                            borderColor: 'primary.dark',
-                          },
-                          '&:disabled': {
-                            bgcolor: 'action.disabledBackground',
-                            borderColor: 'action.disabled',
-                            color: 'action.disabled',
-                          },
-                        }}
-                      >
-                        <KeyboardArrowDown />
-                      </IconButton>
-                    </span>
-                  </Tooltip> */}
+                  {formData.totalPayments && (
+                    <Box sx={{ mt: 2, pt: 2, borderTop: '1px solid', borderColor: 'primary.200' }}>
+                      <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>
+                        Valor por cuota:
+                      </Typography>
+                      <Typography variant="h5" fontWeight={700} color="success.main">
+                        ${(totalAmount / parseInt(formData.totalPayments)).toLocaleString('es-AR', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
+                      </Typography>
+                    </Box>
+                  )}
                 </Box>
-                <Box sx={{ flex: 1, width: { xs: '100%', sm: 'auto' } }}>
-                  <TextField
-                    label="Tasa de Penalización"
-                    type="number"
-                    value="0"
-                    fullWidth
-                    helperText="Se aplicará 0% por defecto"
-                    InputProps={{
-                      endAdornment: <InputAdornment position="end">%</InputAdornment>,
-                    }}
-                    sx={{
-                      '& .MuiOutlinedInput-root': {
-                        borderRadius: 2,
-                      },
-                      '& .MuiInputBase-input.Mui-disabled': {
-                        WebkitTextFillColor: '#666'
-                      }
-                    }}
-                  />
-                </Box>
-              </Box>
-            </CardContent>
-          </Card>
+              )}
 
-          {/* Payment Schedule Card */}
-          <Card sx={{ mb: { xs: 2, sm: 3 }, borderRadius: 2, boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}>
-            <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', mb: { xs: 1.5, sm: 2 } }}>
-                <CalendarToday sx={{ mr: 1, color: 'primary.main', fontSize: { xs: '1.25rem', sm: '1.5rem' } }} />
-                <Typography 
-                  variant="h6" 
-                  sx={{ 
-                    fontWeight: 600,
-                    fontSize: { xs: '1rem', sm: '1.25rem' }
-                  }}
-                >
-                  Cronograma de Pagos
-                </Typography>
-              </Box>
-              
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-                <Box sx={{ display: 'flex', gap: 2, flexDirection: { xs: 'column', sm: 'row' } }}>
+              <Divider sx={{ my: 3 }} />
+
+              {/* Payment Schedule - Compact */}
+              <Typography 
+                variant="h6" 
+                sx={{ 
+                  mb: 2, 
+                  fontWeight: 600, 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  gap: 1,
+                  color: 'primary.main'
+                }}
+              >
+                <CalendarToday /> Cronograma de Pagos
+              </Typography>
+
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mb: 3 }}>
+                <Box sx={{ 
+                  display: 'grid', 
+                  gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, 
+                  gap: 2 
+                }}>
                   <FormControl fullWidth>
                     <InputLabel>Frecuencia de Pago</InputLabel>
                     <Select
                       value={formData.paymentFrequency}
                       onChange={(e) => handleSelectChange('paymentFrequency', e.target.value)}
                       label="Frecuencia de Pago"
-                      sx={{
-                        borderRadius: 2,
-                      }}
+                      sx={{ borderRadius: 2, bgcolor: 'grey.50' }}
                     >
                       <MenuItem value="DAILY">Diario</MenuItem>
                       <MenuItem value="WEEKLY">Semanal</MenuItem>
@@ -869,12 +750,8 @@ export function CreateLoanModal({
                       value={formData.paymentFrequency === 'DAILY' ? "Todos los días" : "Sin día específico"}
                       disabled
                       fullWidth
-                      helperText={formData.paymentFrequency === 'DAILY' ? "Cobros diarios - No requiere día específico" : "Cobros quincenales - No requiere día específico"}
-                      sx={{
-                        '& .MuiOutlinedInput-root': {
-                          borderRadius: 2,
-                        }
-                      }}
+                      helperText={formData.paymentFrequency === 'DAILY' ? "Cobros diarios" : "Cobros quincenales"}
+                      sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
                     />
                   ) : (
                     <FormControl fullWidth>
@@ -883,9 +760,7 @@ export function CreateLoanModal({
                         value={formData.paymentDay}
                         onChange={(e) => handleSelectChange('paymentDay', e.target.value)}
                         label="Día de Pago"
-                        sx={{
-                          borderRadius: 2,
-                        }}
+                        sx={{ borderRadius: 2, bgcolor: 'grey.50' }}
                       >
                         <MenuItem value="MONDAY">Lunes</MenuItem>
                         <MenuItem value="TUESDAY">Martes</MenuItem>
@@ -898,31 +773,24 @@ export function CreateLoanModal({
                   )}
                 </Box>
 
-                <Box sx={{ display: 'flex', gap: 2, flexDirection: { xs: 'column', sm: 'row' } }}>
+                <Box sx={{ 
+                  display: 'grid', 
+                  gridTemplateColumns: { xs: '1fr', sm: '1fr 2fr' }, 
+                  gap: 2 
+                }}>
                   <TextField
                     label="Total de Pagos"
                     type="number"
                     value={formData.totalPayments}
                     onChange={handleInputChange('totalPayments')}
                     error={!!formErrors.totalPayments}
-                    helperText={formErrors.totalPayments || 'En cuántos pagos se dividirá el préstamo'}
+                    helperText={formErrors.totalPayments || 'N° de cuotas'}
                     required
                     fullWidth
                     sx={{
-                      '& .MuiOutlinedInput-root': {
-                        borderRadius: 2,
-                      },
-                      '& input[type=number]': {
-                        MozAppearance: 'textfield',
-                      },
-                      '& input[type=number]::-webkit-outer-spin-button': {
-                        WebkitAppearance: 'none',
-                        margin: 0,
-                      },
-                      '& input[type=number]::-webkit-inner-spin-button': {
-                        WebkitAppearance: 'none',
-                        margin: 0,
-                      },
+                      '& .MuiOutlinedInput-root': { borderRadius: 2, bgcolor: 'grey.50' },
+                      '& input[type=number]': { MozAppearance: 'textfield' },
+                      '& input[type=number]::-webkit-outer-spin-button, & input[type=number]::-webkit-inner-spin-button': { display: 'none' },
                     }}
                   />
                   <VisualCalendar
@@ -930,118 +798,39 @@ export function CreateLoanModal({
                     value={formData.firstDueDate}
                     onChange={handleDateChange}
                     placeholder="dd/mm/aaaa"
-                    helperText={`Opcional - si no se especifica, se usará: ${formatDate(automaticDate)} (calculado según frecuencia de pago)`}
+                    helperText={`Opcional - Por defecto: ${formatDate(automaticDate)}`}
                     minDate={now().toJSDate()}
                   />
                 </Box>
               </Box>
-            </CardContent>
-          </Card>
 
-          {/* Live Preview Card */}
-          {/* {livePreview && (
-            <Card sx={{
-              borderRadius: 2,
-              boxShadow: '0 4px 12px rgba(0,0,0,0.05)',
-              background: 'linear-gradient(135deg, #667eea15 0%, #4facfe15 100%)',
-              border: '2px solid',
-              borderColor: 'primary.main',
-              mb: { xs: 2, sm: 3 }
-            }}>
-              <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
-                <Typography 
-                  variant="h6" 
-                  sx={{ 
-                    fontWeight: 600, 
-                    mb: { xs: 1.5, sm: 2 }, 
-                    color: 'primary.main',
-                    fontSize: { xs: '1rem', sm: '1.25rem' }
-                  }}
-                >
-                  📊 Vista Previa en Tiempo Real
-                </Typography>
+              <Divider sx={{ my: 3 }} />
 
-                <Box sx={{
-                  display: 'grid',
-                  gridTemplateColumns: { xs: '1fr', sm: 'repeat(3, 1fr)' },
-                  gap: 2
-                }}>
-                  <Box sx={{ textAlign: 'center', p: 2, bgcolor: 'white', borderRadius: 2 }}>
-                    <Typography variant="body2" color="text.secondary" gutterBottom>
-                      Valor por Cuota
-                    </Typography>
-                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 0.5 }}>
-                      <Typography
-                        variant="h5"
-                        fontWeight="bold"
-                        sx={{ color: isNiceRoundNumber(livePreview.installmentAmount) ? '#22c55e' : 'success.main' }}
-                      >
-                        ${livePreview.installmentAmount.toLocaleString('es-AR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
-                      </Typography>
-                      {isNiceRoundNumber(livePreview.installmentAmount) && (
-                        <Typography variant="caption" sx={{ color: '#22c55e', fontWeight: 600 }}>
-                          ✓
-                        </Typography>
-                      )}
-                    </Box>
-                  </Box>
-
-                  <Box sx={{ textAlign: 'center', p: 2, bgcolor: 'white', borderRadius: 2 }}>
-                    <Typography variant="body2" color="text.secondary" gutterBottom>
-                      Total a Devolver
-                    </Typography>
-                    <Typography variant="h5" fontWeight="bold" color="primary.main">
-                      ${livePreview.totalAmount.toLocaleString('es-AR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
-                    </Typography>
-                  </Box>
-
-                  <Box sx={{ textAlign: 'center', p: 2, bgcolor: 'white', borderRadius: 2 }}>
-                    <Typography variant="body2" color="text.secondary" gutterBottom>
-                      Total de Intereses
-                    </Typography>
-                    <Typography variant="h5" fontWeight="bold" color="warning.main">
-                      ${livePreview.totalInterest.toLocaleString('es-AR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
-                    </Typography>
-                  </Box>
-                </Box>
-
-                <Alert severity="info" sx={{ mt: 2 }}>
-                  <Typography variant="caption">
-                    💡 Estos valores se actualizan automáticamente mientras editas. Usa las flechas en la tasa de interés para redondear las cuotas. Haz clic en &quot;Simular Préstamo&quot; para ver el cronograma completo de pagos.
-                  </Typography>
-                </Alert>
-              </CardContent>
-            </Card>
-          )} */}
-
-          {/* Description Card */}
-          <Card sx={{ borderRadius: 2, boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}>
-            <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', mb: { xs: 1.5, sm: 2 } }}>
-                <Description sx={{ mr: 1, color: 'primary.main', fontSize: { xs: '1.25rem', sm: '1.5rem' } }} />
-                <Typography 
-                  variant="h6" 
-                  sx={{ 
-                    fontWeight: 600,
-                    fontSize: { xs: '1rem', sm: '1.25rem' }
-                  }}
-                >
-                  Información Adicional
-                </Typography>
-              </Box>
+              {/* Additional Information - Compact */}
+              <Typography 
+                variant="h6" 
+                sx={{ 
+                  mb: 2, 
+                  fontWeight: 600, 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  gap: 1,
+                  color: 'primary.main'
+                }}
+              >
+                <Description /> Información Adicional
+              </Typography>
               
               <TextField
                 label="Descripción"
                 value={formData.description}
                 onChange={handleInputChange('description')}
                 multiline
-                rows={3}
+                rows={2}
                 fullWidth
-                helperText="Descripción del préstamo"
+                placeholder="Agrega notas o detalles sobre el préstamo (opcional)"
                 sx={{
-                  '& .MuiOutlinedInput-root': {
-                    borderRadius: 2,
-                  }
+                  '& .MuiOutlinedInput-root': { borderRadius: 2, bgcolor: 'grey.50' }
                 }}
               />
             </CardContent>
@@ -1054,7 +843,8 @@ export function CreateLoanModal({
       <DialogActions sx={{ 
         p: { xs: 2, sm: 3 }, 
         gap: { xs: 1.5, sm: 2 },
-        flexDirection: { xs: 'column', sm: 'row' }
+        flexDirection: { xs: 'column', sm: 'row' },
+        background: 'linear-gradient(135deg, #667eea08 0%, #4facfe08 100%)',
       }}>
         <Button
           onClick={handleClose}
@@ -1066,7 +856,13 @@ export function CreateLoanModal({
             px: { xs: 3, sm: 4 },
             py: { xs: 1.25, sm: 1.5 },
             order: { xs: 2, sm: 1 },
-            minWidth: { xs: '100%', sm: 'auto' }
+            minWidth: { xs: '100%', sm: 'auto' },
+            borderColor: 'grey.300',
+            color: 'text.secondary',
+            '&:hover': {
+              borderColor: 'grey.400',
+              bgcolor: 'grey.50'
+            }
           }}
         >
           Cancelar
@@ -1079,17 +875,21 @@ export function CreateLoanModal({
           fullWidth
           sx={{ 
             borderRadius: 2,
-            px: { xs: 3, sm: 4 },
+            px: { xs: 4, sm: 6 },
             py: { xs: 1.25, sm: 1.5 },
             order: { xs: 1, sm: 2 },
             minWidth: { xs: '100%', sm: 'auto' },
             background: 'linear-gradient(135deg, #667eea 0%, #4facfe 100%)',
+            boxShadow: '0 4px 12px rgba(102, 126, 234, 0.4)',
+            fontSize: '1rem',
+            fontWeight: 600,
             '&:hover': {
               background: 'linear-gradient(135deg, #5a6fd8 0%, #3d8bfe 100%)',
+              boxShadow: '0 6px 16px rgba(102, 126, 234, 0.5)',
             }
           }}
         >
-          {isSimulating ? 'Simulando...' : 'Simular Préstamo'}
+          {isSimulating ? 'Simulando...' : '📊 Simular Préstamo'}
         </Button>
       </DialogActions>
 

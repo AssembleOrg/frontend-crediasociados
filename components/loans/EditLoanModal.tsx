@@ -292,23 +292,6 @@ export function EditLoanModal({ open, onClose, loan }: EditLoanModalProps) {
                   ),
                 }}
               />
-              <TextField
-                label='Tasa de Penalización'
-                type='number'
-                value={formData.penaltyInterestRate}
-                onChange={handleInputChange('penaltyInterestRate')}
-                error={!!formErrors.penaltyInterestRate}
-                helperText={
-                  formErrors.penaltyInterestRate ||
-                  'Porcentaje adicional por pagos vencidos'
-                }
-                fullWidth
-                InputProps={{
-                  endAdornment: (
-                    <InputAdornment position='end'>%</InputAdornment>
-                  ),
-                }}
-              />
             </Box>
 
             {/* Frecuencia y Día de Pago */}

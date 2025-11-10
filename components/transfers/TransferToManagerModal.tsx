@@ -54,11 +54,12 @@ export const TransferToManagerModal: React.FC<TransferToManagerModalProps> = ({
   const amountValue = parseFloat(unformatAmount(transferAmount)) || 0
   const remainingBalance = availableBalance - amountValue
 
+  // ✅ RESTRICCIÓN REMOVIDA: Las wallets pueden ser negativas sin límite
   const canTransfer =
     selectedManagerId &&
     transferAmount &&
-    amountValue > 0 &&
-    amountValue <= availableBalance
+    amountValue > 0
+    // amountValue <= availableBalance // Ya no se valida el balance disponible
 
   const handleTransfer = async () => {
     if (!selectedManager || !canTransfer) return

@@ -26,6 +26,7 @@ import {
   MoreVert,
   Edit,
   Delete,
+  LockReset,
 } from '@mui/icons-material';
 import { useUsers } from '@/hooks/useUsers';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
@@ -33,6 +34,8 @@ import { useAuth } from '@/hooks/useAuth';
 import { RoleUtils, type UserRole } from '@/lib/role-utils';
 import { UserFormModal } from '@/components/users/UserFormModal';
 import { DeleteUserConfirmDialog } from '@/components/users/DeleteUserConfirmDialog';
+import { ChangePasswordModal } from '@/components/users/ChangePasswordModal';
+import { authService } from '@/services/auth.service';
 import { TableSkeleton } from '@/components/ui/TableSkeleton';
 
 export default function ManagersPage() {
@@ -44,6 +47,9 @@ export default function ManagersPage() {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isChangePasswordModalOpen, setIsChangePasswordModalOpen] = useState(false);
+  const [changePasswordLoading, setChangePasswordLoading] = useState(false);
+  const [changePasswordError, setChangePasswordError] = useState<string | null>(null);
 
   const { users, isLoading, error, createUser, updateUser, deleteUser, fetchUsers } = useUsers();
   const currentSubadmin = useCurrentUser();
@@ -88,11 +94,33 @@ export default function ManagersPage() {
     handleMenuClose();
   };
 
+  const handleChangePassword = () => {
+    setIsChangePasswordModalOpen(true);
+    handleMenuClose();
+  };
+
+  const handleChangePasswordSubmit = async (userId: string, newPassword: string): Promise<boolean> => {
+    setChangePasswordLoading(true);
+    setChangePasswordError(null);
+
+    try {
+      await authService.changePassword({ userId, newPassword });
+      return true;
+    } catch (err: any) {
+      setChangePasswordError(err?.response?.data?.message || 'Error al cambiar la contraseña');
+      return false;
+    } finally {
+      setChangePasswordLoading(false);
+    }
+  };
+
   const handleCloseModals = useCallback(async () => {
     console.log('🚪 handleCloseModals called');
     setIsCreateModalOpen(false);
     setIsEditModalOpen(false);
     setIsDeleteDialogOpen(false);
+    setIsChangePasswordModalOpen(false);
+    setChangePasswordError(null);
     setSelectedManagerId(null);
     
     // ✅ REHIDRATACIÓN: Refrescar datos después de cerrar modales
@@ -376,12 +404,16 @@ export default function ManagersPage() {
         onClose={handleMenuClose}
         PaperProps={{
           elevation: 3,
-          sx: { minWidth: 160 },
+          sx: { minWidth: 180 },
         }}
       >
         <MenuItem onClick={handleEdit}>
           <Edit sx={{ mr: 1, fontSize: 20 }} />
           Editar
+        </MenuItem>
+        <MenuItem onClick={handleChangePassword}>
+          <LockReset sx={{ mr: 1, fontSize: 20 }} />
+          Cambiar Contraseña
         </MenuItem>
         <MenuItem
           onClick={handleDelete}
@@ -426,6 +458,15 @@ export default function ManagersPage() {
         deleteUser={deleteUser}
         isLoading={isLoading}
         error={error}
+      />
+
+      <ChangePasswordModal
+        open={isChangePasswordModalOpen}
+        onClose={handleCloseModals}
+        user={getSelectedUser()}
+        onChangePassword={handleChangePasswordSubmit}
+        isLoading={changePasswordLoading}
+        error={changePasswordError}
       />
     </Box>
   );

@@ -89,10 +89,7 @@ export default function PrestamistaDashboard() {
       </Box> */}
 
       {/* Manager Dashboard Cards */}
-      <ManagerDashboardCards 
-        data={managerData}
-        isLoading={managerDataLoading}
-      />
+      <ManagerDashboardCards />
 
       {/* Simulator Button */}
       <Box sx={{ mb: 3, display: 'flex', gap: 2 }}>

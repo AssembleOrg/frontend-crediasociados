@@ -18,15 +18,14 @@ export function RouteStats({
   totalCollected,
   totalExpenses,
   netAmount,
-  currency = 'ARS',
+  currency = 'ARS', // Mantenido para compatibilidad pero no usado visualmente
 }: RouteStatsProps) {
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('es-AR', {
-      style: 'currency',
-      currency,
+    // Formato genérico sin especificar país o moneda
+    return `$${new Intl.NumberFormat('es', {
       minimumFractionDigits: 0,
       maximumFractionDigits: 0,
-    }).format(amount);
+    }).format(amount)}`;
   };
 
   const stats = [

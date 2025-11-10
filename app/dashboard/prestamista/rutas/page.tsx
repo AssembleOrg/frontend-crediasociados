@@ -13,6 +13,8 @@ import {
   Chip,
   Skeleton,
   Snackbar,
+  FormControlLabel,
+  Switch,
 } from '@mui/material';
 import {
   Refresh,
@@ -128,6 +130,9 @@ export default function RutasPage() {
   const [isReorderMode, setIsReorderMode] = useState(false);
   const [reorderedItems, setReorderedItems] = useState<CollectionRouteItem[]>([]);
   const [isSavingOrder, setIsSavingOrder] = useState(false);
+  
+  // Filter State - Show only pending by default
+  const [showOnlyPending, setShowOnlyPending] = useState(true);
 
   // Fetch route on mount and when pathname changes
   useEffect(() => {
@@ -279,6 +284,17 @@ export default function RutasPage() {
   // If viewing today, show todayRoute
   const isViewingToday = !selectedDate;
   const currentRoute = isViewingToday ? todayRoute : selectedRoute;
+
+  // Filter items based on toggle - Purely visual filter
+  const getFilteredItems = (items: CollectionRouteItem[]) => {
+    if (!showOnlyPending) return items;
+    return items.filter(item => item.subLoan.status === 'PENDING');
+  };
+
+  const filteredItems = currentRoute?.items ? getFilteredItems(currentRoute.items) : [];
+  const filteredReorderedItems = showOnlyPending 
+    ? reorderedItems.filter(item => item.subLoan.status === 'PENDING')
+    : reorderedItems;
 
   // No route for selected date
   if (!currentRoute && !isLoading) {
@@ -503,26 +519,52 @@ export default function RutasPage() {
 
       {/* Items Header - Mobile Optimized */}
       {currentRoute && currentRoute.items.length > 0 && (
-        <Box
-          sx={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            mb: { xs: 1.5, sm: 2 },
-            gap: 1,
-          }}
-        >
-          <Typography 
-            variant="h6" 
-            sx={{ 
-              fontSize: { xs: '0.938rem', sm: '1.25rem' },
-              fontWeight: { xs: 600, sm: 500 }
+        <Box sx={{ mb: { xs: 1.5, sm: 2 } }}>
+          {/* Title and Toggle Row */}
+          <Box
+            sx={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              mb: 1,
+              gap: 1,
+              flexWrap: 'wrap',
             }}
           >
-            Clientes del Día ({currentRoute?.items.length || 0})
-          </Typography>
+            <Typography 
+              variant="h6" 
+              sx={{ 
+                fontSize: { xs: '0.938rem', sm: '1.25rem' },
+                fontWeight: { xs: 600, sm: 500 }
+              }}
+            >
+              Clientes del Día ({showOnlyPending ? filteredItems.length : currentRoute?.items.length || 0})
+            </Typography>
+            
+            {/* Filter Toggle */}
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+              <FormControlLabel
+                control={
+                  <Switch
+                    checked={showOnlyPending}
+                    onChange={(e) => setShowOnlyPending(e.target.checked)}
+                    size="small"
+                    color="primary"
+                  />
+                }
+                label={
+                  <Typography variant="caption" sx={{ fontSize: { xs: '0.75rem', sm: '0.813rem' } }}>
+                    Solo Pendientes
+                  </Typography>
+                }
+                sx={{ m: 0 }}
+              />
+            </Box>
+          </Box>
+
+          {/* Action Buttons Row */}
           {!isRouteClosed && (
-            <Box sx={{ display: 'flex', gap: 0.5 }}>
+            <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 0.5 }}>
               {isReorderMode ? (
                 <>
                   <Button
@@ -623,11 +665,11 @@ export default function RutasPage() {
             onDragEnd={handleDragEnd}
           >
             <SortableContext
-              items={reorderedItems.map((item) => item.id)}
+              items={filteredReorderedItems.map((item) => item.id)}
               strategy={verticalListSortingStrategy}
             >
               <Box sx={{ px: { xs: 0, sm: 1 }, py: 0.5 }}>
-                {reorderedItems.map((item, index) => (
+                {filteredReorderedItems.map((item, index) => (
                   <SortableRouteItem
                     key={item.id}
                     item={item}
@@ -641,15 +683,33 @@ export default function RutasPage() {
         ) : (
           // Normal Mode - Optimized spacing for mobile
           <Box sx={{ px: { xs: 0, sm: 0 } }}>
-            {currentRoute?.items.map((item, index) => (
-              <RouteItemCard
-                key={item.id}
-                item={item}
-                index={index}
-                onPayment={handleOpenPaymentModal}
-                isActive={!isRouteClosed}
-              />
-            ))}
+            {filteredItems.length > 0 ? (
+              filteredItems.map((item, index) => (
+                <RouteItemCard
+                  key={item.id}
+                  item={item}
+                  index={index}
+                  onPayment={handleOpenPaymentModal}
+                  isActive={!isRouteClosed}
+                />
+              ))
+            ) : (
+              <Paper 
+                elevation={1} 
+                sx={{ 
+                  p: { xs: 3, sm: 4 }, 
+                  textAlign: 'center',
+                  mx: { xs: 1, sm: 0 }
+                }}
+              >
+                <Typography variant="body1" color="text.secondary" sx={{ fontSize: { xs: '0.875rem', sm: '1rem' } }}>
+                  {showOnlyPending 
+                    ? 'No hay cobros pendientes. Desactiva el filtro para ver todos los cobros.'
+                    : 'No hay items en esta ruta'
+                  }
+                </Typography>
+              </Paper>
+            )}
           </Box>
         )
       ) : (
