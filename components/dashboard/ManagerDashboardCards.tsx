@@ -1,9 +1,17 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import dynamic from 'next/dynamic'
 import { Card, CardContent, Typography, Box, Skeleton, Stack, Alert } from '@mui/material'
 import { TrendingUp, TrendingDown, Receipt, AccountBalance } from '@mui/icons-material'
 import { dailySummaryService, type DailySummaryResponse } from '@/services/daily-summary.service'
+import { loansService } from '@/services/loans.service'
+
+// Dynamic import to avoid SSR issues and chunk loading conflicts
+const TodayLoansModal = dynamic(
+  () => import('@/components/loans/TodayLoansModal'),
+  { ssr: false }
+)
 
 interface StatCardProps {
   title: string
@@ -12,22 +20,26 @@ interface StatCardProps {
   icon: React.ReactNode
   color: string
   isLoading: boolean
+  onClick?: () => void
+  clickable?: boolean
 }
 
-function StatCard({ title, value, subtitle, icon, color, isLoading }: StatCardProps) {
+function StatCard({ title, value, subtitle, icon, color, isLoading, onClick, clickable = false }: StatCardProps) {
   const isNegative = value < 0
   const displayValue = Math.abs(value)
 
   return (
     <Card
+      onClick={clickable ? onClick : undefined}
       sx={{
         height: '100%',
         borderRadius: 3,
         boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
         transition: 'transform 0.2s, box-shadow 0.2s',
+        cursor: clickable ? 'pointer' : 'default',
         '&:hover': {
-          transform: 'translateY(-4px)',
-          boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
+          transform: clickable ? 'translateY(-4px)' : 'translateY(-2px)',
+          boxShadow: clickable ? '0 12px 28px rgba(0,0,0,0.15)' : '0 8px 24px rgba(0,0,0,0.12)',
         },
       }}
     >
@@ -83,6 +95,20 @@ export function ManagerDashboardCards() {
   const [dailySummary, setDailySummary] = useState<DailySummaryResponse | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  
+  // Today loans modal
+  const [todayLoansModalOpen, setTodayLoansModalOpen] = useState(false)
+  const [todayLoansData, setTodayLoansData] = useState<{
+    date: string
+    total: number
+    totalAmount: number
+    loans: Array<{
+      montoTotalPrestado: number
+      montoTotalADevolver: number
+      nombrecliente: string
+    }>
+  } | null>(null)
+  const [loadingTodayLoans, setLoadingTodayLoans] = useState(false)
 
   useEffect(() => {
     const loadDailySummary = async () => {
@@ -101,6 +127,25 @@ export function ManagerDashboardCards() {
 
     loadDailySummary()
   }, [])
+
+  const handleOpenTodayLoans = async () => {
+    setTodayLoansModalOpen(true)
+    if (!todayLoansData) {
+      setLoadingTodayLoans(true)
+      try {
+        const data = await loansService.getTodayLoans()
+        setTodayLoansData(data)
+      } catch (err) {
+        console.error('Error loading today loans:', err)
+      } finally {
+        setLoadingTodayLoans(false)
+      }
+    }
+  }
+
+  const handleCloseTodayLoans = () => {
+    setTodayLoansModalOpen(false)
+  }
 
   if (error) {
     return (
@@ -144,6 +189,8 @@ export function ManagerDashboardCards() {
           icon={<AccountBalance sx={{ fontSize: 28 }} />}
           color="#2196f3"
           isLoading={isLoading}
+          clickable={true}
+          onClick={handleOpenTodayLoans}
         />
 
         <StatCard
@@ -164,6 +211,13 @@ export function ManagerDashboardCards() {
           isLoading={isLoading}
         />
       </Stack>
+
+      {/* Today Loans Modal */}
+      <TodayLoansModal
+        open={todayLoansModalOpen}
+        onClose={handleCloseTodayLoans}
+        data={todayLoansData}
+      />
     </Box>
   )
 }

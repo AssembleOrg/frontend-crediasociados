@@ -134,6 +134,20 @@ class LoansService {
     return response.data.data;
   }
 
+  async getTodayLoans(): Promise<{
+    date: string
+    total: number
+    totalAmount: number
+    loans: Array<{
+      montoTotalPrestado: number
+      montoTotalADevolver: number
+      nombrecliente: string
+    }>
+  }> {
+    const response = await api.get('/loans/today');
+    return response.data.data || response.data;
+  }
+
   /**
    * ✅ MÉTODO DEPRECADO: Las wallets pueden ser negativas sin límite
    * Helper: Validate if loan can be created with available wallet balance
