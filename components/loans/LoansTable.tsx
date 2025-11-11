@@ -486,12 +486,12 @@ export function LoansTable({ loans: externalLoans, onViewDetails, onLoanDeleted 
                       Progreso de pagos
                     </Typography>
                     <Typography variant="body2" sx={{ mb: 0.5 }}>
-                      {completedPayments}/{totalPayments}
-                    </Typography>
+                        {completedPayments}/{totalPayments}
+                      </Typography>
                     <MultiColorProgressBar 
                       loanId={loan.id}
                       totalPayments={totalPayments}
-                    />
+                      />
                   </Box>
                 </Box>
                 

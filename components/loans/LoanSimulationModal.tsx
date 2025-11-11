@@ -18,7 +18,10 @@ import {
   TableRow,
   Paper,
   Chip,
-  IconButton
+  IconButton,
+  useMediaQuery,
+  useTheme,
+  Divider
 } from '@mui/material'
 import {
   CheckCircle,
@@ -66,6 +69,9 @@ export function LoanSimulationModal({
   formData,
   clientName = 'Cliente seleccionado'
 }: LoanSimulationModalProps) {
+  const theme = useTheme()
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'))
+  
   const [isCreating, setIsCreating] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
@@ -152,7 +158,12 @@ export function LoanSimulationModal({
 
   if (success) {
     return (
-      <Dialog open={open} maxWidth="sm" fullWidth>
+      <Dialog 
+        open={open} 
+        maxWidth="sm" 
+        fullWidth
+        fullScreen={isMobile}
+      >
         <DialogTitle sx={{ position: 'relative', textAlign: 'right', pb: 0 }}>
           <IconButton
             onClick={onClose}
@@ -166,30 +177,31 @@ export function LoanSimulationModal({
             <Close />
           </IconButton>
         </DialogTitle>
-        <DialogContent sx={{ textAlign: 'center', py: 6 }}>
-          <CheckCircle sx={{ fontSize: 80, color: 'success.main', mb: 3 }} />
-          <Typography variant="h4" gutterBottom color="success.main">
+        <DialogContent sx={{ textAlign: 'center', py: { xs: 4, sm: 6 } }}>
+          <CheckCircle sx={{ fontSize: { xs: 60, sm: 80 }, color: 'success.main', mb: 3 }} />
+          <Typography variant={isMobile ? "h5" : "h4"} gutterBottom color="success.main">
             ¡Préstamo Creado Exitosamente!
           </Typography>
           
-          <Box sx={{ my: 4, p: 3, bgcolor: 'grey.50', borderRadius: 2 }}>
+          <Box sx={{ my: 4, p: { xs: 2, sm: 3 }, bgcolor: 'grey.50', borderRadius: 2 }}>
             <Typography variant="h6" gutterBottom>
               Número de Seguimiento
             </Typography>
             <Typography 
-              variant="h4" 
+              variant={isMobile ? "h5" : "h4"}
               sx={{ 
                 fontFamily: 'monospace', 
                 color: 'primary.main',
                 fontWeight: 'bold',
-                letterSpacing: 2
+                letterSpacing: { xs: 1, sm: 2 },
+                wordBreak: 'break-word'
               }}
             >
               {loanTrackingNumber}
             </Typography>
           </Box>
           
-          <Alert severity="info" sx={{ mb: 3 }}>
+          <Alert severity="info" sx={{ mb: 3, textAlign: 'left' }}>
             <Typography variant="subtitle2" gutterBottom>
               Información importante:
             </Typography>
@@ -215,68 +227,102 @@ export function LoanSimulationModal({
       onClose={onClose}
       maxWidth="lg"
       fullWidth
+      fullScreen={isMobile}
       PaperProps={{
-        sx: { minHeight: '80vh' }
+        sx: { 
+          minHeight: isMobile ? '100vh' : '80vh',
+          m: isMobile ? 0 : 2
+        }
       }}
     >
-      <DialogTitle>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-          <MonetizationOn color="primary" />
-          <Box>
-            <Typography variant="h5" component="div">
+      <DialogTitle sx={{ pb: 2 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 1, sm: 2 }, pr: 4 }}>
+          <MonetizationOn color="primary" sx={{ fontSize: { xs: 28, sm: 32 } }} />
+          <Box sx={{ flex: 1, minWidth: 0 }}>
+            <Typography variant={isMobile ? "h6" : "h5"} component="div" noWrap>
               Simulación de Préstamo
             </Typography>
-            <Typography variant="subtitle1" color="text.secondary">
-              {clientName} • {getFrequencyLabel(formData.paymentFrequency)}
+            <Typography 
+              variant={isMobile ? "body2" : "subtitle1"} 
+              color="text.secondary"
+              noWrap
+            >
+              {clientName}
             </Typography>
           </Box>
         </Box>
+        <IconButton
+          onClick={onClose}
+          sx={{
+            position: 'absolute',
+            right: 8,
+            top: 8,
+            color: 'grey.500'
+          }}
+        >
+          <Close />
+        </IconButton>
       </DialogTitle>
 
-      <DialogContent>
+      <DialogContent sx={{ px: { xs: 2, sm: 3 } }}>
         <Box sx={{ mb: 4 }}>
           {/* Resumen Financiero y Detalles Combinados */}
-          <Paper sx={{ p: 3, mb: 3, bgcolor: 'grey.50' }}>
-            <Box sx={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 4 }}>
+          <Paper sx={{ p: { xs: 2, sm: 3 }, mb: 3, bgcolor: 'grey.50' }}>
+            <Box sx={{ 
+              display: 'grid', 
+              gridTemplateColumns: { xs: '1fr', sm: '2fr 1fr' }, 
+              gap: { xs: 3, sm: 4 } 
+            }}>
               {/* Columna Izquierda: Resumen Financiero */}
               <Box>
-                <Typography variant="h6" gutterBottom color="primary.main">
+                <Typography variant="h6" gutterBottom color="primary.main" fontSize={{ xs: '1rem', sm: '1.25rem' }}>
                   Resumen Financiero
                 </Typography>
-                <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 2 }}>
+                <Box sx={{ 
+                  display: 'grid', 
+                  gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)' }, 
+                  gap: 2 
+                }}>
                   <Box>
                     <Typography variant="body2" color="text.secondary">Principal:</Typography>
-                    <Typography variant="h6">${parseFloat(formData.amount).toLocaleString()}</Typography>
+                    <Typography variant="h6" fontSize={{ xs: '1rem', sm: '1.25rem' }}>
+                      ${parseFloat(formData.amount).toLocaleString()}
+                    </Typography>
                   </Box>
                   <Box>
                     <Typography variant="body2" color="text.secondary">Total a Cobrar:</Typography>
-                    <Typography variant="h6" color="primary.main">${totalWithInterest.toLocaleString()}</Typography>
+                    <Typography variant="h6" color="primary.main" fontSize={{ xs: '1rem', sm: '1.25rem' }}>
+                      ${totalWithInterest.toLocaleString()}
+                    </Typography>
                   </Box>
                   <Box>
                     <Typography variant="body2" color="text.secondary">Monto por Cuota:</Typography>
-                    <Typography variant="h6">${simulatedLoans[0]?.totalAmount.toLocaleString()}</Typography>
+                    <Typography variant="h6" fontSize={{ xs: '1rem', sm: '1.25rem' }}>
+                      ${simulatedLoans[0]?.totalAmount.toLocaleString()}
+                    </Typography>
                   </Box>
                 </Box>
               </Box>
               
               {/* Columna Derecha: Detalles del Préstamo */}
               <Box>
-                <Typography variant="h6" gutterBottom color="primary.main">
+                {isMobile && <Divider sx={{ mb: 2 }} />}
+                <Typography variant="h6" gutterBottom color="primary.main" fontSize={{ xs: '1rem', sm: '1.25rem' }}>
                   Detalles del Préstamo
                 </Typography>
                 <Box sx={{ display: 'grid', gap: 1 }}>
-                  <Typography variant="body2">
+                  <Typography variant="body2" fontSize={{ xs: '0.875rem' }}>
                     <strong>Tasa base:</strong> {formData.baseInterestRate}%
                   </Typography>
-                  <Typography variant="body2">
+                  <Typography variant="body2" fontSize={{ xs: '0.875rem' }}>
                     <strong>Frecuencia:</strong> {getFrequencyLabel(formData.paymentFrequency)}
                     {formData.paymentFrequency !== 'DAILY' && ` (${getDayText(formData.paymentDay)})`}
                   </Typography>
-                  <Typography variant="body2">
+                  <Typography variant="body2" fontSize={{ xs: '0.875rem' }}>
                     <strong>Total cuotas:</strong> {simulatedLoans.length}
                   </Typography>
                   {formData.description && (
-                    <Typography variant="body2">
+                    <Typography variant="body2" fontSize={{ xs: '0.875rem' }} sx={{ wordBreak: 'break-word' }}>
                       <strong>Descripción:</strong> {formData.description}
                     </Typography>
                   )}
@@ -287,32 +333,60 @@ export function LoanSimulationModal({
 
           {/* Export Options */}
           <Box sx={{ mb: 3 }}>
-            <Typography variant="h6" gutterBottom color="primary.main">
+            <Typography variant="h6" gutterBottom color="primary.main" fontSize={{ xs: '1rem', sm: '1.25rem' }}>
               Exportar Presupuesto
             </Typography>
-            <SimulationExportButtons 
-              simulatedLoans={simulatedLoans}
-              formData={formData}
-              clientName={clientName}
-              variant="default"
-              showLabels={true}
-            />
+            <Box sx={{ 
+              '& button': { 
+                fontSize: { xs: '0.75rem', sm: '0.875rem' },
+                py: { xs: 0.75, sm: 1 },
+                px: { xs: 1.5, sm: 2 }
+              } 
+            }}>
+              <SimulationExportButtons 
+                simulatedLoans={simulatedLoans}
+                formData={formData}
+                clientName={clientName}
+                variant="default"
+                showLabels={!isMobile}
+              />
+            </Box>
           </Box>
 
           {/* Tabla de Cuotas */}
-          <Typography variant="h6" gutterBottom sx={{ mb: 2 }}>
+          <Typography variant="h6" gutterBottom sx={{ mb: 2 }} fontSize={{ xs: '1rem', sm: '1.25rem' }}>
             Plan de Pagos ({simulatedLoans.length} cuotas)
           </Typography>
           
-          <TableContainer component={Paper} sx={{ maxHeight: 400 }}>
-            <Table stickyHeader size="small">
+          <TableContainer 
+            component={Paper} 
+            sx={{ 
+              maxHeight: { xs: 300, sm: 400 },
+              overflowX: 'auto'
+            }}
+          >
+            <Table stickyHeader size={isMobile ? "small" : "medium"}>
               <TableHead>
                 <TableRow>
-                  <TableCell><strong>Cuota</strong></TableCell>
-                  <TableCell align="right"><strong>Fecha Venc.</strong></TableCell>
-                  <TableCell align="right"><strong>Principal</strong></TableCell>
-                  <TableCell align="right"><strong>Total</strong></TableCell>
-                  <TableCell align="center"><strong>Estado</strong></TableCell>
+                  <TableCell sx={{ minWidth: { xs: 60, sm: 80 }, fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>
+                    <strong>Cuota</strong>
+                  </TableCell>
+                  <TableCell align="right" sx={{ minWidth: { xs: 80, sm: 100 }, fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>
+                    <strong>Fecha</strong>
+                  </TableCell>
+                  {!isMobile && (
+                    <TableCell align="right" sx={{ minWidth: 100, fontSize: '0.875rem' }}>
+                      <strong>Principal</strong>
+                    </TableCell>
+                  )}
+                  <TableCell align="right" sx={{ minWidth: { xs: 80, sm: 100 }, fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>
+                    <strong>Total</strong>
+                  </TableCell>
+                  {!isMobile && (
+                    <TableCell align="center" sx={{ minWidth: 100, fontSize: '0.875rem' }}>
+                      <strong>Estado</strong>
+                    </TableCell>
+                  )}
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -327,31 +401,41 @@ export function LoanSimulationModal({
                           label={`#${loan.paymentNumber}`} 
                           size="small" 
                           color="primary" 
-                          variant="outlined" 
+                          variant="outlined"
+                          sx={{ fontSize: { xs: '0.65rem', sm: '0.75rem' } }}
                         />
                       </TableCell>
                       <TableCell align="right">
-                        <Typography variant="body2">
-                          {loan.dueDate.toLocaleDateString('es-AR')}
+                        <Typography variant="body2" fontSize={{ xs: '0.75rem', sm: '0.875rem' }}>
+                          {loan.dueDate.toLocaleDateString('es-AR', { 
+                            day: '2-digit', 
+                            month: '2-digit',
+                            year: isMobile ? '2-digit' : 'numeric'
+                          })}
                         </Typography>
                       </TableCell>
+                      {!isMobile && (
+                        <TableCell align="right">
+                          <Typography variant="body2" fontSize="0.875rem">
+                            ${loan.amount.toFixed(2)}
+                          </Typography>
+                        </TableCell>
+                      )}
                       <TableCell align="right">
-                        <Typography variant="body2">
-                          ${loan.amount.toFixed(2)}
-                        </Typography>
-                      </TableCell>
-                      <TableCell align="right">
-                        <Typography variant="body2" fontWeight="bold">
+                        <Typography variant="body2" fontWeight="bold" fontSize={{ xs: '0.75rem', sm: '0.875rem' }}>
                           ${loan.totalAmount.toFixed(2)}
                         </Typography>
                       </TableCell>
-                      <TableCell align="center">
-                        <Chip 
-                          label="Pendiente" 
-                          size="small" 
-                          color="warning" 
-                        />
-                      </TableCell>
+                      {!isMobile && (
+                        <TableCell align="center">
+                          <Chip 
+                            label="Pendiente" 
+                            size="small" 
+                            color="warning"
+                            sx={{ fontSize: '0.75rem' }}
+                          />
+                        </TableCell>
+                      )}
                     </TableRow>
                   )
                 })}
@@ -368,10 +452,21 @@ export function LoanSimulationModal({
         </Box>
       </DialogContent>
 
-      <DialogActions sx={{ p: 3, gap: 2 }}>
+      <DialogActions sx={{ 
+        p: { xs: 2, sm: 3 }, 
+        gap: { xs: 1, sm: 2 },
+        flexDirection: { xs: 'column', sm: 'row' },
+        '& > button': {
+          width: { xs: '100%', sm: 'auto' },
+          fontSize: { xs: '0.875rem', sm: '0.9375rem' },
+          py: { xs: 1, sm: 0.75 }
+        }
+      }}>
         <Button
           onClick={onClose}
           disabled={isCreating}
+          fullWidth={isMobile}
+          sx={{ order: { xs: 3, sm: 1 } }}
         >
           Cancelar
         </Button>
@@ -379,6 +474,8 @@ export function LoanSimulationModal({
           variant="outlined"
           onClick={onClose}
           disabled={isCreating}
+          fullWidth={isMobile}
+          sx={{ order: { xs: 2, sm: 2 } }}
         >
           Modificar
         </Button>
@@ -386,7 +483,11 @@ export function LoanSimulationModal({
           onClick={handleConfirmLoan}
           variant="contained"
           disabled={isCreating}
-          sx={{ minWidth: 150 }}
+          fullWidth={isMobile}
+          sx={{ 
+            minWidth: { sm: 150 },
+            order: { xs: 1, sm: 3 }
+          }}
         >
           {isCreating ? 'Creando...' : 'Confirmar Préstamo'}
         </Button>

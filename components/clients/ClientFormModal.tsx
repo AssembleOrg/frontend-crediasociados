@@ -28,7 +28,7 @@ import { useCurrentUser } from '@/hooks/useCurrentUser'
 import { ClientValidation } from '@/lib/validation-utils'
 import { formatDNI, formatCUIT, unformatDNI, unformatCUIT, formatPhoneNumber } from '@/lib/formatters'
 import { LATIN_AMERICAN_COUNTRIES } from '@/lib/countries'
-import { AddressAutocomplete } from '@/components/ui/AddressAutocomplete'
+import { GoogleAddressAutocomplete } from '@/components/ui/GoogleAddressAutocomplete'
 import type { Client } from '@/types/auth'
 
 interface ClientFormModalProps {
@@ -410,9 +410,9 @@ export function ClientFormModal({
                 </Box>
                 
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-                  <AddressAutocomplete
+                  <GoogleAddressAutocomplete
                     label="Dirección (lugar de cobro)"
-                    placeholder="Ej: Calle Principal 1234, Ciudad"
+                    placeholder="Ej: Av. Corrientes 1234, Buenos Aires"
                     value={formData.address || ''}
                     onChange={(newAddress) => {
                       setFormData(prev => ({ ...prev, address: newAddress }))

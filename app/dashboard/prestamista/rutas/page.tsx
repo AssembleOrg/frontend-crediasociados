@@ -521,23 +521,23 @@ export default function RutasPage() {
       {currentRoute && currentRoute.items.length > 0 && (
         <Box sx={{ mb: { xs: 1.5, sm: 2 } }}>
           {/* Title and Toggle Row */}
-          <Box
-            sx={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
+        <Box
+          sx={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
               mb: 1,
-              gap: 1,
+            gap: 1,
               flexWrap: 'wrap',
+          }}
+        >
+          <Typography 
+            variant="h6" 
+            sx={{ 
+              fontSize: { xs: '0.938rem', sm: '1.25rem' },
+              fontWeight: { xs: 600, sm: 500 }
             }}
           >
-            <Typography 
-              variant="h6" 
-              sx={{ 
-                fontSize: { xs: '0.938rem', sm: '1.25rem' },
-                fontWeight: { xs: 600, sm: 500 }
-              }}
-            >
               Clientes del Día ({showOnlyPending ? filteredItems.length : currentRoute?.items.length || 0})
             </Typography>
             
@@ -555,7 +555,7 @@ export default function RutasPage() {
                 label={
                   <Typography variant="caption" sx={{ fontSize: { xs: '0.75rem', sm: '0.813rem' } }}>
                     Solo Pendientes
-                  </Typography>
+          </Typography>
                 }
                 sx={{ m: 0 }}
               />
@@ -685,13 +685,13 @@ export default function RutasPage() {
           <Box sx={{ px: { xs: 0, sm: 0 } }}>
             {filteredItems.length > 0 ? (
               filteredItems.map((item, index) => (
-                <RouteItemCard
-                  key={item.id}
-                  item={item}
-                  index={index}
-                  onPayment={handleOpenPaymentModal}
-                  isActive={!isRouteClosed}
-                />
+              <RouteItemCard
+                key={item.id}
+                item={item}
+                index={index}
+                onPayment={handleOpenPaymentModal}
+                isActive={!isRouteClosed}
+              />
               ))
             ) : (
               <Paper 

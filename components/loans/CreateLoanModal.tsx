@@ -524,16 +524,16 @@ export function CreateLoanModal({
                   loading={isSearching}
                   loadingText="Buscando..."
                   noOptionsText={searchInput.length < 2 ? "Escribe al menos 2 caracteres" : "No se encontraron clientes"}
-                  disabled={clientsLoading}
+                    disabled={clientsLoading}
                   renderInput={(params) => (
                     <TextField
                       {...params}
                       label="Cliente *"
                       error={!!formErrors.clientId}
                       helperText={formErrors.clientId || "Busca por nombre, DNI o CUIT"}
-                      sx={{ 
+                    sx={{
                         '& .MuiOutlinedInput-root': { 
-                          borderRadius: 2, 
+                      borderRadius: 2,
                           bgcolor: 'grey.50' 
                         } 
                       }}
@@ -553,7 +553,7 @@ export function CreateLoanModal({
                       <Box>
                         <Typography variant="body2" fontWeight={600}>
                           {option.fullName}
-                        </Typography>
+                    </Typography>
                         <Typography variant="caption" color="text.secondary">
                           {option.dni && `DNI: ${option.dni}`}
                           {option.dni && option.cuit && ' • '}
@@ -576,19 +576,19 @@ export function CreateLoanModal({
               <Divider sx={{ my: 3 }} />
 
               {/* Loan Amount and Interest - Compact Layout */}
-              <Typography 
-                variant="h6" 
-                sx={{ 
+                  <Typography 
+                    variant="h6" 
+                    sx={{ 
                   mb: 2, 
-                  fontWeight: 600, 
+                      fontWeight: 600,
                   display: 'flex', 
                   alignItems: 'center', 
                   gap: 1,
                   color: 'primary.main'
-                }}
-              >
+                    }}
+                  >
                 <AttachMoney /> Monto del Préstamo
-                {wallet && (
+                {/* {wallet && (
                   <Box sx={{
                     ml: 'auto',
                     px: 1.5,
@@ -602,7 +602,7 @@ export function CreateLoanModal({
                       Disponible: ${wallet.balance.toLocaleString('es-AR')}
                     </Typography>
                   </Box>
-                )}
+                )} */}
               </Typography>
 
               <Box sx={{ 
@@ -611,30 +611,30 @@ export function CreateLoanModal({
                 gap: 2, 
                 mb: 3 
               }}>
-                <TextField
-                  label="Monto del Préstamo"
-                  type="text"
-                  value={formatAmount(formData.amount || '')}
-                  onChange={(e) => {
-                    const unformattedValue = unformatAmount(e.target.value);
+                  <TextField
+                    label="Monto del Préstamo"
+                    type="text"
+                    value={formatAmount(formData.amount || '')}
+                    onChange={(e) => {
+                      const unformattedValue = unformatAmount(e.target.value);
                     setFormData(prev => ({ ...prev, amount: unformattedValue }));
-                    if (formErrors.amount) {
+                      if (formErrors.amount) {
                       setFormErrors(prev => ({ ...prev, amount: '' }));
-                    }
-                  }}
-                  error={!!formErrors.amount}
-                  helperText={formErrors.amount || 'Ingresa el monto a prestar (ej: 1.000.000)'}
-                  required
-                  fullWidth
-                  InputProps={{
-                    startAdornment: <InputAdornment position="start">$</InputAdornment>,
-                  }}
-                  sx={{ 
+                      }
+                    }}
+                    error={!!formErrors.amount}
+                    helperText={formErrors.amount || 'Ingresa el monto a prestar (ej: 1.000.000)'}
+                    required
+                    fullWidth
+                    InputProps={{
+                      startAdornment: <InputAdornment position="start">$</InputAdornment>,
+                    }}
+                    sx={{
                     '& .MuiOutlinedInput-root': { borderRadius: 2, bgcolor: 'grey.50' },
-                  }}
-                />
+                    }}
+                  />
 
-                <TextField
+                  <TextField
                   label="Tasa de Interés Base"
                   type="number"
                   value={formData.baseInterestRate}
@@ -642,31 +642,31 @@ export function CreateLoanModal({
                   error={!!formErrors.baseInterestRate}
                   helperText={formErrors.baseInterestRate || 'Ej: 12'}
                   required
-                  fullWidth
+                    fullWidth
                   InputProps={{
                     endAdornment: <InputAdornment position="end">%</InputAdornment>,
                   }}
-                  sx={{ 
+                    sx={{
                     '& .MuiOutlinedInput-root': { borderRadius: 2, bgcolor: 'grey.50' },
                     '& input[type=number]': { MozAppearance: 'textfield' },
                     '& input[type=number]::-webkit-outer-spin-button, & input[type=number]::-webkit-inner-spin-button': { display: 'none' },
-                  }}
-                />
-              </Box>
+                    }}
+                  />
+                </Box>
 
               {/* Summary Preview - Inline */}
-              {formData.amount && formData.baseInterestRate && (
-                <Box sx={{ 
+                {formData.amount && formData.baseInterestRate && (
+                  <Box sx={{ 
                   p: 2, 
                   mb: 3,
-                  bgcolor: 'primary.50', 
-                  borderRadius: 2, 
+                    bgcolor: 'primary.50', 
+                    borderRadius: 2, 
                   border: '2px solid',
-                  borderColor: 'primary.200'
-                }}>
+                    borderColor: 'primary.200'
+                  }}>
                   <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1.5, color: 'primary.main' }}>
-                    Resumen del Préstamo
-                  </Typography>
+                      Resumen del Préstamo
+                    </Typography>
                   <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2 }}>
                     <Box sx={{ flex: 1, minWidth: 120 }}>
                       <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>
@@ -700,8 +700,8 @@ export function CreateLoanModal({
                       </Typography>
                       <Typography variant="h5" fontWeight={700} color="success.main">
                         ${(totalAmount / parseInt(formData.totalPayments)).toLocaleString('es-AR', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
-                      </Typography>
-                    </Box>
+                </Typography>
+              </Box>
                   )}
                 </Box>
               )}
@@ -709,20 +709,20 @@ export function CreateLoanModal({
               <Divider sx={{ my: 3 }} />
 
               {/* Payment Schedule - Compact */}
-              <Typography 
-                variant="h6" 
-                sx={{ 
+                <Typography 
+                  variant="h6" 
+                  sx={{ 
                   mb: 2, 
-                  fontWeight: 600, 
+                    fontWeight: 600,
                   display: 'flex', 
                   alignItems: 'center', 
                   gap: 1,
                   color: 'primary.main'
-                }}
-              >
+                  }}
+                >
                 <CalendarToday /> Cronograma de Pagos
-              </Typography>
-
+                </Typography>
+              
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mb: 3 }}>
                 <Box sx={{ 
                   display: 'grid', 
@@ -807,19 +807,19 @@ export function CreateLoanModal({
               <Divider sx={{ my: 3 }} />
 
               {/* Additional Information - Compact */}
-              <Typography 
-                variant="h6" 
-                sx={{ 
+                <Typography 
+                  variant="h6" 
+                  sx={{ 
                   mb: 2, 
-                  fontWeight: 600, 
+                    fontWeight: 600,
                   display: 'flex', 
                   alignItems: 'center', 
                   gap: 1,
                   color: 'primary.main'
-                }}
-              >
+                  }}
+                >
                 <Description /> Información Adicional
-              </Typography>
+                </Typography>
               
               <TextField
                 label="Descripción"
