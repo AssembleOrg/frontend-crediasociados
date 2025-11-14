@@ -88,6 +88,28 @@ class CollectorWalletService {
     const response = await api.get('/collector-wallet/today/collections');
     return response.data.data || response.data;
   }
+
+  /**
+   * Get complete wallet history (all transactions)
+   * Returns all movements (collections and withdrawals) without pagination
+   */
+  async getWalletHistory(): Promise<{
+    total: number;
+    transactions: Array<{
+      id: string;
+      type: 'COLLECTION' | 'WITHDRAWAL';
+      amount: number;
+      currency: string;
+      description: string;
+      balanceBefore: number;
+      balanceAfter: number;
+      subLoanId?: string;
+      createdAt: string;
+    }>;
+  }> {
+    const response = await api.get('/collector-wallet/history');
+    return response.data.data || response.data;
+  }
 }
 
 export const collectorWalletService = new CollectorWalletService();

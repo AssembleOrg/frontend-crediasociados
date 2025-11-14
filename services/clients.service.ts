@@ -80,6 +80,25 @@ class ClientsService {
       throw error
     }
   }
+
+  /**
+   * Get inactive clients for a specific manager
+   * Only available for SUBADMIN role
+   * @param managerId - Manager ID to get inactive clients for
+   */
+  async getInactiveClients(managerId: string): Promise<{
+    total: number
+    clients: Array<{
+      id: string
+      nombre: string
+      telefono?: string
+      direccion?: string
+      fechaUltimoPrestamo?: string
+    }>
+  }> {
+    const response = await api.get(`/clients/inactive?managerId=${managerId}`)
+    return response.data.data || response.data
+  }
 }
 
 export const clientsService = new ClientsService()

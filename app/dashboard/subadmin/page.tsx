@@ -2,14 +2,20 @@
 
 import React, { useState } from 'react'
 import dynamic from 'next/dynamic'
-import { Box, CircularProgress, Typography, Alert, Grid, Button, useMediaQuery, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material'
-import { ExpandMore, ExpandLess, Calculate } from '@mui/icons-material'
+import { Box, CircularProgress, Typography, Alert, Grid, Button, useMediaQuery, Dialog, DialogTitle, DialogContent, DialogActions, Card, CardContent } from '@mui/material'
+import { ExpandMore, ExpandLess, Calculate, PersonOff } from '@mui/icons-material'
 import PageHeader from '@/components/ui/PageHeader'
 import { useSubadminDashboardData } from '@/hooks/useSubadminDashboardData'
 import { useSubadminCharts } from '@/hooks/useSubadminCharts'
 import { ChartSkeleton, BarChartSkeleton } from '@/components/ui/ChartSkeleton'
 import { StandaloneLoanSimulator } from '@/components/loans/StandaloneLoanSimulator'
 import type { ManagerAnalytics } from '@/services/analytics.service'
+
+// Dynamic import for InactiveClientsModal
+const InactiveClientsModal = dynamic(
+  () => import('@/components/clients/InactiveClientsModal'),
+  { ssr: false }
+)
 
 // Lazy load charts to reduce initial bundle size
 const ClientesPerAsociadoChart = dynamic(
@@ -49,6 +55,7 @@ export default function SubadminDashboard() {
   const isMobile = useMediaQuery('(max-width:600px)')
   const [showAllCharts, setShowAllCharts] = useState(false)
   const [simulatorOpen, setSimulatorOpen] = useState(false)
+  const [inactiveClientsModalOpen, setInactiveClientsModalOpen] = useState(false)
 
   const managersForChart: ManagerAnalytics[] = detailedManagers.map(manager => ({
     managerId: manager.id,
@@ -96,8 +103,8 @@ export default function SubadminDashboard() {
         subtitle="Gestión de cobradores"
       />
 
-      {/* Simulator Button */}
-      <Box sx={{ mb: 3, display: 'flex', gap: 2 }}>
+      {/* Action Buttons */}
+      <Box sx={{ mb: 3, display: 'flex', gap: 2, flexWrap: 'wrap' }}>
         <Button
           variant="contained"
           startIcon={<Calculate />}
@@ -112,6 +119,48 @@ export default function SubadminDashboard() {
           Abrir Simulador de Préstamos
         </Button>
       </Box>
+
+      {/* Inactive Clients Card */}
+      <Card
+        sx={{
+          mb: 3,
+          cursor: 'pointer',
+          transition: 'all 0.2s',
+          background: 'linear-gradient(135deg, #85220D 0%, #A03015 100%)',
+          color: 'white',
+          '&:hover': {
+            transform: 'translateY(-4px)',
+            boxShadow: '0 12px 28px rgba(133, 34, 13, 0.3)',
+          },
+        }}
+        onClick={() => setInactiveClientsModalOpen(true)}
+      >
+        <CardContent sx={{ p: 3 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            <Box
+              sx={{
+                width: 64,
+                height: 64,
+                borderRadius: 2,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                bgcolor: 'rgba(255,255,255,0.2)',
+              }}
+            >
+              <PersonOff sx={{ fontSize: 32 }} />
+            </Box>
+            <Box sx={{ flex: 1 }}>
+              <Typography variant="h6" fontWeight={600} gutterBottom>
+                Clientes Inactivos
+              </Typography>
+              <Typography variant="body2" sx={{ opacity: 0.9 }}>
+                Consulta los clientes sin préstamos activos de tus managers
+              </Typography>
+            </Box>
+          </Box>
+        </CardContent>
+      </Card>
 
       <Grid container spacing={4}>
         {/* Mobile: ClientesPerAsociado first (always visible) */}
@@ -218,6 +267,12 @@ export default function SubadminDashboard() {
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* Inactive Clients Modal */}
+      <InactiveClientsModal
+        open={inactiveClientsModalOpen}
+        onClose={() => setInactiveClientsModalOpen(false)}
+      />
     </Box>
   )
 }

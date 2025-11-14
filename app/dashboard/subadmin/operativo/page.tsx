@@ -30,7 +30,7 @@ import {
   DialogActions,
   TextField
 } from '@mui/material'
-import { TrendingDown, TrendingUp, Visibility, Edit, Delete, AccountBalanceWallet, Warning } from '@mui/icons-material'
+import { TrendingDown, TrendingUp, Visibility, Edit, Delete, AccountBalanceWallet, Warning, History } from '@mui/icons-material'
 import PageHeader from '@/components/ui/PageHeader'
 import { useWallet } from '@/hooks/useWallet'
 import { useUsers } from '@/hooks/useUsers'
@@ -43,6 +43,13 @@ import { UserFormModal } from '@/components/users/UserFormModal'
 import { formatAmount } from '@/lib/formatters'
 import { collectorWalletService } from '@/services/collector-wallet.service'
 import type { User } from '@/types/auth'
+import dynamic from 'next/dynamic'
+
+// Dynamic import for WalletHistoryModal
+const WalletHistoryModal = dynamic(
+  () => import('@/components/wallets/WalletHistoryModal'),
+  { ssr: false }
+)
 
 interface ToastState {
   open: boolean
@@ -70,6 +77,7 @@ export default function OperativoSubadminPage() {
   const [loadingCollectorBalances, setLoadingCollectorBalances] = useState(false)
   const [withdrawing, setWithdrawing] = useState(false)
   const [withdrawError, setWithdrawError] = useState<string | null>(null)
+  const [walletHistoryModalOpen, setWalletHistoryModalOpen] = useState(false)
   const [toast, setToast] = useState<ToastState>({
     open: false,
     message: '',
@@ -273,14 +281,34 @@ export default function OperativoSubadminPage() {
 
       {/* Collector Wallets Section */}
       <Box sx={{ mb: 4 }}>
-        <Typography variant="h6" sx={{ mb: 2, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 1 }}>
-          💰 Wallets de Cobros
-          <Chip 
-            label={`${cobradores.length} cobrador${cobradores.length !== 1 ? 'es' : ''}`}
-            size="small" 
-            color="primary" 
-          />
-        </Typography>
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2, flexWrap: 'wrap', gap: 2 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <Typography variant="h6" sx={{ fontWeight: 600 }}>
+              💰 Wallets de Cobros
+            </Typography>
+            <Chip 
+              label={`${cobradores.length} cobrador${cobradores.length !== 1 ? 'es' : ''}`}
+              size="small" 
+              color="primary" 
+            />
+          </Box>
+          <Button
+            variant="outlined"
+            startIcon={<History />}
+            onClick={() => setWalletHistoryModalOpen(true)}
+            sx={{
+              borderColor: 'primary.main',
+              color: 'primary.main',
+              '&:hover': {
+                borderColor: 'primary.dark',
+                bgcolor: 'primary.light',
+                color: 'primary.dark',
+              },
+            }}
+          >
+            Ver Historial Completo
+          </Button>
+        </Box>
         <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
           Gestiona las wallets de cobros de tus cobradores. Los retiros NO se agregan a tu wallet principal.
         </Typography>
@@ -802,7 +830,13 @@ export default function OperativoSubadminPage() {
         <Alert onClose={closeToast} severity={toast.severity} sx={{ width: '100%' }}>
           {toast.message}
         </Alert>
-      </Snackbar>
-    </Box>
-  )
-}
+        </Snackbar>
+
+        {/* Wallet History Modal */}
+        <WalletHistoryModal
+          open={walletHistoryModalOpen}
+          onClose={() => setWalletHistoryModalOpen(false)}
+        />
+      </Box>
+    )
+  }
