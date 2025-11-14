@@ -41,31 +41,29 @@ interface CollectorReportViewProps {
 export default function CollectorReportView({ 
   managerId, 
   title = 'Reporte de Cobrador',
-  subtitle = 'Selecciona una semana para ver el reporte de cobros'
+  subtitle = 'Selecciona un día o un rango de fechas para ver el reporte'
 }: CollectorReportViewProps) {
   const theme = useTheme()
   const [currentMonth, setCurrentMonth] = useState(new Date())
-  const [selectedWeek, setSelectedWeek] = useState<{ start: Date; end: Date } | null>(null)
+  const [selectedRange, setSelectedRange] = useState<{ start: Date; end: Date } | null>(null)
+  const [tempStart, setTempStart] = useState<Date | null>(null) // Para mostrar el rango mientras se selecciona
   const [report, setReport] = useState<CollectorPeriodReport | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const getWeekRange = (date: Date): { start: Date; end: Date } => {
+  // Normalizar fecha (solo día, sin hora)
+  const normalizeDate = (date: Date): Date => {
     const d = new Date(date)
-    const day = d.getDay()
-    const diff = d.getDate() - day + (day === 0 ? -6 : 1)
-    
-    const monday = new Date(d.setDate(diff))
-    monday.setHours(0, 0, 0, 0)
-    
-    const sunday = new Date(monday)
-    sunday.setDate(monday.getDate() + 6)
-    sunday.setHours(23, 59, 59, 999)
-    
-    return { start: monday, end: sunday }
+    d.setHours(0, 0, 0, 0)
+    return d
   }
 
-  const getWeeksInMonth = (date: Date): Date[][] => {
+  // Comparar fechas (solo día)
+  const isSameDay = (date1: Date, date2: Date): boolean => {
+    return normalizeDate(date1).getTime() === normalizeDate(date2).getTime()
+  }
+
+  const getDaysInMonth = (date: Date): Date[] => {
     const year = date.getFullYear()
     const month = date.getMonth()
     
@@ -80,27 +78,27 @@ export default function CollectorReportView({
     const lastSunday = new Date(lastDay)
     lastSunday.setDate(lastDay.getDate() + (endDay === 0 ? 0 : 7 - endDay))
     
-    const weeks: Date[][] = []
+    const days: Date[] = []
     const current = new Date(firstMonday)
     
     while (current <= lastSunday) {
-      const week: Date[] = []
-      for (let i = 0; i < 7; i++) {
-        week.push(new Date(current))
-        current.setDate(current.getDate() + 1)
-      }
-      weeks.push(week)
+      days.push(new Date(current))
+      current.setDate(current.getDate() + 1)
     }
     
-    return weeks
+    return days
   }
 
   const loadReport = async (start: Date, end: Date) => {
     try {
       setLoading(true)
       setError(null)
-      const startStr = start.toISOString().split('T')[0]
-      const endStr = end.toISOString().split('T')[0]
+      const startDate = normalizeDate(start)
+      const endDate = normalizeDate(end)
+      endDate.setHours(23, 59, 59, 999) // Incluir todo el día final
+      
+      const startStr = startDate.toISOString().split('T')[0]
+      const endStr = endDate.toISOString().split('T')[0]
       const data = await collectorReportService.getPeriodReport(startStr, endStr, managerId)
       setReport(data)
     } catch (err: any) {
@@ -111,10 +109,84 @@ export default function CollectorReportView({
     }
   }
 
-  const handleWeekClick = (weekStart: Date) => {
-    const week = getWeekRange(weekStart)
-    setSelectedWeek(week)
-    loadReport(week.start, week.end)
+  const handleDateClick = (date: Date) => {
+    const normalizedDate = normalizeDate(date)
+    
+    // Si no hay fecha de inicio temporal, establecerla
+    if (!tempStart) {
+      setTempStart(normalizedDate)
+      setSelectedRange(null) // Limpiar selección anterior
+      return
+    }
+    
+    // Si se hace clic en la misma fecha, seleccionar solo ese día
+    if (isSameDay(normalizedDate, tempStart)) {
+      const range = { start: normalizedDate, end: normalizedDate }
+      setSelectedRange(range)
+      setTempStart(null)
+      loadReport(range.start, range.end)
+      return
+    }
+    
+    // Si la nueva fecha es anterior a tempStart, reiniciar
+    if (normalizedDate < tempStart) {
+      setTempStart(normalizedDate)
+      setSelectedRange(null)
+      return
+    }
+    
+    // Establecer el rango final
+    const range = { start: tempStart, end: normalizedDate }
+    setSelectedRange(range)
+    setTempStart(null)
+    loadReport(range.start, range.end)
+  }
+
+  // Determinar si una fecha está en el rango seleccionado
+  const isInRange = (date: Date): boolean => {
+    const normalizedDate = normalizeDate(date)
+    
+    // Si hay un rango seleccionado
+    if (selectedRange) {
+      const start = normalizeDate(selectedRange.start)
+      const end = normalizeDate(selectedRange.end)
+      return normalizedDate >= start && normalizedDate <= end
+    }
+    
+    // Si hay una fecha temporal de inicio
+    if (tempStart) {
+      return isSameDay(normalizedDate, tempStart)
+    }
+    
+    return false
+  }
+
+  // Determinar si una fecha es el inicio del rango
+  const isRangeStart = (date: Date): boolean => {
+    if (selectedRange) {
+      return isSameDay(date, selectedRange.start)
+    }
+    if (tempStart) {
+      return isSameDay(date, tempStart)
+    }
+    return false
+  }
+
+  // Determinar si una fecha es el fin del rango
+  const isRangeEnd = (date: Date): boolean => {
+    if (selectedRange) {
+      return isSameDay(date, selectedRange.end)
+    }
+    return false
+  }
+
+  // Determinar si una fecha está entre el inicio y el fin (pero no es inicio ni fin)
+  const isInRangeMiddle = (date: Date): boolean => {
+    if (!selectedRange) return false
+    const normalizedDate = normalizeDate(date)
+    const start = normalizeDate(selectedRange.start)
+    const end = normalizeDate(selectedRange.end)
+    return normalizedDate > start && normalizedDate < end
   }
 
   const formatCurrency = (amount: number) => {
@@ -131,14 +203,14 @@ export default function CollectorReportView({
     })
   }
 
-  const isSelectedWeek = (weekStart: Date) => {
-    if (!selectedWeek) return false
-    const week = getWeekRange(weekStart)
-    return week.start.getTime() === selectedWeek.start.getTime()
-  }
-
-  const weeks = getWeeksInMonth(currentMonth)
+  const days = getDaysInMonth(currentMonth)
   const dayNames = ['L', 'M', 'X', 'J', 'V', 'S', 'D']
+  
+  // Agrupar días en semanas para el renderizado
+  const weeks: Date[][] = []
+  for (let i = 0; i < days.length; i += 7) {
+    weeks.push(days.slice(i, i + 7))
+  }
 
   return (
     <Box sx={{ maxWidth: 1600, mx: 'auto' }}>
@@ -182,86 +254,128 @@ export default function CollectorReportView({
             ))}
           </Box>
 
-          {/* Semanas */}
-          {weeks.map((week, weekIndex) => {
-            const weekStart = week[0]
-            const isSelected = isSelectedWeek(weekStart)
+          {/* Días del calendario */}
+          {weeks.map((week, weekIndex) => (
+            <Box
+              key={weekIndex}
+              sx={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(7, 1fr)',
+                gap: 0.5,
+                mb: 0.5,
+              }}
+            >
+              {week.map((date, dayIndex) => {
+                const isToday = 
+                  date.getDate() === new Date().getDate() &&
+                  date.getMonth() === new Date().getMonth() &&
+                  date.getFullYear() === new Date().getFullYear()
+                const isOtherMonth = date.getMonth() !== currentMonth.getMonth()
+                const inRange = isInRange(date)
+                const isStart = isRangeStart(date)
+                const isEnd = isRangeEnd(date)
+                const inMiddle = isInRangeMiddle(date)
 
-            return (
-              <Box
-                key={weekIndex}
-                onClick={() => handleWeekClick(weekStart)}
-                sx={{
-                  cursor: 'pointer',
-                  borderRadius: 1,
-                  mb: 0.5,
-                  p: 1,
-                  transition: 'all 0.2s',
-                  backgroundColor: isSelected
-                    ? alpha(theme.palette.primary.main, 0.15)
-                    : 'transparent',
-                  border: isSelected
-                    ? `2px solid ${theme.palette.primary.main}`
-                    : '2px solid transparent',
-                  '&:hover': {
-                    backgroundColor: isSelected
-                      ? alpha(theme.palette.primary.main, 0.2)
-                      : alpha(theme.palette.action.hover, 0.5),
-                  },
-                }}
-              >
-                <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 0.5 }}>
-                  {week.map((date, dayIndex) => {
-                    const isToday = 
-                      date.getDate() === new Date().getDate() &&
-                      date.getMonth() === new Date().getMonth() &&
-                      date.getFullYear() === new Date().getFullYear()
-                    const isOtherMonth = date.getMonth() !== currentMonth.getMonth()
-
-                    return (
-                      <Box key={dayIndex} sx={{ textAlign: 'center', py: 1, borderRadius: 1, position: 'relative' }}>
-                        <Typography
-                          variant="body2"
-                          sx={{
-                            color: isOtherMonth ? 'text.disabled' : isToday ? 'primary.main' : 'text.primary',
-                            fontWeight: isToday ? 700 : 400,
-                          }}
-                        >
-                          {date.getDate()}
-                        </Typography>
-                        {isToday && (
-                          <Box
-                            sx={{
-                              position: 'absolute',
-                              bottom: 0,
-                              left: '50%',
-                              transform: 'translateX(-50%)',
-                              width: 4,
-                              height: 4,
-                              borderRadius: '50%',
-                              backgroundColor: 'primary.main',
-                            }}
-                          />
-                        )}
-                      </Box>
-                    )
-                  })}
-                </Box>
-              </Box>
-            )
-          })}
+                return (
+                  <Box
+                    key={dayIndex}
+                    onClick={() => !isOtherMonth && handleDateClick(date)}
+                    sx={{
+                      textAlign: 'center',
+                      py: 1.5,
+                      borderRadius: 1,
+                      position: 'relative',
+                      cursor: isOtherMonth ? 'default' : 'pointer',
+                      transition: 'all 0.2s',
+                      backgroundColor: inRange
+                        ? isStart || isEnd
+                          ? alpha(theme.palette.primary.main, 0.3)
+                          : alpha(theme.palette.primary.main, 0.15)
+                        : 'transparent',
+                      border: isStart || isEnd
+                        ? `2px solid ${theme.palette.primary.main}`
+                        : '2px solid transparent',
+                      '&:hover': {
+                        backgroundColor: isOtherMonth
+                          ? 'transparent'
+                          : inRange
+                            ? alpha(theme.palette.primary.main, 0.25)
+                            : alpha(theme.palette.action.hover, 0.5),
+                      },
+                    }}
+                  >
+                    <Typography
+                      variant="body2"
+                      sx={{
+                        color: isOtherMonth
+                          ? 'text.disabled'
+                          : inRange
+                            ? 'primary.main'
+                            : isToday
+                              ? 'primary.main'
+                              : 'text.primary',
+                        fontWeight: (isStart || isEnd || isToday) ? 700 : 400,
+                      }}
+                    >
+                      {date.getDate()}
+                    </Typography>
+                    {isToday && !inRange && (
+                      <Box
+                        sx={{
+                          position: 'absolute',
+                          bottom: 2,
+                          left: '50%',
+                          transform: 'translateX(-50%)',
+                          width: 4,
+                          height: 4,
+                          borderRadius: '50%',
+                          backgroundColor: 'primary.main',
+                        }}
+                      />
+                    )}
+                  </Box>
+                )
+              })}
+            </Box>
+          ))}
+          
+          {/* Indicador de selección */}
+          {tempStart && (
+            <Box sx={{ mt: 2, p: 1.5, bgcolor: alpha(theme.palette.info.main, 0.1), borderRadius: 1 }}>
+              <Typography variant="caption" color="info.main" fontWeight={500}>
+                Selecciona la fecha de fin para completar el rango
+              </Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+                Inicio: {tempStart.toLocaleDateString('es-AR', { day: '2-digit', month: 'long', year: 'numeric' })}
+              </Typography>
+            </Box>
+          )}
+          
+          {selectedRange && (
+            <Box sx={{ mt: 2, p: 1.5, bgcolor: alpha(theme.palette.success.main, 0.1), borderRadius: 1 }}>
+              <Typography variant="caption" color="success.main" fontWeight={500}>
+                Rango seleccionado
+              </Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+                {isSameDay(selectedRange.start, selectedRange.end)
+                  ? selectedRange.start.toLocaleDateString('es-AR', { day: '2-digit', month: 'long', year: 'numeric' })
+                  : `${selectedRange.start.toLocaleDateString('es-AR', { day: '2-digit', month: 'long', year: 'numeric' })} - ${selectedRange.end.toLocaleDateString('es-AR', { day: '2-digit', month: 'long', year: 'numeric' })}`
+                }
+              </Typography>
+            </Box>
+          )}
         </Paper>
 
         {/* Reporte */}
         <Box>
-          {!selectedWeek && !loading && (
+          {!selectedRange && !loading && (
             <Paper sx={{ p: 6, textAlign: 'center' }}>
               <CalendarMonth sx={{ fontSize: 64, color: 'text.disabled', mb: 2 }} />
               <Typography variant="h6" color="text.secondary" gutterBottom>
-                Selecciona una semana en el calendario
+                Selecciona un día o rango de fechas
               </Typography>
               <Typography variant="body2" color="text.secondary">
-                Haz clic en cualquier día para ver el reporte de esa semana
+                Haz clic en un día para seleccionarlo, o selecciona dos días para crear un rango
               </Typography>
             </Paper>
           )}
@@ -281,7 +395,7 @@ export default function CollectorReportView({
             </Alert>
           )}
 
-          {report && selectedWeek && !loading && (
+          {report && selectedRange && !loading && (
             <Box>
               {/* Header - Información del Cobrador */}
               <Paper sx={{ 

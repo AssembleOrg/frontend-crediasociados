@@ -103,6 +103,20 @@ export interface UpdateRouteExpenseDto {
   description?: string;
 }
 
+export interface TodayExpensesResponse {
+  date: string;
+  total: number;
+  totalAmount: number;
+  expenses: Array<{
+    monto: number;
+    categoria: ExpenseCategory;
+    descripcion: string;
+    nombreManager: string;
+    emailManager: string;
+    fechaGasto: string;
+  }>;
+}
+
 class CollectionRoutesService {
   /**
    * Get today's active route for the current manager
@@ -221,6 +235,14 @@ class CollectionRoutesService {
   async deleteRouteExpense(expenseId: string): Promise<{ message: string }> {
     const response = await api.delete(`/collection-routes/expenses/${expenseId}`);
     return response.data;
+  }
+
+  /**
+   * Get today's expenses
+   */
+  async getTodayExpenses(): Promise<TodayExpensesResponse> {
+    const response = await api.get('/collection-routes/today/expenses');
+    return response.data.data || response.data;
   }
 }
 

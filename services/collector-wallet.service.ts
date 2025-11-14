@@ -27,6 +27,19 @@ export interface CollectorWalletWithdrawResponse {
   createdAt: string;
 }
 
+export interface TodayCollectionsResponse {
+  date: string;
+  total: number;
+  totalAmount: number;
+  collections: Array<{
+    monto: number;
+    nombreUsuario: string;
+    emailUsuario: string;
+    descripcion: string;
+    fechaCobro: string;
+  }>;
+}
+
 class CollectorWalletService {
   /**
    * Get collector wallet balance for a specific manager
@@ -65,6 +78,14 @@ class CollectorWalletService {
     data: CollectorWalletWithdrawRequest
   ): Promise<CollectorWalletWithdrawResponse> {
     const response = await api.post('/collector-wallet/withdraw', data);
+    return response.data.data || response.data;
+  }
+
+  /**
+   * Get today's collections
+   */
+  async getTodayCollections(): Promise<TodayCollectionsResponse> {
+    const response = await api.get('/collector-wallet/today/collections');
     return response.data.data || response.data;
   }
 }

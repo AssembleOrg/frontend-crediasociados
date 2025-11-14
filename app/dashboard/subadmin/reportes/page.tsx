@@ -96,7 +96,7 @@ export default function SubadminAnalyticsPage() {
         <CollectorReportView
           managerId={selectedManager}
           title={`Reporte de ${selectedManagerData?.fullName || 'Cobrador'}`}
-          subtitle={`Selecciona una semana para ver el reporte de cobros de ${selectedManagerData?.fullName || 'este cobrador'}`}
+          subtitle={`Selecciona un día o un rango de fechas para ver el reporte de ${selectedManagerData?.fullName || 'este cobrador'}`}
         />
       ) : managers.length > 0 ? (
         <Paper sx={{ p: 6, textAlign: 'center' }}>

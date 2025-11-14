@@ -6,10 +6,22 @@ import { Card, CardContent, Typography, Box, Skeleton, Stack, Alert } from '@mui
 import { TrendingUp, TrendingDown, Receipt, AccountBalance } from '@mui/icons-material'
 import { dailySummaryService, type DailySummaryResponse } from '@/services/daily-summary.service'
 import { loansService } from '@/services/loans.service'
+import { collectorWalletService } from '@/services/collector-wallet.service'
+import collectionRoutesService, { type ExpenseCategory } from '@/services/collection-routes.service'
 
-// Dynamic import to avoid SSR issues and chunk loading conflicts
+// Dynamic imports to avoid SSR issues and chunk loading conflicts
 const TodayLoansModal = dynamic(
   () => import('@/components/loans/TodayLoansModal'),
+  { ssr: false }
+)
+
+const TodayCollectionsModal = dynamic(
+  () => import('@/components/wallets/TodayCollectionsModal'),
+  { ssr: false }
+)
+
+const TodayExpensesModal = dynamic(
+  () => import('@/components/routes/TodayExpensesModal'),
   { ssr: false }
 )
 
@@ -110,6 +122,39 @@ export function ManagerDashboardCards() {
   } | null>(null)
   const [loadingTodayLoans, setLoadingTodayLoans] = useState(false)
 
+  // Today collections modal
+  const [todayCollectionsModalOpen, setTodayCollectionsModalOpen] = useState(false)
+  const [todayCollectionsData, setTodayCollectionsData] = useState<{
+    date: string
+    total: number
+    totalAmount: number
+    collections: Array<{
+      monto: number
+      nombreUsuario: string
+      emailUsuario: string
+      descripcion: string
+      fechaCobro: string
+    }>
+  } | null>(null)
+  const [loadingTodayCollections, setLoadingTodayCollections] = useState(false)
+
+  // Today expenses modal
+  const [todayExpensesModalOpen, setTodayExpensesModalOpen] = useState(false)
+  const [todayExpensesData, setTodayExpensesData] = useState<{
+    date: string
+    total: number
+    totalAmount: number
+    expenses: Array<{
+      monto: number
+      categoria: ExpenseCategory
+      descripcion: string
+      nombreManager: string
+      emailManager: string
+      fechaGasto: string
+    }>
+  } | null>(null)
+  const [loadingTodayExpenses, setLoadingTodayExpenses] = useState(false)
+
   useEffect(() => {
     const loadDailySummary = async () => {
       try {
@@ -147,6 +192,44 @@ export function ManagerDashboardCards() {
     setTodayLoansModalOpen(false)
   }
 
+  const handleOpenTodayCollections = async () => {
+    setTodayCollectionsModalOpen(true)
+    if (!todayCollectionsData) {
+      setLoadingTodayCollections(true)
+      try {
+        const data = await collectorWalletService.getTodayCollections()
+        setTodayCollectionsData(data)
+      } catch (err) {
+        console.error('Error loading today collections:', err)
+      } finally {
+        setLoadingTodayCollections(false)
+      }
+    }
+  }
+
+  const handleCloseTodayCollections = () => {
+    setTodayCollectionsModalOpen(false)
+  }
+
+  const handleOpenTodayExpenses = async () => {
+    setTodayExpensesModalOpen(true)
+    if (!todayExpensesData) {
+      setLoadingTodayExpenses(true)
+      try {
+        const data = await collectionRoutesService.getTodayExpenses()
+        setTodayExpensesData(data)
+      } catch (err) {
+        console.error('Error loading today expenses:', err)
+      } finally {
+        setLoadingTodayExpenses(false)
+      }
+    }
+  }
+
+  const handleCloseTodayExpenses = () => {
+    setTodayExpensesModalOpen(false)
+  }
+
   if (error) {
     return (
       <Box sx={{ mb: 4 }}>
@@ -180,6 +263,8 @@ export function ManagerDashboardCards() {
           icon={<TrendingUp sx={{ fontSize: 28 }} />}
           color="#4caf50"
           isLoading={isLoading}
+          clickable={true}
+          onClick={handleOpenTodayCollections}
         />
 
         <StatCard
@@ -200,6 +285,8 @@ export function ManagerDashboardCards() {
           icon={<Receipt sx={{ fontSize: 28 }} />}
           color="#ff9800"
           isLoading={isLoading}
+          clickable={true}
+          onClick={handleOpenTodayExpenses}
         />
 
         <StatCard
@@ -217,6 +304,20 @@ export function ManagerDashboardCards() {
         open={todayLoansModalOpen}
         onClose={handleCloseTodayLoans}
         data={todayLoansData}
+      />
+
+      {/* Today Collections Modal */}
+      <TodayCollectionsModal
+        open={todayCollectionsModalOpen}
+        onClose={handleCloseTodayCollections}
+        data={todayCollectionsData}
+      />
+
+      {/* Today Expenses Modal */}
+      <TodayExpensesModal
+        open={todayExpensesModalOpen}
+        onClose={handleCloseTodayExpenses}
+        data={todayExpensesData}
       />
     </Box>
   )
