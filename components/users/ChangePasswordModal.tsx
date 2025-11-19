@@ -109,7 +109,7 @@ export function ChangePasswordModal({
       maxWidth="sm"
       fullWidth
     >
-      <DialogTitle>
+      <DialogTitle sx={{ pt: 2.5, px: 3, pb: 2 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
           <LockReset />
           Cambiar Contraseña

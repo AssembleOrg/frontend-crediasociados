@@ -199,13 +199,11 @@ export function RouteDatePicker({
               const isSelected = day.equals(selected);
               const isCurrentMonth = day.month === currentMonth.month;
               const isTodayDate = day.equals(today);
-              const isFuture = day > today;
 
               return (
                 <Button
                   key={index}
                   onClick={() => handleDateClick(day)}
-                  disabled={isFuture}
                   sx={{
                     minWidth: 0,
                     width: { xs: 36, sm: 40 },

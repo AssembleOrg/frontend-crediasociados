@@ -14,7 +14,7 @@ export interface CollectorPeriodReport {
   collectorWallet: {
     transactions: Array<{
       id: string
-      type: 'COLLECTION' | 'WITHDRAWAL'
+      type: 'COLLECTION' | 'WITHDRAWAL' | 'ROUTE_EXPENSE' | 'LOAN_DISBURSEMENT' | 'CASH_ADJUSTMENT'
       amount: number
       description: string
       balanceBefore: number
@@ -71,7 +71,27 @@ export interface CollectorPeriodReport {
     netBeforeCommission: number
     commission: number
     netAfterCommission: number
+    cobrado?: number
+    gastado?: number
+    prestado?: number
+    retirado?: number
+    neto?: number
   }
+  loans?: {
+    total: number
+    totalAmount: number
+    loans: Array<{
+      id: string
+      loanTrack: string
+      amount: number
+      createdAt: string
+    }>
+  }
+  prestado?: number // Direct field for total lent amount
+  cobrado?: number // Direct field for total collected
+  gastado?: number // Direct field for total expenses
+  retirado?: number // Direct field for total withdrawals
+  neto?: number // Direct field for net amount
 }
 
 class CollectorReportService {

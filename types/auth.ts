@@ -49,6 +49,8 @@ export interface WalletTransaction {
   currency: 'ARS';
   description: string;
   relatedUserId?: string;
+  balanceBefore?: number;
+  balanceAfter?: number;
   createdAt: Date;
 }
 
@@ -139,6 +141,7 @@ export interface Client {
   email?: string;
   address?: string;
   job?: string;
+  verified?: boolean;
   createdAt: Date;
   updatedAt: Date;
 }

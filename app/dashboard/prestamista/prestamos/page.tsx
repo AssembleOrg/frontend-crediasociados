@@ -23,7 +23,7 @@ import { calculateLoanStats } from '@/lib/loans/loanCalculations'
 export default function PrestamosAnalyticsPage() {
   const router = useRouter()
   const { loans, error } = useLoans()
-  const { allSubLoansWithClient, isLoading: subLoansLoading } = useSubLoans()
+  const { allSubLoansWithClient, isLoading: subLoansLoading, fetchAllSubLoansWithClientInfo } = useSubLoans()
   const { filteredLoans, filterStats, hasActiveFilters } = useLoansFilters()
   const { data: managerData, isLoading: managerDataLoading, refetch: refetchManagerData } = useManagerDashboard()
 
@@ -74,13 +74,13 @@ export default function PrestamosAnalyticsPage() {
             startIcon: <Add />,
             size: 'small'
           },
-          {
-            label: 'Ir a Cobros', 
-            onClick: handleGoToCobros,
-            variant: 'contained',
-            color: 'primary',
-            size: 'small'
-          }
+          // {
+          //   label: 'Ir a Cobros', 
+          //   onClick: handleGoToCobros,
+          //   variant: 'contained',
+          //   color: 'primary',
+          //   size: 'small'
+          // }
         ]}
       />
 
@@ -92,10 +92,7 @@ export default function PrestamosAnalyticsPage() {
       )}
 
       {/* Tu Cartera Stats - Manager Dashboard Cards */}
-      <ManagerDashboardCards 
-        data={managerData}
-        isLoading={managerDataLoading}
-      />
+      <ManagerDashboardCards />
 
       {/* Filter Panel */}
       <Box sx={{ mb: 3 }}>
@@ -168,6 +165,10 @@ export default function PrestamosAnalyticsPage() {
         subLoans={selectedLoanSubLoans}
         isLoading={subLoansLoading}
         onGoToCobros={handleGoToCobrosForClient}
+        onPaymentSuccess={() => {
+          // Refrescar los datos después de un pago exitoso
+          fetchAllSubLoansWithClientInfo()
+        }}
       />
     </Box>
   )

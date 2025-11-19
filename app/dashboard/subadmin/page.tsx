@@ -2,18 +2,32 @@
 
 import React, { useState } from 'react'
 import dynamic from 'next/dynamic'
-import { Box, CircularProgress, Typography, Alert, Grid, Button, useMediaQuery, Dialog, DialogTitle, DialogContent, DialogActions, Card, CardContent } from '@mui/material'
-import { ExpandMore, ExpandLess, Calculate, PersonOff } from '@mui/icons-material'
+import { Box, CircularProgress, Typography, Alert, Grid, Button, useMediaQuery, Dialog, DialogTitle, DialogContent, DialogActions, Card, CardContent, Chip } from '@mui/material'
+import { ExpandMore, ExpandLess, Calculate, PersonOff, AccountBalance, VerifiedUser } from '@mui/icons-material'
 import PageHeader from '@/components/ui/PageHeader'
 import { useSubadminDashboardData } from '@/hooks/useSubadminDashboardData'
 import { useSubadminCharts } from '@/hooks/useSubadminCharts'
 import { ChartSkeleton, BarChartSkeleton } from '@/components/ui/ChartSkeleton'
 import { StandaloneLoanSimulator } from '@/components/loans/StandaloneLoanSimulator'
 import type { ManagerAnalytics } from '@/services/analytics.service'
+import { clientsService } from '@/services/clients.service'
+import { useEffect } from 'react'
 
 // Dynamic import for InactiveClientsModal
 const InactiveClientsModal = dynamic(
   () => import('@/components/clients/InactiveClientsModal'),
+  { ssr: false }
+)
+
+// Dynamic import for ActiveLoansClientsModal
+const ActiveLoansClientsModal = dynamic(
+  () => import('@/components/clients/ActiveLoansClientsModal'),
+  { ssr: false }
+)
+
+// Dynamic import for UnverifiedClientsModal
+const UnverifiedClientsModal = dynamic(
+  () => import('@/components/clients/UnverifiedClientsModal'),
   { ssr: false }
 )
 
@@ -56,6 +70,9 @@ export default function SubadminDashboard() {
   const [showAllCharts, setShowAllCharts] = useState(false)
   const [simulatorOpen, setSimulatorOpen] = useState(false)
   const [inactiveClientsModalOpen, setInactiveClientsModalOpen] = useState(false)
+  const [activeLoansClientsModalOpen, setActiveLoansClientsModalOpen] = useState(false)
+  const [unverifiedClientsModalOpen, setUnverifiedClientsModalOpen] = useState(false)
+  const [unverifiedClientsCount, setUnverifiedClientsCount] = useState<number | null>(null)
 
   const managersForChart: ManagerAnalytics[] = detailedManagers.map(manager => ({
     managerId: manager.id,
@@ -68,6 +85,20 @@ export default function SubadminDashboard() {
     collectionRate: 0,
     createdAt: new Date().toISOString()
   }))
+
+  // Load unverified clients count
+  useEffect(() => {
+    const loadUnverifiedCount = async () => {
+      try {
+        const data = await clientsService.getUnverifiedClients()
+        setUnverifiedClientsCount(data.total || 0)
+      } catch (error) {
+        console.error('Error loading unverified clients count:', error)
+        setUnverifiedClientsCount(0)
+      }
+    }
+    loadUnverifiedCount()
+  }, [])
 
   if (isLoading && detailedManagers.length === 0) {
     return (
@@ -120,6 +151,63 @@ export default function SubadminDashboard() {
         </Button>
       </Box>
 
+      {/* Unverified Clients Card */}
+      <Card
+        sx={{
+          mb: 3,
+          cursor: 'pointer',
+          transition: 'all 0.2s',
+          background: 'linear-gradient(135deg, #FFD700 0%, #FFA500 100%)',
+          color: 'white',
+          '&:hover': {
+            transform: 'translateY(-4px)',
+            boxShadow: '0 12px 28px rgba(255, 215, 0, 0.3)',
+          },
+        }}
+        onClick={() => setUnverifiedClientsModalOpen(true)}
+      >
+        <CardContent sx={{ p: 3 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            <Box
+              sx={{
+                width: 64,
+                height: 64,
+                borderRadius: 2,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                bgcolor: 'rgba(255,255,255,0.2)',
+              }}
+            >
+              <VerifiedUser sx={{ fontSize: 32 }} />
+            </Box>
+            <Box sx={{ flex: 1 }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 0.5 }}>
+                <Typography variant="h6" fontWeight={600}>
+                  Clientes No Verificados
+                </Typography>
+                {unverifiedClientsCount !== null && unverifiedClientsCount > 0 && (
+                  <Chip
+                    label={unverifiedClientsCount}
+                    size="small"
+                    sx={{
+                      bgcolor: 'error.main',
+                      color: 'white',
+                      fontWeight: 700,
+                      minWidth: 32,
+                      height: 24
+                    }}
+                  />
+                )}
+              </Box>
+              <Typography variant="body2" sx={{ opacity: 0.9 }}>
+                Verifica los clientes pendientes de tus managers
+              </Typography>
+            </Box>
+          </Box>
+        </CardContent>
+      </Card>
+
       {/* Inactive Clients Card */}
       <Card
         sx={{
@@ -156,6 +244,48 @@ export default function SubadminDashboard() {
               </Typography>
               <Typography variant="body2" sx={{ opacity: 0.9 }}>
                 Consulta los clientes sin préstamos activos de tus managers
+              </Typography>
+            </Box>
+          </Box>
+        </CardContent>
+      </Card>
+
+      {/* Active Loans Clients Card */}
+      <Card
+        sx={{
+          mb: 3,
+          cursor: 'pointer',
+          transition: 'all 0.2s',
+          background: 'linear-gradient(135deg, #1976d2 0%, #42a5f5 100%)',
+          color: 'white',
+          '&:hover': {
+            transform: 'translateY(-4px)',
+            boxShadow: '0 12px 28px rgba(25, 118, 210, 0.3)',
+          },
+        }}
+        onClick={() => setActiveLoansClientsModalOpen(true)}
+      >
+        <CardContent sx={{ p: 3 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            <Box
+              sx={{
+                width: 64,
+                height: 64,
+                borderRadius: 2,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                bgcolor: 'rgba(255,255,255,0.2)',
+              }}
+            >
+              <AccountBalance sx={{ fontSize: 32 }} />
+            </Box>
+            <Box sx={{ flex: 1 }}>
+              <Typography variant="h6" fontWeight={600} gutterBottom>
+                Clientes con Préstamos Activos
+              </Typography>
+              <Typography variant="body2" sx={{ opacity: 0.9 }}>
+                Consulta los clientes con préstamos activos de tus managers
               </Typography>
             </Box>
           </Box>
@@ -272,6 +402,26 @@ export default function SubadminDashboard() {
       <InactiveClientsModal
         open={inactiveClientsModalOpen}
         onClose={() => setInactiveClientsModalOpen(false)}
+      />
+
+      {/* Active Loans Clients Modal */}
+      <ActiveLoansClientsModal
+        open={activeLoansClientsModalOpen}
+        onClose={() => setActiveLoansClientsModalOpen(false)}
+      />
+
+      {/* Unverified Clients Modal */}
+      <UnverifiedClientsModal
+        open={unverifiedClientsModalOpen}
+        onClose={() => {
+          setUnverifiedClientsModalOpen(false)
+          // Refresh count when modal closes
+          clientsService.getUnverifiedClients().then(data => {
+            setUnverifiedClientsCount(data.total || 0)
+          }).catch(() => {
+            setUnverifiedClientsCount(0)
+          })
+        }}
       />
     </Box>
   )

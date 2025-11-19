@@ -63,7 +63,9 @@ export const PaymentSuccessModal: React.FC<PaymentSuccessModalProps> = ({
             ? 'linear-gradient(135deg, #ff9800 0%, #fb8c00 100%)'
             : 'linear-gradient(135deg, #4caf50 0%, #45a049 100%)',
           color: 'white',
-          borderRadius: '12px 12px 0 0'
+          borderRadius: '12px 12px 0 0',
+          p: 2.5,
+          pt: 3
         }}
       >
         <CheckCircle />

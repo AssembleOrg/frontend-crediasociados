@@ -77,6 +77,8 @@ export const PaymentHistoryModal: React.FC<PaymentHistoryModalProps> = ({
       PaperProps={{
         sx: {
           borderRadius: 3,
+          m: { xs: 1, sm: 2 },
+          mt: { xs: 2, sm: 3 }
         }
       }}
     >
@@ -85,7 +87,9 @@ export const PaymentHistoryModal: React.FC<PaymentHistoryModalProps> = ({
         alignItems: 'center',
         gap: 1,
         background: 'linear-gradient(135deg, #667eea 0%, #4facfe 100%)',
-        color: 'white'
+        color: 'white',
+        p: 2.5,
+        pt: 3
       }}>
         <History />
         <Typography variant="h6" sx={{ fontWeight: 600 }}>

@@ -29,6 +29,8 @@ import {
   TrendingDown,
   Receipt,
   AttachMoney,
+  SwapHoriz,
+  AccountBalance,
 } from '@mui/icons-material'
 import { collectorReportService, type CollectorPeriodReport } from '@/services/collector-report.service'
 
@@ -201,6 +203,78 @@ export default function CollectorReportView({
       day: '2-digit',
       month: 'long',
     })
+  }
+
+  // Helper functions para determinar el estilo según el tipo de transacción
+  const getTransactionLabel = (type: string): string => {
+    switch (type) {
+      case 'COLLECTION':
+        return 'Cobro'
+      case 'WITHDRAWAL':
+        return 'Retiro'
+      case 'ROUTE_EXPENSE':
+        return 'Gasto de Ruta'
+      case 'LOAN_DISBURSEMENT':
+        return 'Desembolso'
+      case 'CASH_ADJUSTMENT':
+        return 'Ajuste de Caja'
+      default:
+        return 'Transacción'
+    }
+  }
+
+  const getTransactionColor = (type: string): 'success' | 'warning' | 'error' | 'info' | 'default' => {
+    switch (type) {
+      case 'COLLECTION':
+        return 'success'
+      case 'WITHDRAWAL':
+        return 'warning'
+      case 'ROUTE_EXPENSE':
+        return 'error'
+      case 'LOAN_DISBURSEMENT':
+        return 'error'
+      case 'CASH_ADJUSTMENT':
+        return 'info'
+      default:
+        return 'default'
+    }
+  }
+
+  const getTransactionIcon = (type: string) => {
+    switch (type) {
+      case 'COLLECTION':
+        return <TrendingUp />
+      case 'WITHDRAWAL':
+        return <TrendingDown />
+      case 'ROUTE_EXPENSE':
+        return <Receipt />
+      case 'LOAN_DISBURSEMENT':
+        return <AccountBalance />
+      case 'CASH_ADJUSTMENT':
+        return <SwapHoriz />
+      default:
+        return <AttachMoney />
+    }
+  }
+
+  const getTransactionSign = (type: string): string => {
+    // CASH_ADJUSTMENT y COLLECTION son positivos (ingresos)
+    if (type === 'CASH_ADJUSTMENT' || type === 'COLLECTION') {
+      return '+'
+    }
+    // WITHDRAWAL, ROUTE_EXPENSE, LOAN_DISBURSEMENT son negativos (egresos)
+    return '-'
+  }
+
+  const getAmountColor = (type: string): string => {
+    if (type === 'CASH_ADJUSTMENT') {
+      return 'info.main'
+    }
+    if (type === 'COLLECTION') {
+      return 'success.main'
+    }
+    // WITHDRAWAL, ROUTE_EXPENSE, LOAN_DISBURSEMENT son negativos
+    return 'error.main'
   }
 
   const days = getDaysInMonth(currentMonth)
@@ -453,7 +527,7 @@ export default function CollectorReportView({
               {/* Summary Cards */}
               <Box sx={{ 
                 display: 'grid', 
-                gridTemplateColumns: { xs: '1fr 1fr', sm: 'repeat(4, 1fr)' }, 
+                gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', md: 'repeat(5, 1fr)' }, 
                 gap: 2, 
                 mb: 3 
               }}>
@@ -462,14 +536,14 @@ export default function CollectorReportView({
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
                       <TrendingUp sx={{ color: 'success.main' }} />
                       <Typography variant="caption" color="text.secondary">
-                        Total Cobrado
+                        Cobrado
                       </Typography>
                     </Box>
                     <Typography variant="h5" fontWeight={700} color="success.main">
-                      {formatCurrency(report.collections?.amounts?.totalCollected || 0)}
+                      {formatCurrency(report.cobrado ?? report.summary?.cobrado ?? report.collections?.amounts?.totalCollected ?? 0)}
                     </Typography>
                     <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
-                      de {formatCurrency(report.collections?.amounts?.totalDue || 0)} esperado
+                      de {formatCurrency(report.collections?.amounts?.totalDue ?? 0)} esperado
                     </Typography>
                   </CardContent>
                 </Card>
@@ -477,16 +551,16 @@ export default function CollectorReportView({
                 <Card>
                   <CardContent>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-                      <TrendingDown sx={{ color: 'warning.main' }} />
+                      <AttachMoney sx={{ color: 'info.main' }} />
                       <Typography variant="caption" color="text.secondary">
-                        Total Retirado
+                        Prestado
                       </Typography>
                     </Box>
-                    <Typography variant="h5" fontWeight={700} color="warning.main">
-                      {formatCurrency(report.collectorWallet?.totalWithdrawals || 0)}
+                    <Typography variant="h5" fontWeight={700} color="info.main">
+                      {formatCurrency(report.prestado ?? report.summary?.prestado ?? report.loans?.totalAmount ?? 0)}
                     </Typography>
                     <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
-                      de la wallet
+                      del período
                     </Typography>
                   </CardContent>
                 </Card>
@@ -496,14 +570,31 @@ export default function CollectorReportView({
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
                       <Receipt sx={{ color: 'error.main' }} />
                       <Typography variant="caption" color="text.secondary">
-                        Gastos
+                        Gastado
                       </Typography>
                     </Box>
                     <Typography variant="h5" fontWeight={700} color="error.main">
-                      {formatCurrency(report.expenses?.total || 0)}
+                      {formatCurrency(report.gastado ?? report.summary?.gastado ?? report.expenses?.total ?? 0)}
                     </Typography>
                     <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
                       del período
+                    </Typography>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardContent>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+                      <TrendingDown sx={{ color: 'warning.main' }} />
+                      <Typography variant="caption" color="text.secondary">
+                        Retirado
+                      </Typography>
+                    </Box>
+                    <Typography variant="h5" fontWeight={700} color="warning.main">
+                      {formatCurrency(report.retirado ?? report.summary?.retirado ?? report.collectorWallet?.totalWithdrawals ?? 0)}
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
+                      de la wallet
                     </Typography>
                   </CardContent>
                 </Card>
@@ -513,11 +604,11 @@ export default function CollectorReportView({
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
                       <AttachMoney />
                       <Typography variant="caption" sx={{ opacity: 0.9 }}>
-                        Neto Wallet
+                        Neto
                       </Typography>
                     </Box>
                     <Typography variant="h5" fontWeight={700}>
-                      {formatCurrency(report.collectorWallet?.netAmount || 0)}
+                      {formatCurrency(report.neto ?? report.summary?.neto ?? report.collectorWallet?.netAmount ?? 0)}
                     </Typography>
                     <Typography variant="caption" sx={{ opacity: 0.9, display: 'block', mt: 0.5 }}>
                       después de retiros
@@ -827,52 +918,89 @@ export default function CollectorReportView({
                 <Typography variant="h6" fontWeight={600} sx={{ mb: 3 }}>
                   Resumen Financiero Completo
                 </Typography>
+                
+                {/* Primera fila: Ingresos y Egresos */}
                 <Box sx={{ 
                   display: 'grid', 
                   gridTemplateColumns: { xs: '1fr', sm: 'repeat(3, 1fr)' }, 
                   gap: 2,
                   mb: 2
                 }}>
-                  <Box sx={{ p: 2, borderRadius: 2, bgcolor: 'rgba(255,255,255,0.2)' }}>
-                    <Typography variant="caption" sx={{ opacity: 0.9 }}>Total Cobros</Typography>
-                    <Typography variant="h6" fontWeight={600}>
+                  <Box sx={{ p: 2.5, borderRadius: 2, bgcolor: 'rgba(255,255,255,0.2)', border: '1px solid rgba(255,255,255,0.3)' }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+                      <TrendingUp sx={{ fontSize: 20 }} />
+                      <Typography variant="caption" sx={{ opacity: 0.9, fontWeight: 500 }}>
+                        Total Cobros
+                      </Typography>
+                    </Box>
+                    <Typography variant="h5" fontWeight={700}>
                       {formatCurrency(report.summary?.totalCollections || 0)}
                     </Typography>
                   </Box>
-                  <Box sx={{ p: 2, borderRadius: 2, bgcolor: 'rgba(255,255,255,0.2)' }}>
-                    <Typography variant="caption" sx={{ opacity: 0.9 }}>Total Retiros</Typography>
-                    <Typography variant="h6" fontWeight={600}>
+                  <Box sx={{ p: 2.5, borderRadius: 2, bgcolor: 'rgba(255,255,255,0.2)', border: '1px solid rgba(255,255,255,0.3)' }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+                      <TrendingDown sx={{ fontSize: 20 }} />
+                      <Typography variant="caption" sx={{ opacity: 0.9, fontWeight: 500 }}>
+                        Total Retiros
+                      </Typography>
+                    </Box>
+                    <Typography variant="h5" fontWeight={700}>
                       {formatCurrency(report.summary?.totalWithdrawals || 0)}
                     </Typography>
                   </Box>
-                  <Box sx={{ p: 2, borderRadius: 2, bgcolor: 'rgba(255,255,255,0.2)' }}>
-                    <Typography variant="caption" sx={{ opacity: 0.9 }}>Total Gastos</Typography>
-                    <Typography variant="h6" fontWeight={600}>
+                  <Box sx={{ p: 2.5, borderRadius: 2, bgcolor: 'rgba(255,255,255,0.2)', border: '1px solid rgba(255,255,255,0.3)' }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+                      <Receipt sx={{ fontSize: 20 }} />
+                      <Typography variant="caption" sx={{ opacity: 0.9, fontWeight: 500 }}>
+                        Total Gastos
+                      </Typography>
+                    </Box>
+                    <Typography variant="h5" fontWeight={700}>
                       {formatCurrency(report.summary?.totalExpenses || 0)}
                     </Typography>
                   </Box>
                 </Box>
+
+                {/* Divider visual */}
+                <Divider sx={{ my: 3, borderColor: 'rgba(255,255,255,0.3)' }} />
+
+                {/* Segunda fila: Cálculos Netos */}
                 <Box sx={{ 
                   display: 'grid', 
                   gridTemplateColumns: { xs: '1fr', sm: 'repeat(3, 1fr)' }, 
                   gap: 2 
                 }}>
-                  <Box sx={{ p: 2, borderRadius: 2, bgcolor: 'rgba(255,255,255,0.25)' }}>
-                    <Typography variant="caption" sx={{ opacity: 0.9 }}>Neto Antes de Comisión</Typography>
-                    <Typography variant="h6" fontWeight={600}>
+                  <Box sx={{ p: 2.5, borderRadius: 2, bgcolor: 'rgba(255,255,255,0.25)', border: '1px solid rgba(255,255,255,0.4)' }}>
+                    <Typography variant="caption" sx={{ opacity: 0.9, fontWeight: 500, mb: 1, display: 'block' }}>
+                      Neto Antes de Comisión
+                    </Typography>
+                    <Typography variant="h6" fontWeight={700}>
                       {formatCurrency(report.summary?.netBeforeCommission || 0)}
                     </Typography>
-                  </Box>
-                  <Box sx={{ p: 2, borderRadius: 2, bgcolor: 'rgba(255,255,255,0.25)' }}>
-                    <Typography variant="caption" sx={{ opacity: 0.9 }}>Comisión</Typography>
-                    <Typography variant="h6" fontWeight={600}>
-                      {formatCurrency(report.summary?.commission || 0)}
+                    <Typography variant="caption" sx={{ opacity: 0.8, mt: 0.5, display: 'block', fontSize: '0.7rem' }}>
+                      Cobros - Retiros - Gastos
                     </Typography>
                   </Box>
-                  <Box sx={{ p: 2, borderRadius: 2, bgcolor: 'rgba(255,255,255,0.35)' }}>
-                    <Typography variant="caption" sx={{ opacity: 0.9 }}>Neto Después de Comisión</Typography>
-                    <Typography variant="h5" fontWeight={700}>
+                  <Box sx={{ p: 2.5, borderRadius: 2, bgcolor: 'rgba(255,255,255,0.25)', border: '1px solid rgba(255,255,255,0.4)' }}>
+                    <Typography variant="caption" sx={{ opacity: 0.9, fontWeight: 500, mb: 1, display: 'block' }}>
+                      Comisión
+                    </Typography>
+                    <Typography variant="h6" fontWeight={700}>
+                      {formatCurrency(report.summary?.commission || 0)}
+                    </Typography>
+                    <Typography variant="caption" sx={{ opacity: 0.8, mt: 0.5, display: 'block', fontSize: '0.7rem' }}>
+                      {report.commission?.percentage || 0}% sobre {formatCurrency(report.commission?.baseAmount || 0)}
+                    </Typography>
+                  </Box>
+                  <Box sx={{ p: 2.5, borderRadius: 2, bgcolor: 'rgba(255,255,255,0.35)', border: '2px solid rgba(255,255,255,0.5)' }}>
+                    <Typography variant="caption" sx={{ opacity: 0.9, fontWeight: 600, mb: 1, display: 'block' }}>
+                      Neto Final
+                    </Typography>
+                    <Typography variant="h4" fontWeight={700}>
                       {formatCurrency(report.summary?.netAfterCommission || 0)}
+                    </Typography>
+                    <Typography variant="caption" sx={{ opacity: 0.9, mt: 0.5, display: 'block', fontSize: '0.7rem', fontWeight: 500 }}>
+                      Después de Comisión
                     </Typography>
                   </Box>
                 </Box>
@@ -908,9 +1036,11 @@ export default function CollectorReportView({
                             </TableCell>
                             <TableCell>
                               <Chip
-                                label={tx.type === 'COLLECTION' ? 'Cobro' : 'Retiro'}
+                                icon={getTransactionIcon(tx.type)}
+                                label={getTransactionLabel(tx.type)}
                                 size="small"
-                                color={tx.type === 'COLLECTION' ? 'success' : 'warning'}
+                                color={getTransactionColor(tx.type)}
+                                sx={{ fontWeight: 600 }}
                               />
                             </TableCell>
                             <TableCell>
@@ -932,9 +1062,9 @@ export default function CollectorReportView({
                               <Typography
                                 variant="body1"
                                 fontWeight={600}
-                                color={tx.type === 'COLLECTION' ? 'success.main' : 'warning.main'}
+                                color={getAmountColor(tx.type)}
                               >
-                                {tx.type === 'COLLECTION' ? '+' : '-'}{formatCurrency(tx.amount)}
+                                {getTransactionSign(tx.type)}{formatCurrency(tx.amount)}
                               </Typography>
                             </TableCell>
                           </TableRow>

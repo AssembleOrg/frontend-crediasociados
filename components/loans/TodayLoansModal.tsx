@@ -67,12 +67,16 @@ export default function TodayLoansModal({ open, onClose, data }: TodayLoansModal
       PaperProps={{
         sx: {
           borderRadius: isMobile ? 0 : 3,
-          maxHeight: isMobile ? '100vh' : '90vh'
+          maxHeight: isMobile ? '100vh' : '90vh',
+          m: { xs: 0, sm: 2 },
+          mt: { xs: 0, sm: 3 }
         }
       }}
     >
       <DialogTitle sx={{ 
         pb: 2, 
+        pt: 2,
+        px: 3,
         display: 'flex', 
         alignItems: 'center', 
         justifyContent: 'space-between',

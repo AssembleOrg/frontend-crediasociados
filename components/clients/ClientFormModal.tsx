@@ -200,11 +200,15 @@ export function ClientFormModal({
         sx: {
           borderRadius: 3,
           boxShadow: '0 20px 40px rgba(0,0,0,0.1)',
+          m: { xs: 1, sm: 2 },
+          mt: { xs: 2, sm: 3 }
         }
       }}
     >
       <DialogTitle sx={{
         pb: 1,
+        pt: 2.5,
+        px: 3,
         background: 'linear-gradient(135deg, #667eea 0%, #4facfe 100%)',
         color: 'white',
         borderRadius: '12px 12px 0 0'

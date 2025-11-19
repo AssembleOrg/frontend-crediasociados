@@ -42,6 +42,10 @@ export default function DolarBlueProvider({ children }: DolarBlueProviderProps) 
         return false;
       }
 
+      if (!response || !response.compra || !response.venta || !response.fechaActualizacion) {
+        return false;
+      }
+
       const dolarData: DolarBlueData = {
         compra: response.compra,
         venta: response.venta,

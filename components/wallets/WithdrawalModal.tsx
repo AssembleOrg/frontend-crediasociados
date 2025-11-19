@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { green } from '@mui/material/colors'
+import { red } from '@mui/material/colors'
 import {
   Dialog,
   DialogTitle,
@@ -16,21 +16,23 @@ import {
   Card,
   CardContent,
 } from '@mui/material'
-import { TrendingUp, Close } from '@mui/icons-material'
+import { TrendingDown, Close } from '@mui/icons-material'
 import { formatAmount, unformatAmount } from '@/lib/formatters'
 
-interface DepositModalProps {
+interface WithdrawalModalProps {
   open: boolean
   onClose: () => void
   onSubmit: (data: { amount: number; currency: string; description: string }) => Promise<void>
   onSuccess?: (message: string) => void
+  currentBalance: number
 }
 
-export const DepositModal: React.FC<DepositModalProps> = ({
+export const WithdrawalModal: React.FC<WithdrawalModalProps> = ({
   open,
   onClose,
   onSubmit,
-  onSuccess
+  onSuccess,
+  currentBalance
 }) => {
   const [amount, setAmount] = useState<string>('')
   const [description, setDescription] = useState<string>('')
@@ -38,10 +40,11 @@ export const DepositModal: React.FC<DepositModalProps> = ({
   const [error, setError] = useState<string | null>(null)
 
   const amountValue = parseFloat(unformatAmount(amount)) || 0
-  const canSubmit = amount && amountValue > 0 && description.trim().length > 0
+  const canWithdraw = amount && amountValue > 0 && amountValue <= currentBalance && description.trim().length > 0
+  const wouldBeNegative = amountValue > currentBalance
 
   const handleSubmit = async () => {
-    if (!canSubmit) return
+    if (!canWithdraw) return
 
     setError(null)
     setIsSubmitting(true)
@@ -55,9 +58,9 @@ export const DepositModal: React.FC<DepositModalProps> = ({
 
       setAmount('')
       setDescription('')
-      onSuccess?.('Depósito realizado con éxito')
+      onSuccess?.('Retiro realizado con éxito')
     } catch (err) {
-      const errorMsg = err instanceof Error ? err.message : 'Error al hacer el depósito'
+      const errorMsg = err instanceof Error ? err.message : 'Error al realizar el retiro'
       setError(errorMsg)
     } finally {
       setIsSubmitting(false)
@@ -91,14 +94,14 @@ export const DepositModal: React.FC<DepositModalProps> = ({
         display: 'flex',
         alignItems: 'center',
         gap: 1.5,
-        background: `linear-gradient(135deg, ${green[500]} 0%, ${green[700]} 100%)`,
+        background: `linear-gradient(135deg, ${red[500]} 0%, ${red[700]} 100%)`,
         color: 'white',
         p: 2.5,
         pt: 3
       }}>
-        <TrendingUp sx={{ fontSize: 24 }} />
+        <TrendingDown sx={{ fontSize: 24 }} />
         <Typography variant="h6" sx={{ fontWeight: 600 }}>
-          Hacer Depósito
+          Realizar Retiro
         </Typography>
       </DialogTitle>
 
@@ -110,10 +113,24 @@ export const DepositModal: React.FC<DepositModalProps> = ({
         )}
         <Box sx={{ p: 3 }}>
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+            {/* Balance Info */}
+            <Card sx={{ backgroundColor: '#fff3e0', borderLeft: '4px solid', borderLeftColor: 'warning.main' }}>
+              <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <Typography variant="caption" color="text.secondary">
+                    Saldo Disponible:
+                  </Typography>
+                  <Typography variant="subtitle2" sx={{ fontWeight: 600, color: 'text.primary' }}>
+                    ${formatAmount(currentBalance.toString())}
+                  </Typography>
+                </Box>
+              </CardContent>
+            </Card>
+
             {/* Amount Section */}
             <Box>
               <TextField
-                label="Monto a Depositar"
+                label="Monto a Retirar"
                 type="text"
                 value={formatAmount(amount)}
                 onChange={(e) => setAmount(unformatAmount(e.target.value))}
@@ -121,7 +138,12 @@ export const DepositModal: React.FC<DepositModalProps> = ({
                 placeholder="$0"
                 disabled={isSubmitting}
                 autoFocus
-                helperText="Ingresa el monto a depositar"
+                error={wouldBeNegative}
+                helperText={
+                  wouldBeNegative
+                    ? `El monto excede el saldo disponible. No puedes retirar más de $${formatAmount(currentBalance.toString())}`
+                    : 'Ingresa el monto a retirar'
+                }
               />
             </Box>
 
@@ -132,7 +154,7 @@ export const DepositModal: React.FC<DepositModalProps> = ({
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 fullWidth
-                placeholder="Ej: Ingreso de capital enero 2025"
+                placeholder="Ej: Retiro para gastos operativos"
                 disabled={isSubmitting}
                 multiline
                 rows={2}
@@ -141,25 +163,47 @@ export const DepositModal: React.FC<DepositModalProps> = ({
                 helperText={
                   description.trim().length === 0 && description.length > 0
                     ? "El concepto es obligatorio"
-                    : "Descripción del depósito (obligatorio)"
+                    : "Descripción del retiro (obligatorio)"
                 }
               />
             </Box>
 
             {/* Preview Card */}
-            {amount && (
-              <Card sx={{ backgroundColor: '#e8f5e9', borderLeft: '4px solid', borderLeftColor: 'success.main' }}>
+            {amount && amountValue > 0 && (
+              <Card sx={{ 
+                backgroundColor: wouldBeNegative ? '#ffebee' : '#e8f5e9', 
+                borderLeft: '4px solid', 
+                borderLeftColor: wouldBeNegative ? 'error.main' : 'success.main' 
+              }}>
                 <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
                   <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                     <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <Typography variant="caption" color="text.secondary">
-                        Monto a depositar:
+                        Monto a retirar:
                       </Typography>
-                      <Typography variant="subtitle2" sx={{ fontWeight: 600, color: 'success.main' }}>
+                      <Typography variant="subtitle2" sx={{ fontWeight: 600, color: wouldBeNegative ? 'error.main' : 'success.main' }}>
                         ${formatAmount(amountValue.toString())}
                       </Typography>
                     </Box>
-                    {/* Moneda removida - sistema agnóstico de moneda */}
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <Typography variant="caption" color="text.secondary">
+                        Saldo después del retiro:
+                      </Typography>
+                      <Typography 
+                        variant="subtitle2" 
+                        sx={{ 
+                          fontWeight: 600, 
+                          color: (currentBalance - amountValue) < 0 ? 'error.main' : 'text.primary' 
+                        }}
+                      >
+                        ${formatAmount((currentBalance - amountValue).toString())}
+                      </Typography>
+                    </Box>
+                    {wouldBeNegative && (
+                      <Alert severity="error" sx={{ mt: 1 }}>
+                        No puedes retirar más de lo disponible. El saldo no puede quedar en negativo.
+                      </Alert>
+                    )}
                   </Box>
                 </CardContent>
               </Card>
@@ -175,13 +219,14 @@ export const DepositModal: React.FC<DepositModalProps> = ({
         <Button
           onClick={handleSubmit}
           variant="contained"
-          disabled={!canSubmit || isSubmitting}
-          endIcon={isSubmitting ? <CircularProgress size={20} color="inherit" /> : <TrendingUp />}
-          sx={{ backgroundColor: 'success.main', '&:hover': { backgroundColor: 'success.dark' } }}
+          disabled={!canWithdraw || isSubmitting}
+          endIcon={isSubmitting ? <CircularProgress size={20} color="inherit" /> : <TrendingDown />}
+          sx={{ backgroundColor: 'error.main', '&:hover': { backgroundColor: 'error.dark' } }}
         >
-          {isSubmitting ? 'Depositando...' : 'Depositar'}
+          {isSubmitting ? 'Retirando...' : 'Retirar'}
         </Button>
       </DialogActions>
     </Dialog>
   )
 }
+

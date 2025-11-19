@@ -87,6 +87,8 @@ export function DeleteLoanConfirmModal({
           bgcolor: 'error.main',
           color: 'white',
           py: 2,
+          pt: 3,
+          px: 3,
         }}
       >
         <Warning sx={{ fontSize: 32 }} />

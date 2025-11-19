@@ -140,7 +140,6 @@ export default function SubadminLayout({
           sx={{
             flexGrow: 1,
             minWidth: 0,
-            minHeight: 'calc(100vh - 80px)'
           }}
         >
           {/* QuickActions - Solo Mobile */}

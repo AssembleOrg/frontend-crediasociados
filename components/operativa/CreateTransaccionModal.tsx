@@ -146,11 +146,13 @@ export const CreateTransaccionModal: React.FC<CreateTransaccionModalProps> = ({
       PaperProps={{
         sx: {
           borderRadius: 3,
-          maxHeight: '90vh'
+          maxHeight: '90vh',
+          m: { xs: 1, sm: 2 },
+          mt: { xs: 2, sm: 3 }
         }
       }}
     >
-      <DialogTitle>
+      <DialogTitle sx={{ pt: 2.5, px: 3, pb: 2 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
           <Add color="primary" />
           <Typography variant="h6">Registrar Transacción</Typography>

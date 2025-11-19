@@ -2,8 +2,8 @@
 
 import React, { useState } from 'react'
 import dynamic from 'next/dynamic'
-import { Box, Grid, CircularProgress, Typography, Button, useMediaQuery, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material'
-import { ExpandMore, ExpandLess, Calculate } from '@mui/icons-material'
+import { Box, Grid, CircularProgress, Typography, Button, useMediaQuery, Dialog, DialogTitle, DialogContent, DialogActions, Card, CardContent } from '@mui/material'
+import { ExpandMore, ExpandLess, Calculate, PersonOff, AccountBalance } from '@mui/icons-material'
 import PageHeader from '@/components/ui/PageHeader'
 import { ManagerDashboardCards } from '@/components/dashboard/ManagerDashboardCards'
 import { usePrestamistaDashboardData } from '@/hooks/usePrestamistaDashboardData'
@@ -12,6 +12,18 @@ import { useWallet } from '@/hooks/useWallet'
 import { useManagerDashboard } from '@/hooks/useManagerDashboard'
 import { ChartSkeleton, BarChartSkeleton } from '@/components/ui/ChartSkeleton'
 import { StandaloneLoanSimulator } from '@/components/loans/StandaloneLoanSimulator'
+
+// Dynamic import for InactiveClientsModal
+const InactiveClientsModal = dynamic(
+  () => import('@/components/clients/InactiveClientsModal'),
+  { ssr: false }
+)
+
+// Dynamic import for ActiveLoansClientsModal
+const ActiveLoansClientsModal = dynamic(
+  () => import('@/components/clients/ActiveLoansClientsModal'),
+  { ssr: false }
+)
 
 // Lazy load charts to reduce initial bundle size
 const ClientsEvolutionChart = dynamic(
@@ -57,6 +69,8 @@ export default function PrestamistaDashboard() {
   const isMobile = useMediaQuery('(max-width:600px)')
   const [showAllCharts, setShowAllCharts] = useState(false)
   const [simulatorOpen, setSimulatorOpen] = useState(false)
+  const [inactiveClientsModalOpen, setInactiveClientsModalOpen] = useState(false)
+  const [activeLoansClientsModalOpen, setActiveLoansClientsModalOpen] = useState(false)
 
   if (isLoading && clients.length === 0) {
     return (
@@ -90,6 +104,90 @@ export default function PrestamistaDashboard() {
 
       {/* Manager Dashboard Cards */}
       <ManagerDashboardCards />
+
+      {/* Inactive Clients Card */}
+      <Card
+        sx={{
+          mb: 3,
+          cursor: 'pointer',
+          transition: 'all 0.2s',
+          background: 'linear-gradient(135deg, #85220D 0%, #A03015 100%)',
+          color: 'white',
+          '&:hover': {
+            transform: 'translateY(-4px)',
+            boxShadow: '0 12px 28px rgba(133, 34, 13, 0.3)',
+          },
+        }}
+        onClick={() => setInactiveClientsModalOpen(true)}
+      >
+        <CardContent sx={{ p: 3 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            <Box
+              sx={{
+                width: 64,
+                height: 64,
+                borderRadius: 2,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                bgcolor: 'rgba(255,255,255,0.2)',
+              }}
+            >
+              <PersonOff sx={{ fontSize: 32 }} />
+            </Box>
+            <Box sx={{ flex: 1 }}>
+              <Typography variant="h6" fontWeight={600} gutterBottom>
+                Clientes Inactivos
+              </Typography>
+              <Typography variant="body2" sx={{ opacity: 0.9 }}>
+                Consulta tus clientes sin préstamos activos
+              </Typography>
+            </Box>
+          </Box>
+        </CardContent>
+      </Card>
+
+      {/* Active Loans Clients Card */}
+      <Card
+        sx={{
+          mb: 3,
+          cursor: 'pointer',
+          transition: 'all 0.2s',
+          background: 'linear-gradient(135deg, #1976d2 0%, #42a5f5 100%)',
+          color: 'white',
+          '&:hover': {
+            transform: 'translateY(-4px)',
+            boxShadow: '0 12px 28px rgba(25, 118, 210, 0.3)',
+          },
+        }}
+        onClick={() => setActiveLoansClientsModalOpen(true)}
+      >
+        <CardContent sx={{ p: 3 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            <Box
+              sx={{
+                width: 64,
+                height: 64,
+                borderRadius: 2,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                bgcolor: 'rgba(255,255,255,0.2)',
+              }}
+            >
+              <AccountBalance sx={{ fontSize: 32 }} />
+            </Box>
+            <Box sx={{ flex: 1 }}>
+              <Typography variant="h6" fontWeight={600} gutterBottom>
+                Clientes con Préstamos Activos
+              </Typography>
+              <Typography variant="body2" sx={{ opacity: 0.9 }}>
+                Consulta tus clientes con préstamos activos
+              </Typography>
+            </Box>
+          </Box>
+        </CardContent>
+      </Card>
 
       {/* Simulator Button */}
       <Box sx={{ mb: 3, display: 'flex', gap: 2 }}>
@@ -211,6 +309,18 @@ export default function PrestamistaDashboard() {
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* Inactive Clients Modal */}
+      <InactiveClientsModal
+        open={inactiveClientsModalOpen}
+        onClose={() => setInactiveClientsModalOpen(false)}
+      />
+
+      {/* Active Loans Clients Modal */}
+      <ActiveLoansClientsModal
+        open={activeLoansClientsModalOpen}
+        onClose={() => setActiveLoansClientsModalOpen(false)}
+      />
     </Box>
   )
 }

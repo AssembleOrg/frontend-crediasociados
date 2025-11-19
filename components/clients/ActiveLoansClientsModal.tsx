@@ -23,19 +23,34 @@ import {
   alpha,
   useTheme,
   useMediaQuery,
-  Divider
+  Divider,
+  Collapse,
+  Accordion,
+  AccordionSummary,
+  AccordionDetails
 } from '@mui/material'
-import { Close, PersonOff, Phone, Home, CalendarToday, Search } from '@mui/icons-material'
+import { 
+  Close, 
+  AccountBalance, 
+  Phone, 
+  Home, 
+  Search, 
+  ExpandMore,
+  CreditCard,
+  CalendarToday,
+  AttachMoney
+} from '@mui/icons-material'
 import { clientsService } from '@/services/clients.service'
 import { useUsers } from '@/hooks/useUsers'
 import { useCurrentUser } from '@/hooks/useCurrentUser'
+import { DateTime } from 'luxon'
 
-interface InactiveClientsModalProps {
+interface ActiveLoansClientsModalProps {
   open: boolean
   onClose: () => void
 }
 
-export default function InactiveClientsModal({ open, onClose }: InactiveClientsModalProps) {
+export default function ActiveLoansClientsModal({ open, onClose }: ActiveLoansClientsModalProps) {
   const theme = useTheme()
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'))
   const { users } = useUsers()
@@ -51,12 +66,20 @@ export default function InactiveClientsModal({ open, onClose }: InactiveClientsM
     nombre: string
     telefono?: string
     direccion?: string
-    fechaUltimoPrestamo?: string
+    cantidadPrestamosActivos: number
+    prestamosActivos: Array<{
+      id: string
+      loanTrack: string
+      amount: number
+      status: string
+      createdAt: string
+    }>
   }>>([])
   const [totalClients, setTotalClients] = useState(0)
   const [searchQuery, setSearchQuery] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [expandedClients, setExpandedClients] = useState<Set<string>>(new Set())
 
   // Filter managers (prestamistas)
   const managers = users.filter(user => user.role === 'prestamista')
@@ -76,7 +99,7 @@ export default function InactiveClientsModal({ open, onClose }: InactiveClientsM
 
   useEffect(() => {
     if (open && managerIdToUse) {
-      loadInactiveClients()
+      loadActiveLoansClients()
     } else if (open && !managerIdToUse && isSubadmin) {
       setClients([])
       setTotalClients(0)
@@ -85,22 +108,23 @@ export default function InactiveClientsModal({ open, onClose }: InactiveClientsM
     // Reset search when manager changes or modal opens
     if (open) {
       setSearchQuery('')
+      setExpandedClients(new Set())
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, managerIdToUse, isSubadmin])
 
-  const loadInactiveClients = async () => {
+  const loadActiveLoansClients = async () => {
     if (!managerIdToUse) return
 
     setLoading(true)
     setError(null)
     try {
-      const data = await clientsService.getInactiveClients(managerIdToUse)
+      const data = await clientsService.getActiveLoansClients(managerIdToUse)
       setClients(data.clients || [])
       setTotalClients(data.total || 0)
     } catch (err: any) {
-      console.error('Error loading inactive clients:', err)
-      setError(err.response?.data?.message || 'Error al cargar los clientes inactivos')
+      console.error('Error loading active loans clients:', err)
+      setError(err.response?.data?.message || 'Error al cargar los clientes con préstamos activos')
       setClients([])
       setTotalClients(0)
     } finally {
@@ -117,20 +141,53 @@ export default function InactiveClientsModal({ open, onClose }: InactiveClientsM
       const nombre = client.nombre?.toLowerCase() || ''
       const telefono = client.telefono?.toLowerCase() || ''
       const direccion = client.direccion?.toLowerCase() || ''
+      const loanTracks = client.prestamosActivos.map(p => p.loanTrack.toLowerCase()).join(' ')
       
       return nombre.includes(query) || 
              telefono.includes(query) || 
-             direccion.includes(query)
+             direccion.includes(query) ||
+             loanTracks.includes(query)
     })
   }, [clients, searchQuery])
 
   const formatDate = (dateString: string) => {
-    const date = new Date(dateString)
-    return date.toLocaleDateString('es-AR', {
-      day: '2-digit',
-      month: 'long',
-      year: 'numeric'
-    })
+    const date = DateTime.fromISO(dateString)
+    return date.setLocale('es').toFormat("dd 'de' MMMM 'de' yyyy")
+  }
+
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('es-AR', {
+      style: 'currency',
+      currency: 'ARS',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0
+    }).format(amount)
+  }
+
+  const getStatusColor = (status: string) => {
+    switch (status.toUpperCase()) {
+      case 'ACTIVE':
+        return 'success'
+      case 'APPROVED':
+        return 'info'
+      case 'PENDING':
+        return 'warning'
+      default:
+        return 'default'
+    }
+  }
+
+  const getStatusLabel = (status: string) => {
+    switch (status.toUpperCase()) {
+      case 'ACTIVE':
+        return 'Activo'
+      case 'APPROVED':
+        return 'Aprobado'
+      case 'PENDING':
+        return 'Pendiente'
+      default:
+        return status
+    }
   }
 
   const formatPhoneForWhatsApp = (phone: string): string => {
@@ -161,6 +218,26 @@ export default function InactiveClientsModal({ open, onClose }: InactiveClientsM
     window.open(whatsappUrl, '_blank', 'noopener,noreferrer')
   }
 
+  const handleExpandClient = (clientId: string) => {
+    setExpandedClients(prev => {
+      const newSet = new Set(prev)
+      if (newSet.has(clientId)) {
+        newSet.delete(clientId)
+      } else {
+        newSet.add(clientId)
+      }
+      return newSet
+    })
+  }
+
+  const totalActiveLoans = useMemo(() => {
+    return clients.reduce((sum, client) => sum + client.cantidadPrestamosActivos, 0)
+  }, [clients])
+
+  const filteredTotalActiveLoans = useMemo(() => {
+    return filteredClients.reduce((sum, client) => sum + client.cantidadPrestamosActivos, 0)
+  }, [filteredClients])
+
   return (
     <Dialog
       open={open}
@@ -184,13 +261,13 @@ export default function InactiveClientsModal({ open, onClose }: InactiveClientsM
         display: 'flex', 
         alignItems: 'center', 
         justifyContent: 'space-between',
-        background: 'linear-gradient(135deg, #85220D 0%, #A03015 100%)',
+        background: 'linear-gradient(135deg, #1976d2 0%, #42a5f5 100%)',
         color: 'white'
       }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-          <PersonOff sx={{ fontSize: 28 }} />
+          <AccountBalance sx={{ fontSize: 28 }} />
           <Typography variant="h6" fontWeight={600}>
-            Clientes Inactivos
+            Clientes con Préstamos Activos
           </Typography>
         </Box>
         <IconButton
@@ -249,9 +326,9 @@ export default function InactiveClientsModal({ open, onClose }: InactiveClientsM
         {/* Manager Info - Only for Manager */}
         {isManager && currentUser && (
           <>
-            <Box sx={{ mb: 3, p: 2, bgcolor: alpha('#85220D', 0.1), borderRadius: 2 }}>
+            <Box sx={{ mb: 3, p: 2, bgcolor: alpha('#1976d2', 0.1), borderRadius: 2 }}>
               <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 1 }}>
-                Tus Clientes Inactivos
+                Tus Clientes con Préstamos Activos
               </Typography>
               <Typography variant="body2" color="text.secondary">
                 {currentUser.fullName} ({currentUser.email})
@@ -261,12 +338,36 @@ export default function InactiveClientsModal({ open, onClose }: InactiveClientsM
           </>
         )}
 
+        {/* Summary Cards */}
+        {managerIdToUse && !loading && !error && clients.length > 0 && (
+          <Box sx={{ mb: 3, display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)' }, gap: 2 }}>
+            <Paper elevation={1} sx={{ p: 2, bgcolor: alpha('#1976d2', 0.05) }}>
+              <Typography variant="caption" color="text.secondary" gutterBottom>
+                Total de Clientes
+              </Typography>
+              <Typography variant="h5" fontWeight={600} color="primary">
+                {searchQuery ? filteredClients.length : totalClients}
+                {searchQuery && ` de ${totalClients}`}
+              </Typography>
+            </Paper>
+            <Paper elevation={1} sx={{ p: 2, bgcolor: alpha('#1976d2', 0.05) }}>
+              <Typography variant="caption" color="text.secondary" gutterBottom>
+                Total de Préstamos Activos
+              </Typography>
+              <Typography variant="h5" fontWeight={600} color="primary">
+                {searchQuery ? filteredTotalActiveLoans : totalActiveLoans}
+                {searchQuery && ` de ${totalActiveLoans}`}
+              </Typography>
+            </Paper>
+          </Box>
+        )}
+
         {/* Search Input */}
         {managerIdToUse && !loading && !error && clients.length > 0 && (
           <Box sx={{ mb: 3 }}>
             <TextField
               fullWidth
-              placeholder="Buscar por nombre, teléfono o dirección..."
+              placeholder="Buscar por nombre, teléfono, dirección o número de préstamo..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               InputProps={{
@@ -288,7 +389,7 @@ export default function InactiveClientsModal({ open, onClose }: InactiveClientsM
           <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', py: 8 }}>
             <CircularProgress size={48} sx={{ mb: 2 }} />
             <Typography variant="body2" color="text.secondary">
-              Cargando clientes inactivos...
+              Cargando clientes con préstamos activos...
             </Typography>
           </Box>
         )}
@@ -303,12 +404,12 @@ export default function InactiveClientsModal({ open, onClose }: InactiveClientsM
         {/* Empty State - No Manager Selected (Only for Subadmin) */}
         {isSubadmin && !managerIdToUse && !loading && (
           <Box sx={{ textAlign: 'center', py: 6 }}>
-            <PersonOff sx={{ fontSize: 64, color: 'text.disabled', mb: 2 }} />
+            <AccountBalance sx={{ fontSize: 64, color: 'text.disabled', mb: 2 }} />
             <Typography variant="h6" color="text.secondary" gutterBottom>
               Selecciona un manager
             </Typography>
             <Typography variant="body2" color="text.secondary">
-              Elige un manager del selector para ver sus clientes inactivos
+              Elige un manager del selector para ver sus clientes con préstamos activos
             </Typography>
           </Box>
         )}
@@ -316,97 +417,78 @@ export default function InactiveClientsModal({ open, onClose }: InactiveClientsM
         {/* Empty State - No Clients */}
         {managerIdToUse && !loading && !error && clients.length === 0 && (
           <Box sx={{ textAlign: 'center', py: 6 }}>
-            <PersonOff sx={{ fontSize: 64, color: 'text.disabled', mb: 2 }} />
+            <AccountBalance sx={{ fontSize: 64, color: 'text.disabled', mb: 2 }} />
             <Typography variant="h6" color="text.secondary" gutterBottom>
-              No hay clientes inactivos
+              No hay clientes con préstamos activos
             </Typography>
             <Typography variant="body2" color="text.secondary">
               {isManager 
-                ? 'No tienes clientes sin préstamos activos'
-                : `${selectedManagerData?.fullName || 'Este manager'} no tiene clientes sin préstamos activos`
+                ? 'No tienes clientes con préstamos activos'
+                : `${selectedManagerData?.fullName || 'Este manager'} no tiene clientes con préstamos activos`
               }
             </Typography>
           </Box>
         )}
 
-        {/* Clients Table */}
+        {/* Clients List */}
         {managerIdToUse && !loading && !error && clients.length > 0 && (
           <Box>
             <Box sx={{ mb: 2, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 1 }}>
               <Typography variant="subtitle1" fontWeight={600}>
-                Clientes Sin Préstamos Activos
+                Clientes con Préstamos Activos
               </Typography>
-              <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
-                {searchQuery && (
-                  <Chip 
-                    label={`${filteredClients.length} de ${totalClients}`}
-                    color="info"
-                    size="small"
-                  />
-                )}
+              {searchQuery && (
                 <Chip 
-                  label={`${totalClients} cliente${totalClients !== 1 ? 's' : ''}`}
-                  color="primary"
+                  label={`${filteredClients.length} de ${totalClients}`}
+                  color="info"
                   size="small"
                 />
-              </Box>
+              )}
             </Box>
-            <TableContainer 
-              component={Paper} 
-              elevation={0}
-              sx={{ 
-                border: `1px solid ${theme.palette.divider}`,
-                borderRadius: 2,
-                overflow: 'auto',
-                maxHeight: isMobile ? 'calc(100vh - 400px)' : 'calc(90vh - 350px)'
-              }}
-            >
-              <Table stickyHeader size={isMobile ? 'small' : 'medium'}>
-                <TableHead>
-                  <TableRow sx={{ bgcolor: alpha('#85220D', 0.1) }}>
-                    <TableCell sx={{ fontWeight: 600 }}>Nombre</TableCell>
-                    {!isMobile && (
-                      <TableCell sx={{ fontWeight: 600 }}>Teléfono</TableCell>
-                    )}
-                    {!isMobile && (
-                      <TableCell sx={{ fontWeight: 600 }}>Dirección</TableCell>
-                    )}
-                    <TableCell sx={{ fontWeight: 600 }}>Último Préstamo</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {filteredClients.length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={isMobile ? 2 : 4} sx={{ textAlign: 'center', py: 4 }}>
-                        <Typography variant="body2" color="text.secondary">
-                          No se encontraron clientes que coincidan con "{searchQuery}"
-                        </Typography>
-                      </TableCell>
-                    </TableRow>
-                  ) : (
-                    filteredClients.map((client) => (
-                    <TableRow 
-                      key={client.id}
-                      sx={{ 
-                        '&:hover': { 
-                          bgcolor: alpha(theme.palette.primary.main, 0.02) 
-                        },
-                        '&:last-child td': { border: 0 }
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+              {filteredClients.length === 0 ? (
+                <Paper sx={{ p: 4, textAlign: 'center' }}>
+                  <Typography variant="body2" color="text.secondary">
+                    No se encontraron clientes que coincidan con "{searchQuery}"
+                  </Typography>
+                </Paper>
+              ) : (
+                filteredClients.map((client) => (
+                  <Accordion
+                    key={client.id}
+                    expanded={expandedClients.has(client.id)}
+                    onChange={() => handleExpandClient(client.id)}
+                    sx={{
+                      '&:before': { display: 'none' },
+                      boxShadow: 2,
+                      borderRadius: 2,
+                      overflow: 'hidden',
+                      '&.Mui-expanded': {
+                        margin: 0,
+                      }
+                    }}
+                  >
+                    <AccordionSummary
+                      expandIcon={<ExpandMore />}
+                      sx={{
+                        bgcolor: expandedClients.has(client.id) ? alpha('#1976d2', 0.05) : 'background.paper',
+                        '&:hover': {
+                          bgcolor: alpha('#1976d2', 0.03)
+                        }
                       }}
                     >
-                      <TableCell>
-                        <Typography variant="body2" fontWeight={500}>
-                          {client.nombre}
-                        </Typography>
-                        {isMobile && (
-                          <>
+                      <Box sx={{ width: '100%', display: 'flex', alignItems: 'center', gap: 2, pr: 2 }}>
+                        <Box sx={{ flex: 1 }}>
+                          <Typography variant="subtitle1" fontWeight={600} gutterBottom>
+                            {client.nombre}
+                          </Typography>
+                          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, mt: 1 }}>
                             {client.telefono && (
                               <Box 
                                 sx={{ 
                                   display: 'flex', 
                                   alignItems: 'center', 
-                                  gap: 0.5, 
-                                  mt: 0.5,
+                                  gap: 0.5,
                                   cursor: 'pointer',
                                   '&:hover': {
                                     opacity: 0.7
@@ -417,100 +499,82 @@ export default function InactiveClientsModal({ open, onClose }: InactiveClientsM
                                   handlePhoneClick(client.telefono!)
                                 }}
                               >
-                                <Phone sx={{ fontSize: 14, color: 'success.main' }} />
-                                <Typography 
-                                  variant="caption" 
-                                  color="success.main"
-                                  sx={{ textDecoration: 'underline' }}
-                                >
+                                <Phone sx={{ fontSize: 16, color: 'success.main' }} />
+                                <Typography variant="body2" color="success.main" sx={{ textDecoration: 'underline' }}>
                                   {client.telefono}
                                 </Typography>
                               </Box>
                             )}
                             {client.direccion && (
-                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.5 }}>
-                                <Home sx={{ fontSize: 14, color: 'text.secondary' }} />
-                                <Typography variant="caption" color="text.secondary" sx={{ maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                                <Home sx={{ fontSize: 16, color: 'text.secondary' }} />
+                                <Typography variant="body2" color="text.secondary" sx={{ maxWidth: { xs: 200, sm: 400 }, overflow: 'hidden', textOverflow: 'ellipsis' }}>
                                   {client.direccion}
                                 </Typography>
                               </Box>
                             )}
-                          </>
-                        )}
-                      </TableCell>
-                      {!isMobile && (
-                        <TableCell>
-                          {client.telefono ? (
-                            <Box 
-                              sx={{ 
-                                display: 'flex', 
-                                alignItems: 'center', 
-                                gap: 0.5,
-                                cursor: 'pointer',
-                                '&:hover': {
-                                  opacity: 0.7
-                                }
-                              }}
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                handlePhoneClick(client.telefono!)
-                              }}
-                            >
-                              <Phone sx={{ fontSize: 16, color: 'success.main' }} />
-                              <Typography 
-                                variant="body2"
-                                color="success.main"
-                                sx={{ textDecoration: 'underline' }}
-                              >
-                                {client.telefono}
-                              </Typography>
-                            </Box>
-                          ) : (
-                            <Typography variant="body2" color="text.secondary">
-                              -
-                            </Typography>
-                          )}
-                        </TableCell>
-                      )}
-                      {!isMobile && (
-                        <TableCell>
-                          {client.direccion ? (
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                              <Home sx={{ fontSize: 16, color: 'text.secondary' }} />
-                              <Typography variant="body2" sx={{ maxWidth: 300, overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                                {client.direccion}
-                              </Typography>
-                            </Box>
-                          ) : (
-                            <Typography variant="body2" color="text.secondary">
-                              -
-                            </Typography>
-                          )}
-                        </TableCell>
-                      )}
-                      <TableCell>
-                        {client.fechaUltimoPrestamo ? (
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                            <CalendarToday sx={{ fontSize: 16, color: 'text.secondary' }} />
-                            <Typography variant="body2">
-                              {formatDate(client.fechaUltimoPrestamo)}
-                            </Typography>
                           </Box>
-                        ) : (
-                          <Chip 
-                            label="Sin préstamos"
-                            size="small"
-                            color="default"
-                            variant="outlined"
-                          />
-                        )}
-                      </TableCell>
-                    </TableRow>
-                    ))
-                  )}
-                </TableBody>
-              </Table>
-            </TableContainer>
+                        </Box>
+                        <Chip 
+                          label={`${client.cantidadPrestamosActivos} préstamo${client.cantidadPrestamosActivos !== 1 ? 's' : ''}`}
+                          color="primary"
+                          size="small"
+                          icon={<CreditCard />}
+                        />
+                      </Box>
+                    </AccordionSummary>
+                    <AccordionDetails sx={{ p: 0 }}>
+                      <TableContainer>
+                        <Table size="small">
+                          <TableHead>
+                            <TableRow sx={{ bgcolor: alpha('#1976d2', 0.1) }}>
+                              <TableCell sx={{ fontWeight: 600 }}>Préstamo</TableCell>
+                              <TableCell sx={{ fontWeight: 600 }} align="right">Monto</TableCell>
+                              <TableCell sx={{ fontWeight: 600 }}>Estado</TableCell>
+                              <TableCell sx={{ fontWeight: 600 }}>Fecha</TableCell>
+                            </TableRow>
+                          </TableHead>
+                          <TableBody>
+                            {client.prestamosActivos.map((prestamo) => (
+                              <TableRow key={prestamo.id}>
+                                <TableCell>
+                                  <Typography variant="body2" fontWeight={500}>
+                                    {prestamo.loanTrack}
+                                  </Typography>
+                                </TableCell>
+                                <TableCell align="right">
+                                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 0.5 }}>
+                                    <AttachMoney sx={{ fontSize: 16, color: 'text.secondary' }} />
+                                    <Typography variant="body2" fontWeight={500}>
+                                      {formatCurrency(prestamo.amount)}
+                                    </Typography>
+                                  </Box>
+                                </TableCell>
+                                <TableCell>
+                                  <Chip 
+                                    label={getStatusLabel(prestamo.status)}
+                                    color={getStatusColor(prestamo.status) as any}
+                                    size="small"
+                                  />
+                                </TableCell>
+                                <TableCell>
+                                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                                    <CalendarToday sx={{ fontSize: 14, color: 'text.secondary' }} />
+                                    <Typography variant="body2">
+                                      {formatDate(prestamo.createdAt)}
+                                    </Typography>
+                                  </Box>
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </TableContainer>
+                    </AccordionDetails>
+                  </Accordion>
+                ))
+              )}
+            </Box>
           </Box>
         )}
       </DialogContent>

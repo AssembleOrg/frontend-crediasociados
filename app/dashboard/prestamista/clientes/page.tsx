@@ -14,6 +14,7 @@ import {
   Chip,
   IconButton,
   Alert,
+  Typography,
 } from '@mui/material'
 import {
   Add,
@@ -130,18 +131,82 @@ export default function ClientesPage() {
                 ) : (
                   clients.map((client) => (
                     <TableRow key={client.id} hover>
-                      <TableCell>{client.fullName}</TableCell>
-                      <TableCell>{client.dni || 'N/A'}</TableCell>
-                      <TableCell>{client.email || 'N/A'}</TableCell>
-                      <TableCell>{client.phone || 'N/A'}</TableCell>
-                      <TableCell>{client.job || 'N/A'}</TableCell>
                       <TableCell>
-                        <Chip
-                          label="Activo"
-                          color="success"
-                          size="small"
-                          variant="outlined"
-                        />
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                          <Typography 
+                            sx={{ 
+                              color: client.verified === false ? 'text.disabled' : 'text.primary',
+                              opacity: client.verified === false ? 0.6 : 1
+                            }}
+                          >
+                            {client.fullName}
+                          </Typography>
+                          {client.verified === false && (
+                            <Chip
+                              label="No Verificado"
+                              size="small"
+                              color="warning"
+                              sx={{ fontSize: '0.7rem', height: 20 }}
+                            />
+                          )}
+                        </Box>
+                      </TableCell>
+                      <TableCell>
+                        <Typography 
+                          sx={{ 
+                            color: client.verified === false ? 'text.disabled' : 'text.primary',
+                            opacity: client.verified === false ? 0.6 : 1
+                          }}
+                        >
+                          {client.dni || 'N/A'}
+                        </Typography>
+                      </TableCell>
+                      <TableCell>
+                        <Typography 
+                          sx={{ 
+                            color: client.verified === false ? 'text.disabled' : 'text.primary',
+                            opacity: client.verified === false ? 0.6 : 1
+                          }}
+                        >
+                          {client.email || 'N/A'}
+                        </Typography>
+                      </TableCell>
+                      <TableCell>
+                        <Typography 
+                          sx={{ 
+                            color: client.verified === false ? 'text.disabled' : 'text.primary',
+                            opacity: client.verified === false ? 0.6 : 1
+                          }}
+                        >
+                          {client.phone || 'N/A'}
+                        </Typography>
+                      </TableCell>
+                      <TableCell>
+                        <Typography 
+                          sx={{ 
+                            color: client.verified === false ? 'text.disabled' : 'text.primary',
+                            opacity: client.verified === false ? 0.6 : 1
+                          }}
+                        >
+                          {client.job || 'N/A'}
+                        </Typography>
+                      </TableCell>
+                      <TableCell>
+                        {client.verified === false ? (
+                          <Chip
+                            label="No Verificado"
+                            color="warning"
+                            size="small"
+                            variant="outlined"
+                          />
+                        ) : (
+                          <Chip
+                            label="Activo"
+                            color="success"
+                            size="small"
+                            variant="outlined"
+                          />
+                        )}
                       </TableCell>
                       <TableCell align="center">
                         <IconButton

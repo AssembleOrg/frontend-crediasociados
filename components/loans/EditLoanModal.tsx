@@ -187,7 +187,7 @@ export function EditLoanModal({ open, onClose, loan }: EditLoanModalProps) {
       maxWidth='md'
       fullWidth
     >
-      <DialogTitle>
+      <DialogTitle sx={{ pt: 2.5, px: 3, pb: 2 }}>
         <Typography
           variant='h6'
           component='div'

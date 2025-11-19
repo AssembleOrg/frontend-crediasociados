@@ -1,116 +1,88 @@
-'use client';
+'use client'
 
-import { Box, Container, Typography, Link, Divider } from '@mui/material';
-import { Logo } from './Logo';
+import { Box, Typography, Link, Divider } from '@mui/material'
+import { WhatsApp } from '@mui/icons-material'
 
 export function Footer() {
-  const whatsappMessage = encodeURIComponent(
-    'Hola Pistech, me comunico a través de la web de Crediasociados, estoy interesado en sus servicios digitales'
-  );
+  const handlePistechClick = (e: React.MouseEvent) => {
+    e.preventDefault()
+    window.open('https://wa.me/5491138207230', '_blank')
+  }
 
   return (
     <Box
-      component='footer'
+      component="footer"
       sx={{
-        bgcolor: 'background.paper',
-        py: 6,
-        mt: 8,
-        borderTop: 1,
+        mt: 'auto',
+        bgcolor: 'grey.200',
+        borderTop: '2px solid',
         borderColor: 'divider',
+        boxShadow: '0 -2px 8px rgba(0, 0, 0, 0.05)',
       }}
     >
-      <Container maxWidth='md'>
+      <Divider sx={{ borderColor: 'divider', opacity: 0.5 }} />
+      <Box
+        sx={{
+          py: 3,
+          px: 3,
+          textAlign: 'center',
+          maxWidth: '100%',
+        }}
+      >
         <Box
           sx={{
             display: 'flex',
-            justifyContent: 'space-between',
             alignItems: 'center',
-            mb: 3,
+            justifyContent: 'center',
+            gap: 1,
+            flexWrap: 'wrap',
           }}
         >
-          <Logo
-            width={370}
-            height={142}
-          />
-          <Box sx={{ display: 'flex', gap: 3 }}>
-            <Link
-              href='#'
-              color='text.secondary'
-              underline='hover'
-            >
-              Términos de Servicio
-            </Link>
-            <Link
-              href='#'
-              color='text.secondary'
-              underline='hover'
-            >
-              Privacidad
-            </Link>
-            <Link
-              href='#'
-              color='text.secondary'
-              underline='hover'
-            >
-              Soporte
-            </Link>
-          </Box>
+          <Typography
+            variant="body2"
+            sx={{
+              color: 'text.secondary',
+              fontSize: '0.875rem',
+              fontWeight: 400,
+            }}
+          >
+            Desarrollado por
+          </Typography>
+          <Link
+            component="button"
+            onClick={handlePistechClick}
+            sx={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 0.5,
+              color: '#FFD700',
+              fontWeight: 700,
+              fontSize: '0.875rem',
+              textDecoration: 'none',
+              cursor: 'pointer',
+              transition: 'all 0.2s ease-in-out',
+              '&:hover': {
+                color: '#FFA500',
+                transform: 'translateY(-1px)',
+                textDecoration: 'underline',
+              },
+            }}
+          >
+            Pistech
+          </Link>
         </Box>
-
-        <Divider sx={{ mb: 3 }} />
-
-        <Box
+        <Typography
+          variant="caption"
           sx={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            flexDirection: { xs: 'column', md: 'row' },
-            gap: 2,
+            display: 'block',
+            mt: 1,
+            color: 'text.disabled',
+            fontSize: '0.75rem',
           }}
         >
-          <Typography
-            variant='body2'
-            color='text.secondary'
-          >
-            © {new Date().getFullYear()} Crediasociados. Todos los derechos
-            reservados.
-          </Typography>
-          <Typography
-            variant='body2'
-            color='text.secondary'
-            sx={{ textAlign: { xs: 'center', md: 'right' } }}
-          >
-            Desarrollado por{' '}
-            <Link
-              href={`https://wa.me/+5491138207230?text=${whatsappMessage}`}
-              target='_blank'
-              rel='noopener noreferrer'
-              aria-label='Contactar a Pistech por WhatsApp'
-              sx={{
-                color: 'text.secondary',
-                textDecoration: 'none',
-                fontWeight: 'bold',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '0.25rem',
-                '&:hover': {
-                  textDecoration: 'underline',
-                  color: 'primary.main',
-                },
-              }}
-            >
-              <span>PISTECH</span>
-              <span
-                role='img'
-                aria-label='corazón'
-                style={{ color: '#e25555' }}
-              >
-                ❤️
-              </span>
-            </Link>
-          </Typography>
-        </Box>
-      </Container>
+          © {new Date().getFullYear()} Todos los derechos reservados
+        </Typography>
+      </Box>
     </Box>
-  );
+  )
 }

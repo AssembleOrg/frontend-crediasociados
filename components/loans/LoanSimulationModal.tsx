@@ -231,11 +231,12 @@ export function LoanSimulationModal({
       PaperProps={{
         sx: { 
           minHeight: isMobile ? '100vh' : '80vh',
-          m: isMobile ? 0 : 2
+          m: isMobile ? 0 : 2,
+          mt: isMobile ? 0 : 3
         }
       }}
     >
-      <DialogTitle sx={{ pb: 2 }}>
+      <DialogTitle sx={{ pb: 2, pt: 2.5, px: 3 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 1, sm: 2 }, pr: 4 }}>
           <MonetizationOn color="primary" sx={{ fontSize: { xs: 28, sm: 32 } }} />
           <Box sx={{ flex: 1, minWidth: 0 }}>
@@ -374,13 +375,13 @@ export function LoanSimulationModal({
                   <TableCell align="right" sx={{ minWidth: { xs: 80, sm: 100 }, fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>
                     <strong>Fecha</strong>
                   </TableCell>
-                  {!isMobile && (
+                  {/* {!isMobile && (
                     <TableCell align="right" sx={{ minWidth: 100, fontSize: '0.875rem' }}>
                       <strong>Principal</strong>
                     </TableCell>
-                  )}
+                  )} */}
                   <TableCell align="right" sx={{ minWidth: { xs: 80, sm: 100 }, fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>
-                    <strong>Total</strong>
+                    <strong>Total a Pagar</strong>
                   </TableCell>
                   {!isMobile && (
                     <TableCell align="center" sx={{ minWidth: 100, fontSize: '0.875rem' }}>
@@ -414,13 +415,13 @@ export function LoanSimulationModal({
                           })}
                         </Typography>
                       </TableCell>
-                      {!isMobile && (
+                      {/* {!isMobile && (
                         <TableCell align="right">
                           <Typography variant="body2" fontSize="0.875rem">
                             ${loan.amount.toFixed(2)}
                           </Typography>
                         </TableCell>
-                      )}
+                      )} */}
                       <TableCell align="right">
                         <Typography variant="body2" fontWeight="bold" fontSize={{ xs: '0.75rem', sm: '0.875rem' }}>
                           ${loan.totalAmount.toFixed(2)}

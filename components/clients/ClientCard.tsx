@@ -27,6 +27,16 @@ interface ClientCardProps {
 
 export function ClientCard({ client, onEdit, onDelete }: ClientCardProps) {
   const getStatusChip = () => {
+    if (client.verified === false) {
+      return (
+        <Chip
+          label="No Verificado"
+          color="warning"
+          size="small"
+          variant="outlined"
+        />
+      )
+    }
     // Assuming client has an active status based on business logic
     const isActive = client.id && !('deletedAt' in client && client.deletedAt) // Simple active logic
 
@@ -44,6 +54,8 @@ export function ClientCard({ client, onEdit, onDelete }: ClientCardProps) {
     <Card
       sx={{
         mb: 2,
+        opacity: client.verified === false ? 0.7 : 1,
+        bgcolor: client.verified === false ? 'grey.50' : 'background.paper',
         '&:hover': {
           transform: 'scale(1.01)',
           boxShadow: 3,
@@ -57,7 +69,15 @@ export function ClientCard({ client, onEdit, onDelete }: ClientCardProps) {
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
             <Person color="primary" fontSize="small" />
-            <Typography variant="h6" component="h3" fontWeight="bold">
+            <Typography 
+              variant="h6" 
+              component="h3" 
+              fontWeight="bold"
+              sx={{
+                color: client.verified === false ? 'text.disabled' : 'text.primary',
+                opacity: client.verified === false ? 0.6 : 1
+              }}
+            >
               {client.fullName || 'Sin nombre'}
             </Typography>
           </Box>

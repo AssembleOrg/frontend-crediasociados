@@ -180,12 +180,13 @@ export function RouteExpenseModal({
       sx={{
         '& .MuiDialog-paper': {
           m: { xs: 1, sm: 2 },
+          mt: { xs: 2, sm: 3 },
           maxHeight: { xs: 'calc(100% - 16px)', sm: 'calc(100% - 64px)' },
           width: { xs: 'calc(100% - 16px)', sm: 'auto' },
         }
       }}
     >
-      <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', px: { xs: 2, sm: 3 } }}>
+      <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', px: { xs: 2, sm: 3 }, pt: 2.5 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
           <AttachMoney color="primary" />
           <Typography variant="h6" sx={{ fontSize: { xs: '1.125rem', sm: '1.25rem' } }}>

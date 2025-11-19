@@ -454,6 +454,7 @@ export function CreateLoanModal({
           borderRadius: { xs: 0, sm: 3 },
           boxShadow: '0 20px 40px rgba(0,0,0,0.1)',
           m: { xs: 0, sm: 2 },
+          mt: { xs: 0, sm: 3 },
           maxHeight: { xs: '100vh', sm: '95vh' },
           width: { xs: '100%', sm: 'auto' },
         }
@@ -505,7 +506,7 @@ export function CreateLoanModal({
               <Box sx={{ mb: 3 }}>
                 <Autocomplete
                   fullWidth
-                  options={searchInput.length >= 2 ? searchResults : clients}
+                  options={searchInput.length >= 2 ? searchResults.filter(c => c.verified !== false) : clients.filter(c => c.verified !== false)}
                   getOptionLabel={(option) => {
                     const parts = [option.fullName]
                     if (option.dni) parts.push(`DNI: ${option.dni}`)
@@ -514,6 +515,10 @@ export function CreateLoanModal({
                   }}
                   value={selectedClient}
                   onChange={(_, newValue) => {
+                    if (newValue && newValue.verified === false) {
+                      setFormErrors(prev => ({ ...prev, clientId: 'No se puede seleccionar un cliente no verificado' }))
+                      return
+                    }
                     setSelectedClient(newValue)
                     handleSelectChange('clientId', newValue?.id || '')
                   }}
@@ -523,14 +528,14 @@ export function CreateLoanModal({
                   }}
                   loading={isSearching}
                   loadingText="Buscando..."
-                  noOptionsText={searchInput.length < 2 ? "Escribe al menos 2 caracteres" : "No se encontraron clientes"}
+                  noOptionsText={searchInput.length < 2 ? "Escribe al menos 2 caracteres" : "No se encontraron clientes verificados"}
                     disabled={clientsLoading}
                   renderInput={(params) => (
                     <TextField
                       {...params}
                       label="Cliente *"
                       error={!!formErrors.clientId}
-                      helperText={formErrors.clientId || "Busca por nombre, DNI o CUIT"}
+                      helperText={formErrors.clientId || "Busca por nombre, DNI o CUIT (solo clientes verificados)"}
                     sx={{
                         '& .MuiOutlinedInput-root': { 
                       borderRadius: 2,

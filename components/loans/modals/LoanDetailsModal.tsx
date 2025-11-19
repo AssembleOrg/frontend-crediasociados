@@ -1,5 +1,6 @@
 'use client'
 
+import { useState } from 'react'
 import { 
   Dialog,
   DialogTitle,
@@ -7,10 +8,12 @@ import {
   DialogActions,
   Button,
   Box,
-  Typography
+  Typography,
+  Alert
 } from '@mui/material'
 import { Payment } from '@mui/icons-material'
 import LoanTimeline from '@/components/loans/LoanTimeline'
+import { PaymentModal } from '@/components/loans/PaymentModal'
 import { 
   calculateTotalRepaymentAmount,
   calculateInterestAmount,
@@ -28,6 +31,7 @@ interface LoanDetailsModalProps {
   subLoans: SubLoanWithClientInfo[]
   isLoading?: boolean
   onGoToCobros?: () => void
+  onPaymentSuccess?: () => void // Callback para refrescar datos después del pago
 }
 
 export default function LoanDetailsModal({
@@ -36,8 +40,13 @@ export default function LoanDetailsModal({
   loan,
   subLoans,
   isLoading = false,
-  onGoToCobros
+  onGoToCobros,
+  onPaymentSuccess
 }: LoanDetailsModalProps) {
+  const [paymentModalOpen, setPaymentModalOpen] = useState(false)
+  const [selectedSubloan, setSelectedSubloan] = useState<SubLoanWithClientInfo | null>(null)
+  const [paymentError, setPaymentError] = useState<string | null>(null)
+
   if (!loan) return null
 
   const clientName = subLoans.length > 0 
@@ -55,6 +64,53 @@ export default function LoanDetailsModal({
     subloan.status === 'PENDING' || subloan.status === 'OVERDUE'
   ).length
 
+  // Sort subloans by payment number
+  const sortedSubLoans = [...subLoans].sort((a, b) => (a.paymentNumber ?? 0) - (b.paymentNumber ?? 0))
+
+  // Validar que no se pueda pagar una cuota si hay anteriores sin pagar
+  const canPaySubloan = (subloan: SubLoanWithClientInfo): { canPay: boolean; reason?: string } => {
+    // Si ya está pagada, no se puede pagar de nuevo
+    if (subloan.status === 'PAID') {
+      return { canPay: false, reason: 'Esta cuota ya está pagada' }
+    }
+
+    // Buscar si hay cuotas anteriores sin pagar
+    const currentPaymentNumber = subloan.paymentNumber ?? 0
+    const previousUnpaid = sortedSubLoans.find(s => 
+      (s.paymentNumber ?? 0) < currentPaymentNumber && 
+      s.status !== 'PAID'
+    )
+
+    if (previousUnpaid) {
+      return { 
+        canPay: false, 
+        reason: `No se puede pagar la cuota #${currentPaymentNumber} sin pagar primero la cuota #${previousUnpaid.paymentNumber}` 
+      }
+    }
+
+    return { canPay: true }
+  }
+
+  const handlePaymentClick = (subloan: SubLoanWithClientInfo) => {
+    const validation = canPaySubloan(subloan)
+    
+    if (!validation.canPay) {
+      setPaymentError(validation.reason || 'No se puede pagar esta cuota')
+      setTimeout(() => setPaymentError(null), 5000)
+      return
+    }
+
+    setSelectedSubloan(subloan)
+    setPaymentModalOpen(true)
+    setPaymentError(null)
+  }
+
+  const handlePaymentSuccess = () => {
+    setPaymentModalOpen(false)
+    setSelectedSubloan(null)
+    onPaymentSuccess?.()
+  }
+
   return (
     <Dialog
       open={open}
@@ -71,7 +127,7 @@ export default function LoanDetailsModal({
         },
       }}
     >
-      <DialogTitle>
+      <DialogTitle sx={{ pt: 2.5, px: 3, pb: 2 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
           <Payment color="primary" />
           <Typography variant="h6">Detalles del Préstamo</Typography>
@@ -208,11 +264,19 @@ export default function LoanDetailsModal({
               </Box>
             </Box>
 
+            {/* Error Alert */}
+            {paymentError && (
+              <Alert severity="warning" sx={{ mb: 2 }} onClose={() => setPaymentError(null)}>
+                {paymentError}
+              </Alert>
+            )}
+
             {/* Timeline Component */}
             <LoanTimeline
               clientName={clientName}
               subLoans={subLoans}
               compact={false}
+              onPaymentClick={handlePaymentClick}
             />
 
             {/* Actions Section */}
@@ -225,6 +289,21 @@ export default function LoanDetailsModal({
           Cerrar
         </Button>
       </DialogActions>
+
+      {/* Payment Modal */}
+      {selectedSubloan && (
+        <PaymentModal
+          open={paymentModalOpen}
+          onClose={() => {
+            setPaymentModalOpen(false)
+            setSelectedSubloan(null)
+          }}
+          subloan={selectedSubloan}
+          clientName={clientName}
+          mode="single"
+          onPaymentSuccess={handlePaymentSuccess}
+        />
+      )}
     </Dialog>
   )
 }

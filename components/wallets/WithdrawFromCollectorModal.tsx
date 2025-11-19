@@ -46,7 +46,7 @@ export function WithdrawFromCollectorModal({
   const amountValue = parseFloat(unformatAmount(withdrawAmount)) || 0;
   const remainingBalance = collectorBalance - amountValue;
 
-  const canWithdraw = withdrawAmount && amountValue > 0 && amountValue <= collectorBalance;
+  const canWithdraw = withdrawAmount && amountValue > 0 && amountValue <= collectorBalance && notes.trim().length > 0;
 
   const handleWithdraw = async () => {
     if (!cobrador || !canWithdraw) return;
@@ -55,7 +55,7 @@ export function WithdrawFromCollectorModal({
       await onWithdraw(
         cobrador.id,
         amountValue,
-        notes || `Retiro de wallet de cobros - ${cobrador.fullName}`
+        notes.trim()
       );
 
       // Reset form
@@ -82,7 +82,18 @@ export function WithdrawFromCollectorModal({
   }
 
   return (
-    <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
+    <Dialog 
+      open={open} 
+      onClose={handleClose} 
+      maxWidth="sm" 
+      fullWidth
+      PaperProps={{
+        sx: {
+          m: { xs: 1, sm: 2 },
+          mt: { xs: 2, sm: 3 }
+        }
+      }}
+    >
       <DialogTitle
         sx={{
           display: 'flex',
@@ -91,6 +102,7 @@ export function WithdrawFromCollectorModal({
           background: `linear-gradient(135deg, #f44336 0%, #d32f2f 100%)`,
           color: 'white',
           p: 2.5,
+          pt: 3,
         }}
       >
         <TrendingDown sx={{ fontSize: 24 }} />
@@ -153,7 +165,7 @@ export function WithdrawFromCollectorModal({
 
         {/* Notes */}
         <TextField
-          label="Notas (opcional)"
+          label="Concepto *"
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
           fullWidth
@@ -161,7 +173,13 @@ export function WithdrawFromCollectorModal({
           disabled={isLoading}
           multiline
           rows={2}
-          helperText="Descripción del movimiento"
+          required
+          error={notes.trim().length === 0 && notes.length > 0}
+          helperText={
+            notes.trim().length === 0 && notes.length > 0
+              ? "El concepto es obligatorio"
+              : "Descripción del movimiento (obligatorio)"
+          }
         />
 
         {/* Preview Card */}

@@ -108,8 +108,19 @@ export function DailySummaryModal({ open, onClose, managerId, managerName }: Dai
   }
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="lg" fullWidth>
-      <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', pb: 2 }}>
+    <Dialog 
+      open={open} 
+      onClose={onClose} 
+      maxWidth="lg" 
+      fullWidth
+      PaperProps={{
+        sx: {
+          m: { xs: 1, sm: 2 },
+          mt: { xs: 2, sm: 3 }
+        }
+      }}
+    >
+      <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', pb: 2, pt: 2.5, px: 3 }}>
         <Box>
           <Typography variant="h6" fontWeight={600}>
             Resumen Diario - {managerName}

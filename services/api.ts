@@ -1,5 +1,6 @@
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
 import type { ApiError } from '@/types/auth';
+import { useAuthStore } from '@/stores/auth';
 
 // Use Next.js proxy in browser, direct URL in server-side
 const API_BASE_URL = typeof window === 'undefined' 
@@ -58,6 +59,28 @@ api.interceptors.response.use(
       apiError.message =
         error.response.data?.message || error.response.statusText;
       apiError.error = error.response.data?.error;
+
+      // Handle 401 Unauthorized - redirect to login
+      if (error.response.status === 401) {
+        // Only redirect in client-side (browser)
+        if (typeof window !== 'undefined') {
+          // Avoid redirect loop if already on login page
+          const currentPath = window.location.pathname;
+          if (currentPath !== '/login') {
+            console.warn('🔒 401 Unauthorized - Clearing auth and redirecting to login');
+            
+            // Clear auth token
+            setAuthToken(null);
+            
+            // Clear auth store
+            const authStore = useAuthStore.getState();
+            authStore.clearAuth();
+            
+            // Redirect to login
+            window.location.href = '/login';
+          }
+        }
+      }
     } else if (error.request) {
       apiError.message = 'Error de conexión - por favor verifique su conexión a internet';
       apiError.statusCode = 0;

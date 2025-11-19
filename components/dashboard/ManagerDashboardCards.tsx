@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import dynamic from 'next/dynamic'
 import { Card, CardContent, Typography, Box, Skeleton, Stack, Alert } from '@mui/material'
-import { TrendingUp, TrendingDown, Receipt, AccountBalance } from '@mui/icons-material'
+import { TrendingUp, TrendingDown, Receipt, AccountBalance, AccountBalanceWallet } from '@mui/icons-material'
 import { dailySummaryService, type DailySummaryResponse } from '@/services/daily-summary.service'
 import { loansService } from '@/services/loans.service'
 import { collectorWalletService } from '@/services/collector-wallet.service'
@@ -251,14 +251,14 @@ export function ManagerDashboardCards() {
           gridTemplateColumns: {
             xs: '1fr',
             sm: 'repeat(2, 1fr)',
-            lg: 'repeat(4, 1fr)',
+            lg: 'repeat(3, 1fr)',
           },
           gap: 3,
         }}
       >
         <StatCard
           title="Cobrado Hoy"
-          value={dailySummary?.collected?.total || 0}
+          value={dailySummary?.cobrado || dailySummary?.collected?.total || 0}
           subtitle={`${dailySummary?.collected?.count || 0} cobros realizados`}
           icon={<TrendingUp sx={{ fontSize: 28 }} />}
           color="#4caf50"
@@ -269,7 +269,7 @@ export function ManagerDashboardCards() {
 
         <StatCard
           title="Prestado Hoy"
-          value={dailySummary?.loaned?.total || 0}
+          value={dailySummary?.prestado || dailySummary?.loaned?.total || 0}
           subtitle={`${dailySummary?.loaned?.count || 0} préstamos otorgados`}
           icon={<AccountBalance sx={{ fontSize: 28 }} />}
           color="#2196f3"
@@ -280,7 +280,7 @@ export function ManagerDashboardCards() {
 
         <StatCard
           title="Gastos Hoy"
-          value={dailySummary?.expenses?.total || 0}
+          value={dailySummary?.gastado || dailySummary?.expenses?.total || 0}
           subtitle={`${dailySummary?.expenses?.count || 0} gastos registrados`}
           icon={<Receipt sx={{ fontSize: 28 }} />}
           color="#ff9800"
@@ -290,11 +290,30 @@ export function ManagerDashboardCards() {
         />
 
         <StatCard
+          title="Retirado Hoy"
+          value={dailySummary?.retirado || 0}
+          subtitle="retiros del día"
+          icon={<AccountBalanceWallet sx={{ fontSize: 28 }} />}
+          color="#9c27b0"
+          isLoading={isLoading}
+        />
+
+        <StatCard
           title="Balance Neto"
-          value={dailySummary?.summary?.netBalance || 0}
+          value={
+            (dailySummary?.neto !== undefined 
+              ? dailySummary.neto - (dailySummary?.ajusteCaja || 0)
+              : (dailySummary?.summary?.netBalance || 0) - (dailySummary?.ajusteCaja || 0)
+            )
+          }
           subtitle="del día"
           icon={<TrendingDown sx={{ fontSize: 28 }} />}
-          color={dailySummary?.summary?.netBalance && dailySummary.summary.netBalance >= 0 ? "#4caf50" : "#f44336"}
+          color={
+            (dailySummary?.neto !== undefined 
+              ? dailySummary.neto - (dailySummary?.ajusteCaja || 0)
+              : (dailySummary?.summary?.netBalance || 0) - (dailySummary?.ajusteCaja || 0)
+            ) >= 0 ? "#4caf50" : "#f44336"
+          }
           isLoading={isLoading}
         />
       </Stack>

@@ -53,7 +53,7 @@ export default function ClientTimelineModal({
         },
       }}
     >
-      <DialogTitle>
+      <DialogTitle sx={{ pt: 2.5, px: 3, pb: 2 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
           <Payment color="primary" />
           <Typography variant="h6">Timeline de Cuotas</Typography>

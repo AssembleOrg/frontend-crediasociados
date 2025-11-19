@@ -81,7 +81,7 @@ export default function EditPaymentModal({
         },
       }}
     >
-      <DialogTitle>
+      <DialogTitle sx={{ pt: 2.5, px: 3, pb: 2 }}>
         Editar Cobro - {selectedPayment?.clientName || `Cliente #${selectedPayment?.loanId}`}
       </DialogTitle>
       

@@ -107,6 +107,7 @@ export const apiClientToClient = (apiClient: ClientResponseDto): Client => ({
   email: apiClient.email || undefined,
   address: apiClient.address || undefined,
   job: apiClient.job || undefined,
+  verified: (apiClient as any).verified !== undefined ? (apiClient as any).verified : undefined,
   createdAt: new Date(apiClient.createdAt),
   updatedAt: new Date(apiClient.updatedAt),
 });

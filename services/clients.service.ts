@@ -99,6 +99,59 @@ class ClientsService {
     const response = await api.get(`/clients/inactive?managerId=${managerId}`)
     return response.data.data || response.data
   }
+
+  /**
+   * Get clients with active loans for a specific manager
+   * @param managerId - Manager ID to get clients with active loans for
+   */
+  async getActiveLoansClients(managerId: string): Promise<{
+    total: number
+    clients: Array<{
+      id: string
+      nombre: string
+      telefono?: string
+      direccion?: string
+      cantidadPrestamosActivos: number
+      prestamosActivos: Array<{
+        id: string
+        loanTrack: string
+        amount: number
+        status: string
+        createdAt: string
+      }>
+    }>
+  }> {
+    const response = await api.get(`/clients/active-loans?managerId=${managerId}`)
+    return response.data.data || response.data
+  }
+
+  /**
+   * Get unverified clients (only for SUBADMIN)
+   * Returns clients from managers created by the subadmin that are not verified
+   */
+  async getUnverifiedClients(): Promise<{
+    total: number
+    clients: Array<{
+      id: string
+      nombre: string
+      telefono?: string
+      direccion?: string
+    }>
+  }> {
+    // Using the same pattern as other endpoints - api.get() automatically adds auth token via interceptor
+    const response = await api.get('/clients/unverified')
+    return response.data.data || response.data
+  }
+
+  /**
+   * Verify a client (only for SUBADMIN)
+   * Can only verify clients from managers that the subadmin created
+   * @param clientId - Client ID to verify
+   */
+  async verifyClient(clientId: string): Promise<ClientResponseDto> {
+    const response = await api.patch(`/clients/${clientId}/verify`)
+    return response.data.data || response.data
+  }
 }
 
 export const clientsService = new ClientsService()

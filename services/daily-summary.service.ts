@@ -58,6 +58,13 @@ export interface DailySummaryResponse {
     totalExpenses: number
     netBalance: number
   }
+  // Nueva estructura del reporte
+  cobrado: number
+  gastado: number
+  prestado: number  // Desde transacciones LOAN_DISBURSEMENT
+  retirado: number
+  ajusteCaja: number  // Nueva card - suma positiva
+  neto: number  // cobrado - gastado - prestado - retirado + ajusteCaja
 }
 
 class DailySummaryService {

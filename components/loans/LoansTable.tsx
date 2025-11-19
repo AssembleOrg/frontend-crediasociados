@@ -15,8 +15,6 @@ import {
   Button,
   TablePagination,
   LinearProgress,
-  Card,
-  CardContent,
   IconButton,
   Snackbar,
   Alert as MuiAlert
@@ -310,10 +308,9 @@ export function LoansTable({ loans: externalLoans, onViewDetails, onLoanDeleted 
 
   return (
     <Paper sx={{ overflow: 'hidden' }}>
-      {/* Desktop Table */}
-      <Box sx={{ display: { xs: 'none', lg: 'block' } }}>
-        <TableContainer>
-          <Table>
+      {/* Table - Always visible */}
+      <TableContainer sx={{ maxHeight: '70vh', overflowX: 'auto' }}>
+        <Table stickyHeader>
             <TableHead>
               <TableRow sx={{ bgcolor: 'grey.50' }}>
                 <TableCell><strong>Cliente</strong></TableCell>
@@ -444,104 +441,6 @@ export function LoansTable({ loans: externalLoans, onViewDetails, onLoanDeleted 
             </TableBody>
           </Table>
         </TableContainer>
-      </Box>
-
-      {/* Mobile Cards */}
-      <Box sx={{ display: { xs: 'block', lg: 'none' }, p: 2 }}>
-        {paginatedLoans.map((loan) => {
-          const { totalPayments, completedPayments, progress, statusGroups } = getProgressInfo(loan)
-          
-          return (
-            <Card key={loan.id} sx={{ mb: 2 }}>
-              <CardContent>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
-                  <Box>
-                    <Typography variant="subtitle1" fontWeight="bold">
-                      {getClientDisplay(loan.id).name}
-                    </Typography>
-                    <Chip 
-                      label={loan.loanTrack || loan.id} 
-                      size="small" 
-                      variant="outlined"
-                      sx={{ fontFamily: 'monospace', mt: 0.5 }}
-                    />
-                  </Box>
-                  {getStatusChip(loan.status)}
-                </Box>
-                
-                <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2, mb: 2 }}>
-                  <Box>
-                    <Typography variant="caption" color="text.secondary">
-                      Monto del préstamo
-                    </Typography>
-                    <Typography variant="h6">
-                      {formatCurrency(loan.amount)}
-                    </Typography>
-                    <Typography variant="caption" color="primary.main">
-                      Tasa: {getInterestRate(loan).toFixed(1)}%
-                    </Typography>
-                  </Box>
-                  <Box>
-                    <Typography variant="caption" color="text.secondary">
-                      Progreso de pagos
-                    </Typography>
-                    <Typography variant="body2" sx={{ mb: 0.5 }}>
-                        {completedPayments}/{totalPayments}
-                      </Typography>
-                    <MultiColorProgressBar 
-                      loanId={loan.id}
-                      totalPayments={totalPayments}
-                      />
-                  </Box>
-                </Box>
-                
-                <Box sx={{ display: 'flex', gap: 1 }}>
-                  <Button 
-                    size="small" 
-                    variant="outlined"
-                    startIcon={<Visibility />}
-                    onClick={() => onViewDetails?.(loan.id)}
-                    sx={{ borderRadius: 2, flex: 1 }}
-                  >
-                    Ver Detalles
-                  </Button>
-                  <IconButton 
-                    size="small" 
-                    onClick={() => exportLoanToPDF(loan.id)}
-                    disabled={!canExport(loan.id)}
-                    title="Exportar PDF"
-                    sx={{
-                      color: 'error.main',
-                      border: 1,
-                      borderColor: 'error.main',
-                      '&:hover': {
-                        backgroundColor: 'error.50'
-                      }
-                    }}
-                  >
-                    <PictureAsPdf fontSize="small" />
-                  </IconButton>
-                  <IconButton 
-                    size="small" 
-                    onClick={() => handleDeleteClick(loan)}
-                    title="Eliminar"
-                    sx={{
-                      color: 'error.dark',
-                      border: 1,
-                      borderColor: 'error.dark',
-                      '&:hover': {
-                        backgroundColor: 'error.100'
-                      }
-                    }}
-                  >
-                    <DeleteForever fontSize="small" />
-                  </IconButton>
-                </Box>
-              </CardContent>
-            </Card>
-          )
-        })}
-      </Box>
 
       {/* Pagination */}
       <TablePagination

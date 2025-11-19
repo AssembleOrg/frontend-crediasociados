@@ -4,6 +4,7 @@ import { Box } from '@mui/material';
 import { DashboardNav } from '@/components/dashboard/DashboardNav';
 import { AuthLoadingOverlay } from '@/components/ui/AuthLoadingOverlay';
 import DolarBlueTicker from '@/components/ui/DolarBlueTicker';
+import { Footer } from '@/components/ui/Footer';
 import { useAuth } from '@/hooks/useAuth';
 
 export default function DashboardLayout({
@@ -29,6 +30,7 @@ export default function DashboardLayout({
       >
         {children}
       </Box>
+      <Footer />
       
       {/* Global auth loading overlay */}
       <AuthLoadingOverlay 

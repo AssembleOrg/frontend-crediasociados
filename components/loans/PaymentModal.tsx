@@ -274,6 +274,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
           borderRadius: { xs: 0, sm: 3 },
           maxHeight: { xs: '100vh', sm: '90vh' },
           m: { xs: 0, sm: 2 },
+          mt: { xs: 0, sm: 3 },
           width: { xs: '100%', sm: 'auto' }
         }
       }}
@@ -282,7 +283,8 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
         sx={{
           background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
           color: 'white',
-          p: { xs: 2, sm: 3 }
+          p: { xs: 2, sm: 3 },
+          pt: { xs: 3, sm: 3.5 }
         }}
       >
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>

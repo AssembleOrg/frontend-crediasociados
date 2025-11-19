@@ -144,12 +144,14 @@ export default function ManagersPage() {
   };
 
   // Calculate subadmin's available quota (for creating managers)
+  // This should be based on the total quota ASSIGNED to managers, not the quota USED by managers
   const creatorAvailableQuota = useMemo(() => {
     if (!currentSubadmin) return undefined;
     const total = currentSubadmin.clientQuota ?? 0;
-    const used = currentSubadmin.usedClientQuota ?? 0;
-    return Math.max(0, total - used);
-  }, [currentSubadmin]);
+    // Sum all clientQuota assigned to managers (not usedClientQuota)
+    const assigned = managers.reduce((sum, manager) => sum + (manager.clientQuota ?? 0), 0);
+    return Math.max(0, total - assigned);
+  }, [currentSubadmin, managers]);
 
   const creatorTotalQuota = useMemo(() => {
     if (!currentSubadmin) return undefined;

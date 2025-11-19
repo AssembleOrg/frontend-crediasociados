@@ -104,8 +104,8 @@ const TimelineNode: React.FC<TimelineNodeProps> = ({
       return `Pagado parcial: $${paidAmount.toLocaleString()} (Resta: $${pending.toLocaleString()})`
     }
 
-    // Use overdueDate if available, otherwise fallback to dueDate
-    const dateToCheck = subloan.overdueDate || subloan.dueDate
+    // Use dueDate
+    const dateToCheck = subloan.dueDate
     if (!dateToCheck) return 'Sin fecha vencimiento'
 
     // Use Luxon for date calculations
@@ -288,10 +288,10 @@ export const LoanTimeline: React.FC<LoanTimelineProps> = ({
   const theme = useTheme()
   const isMobile = useMediaQuery(theme.breakpoints.down('md'))
 
-  // Helper function to determine urgency based on overdue date using Luxon
+  // Helper function to determine urgency based on due date using Luxon
   const getUrgencyLevel = (subloan: SubLoanWithClientInfo): 'overdue' | 'today' | 'soon' | 'future' => {
-    // Use overdueDate if available, otherwise fallback to dueDate
-    const dateToCheck = subloan.overdueDate || subloan.dueDate
+    // Use dueDate
+    const dateToCheck = subloan.dueDate
     if (!dateToCheck) return 'future'
 
     // Get today in Buenos Aires timezone using Luxon

@@ -109,7 +109,11 @@ export const TransferToManagerModal: React.FC<TransferToManagerModalProps> = ({
       maxWidth="sm"
       fullWidth
       PaperProps={{
-        sx: { borderRadius: 3 }
+        sx: { 
+          borderRadius: 3,
+          m: { xs: 1, sm: 2 },
+          mt: { xs: 2, sm: 3 }
+        }
       }}
     >
       <DialogTitle sx={{
@@ -117,7 +121,9 @@ export const TransferToManagerModal: React.FC<TransferToManagerModalProps> = ({
         alignItems: 'center',
         gap: 1,
         background: 'linear-gradient(135deg, #667eea 0%, #4facfe 100%)',
-        color: 'white'
+        color: 'white',
+        p: 2.5,
+        pt: 3
       }}>
         <SwapHoriz />
         <Typography variant="h6" sx={{ fontWeight: 600 }}>

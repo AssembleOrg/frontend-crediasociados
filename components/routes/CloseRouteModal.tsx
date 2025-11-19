@@ -80,11 +80,12 @@ export function CloseRouteModal({ open, onClose, route, onConfirm }: CloseRouteM
       PaperProps={{
         sx: {
           m: { xs: 2, sm: 3 },
+          mt: { xs: 2, sm: 4 },
           maxHeight: { xs: '90vh', sm: '80vh' },
         },
       }}
     >
-      <DialogTitle sx={{ pb: 1 }}>
+      <DialogTitle sx={{ pb: 1, pt: 2.5, px: 3 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
           <CheckCircle color="primary" />
           <Typography variant="h6" component="span">

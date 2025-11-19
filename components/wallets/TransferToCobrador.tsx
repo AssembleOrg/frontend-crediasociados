@@ -63,7 +63,8 @@ export const TransferToCobrador: React.FC<TransferToCobradoProps> = ({
   const canTransfer =
     selectedCobradoId &&
     transferAmount &&
-    amountValue > 0
+    amountValue > 0 &&
+    notes.trim().length > 0
     // amountValue <= currentBalance // Ya no se valida el balance disponible
 
   const handleTransfer = async () => {
@@ -77,7 +78,7 @@ export const TransferToCobrador: React.FC<TransferToCobradoProps> = ({
         managerId: selectedCobrado.id,
         amount: amountValue,
         currency: 'ARS',
-        description: notes || `Transferencia a ${selectedCobrado.fullName}`
+        description: notes.trim()
       })
 
       onSuccess?.()
@@ -107,7 +108,11 @@ export const TransferToCobrador: React.FC<TransferToCobradoProps> = ({
       maxWidth="sm"
       fullWidth
       PaperProps={{
-        sx: { borderRadius: 2 }
+        sx: { 
+          borderRadius: 2,
+          m: { xs: 1, sm: 2 },
+          mt: { xs: 2, sm: 3 }
+        }
       }}
     >
       <DialogTitle sx={{
@@ -116,7 +121,8 @@ export const TransferToCobrador: React.FC<TransferToCobradoProps> = ({
         gap: 1.5,
         background: `linear-gradient(135deg, #2196f3 0%, #1976d2 100%)`,
         color: 'white',
-        p: 2.5
+        p: 2.5,
+        pt: 3
       }}>
         <SwapHoriz sx={{ fontSize: 24 }} />
         <Typography variant="h6" sx={{ fontWeight: 600 }}>
@@ -188,7 +194,7 @@ export const TransferToCobrador: React.FC<TransferToCobradoProps> = ({
 
             {/* Notes Input */}
             <TextField
-              label="Notas (opcional)"
+              label="Concepto *"
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               fullWidth
@@ -196,7 +202,13 @@ export const TransferToCobrador: React.FC<TransferToCobradoProps> = ({
               disabled={isSubmitting}
               multiline
               rows={2}
-              helperText="Descripción del movimiento"
+              required
+              error={notes.trim().length === 0 && notes.length > 0}
+              helperText={
+                notes.trim().length === 0 && notes.length > 0
+                  ? "El concepto es obligatorio"
+                  : "Descripción del movimiento (obligatorio)"
+              }
             />
 
             {/* Preview Card */}

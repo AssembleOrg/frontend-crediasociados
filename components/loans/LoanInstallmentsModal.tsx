@@ -100,7 +100,7 @@ export function LoanInstallmentsModal({
         sx: { minHeight: '70vh' }
       }}
     >
-      <DialogTitle>
+      <DialogTitle sx={{ pt: 2.5, px: 3, pb: 2 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
           <Schedule color="primary" />
           <Box>

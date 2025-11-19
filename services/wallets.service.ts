@@ -38,6 +38,17 @@ interface TransferRequest {
   description: string;
 }
 
+interface WithdrawalRequest {
+  amount: number;
+  currency: 'ARS';
+  description: string;
+}
+
+interface WithdrawalResponse {
+  wallet: Wallet;
+  transaction: WalletTransaction;
+}
+
 class WalletsService {
   async getMyWallet(): Promise<WalletResponse> {
     const response = await api.get('/wallets/my-wallet');
@@ -54,17 +65,31 @@ class WalletsService {
     return response.data.data;
   }
 
+  async withdrawal(data: WithdrawalRequest): Promise<WithdrawalResponse> {
+    const response = await api.post('/wallets/withdrawal', data);
+    return response.data.data;
+  }
+
   async getBalance(): Promise<BalanceResponse> {
     const response = await api.get('/wallets/balance');
     return response.data.data;
   }
 
   async getTransactions(
-    params: { page?: number; limit?: number } = {}
+    params: { 
+      page?: number; 
+      limit?: number; 
+      type?: string; 
+      startDate?: string; 
+      endDate?: string 
+    } = {}
   ): Promise<PaginatedResponse<WalletTransaction>> {
     const searchParams = new URLSearchParams();
     if (params.page) searchParams.append('page', params.page.toString());
     if (params.limit) searchParams.append('limit', params.limit.toString());
+    if (params.type) searchParams.append('type', params.type);
+    if (params.startDate) searchParams.append('startDate', params.startDate);
+    if (params.endDate) searchParams.append('endDate', params.endDate);
 
     const queryString = searchParams.toString();
     const url = queryString
@@ -72,7 +97,23 @@ class WalletsService {
       : '/wallets/transactions';
 
     const response = await api.get(url);
-    return response.data.data;
+    // La API devuelve { data: { data: [...], meta: {...} } }
+    const apiData = response.data.data || response.data;
+    // Mapear a la estructura PaginatedResponse esperada
+    const items = apiData.data || apiData.items || [];
+    const total = apiData.meta?.total || apiData.total || 0;
+    const limit = apiData.meta?.limit || apiData.limit || 20;
+    const page = apiData.meta?.page || apiData.page || 1;
+    
+    return {
+      data: items,
+      meta: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit)
+      }
+    };
   }
 
   /**

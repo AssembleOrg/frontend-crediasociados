@@ -274,6 +274,7 @@ export function UserFormModal({
           borderRadius: { xs: 2, sm: 3 },
           boxShadow: '0 20px 40px rgba(0,0,0,0.1)',
           m: { xs: 0.5, sm: 2 },
+          mt: { xs: 2, sm: 3 },
           maxHeight: { xs: '100%', sm: 'calc(100% - 64px)' },
           width: { xs: '100%', sm: 'auto' },
         }

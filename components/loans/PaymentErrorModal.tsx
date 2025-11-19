@@ -83,6 +83,8 @@ export const PaymentErrorModal: React.FC<PaymentErrorModalProps> = ({
           alignItems: 'center',
           gap: 1.5,
           pb: 1,
+          pt: 2.5,
+          px: 3,
           borderBottom: 1,
           borderColor: 'divider'
         }}
