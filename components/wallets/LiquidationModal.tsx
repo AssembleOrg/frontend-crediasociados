@@ -120,7 +120,7 @@ export function LiquidationModal({ open, onClose, manager }: LiquidationModalPro
       // Reset commission calculation when new summary is loaded
       setCalculatedCommission(null)
     } catch (err: any) {
-      console.error('Error loading collections summary:', err)
+      // Error loading collections summary
       setError(err.response?.data?.message || 'Error al cargar el resumen de cobros')
       setSummary(null)
     } finally {
@@ -276,7 +276,7 @@ export function LiquidationModal({ open, onClose, manager }: LiquidationModalPro
           alignItems: 'center',
         }}
       >
-        <Typography variant="h6" fontWeight={600}>
+        <Typography variant="h6" component="div" fontWeight={600}>
           Calcular Liquidación
         </Typography>
         <IconButton onClick={handleClose} size="small">

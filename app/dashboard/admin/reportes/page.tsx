@@ -63,7 +63,7 @@ export default function AdminReportsPage() {
       link.click()
       window.URL.revokeObjectURL(url)
     } catch (error) {
-      console.error('Error generating PDF:', error)
+      // Error generating PDF
       alert('Error al generar el PDF. Por favor, inténtelo de nuevo.')
     }
   }

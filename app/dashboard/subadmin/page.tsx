@@ -93,7 +93,7 @@ export default function SubadminDashboard() {
         const data = await clientsService.getUnverifiedClients()
         setUnverifiedClientsCount(data.total || 0)
       } catch (error) {
-        console.error('Error loading unverified clients count:', error)
+        // Error loading unverified clients count
         setUnverifiedClientsCount(0)
       }
     }

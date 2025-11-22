@@ -14,6 +14,7 @@ interface LocalLoanDetails {
   id: string
   loanTrack: string
   amount: number
+  originalAmount?: number
   baseInterestRate: number
   penaltyInterestRate: number
   paymentFrequency: string
@@ -21,16 +22,25 @@ interface LocalLoanDetails {
   remainingPayments: number
   nextDueDate: string
   status: 'ACTIVE' | 'COMPLETED' | 'OVERDUE'
+  createdAt: string
   client: {
+    id: string
     fullName: string
     dni: string
+    phone?: string
+    email?: string
+    address?: string
   }
   subLoans: Array<{
+    id: string
     paymentNumber: number
     amount: number
+    totalAmount: number
     dueDate: string
-    status: 'PENDING' | 'PAID' | 'OVERDUE'
+    status: 'PENDING' | 'PAID' | 'OVERDUE' | 'PARTIAL'
     paidDate?: string
+    paidAmount?: number
+    daysOverdue?: number
   }>
 }
 

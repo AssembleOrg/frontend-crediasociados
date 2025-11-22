@@ -103,18 +103,9 @@ export function LoanSimulationModal({
         loanTrack: undefined // Optional field - backend will auto-generate
       }
 
-      console.log('=== CREANDO PRÉSTAMO ===')
-      console.log('Datos del préstamo:', {
-        cliente: clientName,
-        monto: `$${parseFloat(formData.amount).toLocaleString()}`,
-        cuotas: formData.totalPayments,
-        frecuencia: formData.paymentFrequency
-      })
-      
+      // Creating loan
       const loan = await createLoan(createLoanData);
       setLoanTrackingNumber(loan.loanTrack)
-      
-      console.log('✅ Préstamo creado exitosamente:', loan.loanTrack)
       
       // ✅ First close the parent CreateLoanModal (blue background)
       

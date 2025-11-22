@@ -53,7 +53,7 @@ export function GoogleAddressAutocomplete({
   useEffect(() => {
     if (!apiKey) {
       setApiKeyMissing(true)
-      console.warn('⚠️ Google Maps API key not configured')
+      
       return
     }
   }, [apiKey])
@@ -70,7 +70,7 @@ export function GoogleAddressAutocomplete({
       const div = document.createElement('div')
       placesService.current = new google.maps.places.PlacesService(div)
     } catch (err) {
-      console.error('Error initializing Google Places services:', err)
+      
     }
   }, [isLoaded])
 
@@ -106,7 +106,7 @@ export function GoogleAddressAutocomplete({
           }
         )
       } catch (err) {
-        console.error('Error fetching predictions:', err)
+        
         setLoading(false)
         setOptions([])
       }

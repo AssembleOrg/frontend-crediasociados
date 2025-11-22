@@ -93,9 +93,8 @@ export const useSubadminAnalytics = () => {
       abortControllerRef.current = new AbortController()
 
       // Step 1: Get basic analytics structure (managers created by this subadmin)
-      console.log('🔍 [DEBUG] Analytics - Fetching managers for subadmin:', user?.id || '')
+      
       const basicAnalytics = await analyticsService.getSubadminAnalytics(user?.id || '')
-      console.log('🔍 [DEBUG] Analytics - Basic analytics received:', basicAnalytics)
 
       if (!basicAnalytics.managers || basicAnalytics.managers.length === 0) {
         setState(prev => ({
@@ -120,11 +119,6 @@ export const useSubadminAnalytics = () => {
 
       for (const manager of basicAnalytics.managers) {
         try {
-          console.log('🔍 [DEBUG] Analytics - Fetching chart data for manager:', {
-            managerId: manager.managerId,
-            managerName: manager.managerName
-          })
-
           // Use new chart endpoints for pre-calculated metrics
           const [clientsChart, loansChart] = await Promise.all([
             managerService.getManagerClientsChart(manager.managerId, {}),
@@ -138,16 +132,9 @@ export const useSubadminAnalytics = () => {
             loansChart
           )
 
-          console.log('🔍 [DEBUG] Analytics - Manager analytics calculated:', {
-            managerId: manager.managerId,
-            totalClients: managerAnalytics.totalClients,
-            totalLoans: managerAnalytics.totalLoans,
-            totalAmountLent: managerAnalytics.totalAmountLent
-          })
-
           managersWithAnalytics.push(managerAnalytics)
         } catch (error) {
-          console.warn(`Error al obtener datos del manager ${manager.managerName}:`, error)
+          
           // Include manager with zero values if there's an error
           managersWithAnalytics.push({
             managerId: manager.managerId,

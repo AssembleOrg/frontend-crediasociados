@@ -126,33 +126,33 @@ async function createClient(nombre: string, apellido: string, index: number) {
 
     if (!response.ok) {
       const error = await response.json();
-      console.error(`❌ Error creating ${clientData.fullName}:`, error);
+      
       return null;
     }
 
     const result = await response.json();
-    console.log(`✅ Cliente creado: ${clientData.fullName} - ${clientData.address}`);
+    
     return result.data;
   } catch (error) {
-    console.error(`❌ Error de red creando ${clientData.fullName}:`, error);
+    
     return null;
   }
 }
 
 async function seedClients() {
-  console.log('🌱 INICIANDO SEED DE CLIENTES');
-  console.log('================================\n');
-  console.log(`Usuario: ${USER_ID}`);
-  console.log(`Clientes a crear: 20`);
-  console.log(`Zona: Sur de Buenos Aires\n`);
-  console.log('================================\n');
+  
+  
+  
+  
+  
+  
 
   if (AUTH_TOKEN === 'YOUR_TOKEN_HERE') {
-    console.error('❌ ERROR: Debes configurar el AUTH_TOKEN en el script');
-    console.error('   1. Loguéate en la app');
-    console.error('   2. Abre DevTools → Application → localStorage');
-    console.error('   3. Copia el token de "auth-storage"');
-    console.error('   4. Reemplaza AUTH_TOKEN en este script');
+    
+    
+    
+    
+    
     return;
   }
 
@@ -162,7 +162,7 @@ async function seedClients() {
     const nombre = nombres[i];
     const apellido = apellidos[i];
     
-    console.log(`\n[${i + 1}/20] Creando: ${nombre} ${apellido}...`);
+    
     const client = await createClient(nombre, apellido, i);
     
     if (client) {
@@ -173,24 +173,27 @@ async function seedClients() {
     await new Promise(resolve => setTimeout(resolve, 500));
   }
 
-  console.log('\n================================');
-  console.log('🎉 SEED COMPLETADO');
-  console.log('================================\n');
-  console.log(`✅ Clientes creados exitosamente: ${createdClients.length}/20`);
-  console.log(`❌ Errores: ${20 - createdClients.length}`);
-  console.log('\n================================\n');
+  
+  
+  
+  
+  
+  
 
   if (createdClients.length > 0) {
-    console.log('📋 MUESTRA DE CLIENTES CREADOS:\n');
+    
     createdClients.slice(0, 5).forEach((client, idx) => {
-      console.log(`${idx + 1}. ${client.fullName}`);
-      console.log(`   📍 ${client.address}`);
-      console.log(`   📞 ${client.phone}`);
-      console.log(`   💼 ${client.job}\n`);
+      
+      
+      
+      
     });
   }
 }
 
 // Ejecutar el seed
-seedClients().catch(console.error);
+seedClients().catch((error) => {
+  // Error seeding clients
+  process.exit(1);
+});
 

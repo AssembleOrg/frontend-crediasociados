@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback, useEffect, useRef } from 'react'
+import { useState, useCallback, useEffect, useRef, useMemo } from 'react'
 import { useSubadminStore } from '@/stores/subadmin'
 import { useUsersStore } from '@/stores/users'
 import { useAuth } from '@/hooks/useAuth'
@@ -18,8 +18,17 @@ export const useSubadminDashboardData = () => {
   const initializationRef = useRef(false)
   const abortControllerRef = useRef<AbortController | null>(null)
 
-  // Get managers from usersStore (single source of truth)
-  const managers = usersStore.users.filter(u => u.role === 'prestamista')
+  // Get managers from usersStore (single source of truth) - memoized to prevent infinite loops
+  const managers = useMemo(() => 
+    usersStore.users.filter(u => u.role === 'prestamista'),
+    [usersStore.users]
+  )
+
+  // Memoize manager IDs to use as stable dependency
+  const managerIds = useMemo(() => 
+    managers.map(m => m.id).sort().join(','),
+    [managers]
+  )
 
   useEffect(() => {
     // Early returns for guard conditions
@@ -28,7 +37,7 @@ export const useSubadminDashboardData = () => {
 
     // Use cache if fresh
     if (subadminStore.hasEnrichmentData() && subadminStore.isEnrichmentDataFresh()) {
-      console.log('📦 [SUBADMIN DASHBOARD] Using fresh cached enrichment data')
+      
       return
     }
 
@@ -47,7 +56,7 @@ export const useSubadminDashboardData = () => {
         }
         abortControllerRef.current = new AbortController()
 
-        console.log('[SUBADMIN DASHBOARD] Enriching dashboard data...')
+        
 
         // Fetch enrichment data (charts) for each manager
         const enrichments: Record<string, any> = {}
@@ -68,7 +77,7 @@ export const useSubadminDashboardData = () => {
                 loans: loansData
               }
             } catch (error) {
-              console.warn(`Error loading enrichment data for manager ${manager.fullName}:`, error)
+              
               // Fallback to empty enrichment
               enrichments[manager.id] = {
                 totalClients: 0,
@@ -84,13 +93,13 @@ export const useSubadminDashboardData = () => {
         // Store enrichments in subadminStore
         subadminStore.setManagerEnrichments(enrichments)
 
-        console.log('[SUBADMIN DASHBOARD] Dashboard enrichment data loaded successfully')
+        
 
       } catch (err) {
         if ((err as Error).name !== 'AbortError') {
           const errorMessage = err instanceof Error ? err.message : 'Failed to load dashboard data'
           setError(errorMessage)
-          console.error('Error loading dashboard data:', err)
+          
         }
       } finally {
         setIsLoading(false)
@@ -107,7 +116,8 @@ export const useSubadminDashboardData = () => {
       }
       initializationRef.current = false
     }
-  }, [currentUser?.id, managers, refreshTrigger]) // Re-run when managers change or on manual refresh
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentUser?.id, managerIds, refreshTrigger]) // Re-run when managers change or on manual refresh
 
   const refreshData = useCallback(() => {
     // Invalidate cache and trigger re-fetch

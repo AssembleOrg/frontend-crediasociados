@@ -56,7 +56,7 @@ export default function DailyClosurePage() {
           <ClosureHistoryTable
             refreshTrigger={refreshTrigger}
             onViewDetail={(closure) => {
-              console.log('Ver detalle:', closure)
+              // View detail
               // TODO: Abrir modal de detalle
             }}
           />

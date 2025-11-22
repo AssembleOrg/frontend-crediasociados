@@ -141,7 +141,7 @@ export default function WalletHistoryModal({ open, onClose }: WalletHistoryModal
       setTotal(data.pagination?.total || 0)
       setCurrentBalance(data.wallet?.balance || 0)
     } catch (err: any) {
-      console.error('Error loading wallet history:', err)
+      // Error loading wallet history
       setError(err.response?.data?.message || 'Error al cargar el historial de wallet')
       setTransactions([])
     } finally {
@@ -278,10 +278,10 @@ export default function WalletHistoryModal({ open, onClose }: WalletHistoryModal
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
           <History sx={{ fontSize: 28 }} />
           <Box>
-            <Typography variant="h6" fontWeight={600}>
+            <Typography variant="h6" component="div" fontWeight={600}>
               Historial de Wallet de Cobros
             </Typography>
-            <Typography variant="caption" sx={{ opacity: 0.9, display: 'block', mt: 0.5 }}>
+            <Typography variant="caption" component="div" sx={{ opacity: 0.9, display: 'block', mt: 0.5 }}>
               Todos los movimientos de la wallet de cobros
             </Typography>
           </Box>
@@ -299,7 +299,13 @@ export default function WalletHistoryModal({ open, onClose }: WalletHistoryModal
         </IconButton>
       </DialogTitle>
 
-      <DialogContent sx={{ p: { xs: 2, sm: 3, mt: 2 }, bgcolor: 'background.default' }}>
+      <DialogContent sx={{ 
+        p: { xs: 2, sm: 3, mt: 2 }, 
+        bgcolor: 'background.default',
+        overflow: 'auto',
+        display: 'flex',
+        flexDirection: 'column'
+      }}>
         {/* Manager Selector - Required */}
         <Box sx={{ mb: 3, mt: 2 }}>
           <FormControl fullWidth size="small" required>
@@ -484,8 +490,7 @@ export default function WalletHistoryModal({ open, onClose }: WalletHistoryModal
               sx={{ 
                 border: `1px solid ${theme.palette.divider}`,
                 borderRadius: 2,
-                overflow: 'hidden',
-                maxHeight: isMobile ? 400 : 500
+                overflow: 'visible'
               }}
             >
               <Table stickyHeader size={isMobile ? 'small' : 'medium'}>

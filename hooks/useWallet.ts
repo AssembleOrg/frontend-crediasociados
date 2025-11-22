@@ -94,10 +94,6 @@ export const useWallet = (autoFetch: boolean = true): UseWalletReturn => {
       }
 
       setError(errorMessage);
-      console.warn('useWallet - Wallet not available:', {
-        status: err?.status || err?.statusCode,
-        message: errorMessage,
-      });
     } finally {
       setIsLoading(false);
     }
@@ -141,9 +137,6 @@ export const useWallet = (autoFetch: boolean = true): UseWalletReturn => {
       }
 
       setError(errorMessage);
-      console.warn('useWallet - Balance fetch error:', {
-        status: err?.status || err?.statusCode,
-      });
     } finally {
       setIsLoading(false);
     }
@@ -176,7 +169,7 @@ export const useWallet = (autoFetch: boolean = true): UseWalletReturn => {
       } catch (err: any) {
         const errorMessage = err?.message || 'Error creating deposit';
         setError(errorMessage);
-        console.error('useWallet - deposit error:', err);
+        
         return null;
       } finally {
         setIsLoading(false);
@@ -226,7 +219,7 @@ export const useWallet = (autoFetch: boolean = true): UseWalletReturn => {
       } catch (err: any) {
         const errorMessage = err?.message || 'Error creating transfer';
         setError(errorMessage);
-        console.error('useWallet - transfer error:', err);
+        
         return null;
       } finally {
         setIsLoading(false);
@@ -254,7 +247,7 @@ export const useWallet = (autoFetch: boolean = true): UseWalletReturn => {
       } catch (err: any) {
         const errorMessage = err?.message || 'Error fetching transactions';
         setError(errorMessage);
-        console.error('useWallet - getTransactions error:', err);
+        
         return null;
       }
     },

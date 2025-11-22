@@ -193,7 +193,7 @@ export function LoanFormModal({
       result = !!createdLoan
     } else if (mode === 'edit' && loan) {
       // TODO: Implement updateLoan functionality
-      console.warn('Update loan functionality not implemented yet')
+      
       result = false
     } else {
       return

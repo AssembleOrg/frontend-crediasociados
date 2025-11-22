@@ -24,23 +24,18 @@ import {
   useTheme,
   useMediaQuery,
   Divider,
-  Collapse,
-  Accordion,
-  AccordionSummary,
-  AccordionDetails
 } from '@mui/material'
 import { 
   Close, 
   AccountBalance, 
-  Phone, 
-  Home, 
-  Search, 
-  ExpandMore,
-  CreditCard,
-  CalendarToday,
-  AttachMoney
+  Search,
+  PictureAsPdf
 } from '@mui/icons-material'
+import { Button } from '@mui/material'
+import { PDFDownloadLink } from '@react-pdf/renderer'
+import { ActiveLoansPDF } from './ActiveLoansPDF'
 import { clientsService } from '@/services/clients.service'
+import { collectorWalletService } from '@/services/collector-wallet.service'
 import { useUsers } from '@/hooks/useUsers'
 import { useCurrentUser } from '@/hooks/useCurrentUser'
 import { DateTime } from 'luxon'
@@ -61,25 +56,66 @@ export default function ActiveLoansClientsModal({ open, onClose }: ActiveLoansCl
   const isSubadmin = currentUser?.role === 'subadmin'
   
   const [selectedManager, setSelectedManager] = useState<string | null>(null)
-  const [clients, setClients] = useState<Array<{
-    id: string
-    nombre: string
-    telefono?: string
-    direccion?: string
-    cantidadPrestamosActivos: number
-    prestamosActivos: Array<{
+  const [managerDetail, setManagerDetail] = useState<{
+    manager: {
+      id: string
+      fullName: string
+      email: string
+      clientQuota: number
+      usedClientQuota: number
+      availableClientQuota: number
+    }
+    dineroEnCalle: number
+    totalLoans: number
+    loans: Array<{
       id: string
       loanTrack: string
       amount: number
+      originalAmount: number
+      currency: string
       status: string
+      baseInterestRate: number
+      penaltyInterestRate: number
+      paymentFrequency: string
+      totalPayments: number
+      description: string | null
       createdAt: string
+      client: {
+        id: string
+        fullName: string
+        dni: string | null
+        phone: string | null
+        email: string | null
+        address: string | null
+      }
+      subLoans: Array<{
+        id: string
+        paymentNumber: number
+        amount: number
+        totalAmount: number
+        status: 'PENDING' | 'PAID' | 'OVERDUE' | 'PARTIAL'
+        dueDate: string
+        paidDate: string | null
+        paidAmount: number
+        daysOverdue: number
+        createdAt: string
+        pendingAmount: number
+        isFullyPaid: boolean
+      }>
+      stats: {
+        totalSubLoans: number
+        paidSubLoans: number
+        pendingSubLoans: number
+        overdueSubLoans: number
+        partialSubLoans: number
+        totalPaid: number
+        totalPending: number
+      }
     }>
-  }>>([])
-  const [totalClients, setTotalClients] = useState(0)
+  } | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [expandedClients, setExpandedClients] = useState<Set<string>>(new Set())
 
   // Filter managers (prestamistas)
   const managers = users.filter(user => user.role === 'prestamista')
@@ -99,60 +135,60 @@ export default function ActiveLoansClientsModal({ open, onClose }: ActiveLoansCl
 
   useEffect(() => {
     if (open && managerIdToUse) {
-      loadActiveLoansClients()
+      loadManagerDetail()
     } else if (open && !managerIdToUse && isSubadmin) {
-      setClients([])
-      setTotalClients(0)
+      setManagerDetail(null)
       setError(null)
     }
     // Reset search when manager changes or modal opens
     if (open) {
       setSearchQuery('')
-      setExpandedClients(new Set())
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, managerIdToUse, isSubadmin])
 
-  const loadActiveLoansClients = async () => {
+  const loadManagerDetail = async () => {
     if (!managerIdToUse) return
 
     setLoading(true)
     setError(null)
     try {
-      const data = await clientsService.getActiveLoansClients(managerIdToUse)
-      setClients(data.clients || [])
-      setTotalClients(data.total || 0)
+      const data = await collectorWalletService.getManagerDetail(managerIdToUse)
+      setManagerDetail(data)
     } catch (err: any) {
-      console.error('Error loading active loans clients:', err)
-      setError(err.response?.data?.message || 'Error al cargar los clientes con préstamos activos')
-      setClients([])
-      setTotalClients(0)
+      // Error loading manager detail
+      setError(err.response?.data?.message || 'Error al cargar los préstamos activos')
+      setManagerDetail(null)
     } finally {
       setLoading(false)
     }
   }
 
-  // Filter clients based on search query
-  const filteredClients = useMemo(() => {
-    if (!searchQuery.trim()) return clients
+  // Filter loans based on search query
+  const filteredLoans = useMemo(() => {
+    if (!managerDetail || !managerDetail.loans) return []
+    
+    if (!searchQuery.trim()) return managerDetail.loans
     
     const query = searchQuery.toLowerCase().trim()
-    return clients.filter(client => {
-      const nombre = client.nombre?.toLowerCase() || ''
-      const telefono = client.telefono?.toLowerCase() || ''
-      const direccion = client.direccion?.toLowerCase() || ''
-      const loanTracks = client.prestamosActivos.map(p => p.loanTrack.toLowerCase()).join(' ')
+    return managerDetail.loans.filter(loan => {
+      const clientName = loan.client.fullName?.toLowerCase() || ''
+      const loanTrack = loan.loanTrack?.toLowerCase() || ''
+      const clientDni = loan.client.dni?.toLowerCase() || ''
+      const clientPhone = loan.client.phone?.toLowerCase() || ''
+      const clientAddress = loan.client.address?.toLowerCase() || ''
       
-      return nombre.includes(query) || 
-             telefono.includes(query) || 
-             direccion.includes(query) ||
-             loanTracks.includes(query)
+      return clientName.includes(query) || 
+             loanTrack.includes(query) ||
+             clientDni.includes(query) ||
+             clientPhone.includes(query) ||
+             clientAddress.includes(query)
     })
-  }, [clients, searchQuery])
+  }, [managerDetail, searchQuery])
 
   const formatDate = (dateString: string) => {
     const date = DateTime.fromISO(dateString)
-    return date.setLocale('es').toFormat("dd 'de' MMMM 'de' yyyy")
+    return date.toFormat('dd/MM/yyyy')
   }
 
   const formatCurrency = (amount: number) => {
@@ -212,31 +248,7 @@ export default function ActiveLoansClientsModal({ open, onClose }: ActiveLoansCl
     }
   }
 
-  const handlePhoneClick = (phone: string) => {
-    const whatsappNumber = formatPhoneForWhatsApp(phone)
-    const whatsappUrl = `https://wa.me/${whatsappNumber}`
-    window.open(whatsappUrl, '_blank', 'noopener,noreferrer')
-  }
 
-  const handleExpandClient = (clientId: string) => {
-    setExpandedClients(prev => {
-      const newSet = new Set(prev)
-      if (newSet.has(clientId)) {
-        newSet.delete(clientId)
-      } else {
-        newSet.add(clientId)
-      }
-      return newSet
-    })
-  }
-
-  const totalActiveLoans = useMemo(() => {
-    return clients.reduce((sum, client) => sum + client.cantidadPrestamosActivos, 0)
-  }, [clients])
-
-  const filteredTotalActiveLoans = useMemo(() => {
-    return filteredClients.reduce((sum, client) => sum + client.cantidadPrestamosActivos, 0)
-  }, [filteredClients])
 
   return (
     <Dialog
@@ -339,31 +351,30 @@ export default function ActiveLoansClientsModal({ open, onClose }: ActiveLoansCl
         )}
 
         {/* Summary Cards */}
-        {managerIdToUse && !loading && !error && clients.length > 0 && (
+        {managerIdToUse && !loading && !error && managerDetail && managerDetail.loans.length > 0 && (
           <Box sx={{ mb: 3, display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)' }, gap: 2 }}>
-            <Paper elevation={1} sx={{ p: 2, bgcolor: alpha('#1976d2', 0.05) }}>
-              <Typography variant="caption" color="text.secondary" gutterBottom>
-                Total de Clientes
-              </Typography>
-              <Typography variant="h5" fontWeight={600} color="primary">
-                {searchQuery ? filteredClients.length : totalClients}
-                {searchQuery && ` de ${totalClients}`}
-              </Typography>
-            </Paper>
             <Paper elevation={1} sx={{ p: 2, bgcolor: alpha('#1976d2', 0.05) }}>
               <Typography variant="caption" color="text.secondary" gutterBottom>
                 Total de Préstamos Activos
               </Typography>
               <Typography variant="h5" fontWeight={600} color="primary">
-                {searchQuery ? filteredTotalActiveLoans : totalActiveLoans}
-                {searchQuery && ` de ${totalActiveLoans}`}
+                {searchQuery ? filteredLoans.length : managerDetail.totalLoans}
+                {searchQuery && ` de ${managerDetail.totalLoans}`}
+              </Typography>
+            </Paper>
+            <Paper elevation={1} sx={{ p: 2, bgcolor: alpha('#1976d2', 0.05) }}>
+              <Typography variant="caption" color="text.secondary" gutterBottom>
+                Dinero en Calle
+              </Typography>
+              <Typography variant="h5" fontWeight={600} color="primary">
+                {formatCurrency(managerDetail.dineroEnCalle)}
               </Typography>
             </Paper>
           </Box>
         )}
 
         {/* Search Input */}
-        {managerIdToUse && !loading && !error && clients.length > 0 && (
+        {managerIdToUse && !loading && !error && managerDetail && managerDetail.loans.length > 0 && (
           <Box sx={{ mb: 3 }}>
             <TextField
               fullWidth
@@ -414,167 +425,121 @@ export default function ActiveLoansClientsModal({ open, onClose }: ActiveLoansCl
           </Box>
         )}
 
-        {/* Empty State - No Clients */}
-        {managerIdToUse && !loading && !error && clients.length === 0 && (
+        {/* Empty State - No Loans */}
+        {managerIdToUse && !loading && !error && managerDetail && managerDetail.loans.length === 0 && (
           <Box sx={{ textAlign: 'center', py: 6 }}>
             <AccountBalance sx={{ fontSize: 64, color: 'text.disabled', mb: 2 }} />
             <Typography variant="h6" color="text.secondary" gutterBottom>
-              No hay clientes con préstamos activos
+              No hay préstamos activos
             </Typography>
             <Typography variant="body2" color="text.secondary">
               {isManager 
-                ? 'No tienes clientes con préstamos activos'
-                : `${selectedManagerData?.fullName || 'Este manager'} no tiene clientes con préstamos activos`
+                ? 'No tienes préstamos activos'
+                : `${selectedManagerData?.fullName || 'Este manager'} no tiene préstamos activos`
               }
             </Typography>
           </Box>
         )}
 
-        {/* Clients List */}
-        {managerIdToUse && !loading && !error && clients.length > 0 && (
+        {/* Loans List */}
+        {managerIdToUse && !loading && !error && managerDetail && managerDetail.loans.length > 0 && (
           <Box>
             <Box sx={{ mb: 2, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 1 }}>
               <Typography variant="subtitle1" fontWeight={600}>
-                Clientes con Préstamos Activos
+                Préstamos Activos
               </Typography>
-              {searchQuery && (
-                <Chip 
-                  label={`${filteredClients.length} de ${totalClients}`}
-                  color="info"
-                  size="small"
-                />
-              )}
-            </Box>
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-              {filteredClients.length === 0 ? (
-                <Paper sx={{ p: 4, textAlign: 'center' }}>
-                  <Typography variant="body2" color="text.secondary">
-                    No se encontraron clientes que coincidan con "{searchQuery}"
-                  </Typography>
-                </Paper>
-              ) : (
-                filteredClients.map((client) => (
-                  <Accordion
-                    key={client.id}
-                    expanded={expandedClients.has(client.id)}
-                    onChange={() => handleExpandClient(client.id)}
-                    sx={{
-                      '&:before': { display: 'none' },
-                      boxShadow: 2,
-                      borderRadius: 2,
-                      overflow: 'hidden',
-                      '&.Mui-expanded': {
-                        margin: 0,
-                      }
-                    }}
-                  >
-                    <AccordionSummary
-                      expandIcon={<ExpandMore />}
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                {searchQuery && (
+                  <Chip 
+                    label={`${filteredLoans.length} de ${managerDetail.totalLoans}`}
+                    color="info"
+                    size="small"
+                  />
+                )}
+                <PDFDownloadLink
+                  document={<ActiveLoansPDF managerDetail={managerDetail} searchQuery={searchQuery || undefined} />}
+                  fileName={`prestamos-activos-${managerDetail.manager.fullName.replace(/\s+/g, '-').toLowerCase()}-${new Date().toISOString().split('T')[0]}.pdf`}
+                  style={{ textDecoration: 'none' }}
+                >
+                  {({ loading: pdfLoading }) => (
+                    <Button
+                      variant="contained"
+                      startIcon={<PictureAsPdf />}
+                      disabled={pdfLoading}
                       sx={{
-                        bgcolor: expandedClients.has(client.id) ? alpha('#1976d2', 0.05) : 'background.paper',
+                        background: 'linear-gradient(135deg, #1976d2 0%, #42a5f5 100%)',
                         '&:hover': {
-                          bgcolor: alpha('#1976d2', 0.03)
-                        }
+                          background: 'linear-gradient(135deg, #1565c0 0%, #1976d2 100%)',
+                        },
                       }}
                     >
-                      <Box sx={{ width: '100%', display: 'flex', alignItems: 'center', gap: 2, pr: 2 }}>
-                        <Box sx={{ flex: 1 }}>
-                          <Typography variant="subtitle1" fontWeight={600} gutterBottom>
-                            {client.nombre}
-                          </Typography>
-                          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, mt: 1 }}>
-                            {client.telefono && (
-                              <Box 
-                                sx={{ 
-                                  display: 'flex', 
-                                  alignItems: 'center', 
-                                  gap: 0.5,
-                                  cursor: 'pointer',
-                                  '&:hover': {
-                                    opacity: 0.7
-                                  }
-                                }}
-                                onClick={(e) => {
-                                  e.stopPropagation()
-                                  handlePhoneClick(client.telefono!)
-                                }}
-                              >
-                                <Phone sx={{ fontSize: 16, color: 'success.main' }} />
-                                <Typography variant="body2" color="success.main" sx={{ textDecoration: 'underline' }}>
-                                  {client.telefono}
-                                </Typography>
-                              </Box>
-                            )}
-                            {client.direccion && (
-                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                                <Home sx={{ fontSize: 16, color: 'text.secondary' }} />
-                                <Typography variant="body2" color="text.secondary" sx={{ maxWidth: { xs: 200, sm: 400 }, overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                                  {client.direccion}
-                                </Typography>
-                              </Box>
-                            )}
-                          </Box>
-                        </Box>
-                        <Chip 
-                          label={`${client.cantidadPrestamosActivos} préstamo${client.cantidadPrestamosActivos !== 1 ? 's' : ''}`}
-                          color="primary"
-                          size="small"
-                          icon={<CreditCard />}
-                        />
-                      </Box>
-                    </AccordionSummary>
-                    <AccordionDetails sx={{ p: 0 }}>
-                      <TableContainer>
-                        <Table size="small">
-                          <TableHead>
-                            <TableRow sx={{ bgcolor: alpha('#1976d2', 0.1) }}>
-                              <TableCell sx={{ fontWeight: 600 }}>Préstamo</TableCell>
-                              <TableCell sx={{ fontWeight: 600 }} align="right">Monto</TableCell>
-                              <TableCell sx={{ fontWeight: 600 }}>Estado</TableCell>
-                              <TableCell sx={{ fontWeight: 600 }}>Fecha</TableCell>
-                            </TableRow>
-                          </TableHead>
-                          <TableBody>
-                            {client.prestamosActivos.map((prestamo) => (
-                              <TableRow key={prestamo.id}>
-                                <TableCell>
-                                  <Typography variant="body2" fontWeight={500}>
-                                    {prestamo.loanTrack}
-                                  </Typography>
-                                </TableCell>
-                                <TableCell align="right">
-                                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 0.5 }}>
-                                    <AttachMoney sx={{ fontSize: 16, color: 'text.secondary' }} />
-                                    <Typography variant="body2" fontWeight={500}>
-                                      {formatCurrency(prestamo.amount)}
-                                    </Typography>
-                                  </Box>
-                                </TableCell>
-                                <TableCell>
-                                  <Chip 
-                                    label={getStatusLabel(prestamo.status)}
-                                    color={getStatusColor(prestamo.status) as any}
-                                    size="small"
-                                  />
-                                </TableCell>
-                                <TableCell>
-                                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                                    <CalendarToday sx={{ fontSize: 14, color: 'text.secondary' }} />
-                                    <Typography variant="body2">
-                                      {formatDate(prestamo.createdAt)}
-                                    </Typography>
-                                  </Box>
-                                </TableCell>
-                              </TableRow>
-                            ))}
-                          </TableBody>
-                        </Table>
-                      </TableContainer>
-                    </AccordionDetails>
-                  </Accordion>
-                ))
-              )}
+                      {pdfLoading ? 'Generando PDF...' : 'Descargar PDF'}
+                    </Button>
+                  )}
+                </PDFDownloadLink>
+              </Box>
             </Box>
+            {filteredLoans.length === 0 ? (
+              <Paper sx={{ p: 4, textAlign: 'center' }}>
+                <Typography variant="body2" color="text.secondary">
+                  No se encontraron préstamos que coincidan con "{searchQuery}"
+                </Typography>
+              </Paper>
+            ) : (
+              <TableContainer component={Paper} elevation={0} sx={{ border: `1px solid ${theme.palette.divider}`, borderRadius: 1 }}>
+                <Table>
+                  <TableHead>
+                    <TableRow sx={{ bgcolor: alpha('#1976d2', 0.05) }}>
+                      <TableCell sx={{ fontWeight: 600 }}>Cliente</TableCell>
+                      <TableCell align="right" sx={{ fontWeight: 600 }}>M.Ori.</TableCell>
+                      <TableCell align="right" sx={{ fontWeight: 600 }}>Int.</TableCell>
+                      <TableCell align="right" sx={{ fontWeight: 600 }}>Pagado</TableCell>
+                      <TableCell align="right" sx={{ fontWeight: 600 }}>Faltante</TableCell>
+                      <TableCell align="center" sx={{ fontWeight: 600 }}>Fecha Sol.</TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {filteredLoans.map((loan) => {
+                      const intereses = loan.amount - (loan.originalAmount || 0)
+                      return (
+                        <TableRow key={loan.id} hover>
+                          <TableCell>
+                            <Typography variant="body2" fontWeight={500}>
+                              {loan.client.fullName}
+                            </Typography>
+                          </TableCell>
+                          <TableCell align="right">
+                            <Typography variant="body2">
+                              {formatCurrency(loan.originalAmount || 0)}
+                            </Typography>
+                          </TableCell>
+                          <TableCell align="right">
+                            <Typography variant="body2">
+                              {formatCurrency(intereses)}
+                            </Typography>
+                          </TableCell>
+                          <TableCell align="right">
+                            <Typography variant="body2" color="success.main" fontWeight={500}>
+                              {formatCurrency(loan.stats.totalPaid)}
+                            </Typography>
+                          </TableCell>
+                          <TableCell align="right">
+                            <Typography variant="body2" color="warning.main" fontWeight={600}>
+                              {formatCurrency(loan.stats.totalPending)}
+                            </Typography>
+                          </TableCell>
+                          <TableCell align="center">
+                            <Typography variant="body2">
+                              {formatDate(loan.createdAt)}
+                            </Typography>
+                          </TableCell>
+                        </TableRow>
+                      )
+                    })}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            )}
           </Box>
         )}
       </DialogContent>

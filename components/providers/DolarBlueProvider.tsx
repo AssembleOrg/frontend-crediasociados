@@ -36,7 +36,7 @@ export default function DolarBlueProvider({ children }: DolarBlueProviderProps) 
       const response = await dolarBlueService.initWithoutUpdate(abortController.signal);
       
       // DEBUG: Log full API response
-      console.log('🔍 Raw API Response:', response);
+      
 
       if (abortController.signal.aborted) {
         return false;
@@ -54,8 +54,7 @@ export default function DolarBlueProvider({ children }: DolarBlueProviderProps) 
       };
 
       setCurrentRate(dolarData);
-      console.log('💰 Dólar Blue initialized (GET only):', { compra: response.compra, venta: response.venta });
-      console.log('📅 Fecha actualización:', response.fechaActualizacion);
+      
       return true;
 
     } catch (error: unknown) {
@@ -63,7 +62,7 @@ export default function DolarBlueProvider({ children }: DolarBlueProviderProps) 
         return false;
       }
 
-      console.error('Error initializing dolar blue:', error);
+      
       setError((error as Error).message || 'Error al obtener cotización');
       return false;
 
@@ -102,7 +101,6 @@ export default function DolarBlueProvider({ children }: DolarBlueProviderProps) 
       };
 
       setCurrentRate(dolarData);
-      console.log('💰 Dólar Blue updated (POST + GET):', { compra: response.compra, venta: response.venta });
       return true;
 
     } catch (error: unknown) {
@@ -110,7 +108,7 @@ export default function DolarBlueProvider({ children }: DolarBlueProviderProps) 
         return false;
       }
 
-      console.error('Error fetching dolar blue:', error);
+      
       setError((error as Error).message || 'Error al obtener cotización');
       return false;
 
@@ -132,7 +130,7 @@ export default function DolarBlueProvider({ children }: DolarBlueProviderProps) 
       const isValid = store.isCacheValid();
       const isStale = store.isDataStale();
       
-      console.log('⏰ Background refresh check - isCacheValid:', isValid, 'isDataStale:', isStale);
+      
       
       // Force refresh if cache expired OR if API data is stale
       if (!isValid || isStale) {
@@ -140,10 +138,9 @@ export default function DolarBlueProvider({ children }: DolarBlueProviderProps) 
         const authState = useAuthStore.getState();
 
         if (authState.userRole === 'admin') {
-          console.log('🔄 Starting background refresh with POST + GET (ADMIN)...');
           fetchDolarBlue(true);
         } else {
-          console.log('⚠️ Background refresh needed but user is not ADMIN - skipping POST');
+          
         }
       }
     }, DOLAR_BLUE_CONFIG.REFRESH_INTERVAL_MS);
@@ -154,14 +151,14 @@ export default function DolarBlueProvider({ children }: DolarBlueProviderProps) 
     const init = async () => {
       if (isInitializedRef.current) return;
       if (!token) {
-        console.log('⏸️ No token available, skipping dolar blue initialization');
+        
         return;
       }
 
       isInitializedRef.current = true;
       hasTokenBeenAvailableRef.current = true;
 
-      console.log('🪙 Inicializando Dólar Blue globalmente con token autenticado');
+      
 
       // Fast login initialization - only GET first
       const initSuccess = await initDolarBlue();
@@ -173,10 +170,9 @@ export default function DolarBlueProvider({ children }: DolarBlueProviderProps) 
           // Only ADMIN users can perform POST to update external API data
           const authState = useAuthStore.getState();
           if (authState.userRole === 'admin') {
-            console.log('💰 Datos del dólar blue están desactualizados (>4h), ejecutando POST + GET (ADMIN)...');
             await fetchDolarBlue(false);
           } else {
-            console.log('⚠️ Datos del dólar blue están desactualizados pero usuario no es ADMIN - solo lectura');
+            
           }
         }
         

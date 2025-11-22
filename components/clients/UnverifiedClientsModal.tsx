@@ -68,7 +68,7 @@ export default function UnverifiedClientsModal({ open, onClose }: UnverifiedClie
       setClients(data.clients || [])
       setTotalClients(data.total || 0)
     } catch (err: any) {
-      console.error('Error loading unverified clients:', err)
+      // Error loading unverified clients
       setError(err.response?.data?.message || 'Error al cargar los clientes no verificados')
       setClients([])
       setTotalClients(0)
@@ -105,7 +105,7 @@ export default function UnverifiedClientsModal({ open, onClose }: UnverifiedClie
       setClients(prev => prev.filter(c => c.id !== clientToVerify.id))
       setTotalClients(prev => Math.max(0, prev - 1))
     } catch (err: any) {
-      console.error('Error verifying client:', err)
+      // Error verifying client
       setError(err.response?.data?.message || 'Error al verificar el cliente')
     } finally {
       setVerifyingIds(prev => {
@@ -165,7 +165,7 @@ export default function UnverifiedClientsModal({ open, onClose }: UnverifiedClie
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
           <VerifiedUser sx={{ fontSize: 28 }} />
           <Box>
-            <Typography variant="h6" fontWeight={600}>
+            <Typography variant="h6" component="div" fontWeight={600}>
               Clientes No Verificados
             </Typography>
             {totalClients > 0 && (

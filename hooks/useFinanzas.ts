@@ -67,7 +67,7 @@ export const useFinanzas = () => {
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Error cargando datos financieros'
       setError(errorMessage)
-      console.error('Error refreshing financial data:', err)
+      
     } finally {
       setIsLoading(false)
     }

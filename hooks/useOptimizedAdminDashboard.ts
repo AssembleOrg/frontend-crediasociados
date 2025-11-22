@@ -121,11 +121,11 @@ export const useOptimizedAdminDashboard = () => {
     abortControllerRef.current = new AbortController()
 
     try {
-      console.log('🚀 [EAGER LOADING] Starting parallel data fetch...')
+      
 
       // Step 1: Get all subadmins
       const subadmins = await reportsService.getCreatedUsers(user?.id || '')
-      console.log('📊 [EAGER LOADING] Subadmins found:', subadmins.length)
+      
 
       // Step 2: For each subadmin, load ALL their data in parallel
       const allSubadminsData = await Promise.all(
@@ -151,7 +151,7 @@ export const useOptimizedAdminDashboard = () => {
                     loans: loansData
                   }
                 } catch (error) {
-                  console.warn(`Error loading data for manager ${manager.fullName}:`, error)
+                  
                   return {
                     id: manager.id,
                     name: manager.fullName,
@@ -187,11 +187,10 @@ export const useOptimizedAdminDashboard = () => {
               managers: managersWithData
             }
 
-            console.log(`✅ [EAGER LOADING] Subadmin ${subadmin.fullName}: ${managers.length} managers, $${totalAmount.toLocaleString()}`)
             return subadminData
 
           } catch (error) {
-            console.warn(`Error loading data for subadmin ${subadmin.fullName}:`, error)
+            
             return {
               id: subadmin.id,
               name: subadmin.fullName,
@@ -206,7 +205,7 @@ export const useOptimizedAdminDashboard = () => {
         })
       )
 
-      console.log('🎉 [EAGER LOADING] All data loaded successfully!')
+      
 
       setState(prev => ({
         ...prev,

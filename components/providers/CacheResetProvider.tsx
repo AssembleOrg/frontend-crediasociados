@@ -22,10 +22,10 @@ export function CacheResetProvider({ children }: { children: React.ReactNode }) 
   useEffect(() => {
     // Only clear once per page load, and only if authenticated
     if (!hasCleared.current && isAuthenticated) {
-      console.log('🧹 F5 DETECTED: Clearing all caches for fresh data...')
+      
       clearAllCaches()
       hasCleared.current = true
-      console.log('✅ F5 CLEANUP: All caches cleared, data will be fetched fresh from backend')
+      
     }
   }, [isAuthenticated])
 

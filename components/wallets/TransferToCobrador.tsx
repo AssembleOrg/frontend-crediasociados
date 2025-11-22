@@ -125,7 +125,7 @@ export const TransferToCobrador: React.FC<TransferToCobradoProps> = ({
         pt: 3
       }}>
         <SwapHoriz sx={{ fontSize: 24 }} />
-        <Typography variant="h6" sx={{ fontWeight: 600 }}>
+        <Typography variant="h6" component="div" sx={{ fontWeight: 600 }}>
           {selectedCobrador ? `Transferir a ${selectedCobrador.fullName}` : 'Transferir a Cobrador'}
         </Typography>
       </DialogTitle>

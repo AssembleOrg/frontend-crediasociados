@@ -28,6 +28,7 @@ interface FiltersStore {
   markClientAsNotified: (clientId: string) => void
   markClientAsPending: (clientId: string) => void
   isClientNotified: (clientId: string) => boolean
+  clearAllFilters: () => void
 }
 
 export const useFiltersStore = create<FiltersStore>((set, get) => ({
@@ -58,5 +59,12 @@ export const useFiltersStore = create<FiltersStore>((set, get) => ({
       return { notifiedClients: newNotified };
     }),
   isClientNotified: (clientId: string) =>
-    get().notifiedClients.has(clientId)
+    get().notifiedClients.has(clientId),
+  
+  clearAllFilters: () =>
+    set({
+      loansFilters: {},
+      cobrosFilters: { status: 'ALL' },
+      notifiedClients: new Set<string>()
+    })
 }))

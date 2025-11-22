@@ -20,6 +20,7 @@ import {
   alpha,
   useTheme,
   Divider,
+  useMediaQuery,
 } from '@mui/material'
 import {
   ChevronLeft,
@@ -104,7 +105,7 @@ export default function CollectorReportView({
       const data = await collectorReportService.getPeriodReport(startStr, endStr, managerId)
       setReport(data)
     } catch (err: any) {
-      console.error('Error loading report:', err)
+      // Error loading report
       setError(err.response?.data?.message || 'Error al cargar el reporte')
     } finally {
       setLoading(false)
@@ -286,9 +287,17 @@ export default function CollectorReportView({
     weeks.push(days.slice(i, i + 7))
   }
 
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'))
+
   return (
-    <Box sx={{ maxWidth: 1600, mx: 'auto' }}>
-      <Typography variant="h4" fontWeight={600} gutterBottom>
+    <Box sx={{ 
+      maxWidth: 1600, 
+      mx: 'auto', 
+      px: { xs: 1, sm: 2, md: 3 },
+      width: '100%',
+      overflow: 'hidden'
+    }}>
+      <Typography variant="h4" fontWeight={600} gutterBottom sx={{ fontSize: { xs: '1.5rem', sm: '2rem' } }}>
         {title}
       </Typography>
       <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
@@ -298,11 +307,20 @@ export default function CollectorReportView({
       <Box sx={{ 
         display: 'grid', 
         gridTemplateColumns: { xs: '1fr', md: '380px 1fr' }, 
-        gap: 3,
-        alignItems: 'start'
+        gap: { xs: 2, md: 3 },
+        alignItems: 'start',
+        width: '100%',
+        overflow: 'hidden'
       }}>
         {/* Calendario */}
-        <Paper sx={{ p: 3, position: 'sticky', top: 24 }}>
+        <Paper sx={{ 
+          p: { xs: 2, sm: 3 }, 
+          position: { xs: 'static', md: 'sticky' }, 
+          top: { md: 24 },
+          width: '100%',
+          maxWidth: { xs: '100%', md: '380px' },
+          overflow: 'hidden'
+        }}>
           <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3 }}>
             <IconButton onClick={() => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1))} size="small">
               <ChevronLeft />
@@ -441,7 +459,7 @@ export default function CollectorReportView({
         </Paper>
 
         {/* Reporte */}
-        <Box>
+        <Box sx={{ width: '100%', overflow: 'hidden', minWidth: 0 }}>
           {!selectedRange && !loading && (
             <Paper sx={{ p: 6, textAlign: 'center' }}>
               <CalendarMonth sx={{ fontSize: 64, color: 'text.disabled', mb: 2 }} />
@@ -473,27 +491,27 @@ export default function CollectorReportView({
             <Box>
               {/* Header - Información del Cobrador */}
               <Paper sx={{ 
-                p: 3, 
+                p: { xs: 2, sm: 3 }, 
                 mb: 3, 
                 background: 'linear-gradient(135deg, #667eea 0%, #4facfe 100%)', 
                 color: 'white',
                 borderRadius: 2
               }}>
-                <Typography variant="h5" fontWeight={600} gutterBottom>
+                <Typography variant="h5" fontWeight={600} gutterBottom sx={{ fontSize: { xs: '1.25rem', sm: '1.5rem' } }}>
                   {report.collector?.fullName || 'Cobrador'}
                 </Typography>
-                <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(3, 1fr)' }, gap: 2, mt: 2 }}>
+                <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(3, 1fr)' }, gap: { xs: 1.5, sm: 2 }, mt: 2 }}>
                   <Box>
-                    <Typography variant="caption" sx={{ opacity: 0.8 }}>Usuario</Typography>
-                    <Typography variant="body2" fontWeight={500}>{report.collector?.userId}</Typography>
+                    <Typography variant="caption" sx={{ opacity: 0.8, fontSize: { xs: '0.7rem', sm: '0.75rem' } }}>Usuario</Typography>
+                    <Typography variant="body2" fontWeight={500} sx={{ fontSize: { xs: '0.85rem', sm: '0.875rem' }, wordBreak: 'break-word' }}>{report.collector?.userId}</Typography>
                   </Box>
                   <Box>
-                    <Typography variant="caption" sx={{ opacity: 0.8 }}>Rol</Typography>
-                    <Typography variant="body2" fontWeight={500}>{report.collector?.role}</Typography>
+                    <Typography variant="caption" sx={{ opacity: 0.8, fontSize: { xs: '0.7rem', sm: '0.75rem' } }}>Rol</Typography>
+                    <Typography variant="body2" fontWeight={500} sx={{ fontSize: { xs: '0.85rem', sm: '0.875rem' } }}>{report.collector?.role}</Typography>
                   </Box>
                   <Box>
-                    <Typography variant="caption" sx={{ opacity: 0.8 }}>% Comisión</Typography>
-                    <Typography variant="body2" fontWeight={500}>{report.collector?.commissionPercentage}%</Typography>
+                    <Typography variant="caption" sx={{ opacity: 0.8, fontSize: { xs: '0.7rem', sm: '0.75rem' } }}>% Comisión</Typography>
+                    <Typography variant="body2" fontWeight={500} sx={{ fontSize: { xs: '0.85rem', sm: '0.875rem' } }}>{report.collector?.commissionPercentage}%</Typography>
                   </Box>
                 </Box>
                 <Box sx={{ mt: 2, pt: 2, borderTop: '1px solid rgba(255,255,255,0.2)' }}>
@@ -528,18 +546,18 @@ export default function CollectorReportView({
               <Box sx={{ 
                 display: 'grid', 
                 gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', md: 'repeat(5, 1fr)' }, 
-                gap: 2, 
+                gap: { xs: 1.5, sm: 2 }, 
                 mb: 3 
               }}>
                 <Card>
-                  <CardContent>
+                  <CardContent sx={{ p: { xs: 1.5, sm: 2 } }}>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-                      <TrendingUp sx={{ color: 'success.main' }} />
-                      <Typography variant="caption" color="text.secondary">
+                      <TrendingUp sx={{ color: 'success.main', fontSize: { xs: 18, sm: 24 } }} />
+                      <Typography variant="caption" color="text.secondary" sx={{ fontSize: { xs: '0.7rem', sm: '0.75rem' } }}>
                         Cobrado
                       </Typography>
                     </Box>
-                    <Typography variant="h5" fontWeight={700} color="success.main">
+                    <Typography variant="h5" fontWeight={700} color="success.main" sx={{ fontSize: { xs: '1.25rem', sm: '1.5rem' } }}>
                       {formatCurrency(report.cobrado ?? report.summary?.cobrado ?? report.collections?.amounts?.totalCollected ?? 0)}
                     </Typography>
                     <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
@@ -549,68 +567,68 @@ export default function CollectorReportView({
                 </Card>
 
                 <Card>
-                  <CardContent>
+                  <CardContent sx={{ p: { xs: 1.5, sm: 2 } }}>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-                      <AttachMoney sx={{ color: 'info.main' }} />
-                      <Typography variant="caption" color="text.secondary">
+                      <AttachMoney sx={{ color: 'info.main', fontSize: { xs: 18, sm: 24 } }} />
+                      <Typography variant="caption" color="text.secondary" sx={{ fontSize: { xs: '0.7rem', sm: '0.75rem' } }}>
                         Prestado
                       </Typography>
                     </Box>
-                    <Typography variant="h5" fontWeight={700} color="info.main">
+                    <Typography variant="h5" fontWeight={700} color="info.main" sx={{ fontSize: { xs: '1.25rem', sm: '1.5rem' } }}>
                       {formatCurrency(report.prestado ?? report.summary?.prestado ?? report.loans?.totalAmount ?? 0)}
                     </Typography>
-                    <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
+                    <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5, fontSize: { xs: '0.65rem', sm: '0.75rem' } }}>
                       del período
                     </Typography>
                   </CardContent>
                 </Card>
 
                 <Card>
-                  <CardContent>
+                  <CardContent sx={{ p: { xs: 1.5, sm: 2 } }}>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-                      <Receipt sx={{ color: 'error.main' }} />
-                      <Typography variant="caption" color="text.secondary">
+                      <Receipt sx={{ color: 'error.main', fontSize: { xs: 18, sm: 24 } }} />
+                      <Typography variant="caption" color="text.secondary" sx={{ fontSize: { xs: '0.7rem', sm: '0.75rem' } }}>
                         Gastado
                       </Typography>
                     </Box>
-                    <Typography variant="h5" fontWeight={700} color="error.main">
+                    <Typography variant="h5" fontWeight={700} color="error.main" sx={{ fontSize: { xs: '1.25rem', sm: '1.5rem' } }}>
                       {formatCurrency(report.gastado ?? report.summary?.gastado ?? report.expenses?.total ?? 0)}
                     </Typography>
-                    <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
+                    <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5, fontSize: { xs: '0.65rem', sm: '0.75rem' } }}>
                       del período
                     </Typography>
                   </CardContent>
                 </Card>
 
                 <Card>
-                  <CardContent>
+                  <CardContent sx={{ p: { xs: 1.5, sm: 2 } }}>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-                      <TrendingDown sx={{ color: 'warning.main' }} />
-                      <Typography variant="caption" color="text.secondary">
+                      <TrendingDown sx={{ color: 'warning.main', fontSize: { xs: 18, sm: 24 } }} />
+                      <Typography variant="caption" color="text.secondary" sx={{ fontSize: { xs: '0.7rem', sm: '0.75rem' } }}>
                         Retirado
                       </Typography>
                     </Box>
-                    <Typography variant="h5" fontWeight={700} color="warning.main">
+                    <Typography variant="h5" fontWeight={700} color="warning.main" sx={{ fontSize: { xs: '1.25rem', sm: '1.5rem' } }}>
                       {formatCurrency(report.retirado ?? report.summary?.retirado ?? report.collectorWallet?.totalWithdrawals ?? 0)}
                     </Typography>
-                    <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
+                    <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5, fontSize: { xs: '0.65rem', sm: '0.75rem' } }}>
                       de la wallet
                     </Typography>
                   </CardContent>
                 </Card>
 
                 <Card sx={{ background: 'linear-gradient(135deg, #667eea 0%, #4facfe 100%)', color: 'white' }}>
-                  <CardContent>
+                  <CardContent sx={{ p: { xs: 1.5, sm: 2 } }}>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-                      <AttachMoney />
-                      <Typography variant="caption" sx={{ opacity: 0.9 }}>
+                      <AttachMoney sx={{ fontSize: { xs: 18, sm: 24 } }} />
+                      <Typography variant="caption" sx={{ opacity: 0.9, fontSize: { xs: '0.7rem', sm: '0.75rem' } }}>
                         Neto
                       </Typography>
                     </Box>
-                    <Typography variant="h5" fontWeight={700}>
+                    <Typography variant="h5" fontWeight={700} sx={{ fontSize: { xs: '1.25rem', sm: '1.5rem' } }}>
                       {formatCurrency(report.neto ?? report.summary?.neto ?? report.collectorWallet?.netAmount ?? 0)}
                     </Typography>
-                    <Typography variant="caption" sx={{ opacity: 0.9, display: 'block', mt: 0.5 }}>
+                    <Typography variant="caption" sx={{ opacity: 0.9, display: 'block', mt: 0.5, fontSize: { xs: '0.65rem', sm: '0.75rem' } }}>
                       después de retiros
                     </Typography>
                   </CardContent>
@@ -618,52 +636,53 @@ export default function CollectorReportView({
               </Box>
 
               {/* Collection Stats - Cantidades */}
-              <Paper sx={{ p: 3, mb: 3 }}>
-                <Typography variant="h6" fontWeight={600} sx={{ mb: 3 }}>
+              <Paper sx={{ p: { xs: 2, sm: 3 }, mb: 3, overflow: 'hidden' }}>
+                <Typography variant="h6" fontWeight={600} sx={{ mb: 3, fontSize: { xs: '1rem', sm: '1.25rem' } }}>
                   Estadísticas de Cobros - Cantidades
                 </Typography>
                 <Box sx={{ 
                   display: 'grid', 
-                  gridTemplateColumns: { xs: '1fr 1fr', sm: 'repeat(5, 1fr)' }, 
-                  gap: 2 
+                  gridTemplateColumns: { xs: 'repeat(2, 1fr)', sm: 'repeat(5, 1fr)' }, 
+                  gap: { xs: 1, sm: 2 },
+                  overflowX: 'auto'
                 }}>
-                  <Box sx={{ textAlign: 'center', p: 2, borderRadius: 2, bgcolor: alpha(theme.palette.info.main, 0.1) }}>
-                    <Typography variant="h3" color="info.main" fontWeight={600}>
+                  <Box sx={{ textAlign: 'center', p: { xs: 1.5, sm: 2 }, borderRadius: 2, bgcolor: alpha(theme.palette.info.main, 0.1) }}>
+                    <Typography variant="h3" color="info.main" fontWeight={600} sx={{ fontSize: { xs: '1.75rem', sm: '2.5rem' } }}>
                       {report.collections?.totalDue || 0}
                     </Typography>
-                    <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                    <Typography variant="body2" color="text.secondary" sx={{ mt: 1, fontSize: { xs: '0.7rem', sm: '0.875rem' } }}>
                       Total a Cobrar
                     </Typography>
                   </Box>
-                  <Box sx={{ textAlign: 'center', p: 2, borderRadius: 2, bgcolor: alpha(theme.palette.success.main, 0.1) }}>
-                    <Typography variant="h3" color="success.main" fontWeight={600}>
+                  <Box sx={{ textAlign: 'center', p: { xs: 1.5, sm: 2 }, borderRadius: 2, bgcolor: alpha(theme.palette.success.main, 0.1) }}>
+                    <Typography variant="h3" color="success.main" fontWeight={600} sx={{ fontSize: { xs: '1.75rem', sm: '2.5rem' } }}>
                       {report.collections?.collected?.full || 0}
                     </Typography>
-                    <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                    <Typography variant="body2" color="text.secondary" sx={{ mt: 1, fontSize: { xs: '0.7rem', sm: '0.875rem' } }}>
                       Cobros Completos
                     </Typography>
                   </Box>
-                  <Box sx={{ textAlign: 'center', p: 2, borderRadius: 2, bgcolor: alpha(theme.palette.warning.main, 0.1) }}>
-                    <Typography variant="h3" color="warning.main" fontWeight={600}>
+                  <Box sx={{ textAlign: 'center', p: { xs: 1.5, sm: 2 }, borderRadius: 2, bgcolor: alpha(theme.palette.warning.main, 0.1) }}>
+                    <Typography variant="h3" color="warning.main" fontWeight={600} sx={{ fontSize: { xs: '1.75rem', sm: '2.5rem' } }}>
                       {report.collections?.collected?.partial || 0}
                     </Typography>
-                    <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                    <Typography variant="body2" color="text.secondary" sx={{ mt: 1, fontSize: { xs: '0.7rem', sm: '0.875rem' } }}>
                       Cobros Parciales
                     </Typography>
                   </Box>
-                  <Box sx={{ textAlign: 'center', p: 2, borderRadius: 2, bgcolor: alpha(theme.palette.success.main, 0.15) }}>
-                    <Typography variant="h3" color="success.dark" fontWeight={600}>
+                  <Box sx={{ textAlign: 'center', p: { xs: 1.5, sm: 2 }, borderRadius: 2, bgcolor: alpha(theme.palette.success.main, 0.15) }}>
+                    <Typography variant="h3" color="success.dark" fontWeight={600} sx={{ fontSize: { xs: '1.75rem', sm: '2.5rem' } }}>
                       {report.collections?.collected?.total || 0}
                     </Typography>
-                    <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                    <Typography variant="body2" color="text.secondary" sx={{ mt: 1, fontSize: { xs: '0.7rem', sm: '0.875rem' } }}>
                       Total Cobrado
                     </Typography>
                   </Box>
-                  <Box sx={{ textAlign: 'center', p: 2, borderRadius: 2, bgcolor: alpha(theme.palette.error.main, 0.1) }}>
-                    <Typography variant="h3" color="error.main" fontWeight={600}>
+                  <Box sx={{ textAlign: 'center', p: { xs: 1.5, sm: 2 }, borderRadius: 2, bgcolor: alpha(theme.palette.error.main, 0.1) }}>
+                    <Typography variant="h3" color="error.main" fontWeight={600} sx={{ fontSize: { xs: '1.75rem', sm: '2.5rem' } }}>
                       {report.collections?.failed || 0}
                     </Typography>
-                    <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                    <Typography variant="body2" color="text.secondary" sx={{ mt: 1, fontSize: { xs: '0.7rem', sm: '0.875rem' } }}>
                       No Cobrados
                     </Typography>
                   </Box>
@@ -671,14 +690,14 @@ export default function CollectorReportView({
               </Paper>
 
               {/* Collection Stats - Porcentajes */}
-              <Paper sx={{ p: 3, mb: 3 }}>
-                <Typography variant="h6" fontWeight={600} sx={{ mb: 3 }}>
+              <Paper sx={{ p: { xs: 2, sm: 3 }, mb: 3, overflow: 'hidden' }}>
+                <Typography variant="h6" fontWeight={600} sx={{ mb: 3, fontSize: { xs: '1rem', sm: '1.25rem' } }}>
                   Estadísticas de Cobros - Porcentajes
                 </Typography>
                 <Box sx={{ 
                   display: 'grid', 
-                  gridTemplateColumns: { xs: '1fr 1fr', sm: 'repeat(4, 1fr)' }, 
-                  gap: 2 
+                  gridTemplateColumns: { xs: 'repeat(2, 1fr)', sm: 'repeat(4, 1fr)' }, 
+                  gap: { xs: 1, sm: 2 }
                 }}>
                   <Box sx={{ textAlign: 'center', p: 2, borderRadius: 2, bgcolor: alpha(theme.palette.success.main, 0.1) }}>
                     <Typography variant="h3" color="success.main" fontWeight={600}>
@@ -718,36 +737,36 @@ export default function CollectorReportView({
               </Paper>
 
               {/* Collection Stats - Montos */}
-              <Paper sx={{ p: 3, mb: 3 }}>
-                <Typography variant="h6" fontWeight={600} sx={{ mb: 3 }}>
+              <Paper sx={{ p: { xs: 2, sm: 3 }, mb: 3 }}>
+                <Typography variant="h6" fontWeight={600} sx={{ mb: 3, fontSize: { xs: '1rem', sm: '1.25rem' } }}>
                   Montos de Cobros
                 </Typography>
                 <Box sx={{ 
                   display: 'grid', 
                   gridTemplateColumns: { xs: '1fr', sm: 'repeat(3, 1fr)' }, 
-                  gap: 2 
+                  gap: { xs: 1.5, sm: 2 }
                 }}>
-                  <Box sx={{ textAlign: 'center', p: 2, borderRadius: 2, bgcolor: alpha(theme.palette.info.main, 0.1) }}>
-                    <Typography variant="h4" color="info.main" fontWeight={600}>
+                  <Box sx={{ textAlign: 'center', p: { xs: 1.5, sm: 2 }, borderRadius: 2, bgcolor: alpha(theme.palette.info.main, 0.1), minWidth: 0 }}>
+                    <Typography variant="h4" color="info.main" fontWeight={600} sx={{ fontSize: { xs: '1.25rem', sm: '2rem' }, wordBreak: 'break-word' }}>
                       {formatCurrency(report.collections?.amounts?.totalDue || 0)}
                     </Typography>
-                    <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                    <Typography variant="body2" color="text.secondary" sx={{ mt: 1, fontSize: { xs: '0.7rem', sm: '0.875rem' } }}>
                       Monto Total a Cobrar
                     </Typography>
                   </Box>
-                  <Box sx={{ textAlign: 'center', p: 2, borderRadius: 2, bgcolor: alpha(theme.palette.success.main, 0.1) }}>
-                    <Typography variant="h4" color="success.main" fontWeight={600}>
+                  <Box sx={{ textAlign: 'center', p: { xs: 1.5, sm: 2 }, borderRadius: 2, bgcolor: alpha(theme.palette.success.main, 0.1), minWidth: 0 }}>
+                    <Typography variant="h4" color="success.main" fontWeight={600} sx={{ fontSize: { xs: '1.25rem', sm: '2rem' }, wordBreak: 'break-word' }}>
                       {formatCurrency(report.collections?.amounts?.totalCollected || 0)}
                     </Typography>
-                    <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                    <Typography variant="body2" color="text.secondary" sx={{ mt: 1, fontSize: { xs: '0.7rem', sm: '0.875rem' } }}>
                       Monto Total Cobrado
                     </Typography>
                   </Box>
-                  <Box sx={{ textAlign: 'center', p: 2, borderRadius: 2, bgcolor: alpha(theme.palette.error.main, 0.1) }}>
-                    <Typography variant="h4" color="error.main" fontWeight={600}>
+                  <Box sx={{ textAlign: 'center', p: { xs: 1.5, sm: 2 }, borderRadius: 2, bgcolor: alpha(theme.palette.error.main, 0.1), minWidth: 0 }}>
+                    <Typography variant="h4" color="error.main" fontWeight={600} sx={{ fontSize: { xs: '1.25rem', sm: '2rem' }, wordBreak: 'break-word' }}>
                       {formatCurrency((report.collections?.amounts?.totalDue || 0) - (report.collections?.amounts?.totalCollected || 0))}
                     </Typography>
-                    <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                    <Typography variant="body2" color="text.secondary" sx={{ mt: 1, fontSize: { xs: '0.7rem', sm: '0.875rem' } }}>
                       Pendiente de Cobrar
                     </Typography>
                   </Box>
@@ -755,36 +774,36 @@ export default function CollectorReportView({
               </Paper>
 
               {/* Comisión */}
-              <Paper sx={{ p: 3, mb: 3, background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)', color: 'white' }}>
-                <Typography variant="h6" fontWeight={600} sx={{ mb: 3 }}>
+              <Paper sx={{ p: { xs: 2, sm: 3 }, mb: 3, background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)', color: 'white' }}>
+                <Typography variant="h6" fontWeight={600} sx={{ mb: 3, fontSize: { xs: '1rem', sm: '1.25rem' } }}>
                   Comisión del Cobrador
                 </Typography>
                 <Box sx={{ 
                   display: 'grid', 
                   gridTemplateColumns: { xs: '1fr', sm: 'repeat(3, 1fr)' }, 
-                  gap: 2 
+                  gap: { xs: 1.5, sm: 2 }
                 }}>
-                  <Box sx={{ textAlign: 'center', p: 2, borderRadius: 2, bgcolor: 'rgba(255,255,255,0.2)' }}>
-                    <Typography variant="h4" fontWeight={600}>
+                  <Box sx={{ textAlign: 'center', p: { xs: 1.5, sm: 2 }, borderRadius: 2, bgcolor: 'rgba(255,255,255,0.2)', minWidth: 0 }}>
+                    <Typography variant="h4" fontWeight={600} sx={{ fontSize: { xs: '1.25rem', sm: '2rem' }, wordBreak: 'break-word' }}>
                       {report.commission?.percentage || 0}%
                     </Typography>
-                    <Typography variant="body2" sx={{ mt: 1, opacity: 0.9 }}>
+                    <Typography variant="body2" sx={{ mt: 1, opacity: 0.9, fontSize: { xs: '0.7rem', sm: '0.875rem' } }}>
                       Porcentaje de Comisión
                     </Typography>
                   </Box>
-                  <Box sx={{ textAlign: 'center', p: 2, borderRadius: 2, bgcolor: 'rgba(255,255,255,0.2)' }}>
-                    <Typography variant="h4" fontWeight={600}>
+                  <Box sx={{ textAlign: 'center', p: { xs: 1.5, sm: 2 }, borderRadius: 2, bgcolor: 'rgba(255,255,255,0.2)', minWidth: 0 }}>
+                    <Typography variant="h4" fontWeight={600} sx={{ fontSize: { xs: '1.25rem', sm: '2rem' }, wordBreak: 'break-word' }}>
                       {formatCurrency(report.commission?.baseAmount || 0)}
                     </Typography>
-                    <Typography variant="body2" sx={{ mt: 1, opacity: 0.9 }}>
+                    <Typography variant="body2" sx={{ mt: 1, opacity: 0.9, fontSize: { xs: '0.7rem', sm: '0.875rem' } }}>
                       Monto Base
                     </Typography>
                   </Box>
-                  <Box sx={{ textAlign: 'center', p: 2, borderRadius: 2, bgcolor: 'rgba(255,255,255,0.3)' }}>
-                    <Typography variant="h4" fontWeight={600}>
+                  <Box sx={{ textAlign: 'center', p: { xs: 1.5, sm: 2 }, borderRadius: 2, bgcolor: 'rgba(255,255,255,0.3)', minWidth: 0 }}>
+                    <Typography variant="h4" fontWeight={600} sx={{ fontSize: { xs: '1.25rem', sm: '2rem' }, wordBreak: 'break-word' }}>
                       {formatCurrency(report.commission?.commissionAmount || 0)}
                     </Typography>
-                    <Typography variant="body2" sx={{ mt: 1, opacity: 0.9 }}>
+                    <Typography variant="body2" sx={{ mt: 1, opacity: 0.9, fontSize: { xs: '0.7rem', sm: '0.875rem' } }}>
                       Comisión Total
                     </Typography>
                   </Box>
@@ -792,8 +811,8 @@ export default function CollectorReportView({
               </Paper>
 
               {/* Gastos Detallados */}
-              <Paper sx={{ p: 3, mb: 3 }}>
-                <Typography variant="h6" fontWeight={600} sx={{ mb: 3 }}>
+              <Paper sx={{ p: { xs: 2, sm: 3 }, mb: 3 }}>
+                <Typography variant="h6" fontWeight={600} sx={{ mb: 3, fontSize: { xs: '1rem', sm: '1.25rem' } }}>
                   Gastos del Período
                 </Typography>
                 
@@ -869,8 +888,8 @@ export default function CollectorReportView({
                     <Typography variant="subtitle2" fontWeight={600} sx={{ mb: 2 }}>
                       Detalle de Gastos
                     </Typography>
-                    <TableContainer>
-                      <Table size="small">
+                    <TableContainer sx={{ overflowX: 'auto', maxWidth: '100%' }}>
+                      <Table size="small" sx={{ minWidth: 400 }}>
                         <TableHead>
                           <TableRow>
                             <TableCell>Fecha</TableCell>
@@ -914,8 +933,8 @@ export default function CollectorReportView({
               </Paper>
 
               {/* Resumen Financiero Completo (Summary) */}
-              <Paper sx={{ p: 3, mb: 3, background: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)', color: 'white' }}>
-                <Typography variant="h6" fontWeight={600} sx={{ mb: 3 }}>
+              <Paper sx={{ p: { xs: 2, sm: 3 }, mb: 3, background: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)', color: 'white' }}>
+                <Typography variant="h6" fontWeight={600} sx={{ mb: 3, fontSize: { xs: '1rem', sm: '1.25rem' } }}>
                   Resumen Financiero Completo
                 </Typography>
                 
@@ -968,38 +987,38 @@ export default function CollectorReportView({
                 <Box sx={{ 
                   display: 'grid', 
                   gridTemplateColumns: { xs: '1fr', sm: 'repeat(3, 1fr)' }, 
-                  gap: 2 
+                  gap: { xs: 1.5, sm: 2 }
                 }}>
-                  <Box sx={{ p: 2.5, borderRadius: 2, bgcolor: 'rgba(255,255,255,0.25)', border: '1px solid rgba(255,255,255,0.4)' }}>
-                    <Typography variant="caption" sx={{ opacity: 0.9, fontWeight: 500, mb: 1, display: 'block' }}>
+                  <Box sx={{ p: { xs: 1.5, sm: 2.5 }, borderRadius: 2, bgcolor: 'rgba(255,255,255,0.25)', border: '1px solid rgba(255,255,255,0.4)', minWidth: 0 }}>
+                    <Typography variant="caption" sx={{ opacity: 0.9, fontWeight: 500, mb: 1, display: 'block', fontSize: { xs: '0.65rem', sm: '0.75rem' } }}>
                       Neto Antes de Comisión
                     </Typography>
-                    <Typography variant="h6" fontWeight={700}>
+                    <Typography variant="h6" fontWeight={700} sx={{ fontSize: { xs: '1rem', sm: '1.25rem' }, wordBreak: 'break-word' }}>
                       {formatCurrency(report.summary?.netBeforeCommission || 0)}
                     </Typography>
-                    <Typography variant="caption" sx={{ opacity: 0.8, mt: 0.5, display: 'block', fontSize: '0.7rem' }}>
+                    <Typography variant="caption" sx={{ opacity: 0.8, mt: 0.5, display: 'block', fontSize: { xs: '0.6rem', sm: '0.7rem' } }}>
                       Cobros - Retiros - Gastos
                     </Typography>
                   </Box>
-                  <Box sx={{ p: 2.5, borderRadius: 2, bgcolor: 'rgba(255,255,255,0.25)', border: '1px solid rgba(255,255,255,0.4)' }}>
-                    <Typography variant="caption" sx={{ opacity: 0.9, fontWeight: 500, mb: 1, display: 'block' }}>
+                  <Box sx={{ p: { xs: 1.5, sm: 2.5 }, borderRadius: 2, bgcolor: 'rgba(255,255,255,0.25)', border: '1px solid rgba(255,255,255,0.4)', minWidth: 0 }}>
+                    <Typography variant="caption" sx={{ opacity: 0.9, fontWeight: 500, mb: 1, display: 'block', fontSize: { xs: '0.65rem', sm: '0.75rem' } }}>
                       Comisión
                     </Typography>
-                    <Typography variant="h6" fontWeight={700}>
+                    <Typography variant="h6" fontWeight={700} sx={{ fontSize: { xs: '1rem', sm: '1.25rem' }, wordBreak: 'break-word' }}>
                       {formatCurrency(report.summary?.commission || 0)}
                     </Typography>
-                    <Typography variant="caption" sx={{ opacity: 0.8, mt: 0.5, display: 'block', fontSize: '0.7rem' }}>
+                    <Typography variant="caption" sx={{ opacity: 0.8, mt: 0.5, display: 'block', fontSize: { xs: '0.6rem', sm: '0.7rem' }, wordBreak: 'break-word' }}>
                       {report.commission?.percentage || 0}% sobre {formatCurrency(report.commission?.baseAmount || 0)}
                     </Typography>
                   </Box>
-                  <Box sx={{ p: 2.5, borderRadius: 2, bgcolor: 'rgba(255,255,255,0.35)', border: '2px solid rgba(255,255,255,0.5)' }}>
-                    <Typography variant="caption" sx={{ opacity: 0.9, fontWeight: 600, mb: 1, display: 'block' }}>
+                  <Box sx={{ p: { xs: 1.5, sm: 2.5 }, borderRadius: 2, bgcolor: 'rgba(255,255,255,0.35)', border: '2px solid rgba(255,255,255,0.5)', minWidth: 0 }}>
+                    <Typography variant="caption" sx={{ opacity: 0.9, fontWeight: 600, mb: 1, display: 'block', fontSize: { xs: '0.65rem', sm: '0.75rem' } }}>
                       Neto Final
                     </Typography>
-                    <Typography variant="h4" fontWeight={700}>
+                    <Typography variant="h4" fontWeight={700} sx={{ fontSize: { xs: '1.25rem', sm: '2rem' }, wordBreak: 'break-word' }}>
                       {formatCurrency(report.summary?.netAfterCommission || 0)}
                     </Typography>
-                    <Typography variant="caption" sx={{ opacity: 0.9, mt: 0.5, display: 'block', fontSize: '0.7rem', fontWeight: 500 }}>
+                    <Typography variant="caption" sx={{ opacity: 0.9, mt: 0.5, display: 'block', fontSize: { xs: '0.6rem', sm: '0.7rem' }, fontWeight: 500 }}>
                       Después de Comisión
                     </Typography>
                   </Box>
@@ -1007,15 +1026,15 @@ export default function CollectorReportView({
               </Paper>
 
               {/* Transactions */}
-              <Paper sx={{ p: 3, mb: 3 }}>
-                <Typography variant="h6" fontWeight={600} sx={{ mb: 2 }}>
+              <Paper sx={{ p: { xs: 2, sm: 3 }, mb: 3 }}>
+                <Typography variant="h6" fontWeight={600} sx={{ mb: 2, fontSize: { xs: '1.1rem', sm: '1.25rem' } }}>
                   Transacciones de la Wallet
                 </Typography>
                 <Divider sx={{ mb: 2 }} />
                 
                 {report.collectorWallet?.transactions && report.collectorWallet.transactions.length > 0 ? (
-                  <TableContainer>
-                    <Table>
+                  <TableContainer sx={{ overflowX: 'auto', maxWidth: '100%' }}>
+                    <Table sx={{ minWidth: 600 }}>
                       <TableHead>
                         <TableRow>
                           <TableCell>Fecha</TableCell>

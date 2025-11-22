@@ -230,7 +230,7 @@ export const useAdminStore = create<AdminStore>()(
       }),
       onRehydrateStorage: () => (state, error) => {
         if (error) {
-          console.error('Failed to rehydrate admin store:', error)
+          
           state?.clearAllData()
         }
       },

@@ -81,7 +81,7 @@ export function DailySummaryModal({ open, onClose, managerId, managerName }: Dai
       const data = await dailySummaryService.getDailySummaryQuery(dateStr, managerId)
       setSummary(data)
     } catch (err: any) {
-      console.error('Error loading daily summary:', err)
+      // Error loading daily summary
       setError(err.response?.data?.message || 'Error al cargar el resumen diario')
     } finally {
       setLoading(false)
@@ -122,10 +122,10 @@ export function DailySummaryModal({ open, onClose, managerId, managerName }: Dai
     >
       <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', pb: 2, pt: 2.5, px: 3 }}>
         <Box>
-          <Typography variant="h6" fontWeight={600}>
+          <Typography variant="h6" component="div" fontWeight={600}>
             Resumen Diario - {managerName}
           </Typography>
-          <Typography variant="caption" color="text.secondary">
+          <Typography variant="caption" component="div" color="text.secondary">
             Revisa la actividad del día seleccionado
           </Typography>
         </Box>

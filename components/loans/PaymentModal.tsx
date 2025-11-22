@@ -167,7 +167,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
             new Date(paymentDate)
           )
         } catch (operativaError) {
-          console.warn('⚠️ Payment registered but Operativa entry failed:', operativaError)
+          // Payment registered but Operativa entry failed
           // Don't block - payment is already registered
         }
 
@@ -189,9 +189,9 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
               notes: notes || undefined
             })
 
-            console.log('📄 Comprobante de pago PDF generado')
+            // Payment receipt PDF generated
           } catch (error) {
-            console.error('Error generating payment receipt:', error)
+            // Error generating payment receipt
             // Don't block the payment if receipt generation fails
           }
         }
@@ -215,7 +215,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
         }
       }
     } catch (error) {
-      console.error('Payment registration error:', error)
+      // Payment registration error
 
       // Extract error message for better UX
       const errObj = error as Record<string, unknown>

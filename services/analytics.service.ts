@@ -129,7 +129,7 @@ class AnalyticsService {
         }))
       }
     } catch (error) {
-      console.error('Error al obtener analytics del subadmin:', error)
+      
       throw new Error('No se pudieron cargar los datos de analytics. Por favor, intente nuevamente.')
     }
   }

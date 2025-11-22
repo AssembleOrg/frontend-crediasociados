@@ -102,7 +102,7 @@ class ReportsService {
         createdAt: user.createdAt
       }
     } catch (error) {
-      console.warn(`Error fetching chart data for manager ${user.fullName}:`, error)
+      
       // Fallback to zero values if chart endpoints fail
       return {
         userId: user.id,
@@ -180,11 +180,11 @@ class ReportsService {
    */
   async getSubadminAggregatedMetrics(subadmin: UserResponseDto): Promise<UserReportData> {
     try {
-      console.log('🔍 [DEBUG] Reports - Aggregating metrics for subadmin:', subadmin.fullName, subadmin.id)
+      
 
       // Step 1: Get managers created by this subadmin
       const managers = await this.getCreatedUsers(subadmin.id)
-      console.log('🔍 [DEBUG] Reports - Managers found for subadmin:', managers.length)
+      
 
       if (managers.length === 0) {
         // Subadmin has no managers yet
@@ -208,16 +208,11 @@ class ReportsService {
 
       for (const manager of managers) {
         try {
-          console.log('🔍 [DEBUG] Reports - Getting chart data for manager:', manager.fullName, manager.id)
+          
           const managerMetrics = await this.getManagerMetricsFromChartData(manager)
           managersMetrics.push(managerMetrics)
-          console.log('🔍 [DEBUG] Reports - Manager metrics:', {
-            managerId: manager.id,
-            totalClients: managerMetrics.totalClients,
-            totalLoans: managerMetrics.totalLoans
-          })
         } catch (error) {
-          console.warn(`Error getting metrics for manager ${manager.fullName}:`, error)
+          
           // Include manager with zero values if there's an error
           managersMetrics.push({
             userId: manager.id,
@@ -240,19 +235,9 @@ class ReportsService {
       // Add managers count for admin reports
       aggregatedMetrics.totalManagers = managersMetrics.length
 
-      console.log('🔍 [DEBUG] Reports - Subadmin aggregated totals:', {
-        subadminId: subadmin.id,
-        totalManagers: managersMetrics.length,
-        totalClients: aggregatedMetrics.totalClients,
-        totalLoans: aggregatedMetrics.totalLoans,
-        totalAmountLent: aggregatedMetrics.totalAmountLent
-      })
-
       return aggregatedMetrics
 
     } catch (error) {
-      console.error(`Error aggregating metrics for subadmin ${subadmin.fullName}:`, error)
-
       // Return zero values on error but don't break the flow
       return {
         userId: subadmin.id,

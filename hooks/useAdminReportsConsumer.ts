@@ -22,7 +22,7 @@ export const useAdminReportsConsumer = () => {
   }, [adminStore])
 
   const clearError = useCallback(() => {
-    console.log('Clear error called - provider handles errors gracefully')
+    
   }, [])
 
   const initializeReports = useCallback(() => {

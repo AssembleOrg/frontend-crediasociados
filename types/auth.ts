@@ -150,7 +150,8 @@ export interface Client {
 export interface Loan {
   id: string;
   clientId: string;
-  amount: number;
+  amount: number; // Total a devolver (con intereses)
+  originalAmount?: number; // Monto original prestado (sin intereses)
   baseInterestRate: number;
   penaltyInterestRate: number;
   currency: 'ARS';

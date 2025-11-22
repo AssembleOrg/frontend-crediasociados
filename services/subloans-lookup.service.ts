@@ -88,7 +88,7 @@ class SubLoansLookupService {
       return enrichedSubLoans
 
     } catch (error) {
-      console.error('Error al enriquecer subpréstamos con información del cliente:', error)
+      
       throw new Error('No se pudieron cargar los datos de cuotas. Por favor, intente nuevamente.')
     }
   }
@@ -136,7 +136,7 @@ class SubLoansLookupService {
       return enrichedSubLoans
 
     } catch (error) {
-      console.error('Error al enriquecer subpréstamos vencidos hoy con información del cliente:', error)
+      
       throw new Error('No se pudieron cargar los datos de cuotas vencidas. Por favor, intente nuevamente.')
     }
   }
@@ -161,7 +161,7 @@ class SubLoansLookupService {
           this.loansCache.set(loan.id, loan)
         })
       } catch (error) {
-        console.error('Error al cargar caché de préstamos:', error)
+        
         throw error
       } finally {
         this.loansLoadingPromise = null
@@ -194,10 +194,9 @@ class SubLoansLookupService {
         })
 
         if (clientsResponse.meta && clientsResponse.meta.totalPages > 1) {
-          console.log(`Note: ${clientsResponse.meta.totalPages - 1} more pages available (${clientsResponse.meta.total - clients.length} more clients)`)
         }
       } catch (error) {
-        console.error('Error al cargar caché de clientes:', error)
+        
         throw error
       } finally {
         this.clientsLoadingPromise = null
@@ -217,13 +216,13 @@ class SubLoansLookupService {
     }
 
     try {
-      console.log('Loading specific client from API:', clientId)
+      
       const client = await clientsService.getClientById(clientId)
       this.clientsCache.set(client.id, client)
-      console.log('Client loaded and cached:', client.fullName)
+      
       return client
     } catch (error) {
-      console.error('Error al cargar cliente específico:', clientId, error)
+      
       return null
     }
   }

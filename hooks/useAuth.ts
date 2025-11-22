@@ -4,6 +4,14 @@ import { useState, useCallback, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/stores/auth';
 import { useUsersStore } from '@/stores/users';
+import { useClientsStore } from '@/stores/clients';
+import { useStatsStore } from '@/stores/stats';
+import { useLoansStore } from '@/stores/loans';
+import { useSubLoansStore } from '@/stores/sub-loans';
+import { useFiltersStore } from '@/stores/filters';
+import { useFinanzasStore } from '@/stores/finanzas';
+import { useOperativaStore } from '@/stores/operativa';
+import { useWalletsStore } from '@/stores/wallets';
 import { authService } from '@/services/auth.service';
 import { usersService } from '@/services/users.service';
 import { setAuthToken } from '@/services/api';
@@ -38,9 +46,64 @@ export const useAuth = () => {
       setError(null);
 
       try {
-        // CRITICAL: Clear all caches BEFORE login to ensure fresh data
-        console.log('🧹 LOGIN: Clearing all caches before authentication...');
+        // CRITICAL: Clear all caches and stores BEFORE login to ensure fresh data
+        // This prevents data from previous sessions mixing with new user data
         clearAllCaches();
+        
+        // Clear all stores that contain user-specific data to prevent cross-user contamination
+        const usersStore = useUsersStore.getState();
+        usersStore.clearUsers();
+        if ('clearCache' in usersStore && typeof (usersStore as any).clearCache === 'function') {
+          (usersStore as any).clearCache();
+        }
+        
+        const clientsStore = useClientsStore.getState();
+        clientsStore.clearClients();
+        if ('clearCache' in clientsStore && typeof (clientsStore as any).clearCache === 'function') {
+          (clientsStore as any).clearCache();
+        }
+        
+        const statsStore = useStatsStore.getState();
+        statsStore.clearStats();
+        if ('clearCache' in statsStore && typeof (statsStore as any).clearCache === 'function') {
+          (statsStore as any).clearCache();
+        }
+        
+        // Clear loans store
+        const loansStore = useLoansStore.getState();
+        if (loansStore.reset) {
+          loansStore.reset();
+        }
+        
+        // Clear sub-loans store
+        const subLoansStore = useSubLoansStore.getState();
+        if (subLoansStore.reset) {
+          subLoansStore.reset();
+        }
+        
+        // Clear filters store
+        const filtersStore = useFiltersStore.getState();
+        if (filtersStore.clearAllFilters) {
+          filtersStore.clearAllFilters();
+        }
+        
+        // Clear finanzas store
+        const finanzasStore = useFinanzasStore.getState();
+        if (finanzasStore.clearFinancialData) {
+          finanzasStore.clearFinancialData();
+        }
+        
+        // Clear operativa store
+        const operativaStore = useOperativaStore.getState();
+        if (operativaStore.clearTransacciones) {
+          operativaStore.clearTransacciones();
+        }
+        
+        // Clear wallets store
+        const walletsStore = useWalletsStore.getState();
+        if (walletsStore.invalidateAll) {
+          walletsStore.invalidateAll();
+        }
 
         const response = await authService.login(credentials);
 
@@ -65,21 +128,14 @@ export const useAuth = () => {
           
           authStore.setUser(completeUser);
           useUsersStore.getState().upsertUsers([completeUser]);
-          
-          console.log('✅ Login successful with complete user data:', {
-            userId: completeUser.id,
-            role: completeUser.role,
-            clientQuota: completeUser.clientQuota,
-            hasToken: !!response.token,
-          });
         } catch (error) {
           // Fallback to basic user data if fetch fails
-          console.warn('Failed to fetch complete user data, using login response:', error);
+          
           authStore.setUser(user);
           useUsersStore.getState().upsertUsers([user]);
         }
 
-        console.log('✅ LOGIN: Fresh session started with clean caches');
+        
         return true;
       } catch (err) {
         const apiError = err as ApiError;
@@ -124,15 +180,15 @@ export const useAuth = () => {
     try {
       await authService.logout(authStore.refreshToken || undefined);
     } catch (err) {
-      console.warn('Logout API call failed:', err);
+      
     } finally {
       // CRITICAL: Clear ALL data including auth on logout
-      console.log('🧹 LOGOUT: Clearing all data and caches...');
+      
       clearAllData(); // This clears auth store too
       authService.clearAuth();
       setIsLoading(false);
 
-      console.log('✅ LOGOUT: All data cleared, redirecting to login');
+      
       router.replace('/login');
     }
   }, [authStore, router]);
@@ -141,13 +197,6 @@ export const useAuth = () => {
     // Get fresh state directly from store (not from closure)
     const freshState = useAuthStore.getState();
     const dashboardRoute = freshState.getDashboardRoute();
-    
-    console.log('🚀 Navigating to dashboard:', {
-      userRole: freshState.userRole,
-      currentUser: freshState.currentUser?.role,
-      route: dashboardRoute,
-      isAuthenticated: freshState.isAuthenticated,
-    });
     
     router.push(dashboardRoute);
   }, [router]);
@@ -162,21 +211,20 @@ export const useAuth = () => {
    */
   const refreshCurrentUser = useCallback(async (): Promise<boolean> => {
     if (!authStore.currentUser?.id) {
-      console.warn('⚠️ Cannot refresh: no current user ID');
+      
       return false;
     }
 
     try {
-      console.log('🔄 Refreshing current user data...', authStore.currentUser.id);
+      
       
       // ✅ FIRST: Recalculate quota on backend to ensure data consistency
       try {
-        console.log('🧮 Recalculating quota on backend...');
+        
         const recalcResult = await usersService.recalculateUserQuota(authStore.currentUser.id);
-        console.log('✅ Quota recalculated:', recalcResult);
+        
       } catch (recalcError) {
-        console.warn('⚠️ Quota recalculation failed (non-critical):', recalcError);
-        // Continue anyway - we'll still fetch the latest data
+        // Quota recalculation failed (non-critical) - continue anyway
       }
       
       // ✅ THEN: Fetch fresh user data with updated quota
@@ -186,16 +234,9 @@ export const useAuth = () => {
       authStore.updateCurrentUser(updatedUser);
       useUsersStore.getState().upsertUsers([updatedUser]);
       
-      console.log('✅ Current user data refreshed:', {
-        userId: updatedUser.id,
-        clientQuota: updatedUser.clientQuota,
-        usedClientQuota: updatedUser.usedClientQuota,
-        availableClientQuota: updatedUser.availableClientQuota,
-      });
-      
       return true;
     } catch (error) {
-      console.error('❌ Failed to refresh current user data:', error);
+      
       return false;
     }
   }, [authStore]);

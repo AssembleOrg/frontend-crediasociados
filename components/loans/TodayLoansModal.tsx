@@ -57,6 +57,17 @@ export default function TodayLoansModal({ open, onClose, data }: TodayLoansModal
 
   if (!data) return null
 
+  // Calculate totals correctly
+  // Si montoTotalPrestado === montoTotalADevolver, significa que el backend no envió originalAmount
+  const totalPrestado = data.loans.reduce((sum, loan) => {
+    const montoPrestado = loan.montoTotalPrestado !== loan.montoTotalADevolver 
+      ? loan.montoTotalPrestado 
+      : Math.round(loan.montoTotalADevolver / 1.1) // Aproximación si no hay originalAmount
+    return sum + montoPrestado
+  }, 0)
+  const totalADevolver = data.loans.reduce((sum, loan) => sum + loan.montoTotalADevolver, 0)
+  const totalIntereses = totalADevolver - totalPrestado
+
   return (
     <Dialog
       open={open}
@@ -116,7 +127,8 @@ export default function TodayLoansModal({ open, onClose, data }: TodayLoansModal
           display: 'grid', 
           gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)' }, 
           gap: 2,
-          mb: 3 
+          mb: 3,
+          mt: 3
         }}>
           <Paper 
             elevation={0} 
@@ -131,7 +143,7 @@ export default function TodayLoansModal({ open, onClose, data }: TodayLoansModal
               Total Prestado
             </Typography>
             <Typography variant="h4" fontWeight={700} color="primary.main" sx={{ mt: 0.5 }}>
-              {formatCurrency(data.totalAmount)}
+              {formatCurrency(totalPrestado)}
             </Typography>
           </Paper>
 
@@ -192,8 +204,17 @@ export default function TodayLoansModal({ open, onClose, data }: TodayLoansModal
                 </TableHead>
                 <TableBody>
                   {data.loans.map((loan, index) => {
-                    const interes = loan.montoTotalADevolver - loan.montoTotalPrestado
-                    const porcentajeInteres = ((interes / loan.montoTotalPrestado) * 100).toFixed(1)
+                    // Asegurar que montoTotalPrestado sea el originalAmount
+                    // Si montoTotalPrestado === montoTotalADevolver, significa que el backend no envió originalAmount
+                    // En ese caso, intentamos calcularlo asumiendo un 10% de interés (o usar montoTotalADevolver como fallback)
+                    const montoPrestado = loan.montoTotalPrestado !== loan.montoTotalADevolver 
+                      ? loan.montoTotalPrestado 
+                      : Math.round(loan.montoTotalADevolver / 1.1) // Aproximación si no hay originalAmount
+                    
+                    const interes = loan.montoTotalADevolver - montoPrestado
+                    const porcentajeInteres = montoPrestado > 0 
+                      ? ((interes / montoPrestado) * 100).toFixed(1)
+                      : '0.0'
 
                     return (
                       <TableRow 
@@ -211,14 +232,14 @@ export default function TodayLoansModal({ open, onClose, data }: TodayLoansModal
                           </Typography>
                           {isMobile && (
                             <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
-                              Prestado: {formatCurrency(loan.montoTotalPrestado)}
+                              Prestado: {formatCurrency(montoPrestado)}
                             </Typography>
                           )}
                         </TableCell>
                         {!isMobile && (
                           <TableCell align="right">
                             <Typography variant="body2" fontWeight={500} color="primary.main">
-                              {formatCurrency(loan.montoTotalPrestado)}
+                              {formatCurrency(montoPrestado)}
                             </Typography>
                           </TableCell>
                         )}
@@ -235,6 +256,9 @@ export default function TodayLoansModal({ open, onClose, data }: TodayLoansModal
                               color="warning"
                               sx={{ fontWeight: 600 }}
                             />
+                            <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 0.5 }}>
+                              {formatCurrency(interes)}
+                            </Typography>
                           </TableCell>
                         )}
                       </TableRow>
@@ -251,9 +275,7 @@ export default function TodayLoansModal({ open, onClose, data }: TodayLoansModal
                   Interés Total Generado
                 </Typography>
                 <Typography variant="h6" fontWeight={600} color="warning.main" sx={{ mt: 0.5 }}>
-                  {formatCurrency(data.loans.reduce((sum, loan) => 
-                    sum + (loan.montoTotalADevolver - loan.montoTotalPrestado), 0
-                  ))}
+                  {formatCurrency(totalIntereses)}
                 </Typography>
               </Box>
             )}

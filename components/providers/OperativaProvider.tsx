@@ -1,7 +1,7 @@
 'use client';
 
 import { createContext, useContext, useEffect, useRef, useState } from 'react';
-import { operativaService } from '@/services/operativa.service';
+import operativaService from '@/services/operativa.service';
 import { useOperativaStore } from '@/stores/operativa';
 import { useAuth } from '@/hooks/useAuth';
 
@@ -44,13 +44,11 @@ export default function OperativaProvider({ children }: OperativaProviderProps) 
     abortControllerRef.current = abortController;
 
     try {
-      console.log('🧾 [OPERATIVA PROVIDER] Inicializando datos de Operativa...');
-
       // Add timeout to prevent blocking (3 seconds for operativa)
       const transaccionesPromise = operativaService.getTransacciones(user?.id || '');
       const timeoutPromise = new Promise<null>((resolve) => 
         setTimeout(() => {
-          console.warn('🧾 [OPERATIVA PROVIDER] Fetch timeout, continuing with empty data');
+          
           resolve(null);
         }, 3000)
       );
@@ -63,9 +61,9 @@ export default function OperativaProvider({ children }: OperativaProviderProps) 
 
       if (transacciones) {
         setTransacciones(transacciones);
-        console.log('✅ [OPERATIVA PROVIDER] Operativa data initialized:', transacciones.length, 'transacciones');
+        
       } else {
-        console.warn('🧾 [OPERATIVA PROVIDER] Using empty transacciones due to timeout');
+        
         setTransacciones([]);
       }
 
@@ -75,7 +73,7 @@ export default function OperativaProvider({ children }: OperativaProviderProps) 
         return false;
       }
 
-      console.error('🧾 [OPERATIVA PROVIDER] Error initializing operativa data:', err);
+      
       // Graceful degradation: set empty array instead of blocking
       setTransacciones([]);
       return false;
@@ -83,7 +81,7 @@ export default function OperativaProvider({ children }: OperativaProviderProps) 
       // ALWAYS set loading to false to prevent blocking
       if (!abortController.signal.aborted) {
         setIsInitialLoading(false);
-        console.log('🧾 [OPERATIVA PROVIDER] Loading complete');
+        
       }
     }
   };

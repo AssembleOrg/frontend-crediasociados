@@ -54,7 +54,7 @@ export function AddressAutocomplete({
   useEffect(() => {
     if (!apiKey) {
       setApiKeyMissing(true)
-      console.warn('⚠️ Geoapify API key not configured')
+      
     }
   }, [apiKey])
 
@@ -129,7 +129,7 @@ export function AddressAutocomplete({
       if (err instanceof Error && err.name === 'AbortError') {
         return
       }
-      console.error('Error fetching addresses from Geoapify:', err)
+      
       setOptions([])
     } finally {
       setLoading(false)

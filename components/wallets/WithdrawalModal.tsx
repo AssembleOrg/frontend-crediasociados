@@ -100,7 +100,7 @@ export const WithdrawalModal: React.FC<WithdrawalModalProps> = ({
         pt: 3
       }}>
         <TrendingDown sx={{ fontSize: 24 }} />
-        <Typography variant="h6" sx={{ fontWeight: 600 }}>
+        <Typography variant="h6" component="div" sx={{ fontWeight: 600 }}>
           Realizar Retiro
         </Typography>
       </DialogTitle>

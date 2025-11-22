@@ -19,14 +19,5 @@ import { useEffect } from 'react'
 export const useCurrentUser = () => {
   const currentUser = useAuthStore((state) => state.currentUser)
   
-  useEffect(() => {
-    console.log('🔍 useCurrentUser hook:', {
-      hasUser: !!currentUser,
-      userId: currentUser?.id,
-      clientQuota: currentUser?.clientQuota,
-      usedClientQuota: currentUser?.usedClientQuota,
-    })
-  }, [currentUser])
-  
   return currentUser
 }

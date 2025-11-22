@@ -139,10 +139,9 @@ export function CustomCalendar({
   }
 
   const handleCalendarClick = () => {
-    console.log('Calendar icon clicked, isOpen:', isOpen, 'disabled:', disabled)
     if (!disabled) {
       setIsOpen(true)
-      console.log('Setting isOpen to true')
+      
     }
   }
 
@@ -244,7 +243,7 @@ export function CustomCalendar({
 
   const days = generateDays()
 
-  console.log('CustomCalendar render - isOpen:', isOpen, 'disabled:', disabled, 'value:', value)
+  
 
   return (
     <Box sx={{ position: 'relative' }}>

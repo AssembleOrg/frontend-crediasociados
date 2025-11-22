@@ -22,12 +22,8 @@ import {
   useTheme,
   useMediaQuery,
   Divider,
-  Accordion,
-  AccordionSummary,
-  AccordionDetails,
-  TablePagination,
 } from '@mui/material'
-import { Close, ExpandMore, AccountBalance, Person, Phone, Email, LocationOn } from '@mui/icons-material'
+import { Close, AccountBalance } from '@mui/icons-material'
 import { collectorWalletService } from '@/services/collector-wallet.service'
 // Helper functions for formatting
 const formatCurrency = (amount: number) => {
@@ -36,11 +32,10 @@ const formatCurrency = (amount: number) => {
 
 const formatDate = (dateString: string) => {
   const date = new Date(dateString)
-  return date.toLocaleDateString('es-AR', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric'
-  })
+  const day = date.getDate().toString().padStart(2, '0')
+  const month = (date.getMonth() + 1).toString().padStart(2, '0')
+  const year = date.getFullYear()
+  return `${day}/${month}/${year}`
 }
 
 interface ManagerLoansModalProps {
@@ -137,7 +132,7 @@ export default function ManagerLoansModal({
       const data = await collectorWalletService.getManagerDetail(managerId)
       setManagerDetail(data)
     } catch (err: any) {
-      console.error('Error loading manager detail:', err)
+      // Error loading manager detail
       setError(err.response?.data?.message || 'Error al cargar información del manager')
     } finally {
       setLoading(false)
@@ -203,10 +198,10 @@ export default function ManagerLoansModal({
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
           <AccountBalance sx={{ fontSize: 28 }} />
           <Box>
-            <Typography variant="h6" fontWeight={600}>
+            <Typography variant="h6" component="div" fontWeight={600}>
               Dinero en Calle - {managerName}
             </Typography>
-            <Typography variant="caption" sx={{ opacity: 0.9, display: 'block', mt: 0.5 }}>
+            <Typography variant="caption" component="div" sx={{ opacity: 0.9, display: 'block', mt: 0.5 }}>
               Préstamos activos y cuotas pendientes
             </Typography>
           </Box>
@@ -298,150 +293,59 @@ export default function ManagerLoansModal({
                 <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 2 }}>
                   Préstamos Activos
                 </Typography>
-                {managerDetail.loans.map((loan) => (
-                  <Accordion key={loan.id} sx={{ mb: 2 }}>
-                    <AccordionSummary expandIcon={<ExpandMore />}>
-                      <Box sx={{ width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center', pr: 2 }}>
-                        <Box>
-                          <Typography variant="subtitle2" fontWeight={600}>
-                            {loan.loanTrack}
-                          </Typography>
-                          <Typography variant="caption" color="text.secondary">
-                            {loan.client.fullName}
-                          </Typography>
-                        </Box>
-                        <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
-                          <Chip
-                            label={formatCurrency(loan.amount)}
-                            size="small"
-                            color="primary"
-                            sx={{ fontWeight: 600 }}
-                          />
-                          <Chip
-                            label={`${loan.stats.paidSubLoans}/${loan.stats.totalSubLoans} pagadas`}
-                            size="small"
-                            color={loan.stats.paidSubLoans === loan.stats.totalSubLoans ? 'success' : 'warning'}
-                          />
-                        </Box>
-                      </Box>
-                    </AccordionSummary>
-                    <AccordionDetails>
-                      {/* Client Info */}
-                      <Box sx={{ mb: 3, p: 2, bgcolor: alpha(theme.palette.primary.main, 0.05), borderRadius: 2 }}>
-                        <Typography variant="subtitle2" fontWeight={600} sx={{ mb: 1 }}>
-                          Información del Cliente
-                        </Typography>
-                        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2 }}>
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                            <Person fontSize="small" color="action" />
-                            <Typography variant="body2">{loan.client.fullName}</Typography>
-                          </Box>
-                          {loan.client.dni && (
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                              <Typography variant="body2" color="text.secondary">DNI:</Typography>
-                              <Typography variant="body2">{loan.client.dni}</Typography>
-                            </Box>
-                          )}
-                          {loan.client.phone && (
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                              <Phone fontSize="small" color="action" />
-                              <Typography variant="body2">{loan.client.phone}</Typography>
-                            </Box>
-                          )}
-                          {loan.client.email && (
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                              <Email fontSize="small" color="action" />
-                              <Typography variant="body2">{loan.client.email}</Typography>
-                            </Box>
-                          )}
-                          {loan.client.address && (
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                              <LocationOn fontSize="small" color="action" />
-                              <Typography variant="body2">{loan.client.address}</Typography>
-                            </Box>
-                          )}
-                        </Box>
-                      </Box>
-
-                      {/* Loan Stats */}
-                      <Box sx={{ mb: 3, display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(3, 1fr)' }, gap: 2 }}>
-                        <Paper elevation={0} sx={{ p: 1.5, bgcolor: alpha(theme.palette.success.main, 0.08), borderRadius: 1 }}>
-                          <Typography variant="caption" color="text.secondary">Total Pagado</Typography>
-                          <Typography variant="body1" fontWeight={600} color="success.main">
-                            {formatCurrency(loan.stats.totalPaid)}
-                          </Typography>
-                        </Paper>
-                        <Paper elevation={0} sx={{ p: 1.5, bgcolor: alpha(theme.palette.warning.main, 0.08), borderRadius: 1 }}>
-                          <Typography variant="caption" color="text.secondary">Total Pendiente</Typography>
-                          <Typography variant="body1" fontWeight={600} color="warning.main">
-                            {formatCurrency(loan.stats.totalPending)}
-                          </Typography>
-                        </Paper>
-                        <Paper elevation={0} sx={{ p: 1.5, bgcolor: alpha(theme.palette.error.main, 0.08), borderRadius: 1 }}>
-                          <Typography variant="caption" color="text.secondary">Cuotas Vencidas</Typography>
-                          <Typography variant="body1" fontWeight={600} color="error.main">
-                            {loan.stats.overdueSubLoans}
-                          </Typography>
-                        </Paper>
-                      </Box>
-
-                      {/* SubLoans Table */}
-                      <Typography variant="subtitle2" fontWeight={600} sx={{ mb: 1 }}>
-                        Cuotas ({loan.subLoans.length})
-                      </Typography>
-                      <TableContainer component={Paper} elevation={0} sx={{ border: `1px solid ${theme.palette.divider}`, borderRadius: 1 }}>
-                        <Table size="small">
-                          <TableHead>
-                            <TableRow sx={{ bgcolor: alpha(theme.palette.primary.main, 0.05) }}>
-                              <TableCell sx={{ fontWeight: 600 }}>#</TableCell>
-                              <TableCell align="right" sx={{ fontWeight: 600 }}>Monto</TableCell>
-                              <TableCell align="center" sx={{ fontWeight: 600 }}>Estado</TableCell>
-                              <TableCell align="center" sx={{ fontWeight: 600 }}>Vencimiento</TableCell>
-                              <TableCell align="right" sx={{ fontWeight: 600 }}>Pagado</TableCell>
-                              <TableCell align="right" sx={{ fontWeight: 600 }}>Pendiente</TableCell>
-                            </TableRow>
-                          </TableHead>
-                          <TableBody>
-                            {loan.subLoans.map((subLoan) => (
-                              <TableRow key={subLoan.id} hover>
-                                <TableCell>{subLoan.paymentNumber}</TableCell>
-                                <TableCell align="right">{formatCurrency(subLoan.totalAmount)}</TableCell>
-                                <TableCell align="center">
-                                  <Chip
-                                    label={getStatusLabel(subLoan.status)}
-                                    size="small"
-                                    color={getStatusColor(subLoan.status)}
-                                    sx={{ fontWeight: 600 }}
-                                  />
-                                </TableCell>
-                                <TableCell align="center">
-                                  <Typography variant="body2">
-                                    {formatDate(subLoan.dueDate)}
-                                  </Typography>
-                                  {subLoan.daysOverdue > 0 && (
-                                    <Typography variant="caption" color="error.main">
-                                      ({subLoan.daysOverdue} días)
-                                    </Typography>
-                                  )}
-                                </TableCell>
-                                <TableCell align="right">
-                                  <Typography variant="body2" color="success.main">
-                                    {formatCurrency(subLoan.paidAmount)}
-                                  </Typography>
-                                </TableCell>
-                                <TableCell align="right">
-                                  <Typography variant="body2" color="warning.main" fontWeight={600}>
-                                    {formatCurrency(subLoan.pendingAmount)}
-                                  </Typography>
-                                </TableCell>
-                              </TableRow>
-                            ))}
-                          </TableBody>
-                        </Table>
-                      </TableContainer>
-                    </AccordionDetails>
-                  </Accordion>
-                ))}
+                <TableContainer component={Paper} elevation={0} sx={{ border: `1px solid ${theme.palette.divider}`, borderRadius: 1 }}>
+                  <Table>
+                    <TableHead>
+                      <TableRow sx={{ bgcolor: alpha(theme.palette.primary.main, 0.05) }}>
+                        <TableCell sx={{ fontWeight: 600 }}>Cliente</TableCell>
+                        <TableCell align="right" sx={{ fontWeight: 600 }}>M.Ori.</TableCell>
+                        <TableCell align="right" sx={{ fontWeight: 600 }}>Int.</TableCell>
+                        <TableCell align="right" sx={{ fontWeight: 600 }}>Pagado</TableCell>
+                        <TableCell align="right" sx={{ fontWeight: 600 }}>Faltante</TableCell>
+                        <TableCell align="center" sx={{ fontWeight: 600 }}>Fecha Sol.</TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {managerDetail.loans.map((loan) => {
+                        const intereses = loan.amount - (loan.originalAmount || 0)
+                        return (
+                          <TableRow key={loan.id} hover>
+                            <TableCell>
+                              <Typography variant="body2" fontWeight={500}>
+                                {loan.client.fullName}
+                              </Typography>
+                            </TableCell>
+                            <TableCell align="right">
+                              <Typography variant="body2">
+                                {formatCurrency(loan.originalAmount || 0)}
+                              </Typography>
+                            </TableCell>
+                            <TableCell align="right">
+                              <Typography variant="body2">
+                                {formatCurrency(intereses)}
+                              </Typography>
+                            </TableCell>
+                            <TableCell align="right">
+                              <Typography variant="body2" color="success.main" fontWeight={500}>
+                                {formatCurrency(loan.stats.totalPaid)}
+                              </Typography>
+                            </TableCell>
+                            <TableCell align="right">
+                              <Typography variant="body2" color="warning.main" fontWeight={600}>
+                                {formatCurrency(loan.stats.totalPending)}
+                              </Typography>
+                            </TableCell>
+                            <TableCell align="center">
+                              <Typography variant="body2">
+                                {formatDate(loan.createdAt)}
+                              </Typography>
+                            </TableCell>
+                          </TableRow>
+                        )
+                      })}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
               </Box>
             )}
           </>

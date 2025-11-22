@@ -71,19 +71,16 @@ export function createHierarchicalDataProvider<TStore>() {
 
       // Check if we have fresh cached data
       if (isBasicDataFresh(store) && hasBasicData(store)) {
-        console.log(`📦 [${role.toUpperCase()} PROVIDER] Using fresh cached basic data`)
         return
       }
 
       // Prevent double initialization
       if (basicInitRef.current) {
-        console.log(`⏳ [${role.toUpperCase()} PROVIDER] Basic data already loading, skipping...`)
         return
       }
       basicInitRef.current = true
 
       try {
-        console.log(`🚀 [${role.toUpperCase()} PROVIDER] Loading basic data...`)
 
         // Cancel any existing request
         if (abortControllerRef.current) {
@@ -93,7 +90,6 @@ export function createHierarchicalDataProvider<TStore>() {
 
         await initializeBasicData(user?.id || '')
 
-        console.log(`✅ [${role.toUpperCase()} PROVIDER] Basic data loaded and cached`)
 
         if (initializeDetailedData) {
           initializeDetailed()
@@ -101,7 +97,7 @@ export function createHierarchicalDataProvider<TStore>() {
 
       } catch (error: unknown) {
         if ((error as Error).name !== 'AbortError') {
-          console.error(`Error loading basic ${role} data:`, error)
+          
         }
       } finally {
         basicInitRef.current = false
@@ -117,25 +113,21 @@ export function createHierarchicalDataProvider<TStore>() {
 
       // Check if we have fresh detailed data
       if (isDetailedDataFresh(store)) {
-        console.log(`📦 [${role.toUpperCase()} PROVIDER] Using fresh cached detailed data`)
         return
       }
 
       // Need basic data first
       if (!hasBasicData(store)) {
-        console.log(`⏳ [${role.toUpperCase()} PROVIDER] Waiting for basic data before loading detailed...`)
         return
       }
 
       // Prevent double initialization
       if (detailedInitRef.current) {
-        console.log(`⏳ [${role.toUpperCase()} PROVIDER] Detailed data already loading, skipping...`)
         return
       }
       detailedInitRef.current = true
 
       try {
-        console.log(`🚀 [${role.toUpperCase()} PROVIDER] Loading detailed data...`)
 
         // Cancel any existing detailed request
         if (detailedAbortControllerRef.current) {
@@ -145,11 +137,10 @@ export function createHierarchicalDataProvider<TStore>() {
 
         await initializeDetailedData(user?.id || '')
 
-        console.log(`✅ [${role.toUpperCase()} PROVIDER] Detailed data loaded and cached`)
 
       } catch (error: unknown) {
         if ((error as Error).name !== 'AbortError') {
-          console.error(`Error loading detailed ${role} data:`, error)
+          
         }
       } finally {
         detailedInitRef.current = false
@@ -167,7 +158,6 @@ export function createHierarchicalDataProvider<TStore>() {
       reportsInitRef.current = true
 
       try {
-        console.log(`🚀 [${role.toUpperCase()} PROVIDER] Loading reports...`)
 
         // Cancel any existing reports request
         if (reportsAbortControllerRef.current) {
@@ -177,11 +167,10 @@ export function createHierarchicalDataProvider<TStore>() {
 
         await initializeReports(user?.id || '')
 
-        console.log(`✅ [${role.toUpperCase()} PROVIDER] Reports loaded and cached`)
 
       } catch (error: unknown) {
         if ((error as Error).name !== 'AbortError') {
-          console.error(`Error loading ${role} reports:`, error)
+          
         }
       } finally {
         reportsInitRef.current = false
@@ -191,7 +180,6 @@ export function createHierarchicalDataProvider<TStore>() {
     // Auto-initialize when user is available and has correct role
     useEffect(() => {
       if (user && user.role === role) {
-        console.log(`👤 [${role.toUpperCase()} PROVIDER] ${role} user detected, initializing data...`)
 
         // Initialize basic data first (fast)
         initializeBasic()
@@ -222,7 +210,6 @@ export function createHierarchicalDataProvider<TStore>() {
       if (!isBasicDataFresh(store) && user && user.role === role) {
         // Only refetch if we had data before (avoid initial load double-fetch)
         if (hasBasicData(store)) {
-          console.log(`🔄 [${role.toUpperCase()} PROVIDER] Cache invalidated, refreshing data...`)
           initializeBasic()
           if (initializeReports) {
             initializeReportsData()

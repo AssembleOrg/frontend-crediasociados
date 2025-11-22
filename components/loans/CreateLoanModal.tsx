@@ -141,7 +141,7 @@ export function CreateLoanModal({
           setSearchResults(filtered)
         }
       } catch (error) {
-        console.error('Error searching clients:', error)
+        // Error searching clients
         // Fallback to local filtering
         const filtered = clients.filter(client =>
           client.fullName.toLowerCase().includes(searchInput.toLowerCase()) ||

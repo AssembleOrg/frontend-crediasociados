@@ -199,7 +199,7 @@ export const useSubadminStore = create<SubadminStore>()(
       // Handle hydration gracefully
       onRehydrateStorage: () => (state, error) => {
         if (error) {
-          console.error('Failed to rehydrate subadmin store:', error)
+          
           // Reset to safe defaults on error
           state?.clearAllData()
         }
