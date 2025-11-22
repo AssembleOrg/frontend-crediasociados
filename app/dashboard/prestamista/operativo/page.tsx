@@ -51,7 +51,7 @@ export default function OperativoManagerPage() {
         return false
       }
     } catch (err) {
-      console.error('Error creating transaction:', err)
+      // Error creating transaction
       return false
     }
   }

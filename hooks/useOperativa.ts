@@ -17,7 +17,7 @@ import { useState, useCallback } from 'react'
 import { useOperativaStore } from '@/stores/operativa'
 import { useFinanzasStore } from '@/stores/finanzas'
 import { useAuth } from '@/hooks/useAuth'
-import { operativaService } from '@/services/operativa.service'
+import operativaService from '@/services/operativa.service'
 import type {
   Transaccion,
   CreateIngresoDto,
@@ -57,7 +57,7 @@ export const useOperativa = () => {
       } catch (err) {
         const errorMessage = err instanceof Error ? err.message : 'Error creando ingreso'
         setError(errorMessage)
-        console.error('Error creating ingreso:', err)
+        
         return null
       } finally {
         setIsLoading(false)
@@ -88,7 +88,7 @@ export const useOperativa = () => {
       } catch (err) {
         const errorMessage = err instanceof Error ? err.message : 'Error creando egreso'
         setError(errorMessage)
-        console.error('Error creating egreso:', err)
+        
         return null
       } finally {
         setIsLoading(false)
@@ -129,13 +129,13 @@ export const useOperativa = () => {
         // Sync with finanzas
         finanzasStore.applyTransaccion(newIngreso)
 
-        console.log('✅ Pago registrado como ingreso:', newIngreso)
+        
 
         return newIngreso
       } catch (err) {
         const errorMessage = err instanceof Error ? err.message : 'Error creando ingreso desde pago'
         setError(errorMessage)
-        console.error('Error creating ingreso from pago:', err)
+        
         return null
       } finally {
         setIsLoading(false)

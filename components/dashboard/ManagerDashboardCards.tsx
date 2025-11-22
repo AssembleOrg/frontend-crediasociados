@@ -163,7 +163,7 @@ export function ManagerDashboardCards() {
         const data = await dailySummaryService.getOwnDailySummary()
         setDailySummary(data)
       } catch (err: any) {
-        console.error('Error loading daily summary:', err)
+        // Error loading daily summary
         setError(err.response?.data?.message || 'Error al cargar el resumen diario')
       } finally {
         setIsLoading(false)
@@ -181,7 +181,7 @@ export function ManagerDashboardCards() {
         const data = await loansService.getTodayLoans()
         setTodayLoansData(data)
       } catch (err) {
-        console.error('Error loading today loans:', err)
+        // Error loading today loans
       } finally {
         setLoadingTodayLoans(false)
       }
@@ -200,7 +200,7 @@ export function ManagerDashboardCards() {
         const data = await collectorWalletService.getTodayCollections()
         setTodayCollectionsData(data)
       } catch (err) {
-        console.error('Error loading today collections:', err)
+        // Error loading today collections
       } finally {
         setLoadingTodayCollections(false)
       }
@@ -219,7 +219,7 @@ export function ManagerDashboardCards() {
         const data = await collectionRoutesService.getTodayExpenses()
         setTodayExpensesData(data)
       } catch (err) {
-        console.error('Error loading today expenses:', err)
+        // Error loading today expenses
       } finally {
         setLoadingTodayExpenses(false)
       }

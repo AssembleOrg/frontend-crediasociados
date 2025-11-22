@@ -44,7 +44,7 @@ class GastosService {
       const response = await api.get(`/gastos?${params.toString()}`)
       return response.data.data || []
     } catch (error) {
-      console.error('Error fetching expenses:', error)
+      
       return []
     }
   }
@@ -66,7 +66,7 @@ class GastosService {
         topExpenses: []
       }
     } catch (error) {
-      console.error('Error fetching expense summary:', error)
+      
       return {
         totalAmount: 0,
         expensesByCategory: {},

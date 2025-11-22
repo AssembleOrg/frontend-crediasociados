@@ -110,13 +110,10 @@ export default function DashboardDataProvider({ children }: DashboardDataProvide
    */
   const initSubLoans = async (): Promise<void> => {
     if (!user || !token) {
-      console.log('🏦 [DASHBOARD PROVIDER] Skipping SubLoans - no user/token');
       return;
     }
 
     try {
-      console.time('🏦 SubLoans Load');
-      console.log('🏦 [DASHBOARD PROVIDER] Loading SubLoans + Loans...');
 
       // Parallel fetch with timeout
       const dataPromise = Promise.all([
@@ -149,18 +146,9 @@ export default function DashboardDataProvider({ children }: DashboardDataProvide
 
         const transformedLoans = loansResponse.map(apiLoanToLoan);
         loansStore.setLoans(transformedLoans);
-
-        console.log('✅ [DASHBOARD PROVIDER] SubLoans loaded:', {
-          enrichedSubLoans: enrichedSubLoans.length,
-          todayDue: todayDue.length,
-          allSubLoans: allSubLoans.length,
-          loans: transformedLoans.length,
-        });
       }
-
-      console.timeEnd('🏦 SubLoans Load');
     } catch (error) {
-      console.error('🏦 [DASHBOARD PROVIDER] SubLoans error (continuing):', error);
+      // SubLoans error (continuing)
       // Graceful degradation: set empty arrays
         subLoansStore.setAllSubLoansWithClient([]);
         subLoansStore.setTodayDueSubLoans([]);
@@ -184,8 +172,6 @@ export default function DashboardDataProvider({ children }: DashboardDataProvide
    * ⚠️ DISABLED: Operativa endpoints not ready yet
    */
   const initOperativa = async (): Promise<void> => {
-    console.log('🧾 [DASHBOARD PROVIDER] Skipping Operativa - endpoints not implemented yet');
-    
     // Gracefully set empty data
     operativaStore.setTransacciones([]);
     setLoadingStates((prev) => ({ ...prev, operativa: false }));
@@ -193,13 +179,10 @@ export default function DashboardDataProvider({ children }: DashboardDataProvide
     // TODO: Uncomment when backend endpoints are ready
     /*
     if (!user) {
-      console.log('🧾 [DASHBOARD PROVIDER] Skipping Operativa - no user');
       return;
     }
 
     try {
-      console.time('🧾 Operativa Load');
-      console.log('🧾 [DASHBOARD PROVIDER] Loading Operativa...');
 
       const timeoutPromise = new Promise<null>((_, reject) =>
         setTimeout(() => reject(new Error('Operativa timeout')), 3000)
@@ -210,12 +193,9 @@ export default function DashboardDataProvider({ children }: DashboardDataProvide
 
       if (transacciones) {
         operativaStore.setTransacciones(transacciones);
-        console.log('✅ [DASHBOARD PROVIDER] Operativa loaded:', transacciones.length);
       }
-
-      console.timeEnd('🧾 Operativa Load');
     } catch (error) {
-      console.error('🧾 [DASHBOARD PROVIDER] Operativa error (continuing):', error);
+      // Operativa error (continuing)
       // Graceful degradation
       operativaStore.setTransacciones([]);
     } finally {
@@ -229,7 +209,6 @@ export default function DashboardDataProvider({ children }: DashboardDataProvide
    */
   const initFinanzas = async (): Promise<void> => {
     if (!user) {
-      console.log('💰 [DASHBOARD PROVIDER] Skipping Finanzas - no user');
       return;
     }
 
@@ -237,17 +216,12 @@ export default function DashboardDataProvider({ children }: DashboardDataProvide
     const now = Date.now();
     if (dataCache.current.finanzas && 
         now - dataCache.current.finanzas.timestamp < CACHE_TTL) {
-      console.log('💰 [DASHBOARD PROVIDER] Using cached finanzas data');
       return;
     }
 
     try {
-      console.time('💰 Finanzas Load');
-      console.log('💰 [DASHBOARD PROVIDER] Loading Finanzas...');
-
       // Only load finanzas for subadmin and manager roles
       if (user.role !== 'subadmin' && user.role !== 'manager') {
-        console.log('💰 [DASHBOARD PROVIDER] Skipping Finanzas - role not supported:', user.role);
         return;
       }
 
@@ -269,28 +243,23 @@ export default function DashboardDataProvider({ children }: DashboardDataProvide
 
       if (user?.role === 'subadmin') {
         additionalDataPromises.push(
-          finanzasService.getManagersFinancial(user?.id || '').catch((err) => {
-            console.warn('💰 Managers financial failed:', err);
+          finanzasService.getManagersFinancial(user?.id || '').catch(() => {
             return [] as ManagerFinancialData[];
           }),
-          finanzasService.getPortfolioEvolution(user?.id || '').catch((err) => {
-            console.warn('💰 Portfolio evolution failed:', err);
+          finanzasService.getPortfolioEvolution(user?.id || '').catch(() => {
             return [] as PortfolioEvolution[];
           }),
-          finanzasService.getCapitalDistribution(user?.id || '').catch((err) => {
-            console.warn('💰 Capital distribution failed:', err);
+          finanzasService.getCapitalDistribution(user?.id || '').catch(() => {
             return [] as CapitalDistribution[];
           })
         );
       }
 
       additionalDataPromises.push(
-        finanzasService.getActiveLoansFinancial(user?.id || '', user?.role || 'prestamista').catch((err) => {
-          console.warn('💰 Active loans failed:', err);
+        finanzasService.getActiveLoansFinancial(user?.id || '', user?.role || 'prestamista').catch(() => {
           return [] as ActiveLoanFinancial[];
         }),
-        finanzasService.getIncomeVsExpenses(user?.id || '').catch((err) => {
-          console.warn('💰 Income vs expenses failed:', err);
+        finanzasService.getIncomeVsExpenses(user?.id || '').catch(() => {
           return [] as IncomeVsExpenses[];
         })
       );
@@ -325,16 +294,13 @@ export default function DashboardDataProvider({ children }: DashboardDataProvide
         finanzasStore.setIncomeVsExpenses(incomeResult.value as IncomeVsExpenses[]);
       }
 
-      console.log('✅ [DASHBOARD PROVIDER] Finanzas loaded');
-      console.timeEnd('💰 Finanzas Load');
-
       // Update cache
       dataCache.current.finanzas = {
         timestamp: Date.now(),
         data: summary ? (summary as unknown as Record<string, unknown>) : {}
       };
     } catch (error) {
-      console.error('💰 [DASHBOARD PROVIDER] Finanzas error (continuing):', error);
+      // Finanzas error (continuing)
       // Graceful degradation: keep empty state
     } finally {
       setLoadingStates((prev) => ({ ...prev, finanzas: false }));
@@ -347,26 +313,17 @@ export default function DashboardDataProvider({ children }: DashboardDataProvide
   const initAllData = async (): Promise<void> => {
     // ✅ Wait for both user AND token to be available
     if (!user || !token) {
-      console.log('⏳ [DASHBOARD PROVIDER] Waiting for auth...', { 
-        hasUser: !!user, 
-        hasToken: !!token 
-      });
       setIsInitialLoading(false);
       return;
     }
 
     // ✅ Prevent duplicate initialization
     if (isInitializedRef.current) {
-      console.log('🔄 [DASHBOARD PROVIDER] Already initialized, skipping...');
       return;
     }
 
     isInitializedRef.current = true;
     hasTokenRef.current = true; // ✅ Mark that we've seen the token
-
-    console.log('🚀 [DASHBOARD PROVIDER] Initializing ALL dashboard data in PARALLEL...');
-    console.log('✅ Auth ready:', { userId: user.id, role: user.role, hasToken: !!token });
-    console.time('🚀 Total Dashboard Load');
 
     try {
       // Cancel any existing requests
@@ -381,15 +338,11 @@ export default function DashboardDataProvider({ children }: DashboardDataProvide
         initOperativa(),
         initFinanzas(),
       ]);
-
-      console.log('✅ [DASHBOARD PROVIDER] All data initialized');
-      console.timeEnd('🚀 Total Dashboard Load');
     } catch (error) {
-      console.error('🚀 [DASHBOARD PROVIDER] Initialization error:', error);
+      // Initialization error
     } finally {
       // ALWAYS unblock dashboard
       setIsInitialLoading(false);
-      console.log('🚀 [DASHBOARD PROVIDER] Dashboard ready');
     }
   };
 
@@ -420,20 +373,10 @@ export default function DashboardDataProvider({ children }: DashboardDataProvide
 
   // Auto-initialize when user AND token are available
   useEffect(() => {
-    console.log('🔍 [DASHBOARD PROVIDER] useEffect triggered', {
-      hasUser: !!user,
-      userId: user?.id,
-      hasToken: !!token,
-      tokenLength: token?.length,
-      isInitialized: isInitializedRef.current
-    });
-
     // ✅ CRITICAL: Only initialize once we have BOTH user AND token
     if (user && token && !isInitializedRef.current) {
-      console.log('✅ [DASHBOARD PROVIDER] Auth ready, initializing data...');
       initAllData();
     } else if (!user || !token) {
-      console.log('⏳ [DASHBOARD PROVIDER] Still waiting for auth...');
       setIsInitialLoading(false);
     }
 

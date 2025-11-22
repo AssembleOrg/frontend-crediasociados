@@ -34,18 +34,11 @@ export function DeleteLoanConfirmDialog({
   const handleConfirmDelete = async () => {
     if (!loan) return
 
-    console.log('=== ELIMINAR PRÉSTAMO ===')
-    console.log('ID:', loan.id)
-    console.log('Código:', loan.loanTrack)
-    console.log('Monto:', loan.amount)
-    console.log('Estado:', loan.status)
-    console.log('========================')
-
     try {
       await deleteLoan(loan.id)
       onClose()
     } catch (error) {
-      console.error('Error al eliminar préstamo:', error)
+      
     }
   }
 

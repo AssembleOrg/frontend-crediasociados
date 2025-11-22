@@ -8,11 +8,11 @@ const RAILWAY_FILE = path.join(__dirname, '../../.claude/railwayendpoints.json')
 const OUTPUT_FILE = path.join(__dirname, '..', 'types', 'api-generated.ts');
 
 try {
-  console.log('🔄 Generando tipos desde Railway endpoints...');
+  
   
   const content = fs.readFileSync(RAILWAY_FILE, 'utf8');
   const spec = JSON.parse(content);
-  console.log('📄 OpenAPI JSON cargado');
+  
   
   // Add missing schema definitions to avoid $ref resolution errors
   if (!spec.components) {
@@ -115,9 +115,7 @@ try {
   // Limpiar archivo temporal
   fs.unlinkSync(TEMP_FILE);
   
-  console.log(`✅ Tipos generados en: ${OUTPUT_FILE}`);
-  
 } catch (error) {
-  console.error('❌ Error:', error.message);
+  
   process.exit(1);
 }

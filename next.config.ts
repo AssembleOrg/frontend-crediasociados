@@ -47,11 +47,6 @@ const nextConfig: NextConfig = {
     // Backend URL should include full path (e.g., .../api/v1)
     const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api/v1';
     
-    console.log('🔗 Next.js Proxy configured:', {
-      source: '/api/*',
-      destination: backendUrl,
-    });
-    
     return [
       {
         source: '/api/:path*',

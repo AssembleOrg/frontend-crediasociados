@@ -53,13 +53,19 @@ export default function LoanDetailsModal({
     ? subLoans[0].clientName || `Cliente #${loan.clientId}`
     : `Cliente #${loan.clientId}`
 
-  const totalAmount = calculateTotalRepaymentAmount(loan)
-  const interestAmount = calculateInterestAmount(loan)
+  // Use originalAmount if available, otherwise fallback to calculations
+  const principalAmount = loan.originalAmount ?? loan.amount
+  const totalAmountToRepay = loan.originalAmount !== undefined ? loan.amount : calculateTotalRepaymentAmount(loan)
+  const interestAmount = loan.originalAmount !== undefined 
+    ? loan.amount - loan.originalAmount 
+    : calculateInterestAmount(loan)
   const statusInfo = getLoanStatusInfo(loan.status)
 
   // Calculate remaining amount and payments
+  // Use sum of subloans totalAmount for accurate remaining calculation
+  const totalSubLoansAmount = subLoans.reduce((sum, subloan) => sum + (subloan.totalAmount || 0), 0)
   const totalPaid = subLoans.reduce((sum, subloan) => sum + (subloan.paidAmount || 0), 0)
-  const remainingAmount = totalAmount - totalPaid
+  const remainingAmount = totalSubLoansAmount - totalPaid
   const remainingPayments = subLoans.filter(subloan => 
     subloan.status === 'PENDING' || subloan.status === 'OVERDUE'
   ).length
@@ -195,7 +201,7 @@ export default function LoanDetailsModal({
                     Monto del préstamo
                   </Typography>
                   <Typography variant="h6" fontWeight="bold">
-                    ${loan.amount.toLocaleString()}
+                    ${principalAmount.toLocaleString()}
                   </Typography>
                 </Box>
                 
@@ -213,7 +219,7 @@ export default function LoanDetailsModal({
                     Total a devolver
                   </Typography>
                   <Typography variant="h6" fontWeight="bold" color="primary.main">
-                    ${totalAmount.toLocaleString()}
+                    ${totalAmountToRepay.toLocaleString()}
                   </Typography>
                 </Box>
                 

@@ -66,7 +66,7 @@ export const useGastos = () => {
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Error cargando gastos'
       setError(errorMessage)
-      console.error('Error initializing expenses:', err)
+      
     } finally {
       setIsLoading(false)
     }
@@ -196,7 +196,7 @@ export const useGastos = () => {
       )
       setSummary(monthSummary)
     } catch (err) {
-      console.error('Error refreshing summary:', err)
+      
     }
   }, [user])
 

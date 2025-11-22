@@ -28,16 +28,30 @@ export const calculateInterestRateDecimal = (loan: Loan): number => {
 
 /**
  * Calculate the total amount to be repaid (principal + interest)
+ * If originalAmount is available, amount is already the total to repay
+ * Otherwise, calculate it from the original amount and interest rate
  */
 export const calculateTotalRepaymentAmount = (loan: Loan): number => {
+  // If originalAmount exists, then amount is already the total to repay (with interest)
+  if (loan.originalAmount !== undefined) {
+    return loan.amount
+  }
+  // Otherwise, calculate from original amount and interest rate
   const rate = calculateInterestRateDecimal(loan)
   return loan.amount * (1 + rate)
 }
 
 /**
  * Calculate the interest amount only
+ * If originalAmount is available, calculate as: amount - originalAmount
+ * Otherwise, calculate from amount and interest rate
  */
 export const calculateInterestAmount = (loan: Loan): number => {
+  // If originalAmount exists, calculate interest as the difference
+  if (loan.originalAmount !== undefined) {
+    return loan.amount - loan.originalAmount
+  }
+  // Otherwise, calculate from amount and interest rate
   const rate = calculateInterestRateDecimal(loan)
   return loan.amount * rate
 }

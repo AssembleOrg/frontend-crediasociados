@@ -22,8 +22,8 @@ export default function ConsultaPublicaPage() {
       <Navbar />
 
       <Container
-        maxWidth='md'
-        sx={{ py: 6 }}
+        maxWidth='lg'
+        sx={{ py: { xs: 3, sm: 4, md: 6 }, px: { xs: 2, sm: 3 } }}
       >
         {/* Header */}
         <Box sx={{ textAlign: 'center', mb: 6 }}>
@@ -56,16 +56,7 @@ export default function ConsultaPublicaPage() {
         {/* Loan Results */}
         {loanDetails && (
           <Box>
-            <Paper sx={{ p: 4, mb: 4 }}>
-              <LoanDetails loanDetails={loanDetails} />
-            </Paper>
-
-            {/* <Paper sx={{ p: 4 }}>
-              <PaymentsTable
-                payments={loanDetails.subLoans}
-                loanTrack={loanDetails.loanTrack}
-              />
-            </Paper> */}
+            <LoanDetails loanDetails={loanDetails} />
           </Box>
         )}
 

@@ -74,10 +74,6 @@ export default function SubLoansProvider({ children }: SubLoansProviderProps) {
       setLoading(true);
       setError(null);
 
-      console.time('🏦 SubLoans Init - Total Time');
-      console.log('🏦 [SUBLOANS PROVIDER] Inicializando TODOS los datos de SubLoans + Loans globalmente (Consolidated Provider Pattern)');
-
-      console.time('🏦 API Calls (Parallel)');
       
       // Add timeout to prevent blocking (5 seconds for critical data)
       const dataPromise = Promise.all([
@@ -99,7 +95,7 @@ export default function SubLoansProvider({ children }: SubLoansProviderProps) {
 
       const timeoutPromise = new Promise<null>((resolve) => 
         setTimeout(() => {
-          console.warn('🏦 [SUBLOANS PROVIDER] Fetch timeout, continuing with empty data');
+          
           resolve(null);
         }, 5000)
       );
@@ -113,7 +109,7 @@ export default function SubLoansProvider({ children }: SubLoansProviderProps) {
       }
 
       if (!result) {
-        console.warn('🏦 [SUBLOANS PROVIDER] Using empty data due to timeout');
+        
         setAllSubLoansWithClient([]);
         setTodayDueSubLoans([]);
         setAllSubLoans([]);
@@ -149,17 +145,6 @@ export default function SubLoansProvider({ children }: SubLoansProviderProps) {
         totalPages: Math.ceil(todayDueResponse.length / 20)
       });
 
-      console.timeEnd('🏦 Data Transform & Store Update');
-
-      console.log('✅ [SUBLOANS PROVIDER] SubLoans + Loans data initialized globally (Consolidated):', {
-        enrichedSubLoans: enrichedSubLoans.length,
-        todayDue: todayDueResponse.length,
-        allSubLoans: allSubLoansResponse.length,
-        loans: transformedLoans.length,
-        stats: !!statsResponse
-      });
-
-      console.timeEnd('🏦 SubLoans Init - Total Time');
       return true;
 
     } catch (error: unknown) {
@@ -167,7 +152,7 @@ export default function SubLoansProvider({ children }: SubLoansProviderProps) {
         return false;
       }
 
-      console.error('🏦 [SUBLOANS PROVIDER] Error initializing subloans data:', error);
+      
       setError((error as Error).message || 'Error al cargar datos de préstamos');
       
       // Graceful degradation: set empty arrays instead of blocking
@@ -184,7 +169,7 @@ export default function SubLoansProvider({ children }: SubLoansProviderProps) {
       if (!abortController.signal.aborted) {
         setLoading(false);
         setIsInitialLoading(false);
-        console.log('🏦 [SUBLOANS PROVIDER] Loading complete');
+        
       }
     }
   };
@@ -208,7 +193,7 @@ export default function SubLoansProvider({ children }: SubLoansProviderProps) {
       if (needsInitialization) {
         await initAllSubLoansData();
       } else {
-        console.log('🔄 SubLoans data already available, skipping initialization');
+        
         setIsInitialLoading(false);
       }
     };

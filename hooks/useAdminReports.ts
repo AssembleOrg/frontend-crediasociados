@@ -55,32 +55,20 @@ export const useAdminReports = () => {
     abortControllerRef.current = new AbortController()
 
     try {
-      console.log('🔍 [DEBUG] Admin Reports - Starting data fetch...')
-
       // Step 1: Get subadmins created by this admin
       const subadmins = await reportsService.getCreatedUsers(user?.id || '')
-      console.log('🔍 [DEBUG] Admin Reports - Subadmins found:', subadmins.length)
 
       // Step 2: For each subadmin, get their basic info (no loan data since admins don't typically manage loans)
       const subadminsWithReports: UserReportData[] = []
 
       for (const subadmin of subadmins) {
         try {
-          console.log('🔍 [DEBUG] Admin Reports - Processing subadmin:', subadmin.fullName, subadmin.id)
-
           // Use hierarchical aggregation: subadmin → managers → chart endpoints
           const subadminReportData = await reportsService.getSubadminAggregatedMetrics(subadmin)
 
-          console.log('🔍 [DEBUG] Admin Reports - Subadmin aggregated metrics:', {
-            userId: subadminReportData.userId,
-            totalClients: subadminReportData.totalClients,
-            totalLoans: subadminReportData.totalLoans,
-            totalAmountLent: subadminReportData.totalAmountLent
-          })
-
           subadminsWithReports.push(subadminReportData)
         } catch (error) {
-          console.warn(`Error al obtener datos del subadmin ${subadmin.fullName}:`, error)
+          // Error al obtener datos del subadmin
           // Include subadmin with zero values if there's an error
           subadminsWithReports.push({
             userId: subadmin.id,
@@ -100,7 +88,6 @@ export const useAdminReports = () => {
       // Step 3: Get admin's own data (since they might also be a prestamista)
       let adminOwnData: UserReportData | null = null
       try {
-        console.log('🔍 [DEBUG] Admin Reports - Fetching admin own loan data...')
         const adminLoans = await loansService.getAllLoans()
 
         if (adminLoans && adminLoans.length > 0) {
@@ -118,14 +105,9 @@ export const useAdminReports = () => {
             },
             adminLoans as any
           )
-          console.log('🔍 [DEBUG] Admin Reports - Admin own data:', {
-            totalLoans: adminOwnData.totalLoans,
-            totalClients: adminOwnData.totalClients,
-            totalAmountLent: adminOwnData.totalAmountLent
-          })
         }
       } catch (error) {
-        console.warn('Error fetching admin own data:', error)
+        // Error fetching admin own data
       }
 
       // Step 4: Calculate totals (including admin's own data if available)
@@ -140,13 +122,6 @@ export const useAdminReports = () => {
         totalUsers: subadminsWithReports.length, // Only count subadmins, not admin
         subadmins: allUsersData
       }
-
-      console.log('🔍 [DEBUG] Admin Reports - Final reports:', {
-        totalSubadmins: completeReports.totalUsers,
-        totalClients: completeReports.totalClients,
-        totalLoans: completeReports.totalLoans,
-        includesAdminOwnData: !!adminOwnData
-      })
 
       setState(prev => ({
         ...prev,

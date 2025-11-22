@@ -33,7 +33,7 @@ export function useCollectionRoutes() {
   const fetchTodayRoute = useCallback(
     async (managerId?: string) => {
       if (isLoadingRef.current) {
-        console.log('⏳ Already fetching today route, skipping...');
+        
         return;
       }
 
@@ -42,20 +42,20 @@ export function useCollectionRoutes() {
         setIsLoading(true);
         setError(null);
 
-        console.log('🔄 Fetching today route...');
+        
         const route = await collectionRoutesService.getTodayRoute(managerId);
 
         if (!isMountedRef.current) {
-          console.log('⚠️ Component unmounted, skipping state update');
+          
           return;
         }
 
         setTodayRoute(route);
         setSelectedRoute(route);
         setSelectedDate(null); // Reset to today
-        console.log('✅ Today route fetched:', route ? route.id : 'No route for today');
+        
       } catch (err) {
-        console.error('❌ Error fetching today route:', err);
+        
         if (isMountedRef.current) {
           setError(err instanceof Error ? err.message : 'Error al cargar ruta del día');
         }
@@ -75,7 +75,7 @@ export function useCollectionRoutes() {
   const fetchRouteByDate = useCallback(
     async (date: string, managerId?: string) => {
       if (isLoadingRef.current) {
-        console.log('⏳ Already fetching route, skipping...');
+        
         return;
       }
 
@@ -84,19 +84,19 @@ export function useCollectionRoutes() {
         setIsLoading(true);
         setError(null);
 
-        console.log('🔄 Fetching route for date:', date);
+        
         const route = await collectionRoutesService.getRouteByDate(date, managerId);
 
         if (!isMountedRef.current) {
-          console.log('⚠️ Component unmounted, skipping state update');
+          
           return;
         }
 
         setSelectedRoute(route);
         setSelectedDate(date);
-        console.log('✅ Route fetched for date:', date, route ? route.id : 'No route');
+        
       } catch (err) {
-        console.error('❌ Error fetching route by date:', err);
+        
         if (isMountedRef.current) {
           setError(err instanceof Error ? err.message : 'Error al cargar ruta');
         }
@@ -118,18 +118,18 @@ export function useCollectionRoutes() {
       setIsLoading(true);
       setError(null);
 
-      console.log('🔄 Fetching routes with filters:', params);
+      
       const fetchedRoutes = await collectionRoutesService.getRoutes(params);
 
       if (!isMountedRef.current) {
-        console.log('⚠️ Component unmounted, skipping state update');
+        
         return;
       }
 
       setRoutes(fetchedRoutes);
-      console.log('✅ Routes fetched:', fetchedRoutes.length);
+      
     } catch (err) {
-      console.error('❌ Error fetching routes:', err);
+      
       if (isMountedRef.current) {
         setError(err instanceof Error ? err.message : 'Error al cargar rutas');
       }
@@ -148,18 +148,18 @@ export function useCollectionRoutes() {
       setIsLoading(true);
       setError(null);
 
-      console.log('🔄 Fetching route by ID:', routeId);
+      
       const route = await collectionRoutesService.getRouteById(routeId);
 
       if (!isMountedRef.current) {
-        console.log('⚠️ Component unmounted, skipping state update');
+        
         return route;
       }
 
-      console.log('✅ Route fetched:', route.id);
+      
       return route;
     } catch (err) {
-      console.error('❌ Error fetching route:', err);
+      
       if (isMountedRef.current) {
         setError(err instanceof Error ? err.message : 'Error al cargar ruta');
       }
@@ -180,11 +180,11 @@ export function useCollectionRoutes() {
         setIsLoading(true);
         setError(null);
 
-        console.log('🔄 Updating route order:', routeId);
+        
         const updatedRoute = await collectionRoutesService.updateOrder(routeId, orderData);
 
         if (!isMountedRef.current) {
-          console.log('⚠️ Component unmounted, skipping state update');
+          
           return;
         }
 
@@ -193,10 +193,10 @@ export function useCollectionRoutes() {
           setTodayRoute(updatedRoute);
         }
 
-        console.log('✅ Route order updated');
+        
         return updatedRoute;
       } catch (err) {
-        console.error('❌ Error updating route order:', err);
+        
         if (isMountedRef.current) {
           setError(err instanceof Error ? err.message : 'Error al actualizar orden');
         }
@@ -219,11 +219,11 @@ export function useCollectionRoutes() {
         setIsLoading(true);
         setError(null);
 
-        console.log('🔄 Closing route:', routeId);
+        
         const closedRoute = await collectionRoutesService.closeRoute(routeId, closeData);
 
         if (!isMountedRef.current) {
-          console.log('⚠️ Component unmounted, skipping state update');
+          
           return closedRoute;
         }
 
@@ -232,10 +232,10 @@ export function useCollectionRoutes() {
           setTodayRoute(closedRoute);
         }
 
-        console.log('✅ Route closed successfully');
+        
         return closedRoute;
       } catch (err) {
-        console.error('❌ Error closing route:', err);
+        
         if (isMountedRef.current) {
           setError(err instanceof Error ? err.message : 'Error al cerrar ruta');
         }
@@ -257,22 +257,22 @@ export function useCollectionRoutes() {
       setIsLoading(true);
       setError(null);
 
-      console.log('🔄 Creating daily routes...');
+      
       const result = await collectionRoutesService.createDailyRoutes();
 
       if (!isMountedRef.current) {
-        console.log('⚠️ Component unmounted, skipping state update');
+        
         return result;
       }
 
-      console.log('✅ Daily routes created:', result.createdRoutes.length);
+      
       
       // Refresh today route
       await fetchTodayRoute();
       
       return result;
     } catch (err) {
-      console.error('❌ Error creating daily routes:', err);
+      
       if (isMountedRef.current) {
         setError(err instanceof Error ? err.message : 'Error al crear rutas');
       }

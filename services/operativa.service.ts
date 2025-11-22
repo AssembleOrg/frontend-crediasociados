@@ -34,7 +34,7 @@ class OperativaService {
       const response = await api.get(`/operativa/transacciones?userId=${userId}`)
       return response.data.data || []
     } catch (error) {
-      console.error('Error fetching transactions:', error)
+      
       return []
     }
   }
@@ -47,7 +47,7 @@ class OperativaService {
       const response = await api.get(`/operativa/transacciones/${id}`)
       return response.data.data || null
     } catch (error) {
-      console.error('Error fetching transaction:', error)
+      
       return null
     }
   }
@@ -106,7 +106,7 @@ class OperativaService {
       const response = await api.put(`/operativa/transacciones/${id}`, updates)
       return response.data.data
     } catch (error) {
-      console.error('Error updating transaction:', error)
+      
       return null
     }
   }
@@ -126,7 +126,7 @@ class OperativaService {
       const response = await api.get(`/operativa/ingresos?userId=${userId}`)
       return response.data.data || []
     } catch (error) {
-      console.error('Error fetching ingresos:', error)
+      
       return []
     }
   }
@@ -139,7 +139,7 @@ class OperativaService {
       const response = await api.get(`/operativa/egresos?userId=${userId}`)
       return response.data.data || []
     } catch (error) {
-      console.error('Error fetching egresos:', error)
+      
       return []
     }
   }

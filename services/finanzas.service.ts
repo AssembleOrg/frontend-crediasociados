@@ -55,7 +55,7 @@ class FinanzasService {
         return calculateSubadminFinancialSummary(userId, managersData)
       }
     } catch (error) {
-      console.error('Error getting financial summary:', error)
+      // Error getting financial summary
       // Return empty summary on error (MVP approach)
       return {
         userId,
@@ -76,19 +76,15 @@ class FinanzasService {
    */
   async getManagersFinancial(subadminId: string): Promise<ManagerFinancialData[]> {
     try {
-      console.log('💰 [FINANZAS] Getting managers for subadmin:', subadminId)
-      
       // Get all managers created by this subadmin using correct endpoint
       const response = await api.get(`/users/${subadminId}/created-users`, {
         params: { limit: 100 } // Get all managers
       })
       
       const managers: UserResponseDto[] = response.data.data?.data || response.data.data || []
-      console.log(`💰 [FINANZAS] Found ${managers.length} managers`)
 
       // If no managers, return empty array (graceful degradation)
       if (managers.length === 0) {
-        console.log('💰 [FINANZAS] No managers found, returning empty array')
         return []
       }
 
@@ -96,19 +92,15 @@ class FinanzasService {
       const managersFinancial = await Promise.all(
         managers.map(async (manager) => {
           try {
-            console.log(`💰 [FINANZAS] Calculating data for manager: ${manager.fullName}`)
-            
             // Get manager's loans and transactions
             const [loans, transacciones] = await Promise.all([
               api.get(`/users/${manager.id}/loans/chart`)
                 .then(res => res.data.data || [])
-                .catch(err => {
-                  console.warn(`💰 [FINANZAS] Error getting loans for ${manager.fullName}:`, err.message)
+                .catch(() => {
                   return []
                 }),
               operativaService.getTransacciones(manager.id)
-                .catch(err => {
-                  console.warn(`💰 [FINANZAS] Error getting transactions for ${manager.fullName}:`, err.message)
+                .catch(() => {
                   return []
                 })
             ])
@@ -122,7 +114,7 @@ class FinanzasService {
               manager.createdAt
             )
           } catch (error) {
-            console.warn(`💰 [FINANZAS] Error calculating data for manager ${manager.fullName}:`, error)
+            // Error calculating data for manager
             // Return zero data for this manager on error (graceful degradation)
             return {
               managerId: manager.id,
@@ -139,11 +131,10 @@ class FinanzasService {
         })
       )
 
-      console.log(`💰 [FINANZAS] Successfully calculated financial data for ${managersFinancial.length} managers`)
       return managersFinancial
       
     } catch (error) {
-      console.error('💰 [FINANZAS] Critical error getting managers financial data:', error)
+      // Critical error getting managers financial data
       // Return empty array instead of throwing (graceful degradation)
       return []
     }
@@ -158,7 +149,6 @@ class FinanzasService {
     try {
       // If subadmin, aggregate from all managers
       if (role === 'subadmin') {
-        console.log('💰 [FINANZAS] Getting active loans for subadmin (aggregated from managers)')
         const managersData = await this.getManagersFinancial(userId)
         
         // Get loans from each manager
@@ -168,7 +158,6 @@ class FinanzasService {
               .then(res => res.data.data || [])
             return getActiveLoansFinancial(loans)
           } catch (err) {
-            console.warn(`💰 Failed to get loans for manager ${manager.managerName}:`, err)
             return []
           }
         })
@@ -178,11 +167,10 @@ class FinanzasService {
       }
       
       // For managers: get their direct loans
-      console.log('💰 [FINANZAS] Getting active loans for manager')
       const loans = await api.get(`/users/${userId}/loans/chart`).then(res => res.data.data || [])
       return getActiveLoansFinancial(loans)
     } catch (error) {
-      console.error('💰 [FINANZAS] Error getting active loans financial:', error)
+      // Error getting active loans financial
       return []
     }
   }
@@ -200,7 +188,7 @@ class FinanzasService {
       // Generate evolution based on current values (MVP approach)
       return calculatePortfolioEvolution(summary, days)
     } catch (error) {
-      console.error('Error getting portfolio evolution:', error)
+      // Error getting portfolio evolution
       return []
     }
   }
@@ -214,7 +202,7 @@ class FinanzasService {
       const transacciones = await operativaService.getTransacciones(userId)
       return calculateIncomeVsExpenses(transacciones, months)
     } catch (error) {
-      console.error('Error getting income vs expenses:', error)
+      // Error getting income vs expenses
       // Return empty months on error
       const monthNames = [
         'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
@@ -241,7 +229,7 @@ class FinanzasService {
       const managersData = await this.getManagersFinancial(subadminId)
       return calculateCapitalDistribution(managersData)
     } catch (error) {
-      console.error('Error getting capital distribution:', error)
+      // Error getting capital distribution
       return []
     }
   }

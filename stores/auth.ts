@@ -36,7 +36,7 @@ const hybridStorage = {
       const cookieValue = encodeURIComponent(JSON.stringify(lightweightData));
       document.cookie = `${key}-token=${cookieValue}; path=/; max-age=259200; SameSite=Lax`; // 3 days
     } catch (e) {
-      console.warn('Failed to set auth cookie:', e);
+      
     }
   },
   removeItem: (key: string): void => {
@@ -157,13 +157,7 @@ export const useAuthStore = create<AuthStore>()(
       skipHydration: false,
       onRehydrateStorage: () => (state, error) => {
         if (error) {
-          console.error('Zustand rehydration error:', error);
-        } else {
-          console.log('✅ Auth store rehydrated successfully', {
-            hasUser: !!state?.currentUser,
-            userId: state?.userId,
-            isAuthenticated: state?.isAuthenticated,
-          });
+          // Error during rehydration
         }
       },
     }

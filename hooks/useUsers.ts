@@ -131,7 +131,7 @@ export const useUsers = () => {
           useAuthStore.getState().updateCurrentUser(transformedUser)
         } catch (error) {
           // Silent fail - fetchUsers() should have gotten most data
-          console.warn('Failed to fetch updated current user data:', error)
+          
         }
       }
 
@@ -194,7 +194,7 @@ export const useUsers = () => {
           // Update authStore (persisted - survives F5)
           useAuthStore.getState().updateCurrentUser(transformedUser)
         } catch (error) {
-          console.warn('Failed to fetch updated current user data:', error)
+          
         }
       }
 
@@ -235,7 +235,7 @@ export const useUsers = () => {
           // Update authStore (persisted - survives F5)
           useAuthStore.getState().updateCurrentUser(transformedUser)
         } catch (error) {
-          console.warn('Failed to fetch updated current user data:', error)
+          
         }
       }
 
@@ -291,7 +291,7 @@ export const useUsers = () => {
         currentUser.availableClientQuota === undefined;
       
       if (hasIncompleteData && currentUser.id) {
-        console.log('🔄 Detected incomplete user data after F5, fetching complete data...');
+        
         getUserById(currentUser.id).then((completeUser) => {
           if (completeUser) {
             useAuthStore.getState().updateCurrentUser(completeUser);

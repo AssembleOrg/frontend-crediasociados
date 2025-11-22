@@ -28,7 +28,7 @@ export const useSubadminDashboardData = () => {
 
     // Use cache if fresh
     if (subadminStore.hasEnrichmentData() && subadminStore.isEnrichmentDataFresh()) {
-      console.log('📦 [SUBADMIN DASHBOARD] Using fresh cached enrichment data')
+      
       return
     }
 
@@ -47,7 +47,7 @@ export const useSubadminDashboardData = () => {
         }
         abortControllerRef.current = new AbortController()
 
-        console.log('[SUBADMIN DASHBOARD] Enriching dashboard data...')
+        
 
         // Fetch enrichment data (charts) for each manager
         const enrichments: Record<string, any> = {}
@@ -68,7 +68,7 @@ export const useSubadminDashboardData = () => {
                 loans: loansData
               }
             } catch (error) {
-              console.warn(`Error loading enrichment data for manager ${manager.fullName}:`, error)
+              
               // Fallback to empty enrichment
               enrichments[manager.id] = {
                 totalClients: 0,
@@ -84,13 +84,13 @@ export const useSubadminDashboardData = () => {
         // Store enrichments in subadminStore
         subadminStore.setManagerEnrichments(enrichments)
 
-        console.log('[SUBADMIN DASHBOARD] Dashboard enrichment data loaded successfully')
+        
 
       } catch (err) {
         if ((err as Error).name !== 'AbortError') {
           const errorMessage = err instanceof Error ? err.message : 'Failed to load dashboard data'
           setError(errorMessage)
-          console.error('Error loading dashboard data:', err)
+          
         }
       } finally {
         setIsLoading(false)

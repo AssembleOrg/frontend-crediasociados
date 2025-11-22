@@ -357,7 +357,7 @@ export function LoansTable({ loans: externalLoans, onViewDetails, onLoanDeleted 
                     
                     <TableCell align="right">
                       <Typography variant="body2" fontWeight="bold">
-                        {formatCurrency(loan.amount)}
+                        {formatCurrency(loan.originalAmount ?? loan.amount)}
                       </Typography>
                       <Typography variant="caption" color="text.secondary">
                         {getFrequencyLabel(loan.paymentFrequency)}

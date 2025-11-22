@@ -37,7 +37,7 @@ export const useDolarBlueStore = create<DolarBlueStore>()(
 
     setCurrentRate: (data: DolarBlueData) =>
       set((state) => {
-        console.log('🏪 STORE: Updating currentRate:', { compra: data.compra, venta: data.venta, fechaActualizacion: data.fechaActualizacion });
+        
         state.currentRate = data;
         state.error = null;
       }),

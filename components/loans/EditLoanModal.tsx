@@ -139,27 +139,19 @@ export function EditLoanModal({ open, onClose, loan }: EditLoanModalProps) {
         : undefined,
       paymentFrequency: formData.paymentFrequency,
       paymentDay: formData.paymentDay,
-      // Note: status no está en CreateLoanDto, lo manejamos por console.log por ahora
+      // Note: status no está en CreateLoanDto
     };
 
-    console.log('=== EDITAR PRÉSTAMO ===');
-    console.log('ID:', loan.id);
-    console.log(
-      'Status actual:',
-      loan.status,
-      '→ Nuevo status:',
-      formData.status
-    );
-    console.log('Datos a actualizar:', updateData);
-    console.log('======================');
+    // Editing loan
+    // Update data prepared
 
     try {
       // TODO: Implement updateLoan functionality
       // await updateLoan(loan.id, updateData);
-      console.log('Update loan functionality not implemented yet');
+      // Update loan functionality not implemented yet
       handleClose();
     } catch (error) {
-      console.error('Error al actualizar préstamo:', error);
+      // Error al actualizar préstamo
     }
   };
 

@@ -55,6 +55,7 @@ import { UserFormModal } from "@/components/users/UserFormModal";
 import { formatAmount } from "@/lib/formatters";
 import { collectorWalletService } from "@/services/collector-wallet.service";
 import { walletsService } from "@/services/wallets.service";
+import { safeService } from "@/services/safe.service";
 import type { User } from "@/types/auth";
 import dynamic from "next/dynamic";
 
@@ -73,6 +74,12 @@ const WalletTransactionsModal = dynamic(
 // Dynamic import for ManagerLoansModal
 const ManagerLoansModal = dynamic(
   () => import("@/components/wallets/ManagerLoansModal"),
+  { ssr: false }
+);
+
+// Dynamic import for SafeModal
+const SafeModal = dynamic(
+  () => import("@/components/wallets/SafeModal"),
   { ssr: false }
 );
 
@@ -132,6 +139,10 @@ export default function OperativoSubadminPage() {
   const [selectedManagerForLiquidation, setSelectedManagerForLiquidation] = useState<User | null>(null);
   const [managersDineroEnCalle, setManagersDineroEnCalle] = useState<Record<string, number>>({});
   const [loadingDineroEnCalle, setLoadingDineroEnCalle] = useState<Record<string, boolean>>({});
+  const [safeBalances, setSafeBalances] = useState<Record<string, number>>({});
+  const [loadingSafeBalances, setLoadingSafeBalances] = useState<Record<string, boolean>>({});
+  const [safeModalOpen, setSafeModalOpen] = useState(false);
+  const [selectedManagerForSafe, setSelectedManagerForSafe] = useState<User | null>(null);
   const [toast, setToast] = useState<ToastState>({
     open: false,
     message: "",
@@ -150,7 +161,7 @@ export default function OperativoSubadminPage() {
       const data = await collectorWalletService.getManagersBalances();
       setManagersBalances(data);
     } catch (error) {
-      console.error("Error fetching managers balances:", error);
+      // Error fetching managers balances
       setManagersBalances(null);
     } finally {
       setLoadingManagersBalances(false);
@@ -174,7 +185,7 @@ export default function OperativoSubadminPage() {
         [managerId]: data.dineroEnCalle
       }));
     } catch (error) {
-      console.error(`Error fetching dinero en calle for manager ${managerId}:`, error);
+      // Error fetching dinero en calle
       setManagersDineroEnCalle(prev => ({
         ...prev,
         [managerId]: 0
@@ -188,8 +199,31 @@ export default function OperativoSubadminPage() {
   useEffect(() => {
     cobradores.forEach(cobrador => {
       fetchDineroEnCalle(cobrador.id);
+      fetchSafeBalance(cobrador.id);
     });
   }, [cobradores]);
+
+  // Fetch safe balance for a manager
+  const fetchSafeBalance = async (managerId: string, forceRefresh = false) => {
+    if (!forceRefresh && safeBalances[managerId] !== undefined) return; // Already loaded
+    
+    setLoadingSafeBalances(prev => ({ ...prev, [managerId]: true }));
+    try {
+      const data = await safeService.getBalance(managerId);
+      setSafeBalances(prev => ({
+        ...prev,
+        [managerId]: data.balance
+      }));
+    } catch (error) {
+      // Error fetching safe balance
+      setSafeBalances(prev => ({
+        ...prev,
+        [managerId]: 0
+      }));
+    } finally {
+      setLoadingSafeBalances(prev => ({ ...prev, [managerId]: false }));
+    }
+  };
 
   // Create a map of manager balances for easy lookup
   const collectorBalances = useMemo(() => {
@@ -200,6 +234,11 @@ export default function OperativoSubadminPage() {
     });
     return balances;
   }, [managersBalances]);
+
+  // Calculate total of all safe balances (sumatoria de todas las cajas fuertes)
+  const totalSafeBalance = useMemo(() => {
+    return Object.values(safeBalances).reduce((sum, balance) => sum + (balance || 0), 0);
+  }, [safeBalances]);
 
   const showToast = (
     message: string,
@@ -314,6 +353,9 @@ export default function OperativoSubadminPage() {
 
       // Refresh managers balances
       await fetchManagersBalances();
+      
+      // Siempre actualizar balance de caja fuerte en memoria (el retiro va a la caja fuerte)
+      await fetchSafeBalance(userId, true);
 
       showToast(
         `✅ Retiro de $${formatAmount(
@@ -423,16 +465,16 @@ export default function OperativoSubadminPage() {
                 variant="subtitle2"
                 sx={{ mb: 1, fontWeight: 500, color: "text.primary" }}
               >
-                Tu Saldo Disponible
+                Total Cajas Fuertes
               </Typography>
               <Typography
                 variant="h4"
                 sx={{
                   fontWeight: 700,
-                  color: theme.palette.mode === "dark" ? "#fff" : "#000",
+                  color: totalSafeBalance < 0 ? "error.main" : totalSafeBalance > 0 ? "success.main" : theme.palette.mode === "dark" ? "#fff" : "#000",
                 }}
               >
-                ${wallet?.balance?.toLocaleString("es-AR") ?? 0}
+                ${totalSafeBalance.toLocaleString("es-AR")}
               </Typography>
             </Box>
             <Box
@@ -443,29 +485,7 @@ export default function OperativoSubadminPage() {
                 justifyContent: { xs: "flex-start", sm: "flex-end" },
               }}
             >
-              <Button
-                variant="contained"
-                startIcon={<TrendingUp />}
-                onClick={() => setDepositModalOpen(true)}
-                sx={{
-                  backgroundColor: "success.main",
-                  "&:hover": { backgroundColor: "success.dark" },
-                }}
-              >
-                Depositar
-              </Button>
-              <Button
-                variant="contained"
-                startIcon={<TrendingDown />}
-                onClick={() => setWithdrawalModalOpen(true)}
-                disabled={!wallet || wallet.balance <= 0}
-                sx={{
-                  backgroundColor: "error.main",
-                  "&:hover": { backgroundColor: "error.dark" },
-                }}
-              >
-                Retirar
-              </Button>
+              {/* Botones de depósito y retiro ocultos ya que no se usa my wallet */}
               {/* <Button
                 variant="outlined"
                 startIcon={<TrendingDown />}
@@ -544,6 +564,9 @@ export default function OperativoSubadminPage() {
                     <TableCell align="right" sx={{ fontWeight: 600 }}>
                       Wallet de Cobros
                     </TableCell>
+                    <TableCell align="right" sx={{ fontWeight: 600 }}>
+                      Caja Fuerte
+                    </TableCell>
                     <TableCell align="center" sx={{ fontWeight: 600 }}>
                       Acciones
                     </TableCell>
@@ -553,7 +576,7 @@ export default function OperativoSubadminPage() {
                   {cobradores.length === 0 ? (
                     <TableRow>
                       <TableCell
-                        colSpan={4}
+                        colSpan={5}
                         sx={{ textAlign: "center", py: 4 }}
                       >
                         <Typography color="text.secondary">
@@ -565,6 +588,8 @@ export default function OperativoSubadminPage() {
                     cobradores.map((cobrador) => {
                       const collectorBalance =
                         collectorBalances[cobrador.id] || 0;
+                      const safeBalance = safeBalances[cobrador.id] ?? 0;
+                      const isLoadingSafe = loadingSafeBalances[cobrador.id];
                       return (
                         <TableRow key={`collector-${cobrador.id}`} hover>
                           <TableCell>
@@ -598,6 +623,30 @@ export default function OperativoSubadminPage() {
                               size="small"
                               sx={{ fontWeight: 600, minWidth: 100 }}
                             />
+                          </TableCell>
+                          <TableCell align="right">
+                            {isLoadingSafe ? (
+                              <CircularProgress size={16} />
+                            ) : (
+                              <Typography
+                                variant="body2"
+                                sx={{
+                                  fontWeight: 600,
+                                  color: safeBalance < 0 ? "error.main" : safeBalance > 0 ? "success.main" : "text.secondary",
+                                  cursor: "pointer",
+                                  textDecoration: "underline",
+                                  "&:hover": {
+                                    color: safeBalance < 0 ? "error.dark" : safeBalance > 0 ? "success.dark" : "primary.main",
+                                  },
+                                }}
+                                onClick={() => {
+                                  setSelectedManagerForSafe(cobrador);
+                                  setSafeModalOpen(true);
+                                }}
+                              >
+                                ${safeBalance.toLocaleString("es-AR")}
+                              </Typography>
+                            )}
                           </TableCell>
                           <TableCell align="center">
                             <Box
@@ -647,26 +696,19 @@ export default function OperativoSubadminPage() {
                               </Tooltip>
 
                               <Tooltip 
-                                title={
-                                  collectorBalance < 0 
-                                    ? "Ajustar caja (saldo negativo)" 
-                                    : "Ajustar caja (solo disponible cuando el saldo es negativo)"
-                                } 
+                                title="Ajustar caja (retira de la caja fuerte)"
                                 arrow
                               >
-                                <span>
-                                  <IconButton
-                                    size="small"
-                                    color="success"
-                                    disabled={collectorBalance >= 0}
-                                    onClick={() => {
-                                      setSelectedCobrador(cobrador);
-                                      setCashAdjustmentModalOpen(true);
-                                    }}
-                                  >
-                                    <TrendingUp fontSize="small" />
-                                  </IconButton>
-                                </span>
+                                <IconButton
+                                  size="small"
+                                  color="success"
+                                  onClick={() => {
+                                    setSelectedCobrador(cobrador);
+                                    setCashAdjustmentModalOpen(true);
+                                  }}
+                                >
+                                  <TrendingUp fontSize="small" />
+                                </IconButton>
                               </Tooltip>
 
                               <Tooltip title="Eliminar cobrador" arrow>
@@ -969,6 +1011,12 @@ export default function OperativoSubadminPage() {
           await fetchManagersBalances();
           showToast("Ajuste de caja realizado exitosamente", "success");
         }}
+        onSafeBalanceUpdate={async () => {
+          // Actualizar balance de caja fuerte después del ajuste
+          if (selectedCobrador) {
+            await fetchSafeBalance(selectedCobrador.id, true);
+          }
+        }}
       />
 
       <WithdrawFromCollectorModal
@@ -1212,6 +1260,32 @@ export default function OperativoSubadminPage() {
           setSelectedManagerForLiquidation(null);
         }}
         manager={selectedManagerForLiquidation}
+      />
+
+      {/* Safe Modal */}
+      <SafeModal
+        open={safeModalOpen}
+        onClose={() => {
+          setSafeModalOpen(false);
+          setSelectedManagerForSafe(null);
+        }}
+        managerId={selectedManagerForSafe?.id || null}
+        managerName={selectedManagerForSafe?.fullName}
+        onBalanceUpdate={() => {
+          if (selectedManagerForSafe) {
+            fetchSafeBalance(selectedManagerForSafe.id, true);
+          }
+        }}
+        onCloseCallback={() => {
+          // Refetch del balance cuando se cierra el modal (forzar actualización)
+          if (selectedManagerForSafe) {
+            fetchSafeBalance(selectedManagerForSafe.id, true);
+          }
+        }}
+        onCollectorWalletUpdate={() => {
+          // Refetch del balance de la wallet de cobros cuando se transfiere desde caja fuerte
+          fetchManagersBalances();
+        }}
       />
     </Box>
   );

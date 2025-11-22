@@ -25,37 +25,24 @@ import { useDolarBlueStore } from '@/stores/dolar-blue'
  * Use this on F5 refresh to ensure fresh data from backend
  */
 export function clearAllCaches() {
-  console.log('🧹 CACHE MANAGER: Clearing all application caches...')
+  
 
-  // Clear users store (except the data will be rehydrated from localStorage)
-  // We keep the store structure but invalidate cached lists
-  const usersStore = useUsersStore.getState()
-  if (usersStore.clearCache) {
-    usersStore.clearCache()
-  }
-
-  // Clear stats store
-  const statsStore = useStatsStore.getState()
-  if (statsStore.clearCache) {
-    statsStore.clearCache()
-  }
-
-  // Clear clients store
-  const clientsStore = useClientsStore.getState()
-  if (clientsStore.clearCache) {
-    clientsStore.clearCache()
-  }
+  // Clear users store (stores handle their own cache invalidation)
+  // Note: UsersStore, StatsStore, ClientsStore don't have clearCache methods
+  // They will be refetched when needed
 
   // Clear loans store
   const loansStore = useLoansStore.getState()
-  if (loansStore.clearAllData) {
-    loansStore.clearAllData()
+  if (loansStore.setLoans) {
+    loansStore.setLoans([])
   }
 
   // Clear sub-loans store
   const subLoansStore = useSubLoansStore.getState()
-  if (subLoansStore.clearAllData) {
-    subLoansStore.clearAllData()
+  if (subLoansStore.setAllSubLoansWithClient) {
+    subLoansStore.setAllSubLoansWithClient([])
+    subLoansStore.setTodayDueSubLoans([])
+    subLoansStore.setAllSubLoans([])
   }
 
   // Clear wallets store (will be refetched)
@@ -76,38 +63,34 @@ export function clearAllCaches() {
     subadminStore.clearAllData()
   }
 
-  // Clear filters store
-  const filtersStore = useFiltersStore.getState()
-  if (filtersStore.resetAllFilters) {
-    filtersStore.resetAllFilters()
-  }
+  // Clear filters store (FiltersStore doesn't have resetAllFilters method)
+  // Filters will be reset when components remount
 
   // Clear finanzas store
   const finanzasStore = useFinanzasStore.getState()
-  if (finanzasStore.clearAllData) {
-    finanzasStore.clearAllData()
-  }
+  finanzasStore.setFinancialSummary(null)
+  finanzasStore.setManagersFinancial([])
+  finanzasStore.setActiveLoansFinancial([])
+  finanzasStore.setPortfolioEvolution([])
+  finanzasStore.setIncomeVsExpenses([])
+  finanzasStore.setCapitalDistribution([])
 
   // Clear operativa store
   const operativaStore = useOperativaStore.getState()
-  if (operativaStore.clearData) {
-    operativaStore.clearData()
+  if (operativaStore.setTransacciones) {
+    operativaStore.setTransacciones([])
   }
 
   // Clear dolar blue store - reset to initial state
-  const dolarBlueStore = useDolarBlueStore.getState()
-  if (dolarBlueStore.setCurrentRate) {
-    // Don't clear dolar blue - it auto-refetches and has its own cache logic
-    // Just let it be, it will handle its own refresh cycle
-  }
+  // Don't clear dolar blue - it auto-refetches and has its own cache logic
+  // Just let it be, it will handle its own refresh cycle
 
   // Clear app store notifications/modals (keep preferences)
   const appStore = useAppStore.getState()
-  if (appStore.clearAllNotifications) {
-    appStore.clearAllNotifications()
+  if (appStore.clearNotifications) {
+    appStore.clearNotifications()
   }
 
-  console.log('✅ CACHE MANAGER: All caches cleared successfully')
 }
 
 /**
@@ -115,7 +98,7 @@ export function clearAllCaches() {
  * Use this on explicit logout
  */
 export function clearAllData() {
-  console.log('🧹 CACHE MANAGER: Clearing ALL data including auth...')
+  
 
   // Clear all caches first
   clearAllCaches()
@@ -126,7 +109,6 @@ export function clearAllData() {
     authStore.clearAuth()
   }
 
-  console.log('✅ CACHE MANAGER: All data cleared (full logout)')
 }
 
 /**
@@ -134,7 +116,7 @@ export function clearAllData() {
  * Useful when you want hooks to refetch on next access
  */
 export function invalidateAllCaches() {
-  console.log('🔄 CACHE MANAGER: Invalidating all caches...')
+  
 
   // Invalidate admin cache
   const adminStore = useAdminStore.getState()
@@ -154,6 +136,6 @@ export function invalidateAllCaches() {
     walletsStore.invalidateAll()
   }
 
-  console.log('✅ CACHE MANAGER: All caches invalidated')
+  
 }
 

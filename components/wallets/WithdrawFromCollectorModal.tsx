@@ -106,7 +106,7 @@ export function WithdrawFromCollectorModal({
         }}
       >
         <TrendingDown sx={{ fontSize: 24 }} />
-        <Typography variant="h6" sx={{ fontWeight: 600 }}>
+        <Typography variant="h6" component="div" sx={{ fontWeight: 600 }}>
           Retirar de Wallet de Cobros
         </Typography>
       </DialogTitle>
@@ -139,7 +139,7 @@ export function WithdrawFromCollectorModal({
 
         <Alert severity="info" sx={{ mb: 3 }}>
           <Typography variant="body2" sx={{ fontWeight: 500 }}>
-            ℹ️ Este retiro <strong>NO se agregará</strong> a tu wallet principal
+            ℹ️ Este retiro <strong> se agregará</strong> a tu CAJA FUERTE
           </Typography>
           <Typography variant="caption">
             Solo disminuye el saldo de la wallet de cobros del manager

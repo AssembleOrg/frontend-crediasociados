@@ -136,7 +136,7 @@ export default function RutasPage() {
 
   // Fetch route on mount and when pathname changes
   useEffect(() => {
-    console.log('🔄 Rutas page mounted/changed');
+    // Rutas page mounted/changed
     fetchTodayRoute();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pathname]);
@@ -202,7 +202,7 @@ export default function RutasPage() {
       setCloseModalOpen(false);
       await fetchTodayRoute(); // Refresh to show closed status
     } catch (err) {
-      console.error('Error closing route:', err);
+      // Error closing route
       // Error is handled by the modal
     }
   };
@@ -261,7 +261,7 @@ export default function RutasPage() {
       setIsReorderMode(false);
       await fetchTodayRoute(); // Refresh to confirm
     } catch (err) {
-      console.error('Error saving order:', err);
+      // Error saving order
       setSuccessMessage('❌ Error al guardar el orden');
     } finally {
       setIsSavingOrder(false);

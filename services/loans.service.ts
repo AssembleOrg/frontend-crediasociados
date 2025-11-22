@@ -53,49 +53,20 @@ class LoansService {
   }
 
   async createLoan(loanData: CreateLoanDto): Promise<CreateLoanResponseDto> {
-    console.log(
-      '🔍 [DEBUG] loans.service - Datos enviados para crear préstamo:',
-      loanData
-    );
-
     try {
       const response = await api.post('/loans', loanData);
-
-      console.log(
-        '🔍 [DEBUG] loans.service - Respuesta completa del backend:',
-        response.data
-      );
 
       const createdLoanData = response.data.data;
       
       // Backend returns the loan object directly (not nested in .loan)
       if (!createdLoanData || !createdLoanData.id) {
-        console.error(
-          '🚨 [ERROR] loans.service - La respuesta de la API no tiene la estructura esperada para un préstamo nuevo.'
-        );
         throw new Error(
           'Respuesta inesperada del servidor al crear el préstamo.'
         );
       }
 
-      console.log(
-        '✅ [SUCCESS] loans.service - Préstamo creado exitosamente:',
-        {
-          loanId: createdLoanData.id,
-          loanTrack: createdLoanData.loanTrack,
-          clientId: createdLoanData.clientId,
-          subLoansCount: createdLoanData.subLoans?.length || 0,
-        }
-      );
-
       return createdLoanData;
     } catch (error: any) {
-      console.error('🚨 [ERROR] loans.service - Error creando préstamo:', {
-        message: error.message,
-        statusCode: error.response?.status,
-        responseData: error.response?.data,
-        sentData: loanData,
-      });
       throw error;
     }
   }

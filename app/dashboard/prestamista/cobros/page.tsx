@@ -72,11 +72,11 @@ export default function CobrosPage() {
 
   // ✅ Refetch data when page mounts or route changes
   useEffect(() => {
-    console.log('🔄 Cobros page mounted/changed')
+    // Cobros page mounted/changed
     
     // Always fetch on mount to ensure fresh data
     // The hook itself will prevent duplicate calls if already loading
-    console.log('📥 Fetching latest subloans data...')
+    // Fetching latest subloans data
     fetchAllSubLoansWithClientInfo()
     
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -131,25 +131,6 @@ export default function CobrosPage() {
     [allSubLoansWithClient]
   )
 
-  // DEBUG: Log agrupación de cobros para analizar múltiples préstamos
-  console.log('🔍 [DEBUG] Cobros - allSubLoansWithClient raw data:', {
-    total: allSubLoansWithClient.length,
-    overduePayments: overduePayments.length,
-    data: allSubLoansWithClient.slice(0, 3) // Solo primeros 3 para no saturar
-  })
-
-  console.log('🔍 [DEBUG] Cobros - displayClientsSummary agrupado:', {
-    totalClients: displayClientsSummary.length,
-    clients: displayClientsSummary.map(client => ({
-      clientId: client.clientId,
-      clientName: client.clientName,
-      totalSubLoans: client.subLoans.length,
-      loanIds: [...new Set(client.subLoans.map(s => s.loanId))], // IDs únicos de préstamos
-      overdueCount: client.stats.overdue,
-      urgencyLevel: client.urgencyLevel
-    }))
-  })
-
   // Use filtered stats when filters are active, otherwise use all data (memoized)
   const displayStats = useMemo(() =>
     hasActiveFilters ? filterStats : getStatusStats(allSubLoansWithClient),
@@ -180,7 +161,7 @@ export default function CobrosPage() {
 
   const handleSavePayment = (paymentData: { id: string; paidAmount: number; status: string; notes: string }) => {
     // TODO: Implementar actualización real via API
-    console.log('Actualizando pago:', paymentData)
+    // Actualizando pago
   }
 
   const handleLockDay = () => {
@@ -345,7 +326,7 @@ export default function CobrosPage() {
         }
         mode={paymentModalMode}
         onPaymentSuccess={() => {
-          console.log('💰 Payment registered successfully, refetching data...')
+          // Payment registered successfully, refetching data
           fetchAllSubLoansWithClientInfo()
         }}
       />

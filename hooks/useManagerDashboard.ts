@@ -13,7 +13,7 @@ export function useManagerDashboard() {
       const dashboardData = await managerService.getDashboardData()
       setData(dashboardData)
     } catch (err) {
-      console.error('Error fetching manager dashboard data:', err)
+      
       setError('Error al cargar los datos del dashboard')
       setData(null)
     } finally {

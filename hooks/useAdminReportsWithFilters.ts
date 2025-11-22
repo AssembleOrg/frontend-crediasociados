@@ -34,7 +34,7 @@ export const useAdminReportsWithFilters = () => {
     if (!currentUser || currentUser.role !== 'admin' || subadmins.length === 0) return
 
     if (adminStore.hasEnrichmentData() && adminStore.isEnrichmentDataFresh()) {
-      console.log('📦 [ADMIN REPORTS] Using fresh cached enrichments')
+      
       return
     }
 
@@ -50,7 +50,6 @@ export const useAdminReportsWithFilters = () => {
       }
       abortControllerRef.current = new AbortController()
 
-      console.log('[ADMIN REPORTS] Loading enrichment data (charts/metrics)...')
 
       // Only fetch enrichment data, NOT User[] data
       const enrichmentPromises = subadmins.map(async (subadmin) => {
@@ -74,7 +73,7 @@ export const useAdminReportsWithFilters = () => {
                   loans: loansData
                 }
               } catch (error) {
-                console.warn(`Error loading data for manager ${manager.fullName}:`, error)
+                
                 return {
                   id: manager.id,
                   name: manager.fullName,
@@ -107,7 +106,7 @@ export const useAdminReportsWithFilters = () => {
           })
 
         } catch (error) {
-          console.warn(`Error loading enrichments for ${subadmin.fullName}:`, error)
+          
           adminStore.setSubadminEnrichments(subadmin.id, {
             totalClients: 0,
             totalLoans: 0,
@@ -118,13 +117,13 @@ export const useAdminReportsWithFilters = () => {
       })
 
       await Promise.all(enrichmentPromises)
-      console.log('[ADMIN REPORTS] Enrichment data loaded successfully')
+      
 
     } catch (err) {
       if ((err as Error).name !== 'AbortError') {
         const errorMessage = err instanceof Error ? err.message : 'Failed to load enrichment data'
         setError(errorMessage)
-        console.error('Error loading enrichment data:', err)
+        
       }
     } finally {
       setIsLoading(false)

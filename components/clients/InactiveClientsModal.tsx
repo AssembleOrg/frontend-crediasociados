@@ -99,7 +99,7 @@ export default function InactiveClientsModal({ open, onClose }: InactiveClientsM
       setClients(data.clients || [])
       setTotalClients(data.total || 0)
     } catch (err: any) {
-      console.error('Error loading inactive clients:', err)
+      // Error loading inactive clients
       setError(err.response?.data?.message || 'Error al cargar los clientes inactivos')
       setClients([])
       setTotalClients(0)

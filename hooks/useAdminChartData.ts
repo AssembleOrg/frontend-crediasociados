@@ -113,11 +113,8 @@ export const useAdminChartData = () => {
     abortControllerRef.current = new AbortController()
 
     try {
-      console.log('🔍 [DEBUG] Admin Chart Data - Starting fetch...', { timeFilter, dateRange })
-
       // Step 1: Get all subadmins created by this admin
       const subadmins = await reportsService.getCreatedUsers(user?.id || '')
-      console.log('🔍 [DEBUG] Admin Chart Data - Subadmins found:', subadmins.length)
 
       // Step 2: For each subadmin, get their managers and collect loan data
       const allLoansData: LoanChartDataDto[] = []
@@ -137,15 +134,13 @@ export const useAdminChartData = () => {
 
               allLoansData.push(...managerLoans)
             } catch (error) {
-              console.warn(`Error fetching loans for manager ${manager.fullName}:`, error)
+              // Error fetching loans for manager
             }
           }
         } catch (error) {
-          console.warn(`Error fetching managers for subadmin ${subadmin.fullName}:`, error)
+          // Error fetching managers for subadmin
         }
       }
-
-      console.log('🔍 [DEBUG] Admin Chart Data - Total loans collected:', allLoansData.length)
 
       setState(prev => ({
         ...prev,

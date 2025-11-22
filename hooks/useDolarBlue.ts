@@ -38,16 +38,10 @@ export const useDolarBlue = () => {
 
       setCurrentRate(dolarData);
       
-      if (userRole === 'admin') {
-        console.log('💰 Dólar Blue manual refresh (POST + GET - ADMIN):', { compra: response.compra, venta: response.venta });
-      } else {
-        console.log('📖 Dólar Blue manual refresh (GET only - READ ONLY):', { compra: response.compra, venta: response.venta });
-      }
-      
       return true;
 
     } catch (error: any) {
-      console.error('Error fetching dolar blue:', error);
+      
       setError(error.message || 'Error al obtener cotización');
       return false;
 

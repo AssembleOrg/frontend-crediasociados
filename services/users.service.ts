@@ -73,7 +73,7 @@ class UsersService {
     params: PaginationParams = {}
   ): Promise<PaginatedResponse<UserResponseDto>> {
     const searchParams = new URLSearchParams();
-    console.log('🔍 [DEBUG] getCreatedUsers params:', params, id);
+    
 
     if (params.page) searchParams.append('page', params.page.toString());
     if (params.limit) searchParams.append('limit', params.limit.toString());
@@ -83,19 +83,8 @@ class UsersService {
       ? `/users/${id}/created-users?${queryString}`
       : `/users/${id}/created-users`;
 
-    console.log('🔍 [DEBUG] getCreatedUsers URL:', url);
-
+    
     const response = await api.get(url);
-
-    console.log('🔍 [DEBUG] getCreatedUsers response structure:', {
-      status: response.status,
-      data: response.data,
-      dataKeys: Object.keys(response.data || {}),
-      nestedData: response.data?.data,
-      nestedDataKeys: response.data?.data
-        ? Object.keys(response.data.data)
-        : 'no nested data',
-    });
 
     // Try different response structures
     let data, meta;
@@ -104,16 +93,12 @@ class UsersService {
       // Structure: response.data.data.data
       data = response.data.data.data;
       meta = response.data.data.meta;
-      console.log(
-        '🔍 [DEBUG] Using nested structure (response.data.data.data)'
-      );
     } else if (response.data?.data) {
       // Structure: response.data.data (direct array)
       data = Array.isArray(response.data.data)
         ? response.data.data
         : response.data.data.data;
       meta = response.data.meta;
-      console.log('🔍 [DEBUG] Using simple structure (response.data.data)');
     } else if (Array.isArray(response.data)) {
       // Structure: response.data (direct array)
       data = response.data;
@@ -122,13 +107,12 @@ class UsersService {
         page: 1,
         limit: response.data.length,
       };
-      console.log('🔍 [DEBUG] Using direct array structure (response.data)');
     } else {
-      console.error('🚨 [ERROR] Unknown response structure:', response.data);
+      
       throw new Error('Estructura de respuesta inesperada del servidor');
     }
 
-    console.log('🔍 [DEBUG] Final data:', { dataLength: data?.length, meta });
+    
 
     return { data, meta };
   }

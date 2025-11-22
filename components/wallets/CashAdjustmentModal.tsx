@@ -24,6 +24,7 @@ interface CashAdjustmentModalProps {
   cobrador: User | null
   currentBalance: number
   onSuccess?: () => void
+  onSafeBalanceUpdate?: () => void
 }
 
 export function CashAdjustmentModal({
@@ -31,7 +32,8 @@ export function CashAdjustmentModal({
   onClose,
   cobrador,
   currentBalance,
-  onSuccess
+  onSuccess,
+  onSafeBalanceUpdate
 }: CashAdjustmentModalProps) {
   const [amount, setAmount] = useState<string>('')
   const [description, setDescription] = useState<string>('')
@@ -62,12 +64,16 @@ export function CashAdjustmentModal({
     setIsSubmitting(true)
 
     try {
+      // El endpoint cash-adjustment maneja todo: ajusta la wallet de cobros y retira de la caja fuerte
       await collectorWalletService.cashAdjustment({
         managerId: cobrador.id,
         amount: amountValue,
         description: description.trim()
       })
 
+      // Actualizar balance de caja fuerte (el backend ya lo modificó)
+      onSafeBalanceUpdate?.()
+      
       onSuccess?.()
       handleClose()
     } catch (err: any) {
@@ -115,7 +121,7 @@ export function CashAdjustmentModal({
         pt: 3
       }}>
         <TrendingUp sx={{ fontSize: 24 }} />
-        <Typography variant="h6" sx={{ fontWeight: 600 }}>
+        <Typography variant="h6" component="div" sx={{ fontWeight: 600 }}>
           Ajuste de Caja
         </Typography>
       </DialogTitle>
@@ -127,29 +133,23 @@ export function CashAdjustmentModal({
           </Alert>
         )}
 
-        {cobrador && (
-          <Box sx={{ mb: 3 }}>
-            <Typography variant="body2" color="text.secondary" gutterBottom>
-              Cobrador
-            </Typography>
-            <Typography variant="h6" sx={{ fontWeight: 600 }}>
-              {cobrador.fullName}
-            </Typography>
-            <Typography variant="caption" color="text.secondary">
-              {cobrador.email}
-            </Typography>
-          </Box>
-        )}
-
-        <Box sx={{ mb: 3, p: 2, bgcolor: 'error.lighter', borderRadius: 1 }}>
-          <Typography variant="body2" color="error.main" fontWeight={600} gutterBottom>
-            Balance Actual
+        <Box sx={{ 
+          mb: 3, 
+          p: 2, 
+          bgcolor: currentBalance < 0 ? 'error.lighter' : 'info.lighter', 
+          borderRadius: 1 
+        }}>
+          <Typography variant="body2" color={currentBalance < 0 ? 'error.main' : 'info.main'} fontWeight={600} gutterBottom>
+            Balance Actual de Wallet de Cobros
           </Typography>
-          <Typography variant="h5" color="error.main" sx={{ fontWeight: 700 }}>
+          <Typography variant="h5" color={currentBalance < 0 ? 'error.main' : 'info.main'} sx={{ fontWeight: 700 }}>
             ${currentBalance.toLocaleString('es-AR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
           </Typography>
           <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: 'block' }}>
-            El saldo es negativo. Agrega dinero para cuadrar la caja.
+            {currentBalance < 0 
+              ? 'El saldo es negativo. El monto se retirará de la caja fuerte para cuadrar la caja.'
+              : 'El monto se retirará de la caja fuerte y se agregará a la wallet de cobros.'
+            }
           </Typography>
         </Box>
 
@@ -168,7 +168,7 @@ export function CashAdjustmentModal({
           helperText={
             amountValue <= 0 && amount.length > 0
               ? "El monto debe ser mayor a 0"
-              : "Monto a agregar a la wallet de cobros"
+              : "Monto a retirar de la caja fuerte y agregar a la wallet de cobros"
           }
         />
 

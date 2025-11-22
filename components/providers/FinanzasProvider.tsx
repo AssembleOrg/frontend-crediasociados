@@ -53,7 +53,7 @@ export default function FinanzasProvider({ children }: FinanzasProviderProps) {
     abortControllerRef.current = abortController;
 
     try {
-      console.log('💰 [FINANZAS PROVIDER] Inicializando datos de Finanzas...');
+      
 
       const userRole = (user?.role || 'prestamista') as UserRole;
 
@@ -66,7 +66,7 @@ export default function FinanzasProvider({ children }: FinanzasProviderProps) {
       // Set timeout to prevent blocking (5 seconds)
       const timeoutPromise = new Promise<null>((resolve) => 
         setTimeout(() => {
-          console.warn('💰 [FINANZAS PROVIDER] Summary fetch timeout, continuing with empty data');
+          
           resolve(null);
         }, 5000)
       );
@@ -79,9 +79,9 @@ export default function FinanzasProvider({ children }: FinanzasProviderProps) {
 
       if (summary) {
         setFinancialSummary(summary);
-        console.log('💰 [FINANZAS PROVIDER] Financial summary loaded');
+        
       } else {
-        console.warn('💰 [FINANZAS PROVIDER] Using empty financial summary due to timeout');
+        
       }
 
       if (userRole === 'subadmin') {
@@ -99,27 +99,26 @@ export default function FinanzasProvider({ children }: FinanzasProviderProps) {
         // Set data with graceful fallbacks
         if (managersData.status === 'fulfilled') {
           setManagersFinancial(managersData.value);
-          console.log(`💰 [FINANZAS PROVIDER] Loaded ${managersData.value.length} managers`);
+          
         } else {
-          console.error('💰 [FINANZAS PROVIDER] Failed to load managers:', managersData.reason);
+          
           setManagersFinancial([]);
         }
 
         if (portfolioData.status === 'fulfilled') {
           setPortfolioEvolution(portfolioData.value);
         } else {
-          console.error('💰 [FINANZAS PROVIDER] Failed to load portfolio:', portfolioData.reason);
+          
           setPortfolioEvolution([]);
         }
 
         if (capitalDist.status === 'fulfilled') {
           setCapitalDistribution(capitalDist.value);
         } else {
-          console.error('💰 [FINANZAS PROVIDER] Failed to load capital distribution:', capitalDist.reason);
+          
           setCapitalDistribution([]);
         }
 
-        console.log('✅ [FINANZAS PROVIDER] Finanzas data initialized (subadmin)');
       } else if (userRole === 'manager' || userRole === 'prestamista') {
         // Load manager data with graceful degradation
         const [loansData, portfolioData, incomeData] = await Promise.allSettled([
@@ -136,25 +135,24 @@ export default function FinanzasProvider({ children }: FinanzasProviderProps) {
         if (loansData.status === 'fulfilled') {
           setActiveLoansFinancial(loansData.value);
         } else {
-          console.error('💰 [FINANZAS PROVIDER] Failed to load loans:', loansData.reason);
+          
           setActiveLoansFinancial([]);
         }
 
         if (portfolioData.status === 'fulfilled') {
           setPortfolioEvolution(portfolioData.value);
         } else {
-          console.error('💰 [FINANZAS PROVIDER] Failed to load portfolio:', portfolioData.reason);
+          
           setPortfolioEvolution([]);
         }
 
         if (incomeData.status === 'fulfilled') {
           setIncomeVsExpenses(incomeData.value);
         } else {
-          console.error('💰 [FINANZAS PROVIDER] Failed to load income data:', incomeData.reason);
+          
           setIncomeVsExpenses([]);
         }
 
-        console.log('✅ [FINANZAS PROVIDER] Finanzas data initialized (manager/prestamista)');
       }
 
       return true;
@@ -163,14 +161,14 @@ export default function FinanzasProvider({ children }: FinanzasProviderProps) {
         return false;
       }
 
-      console.error('💰 [FINANZAS PROVIDER] Critical error initializing finanzas data:', err);
+      
       // Don't throw - allow dashboard to continue loading
       return false;
     } finally {
       // ALWAYS set loading to false to prevent blocking
       if (!abortController.signal.aborted) {
         setIsInitialLoading(false);
-        console.log('💰 [FINANZAS PROVIDER] Loading complete');
+        
       }
     }
   };

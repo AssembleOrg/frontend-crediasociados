@@ -32,14 +32,6 @@ api.interceptors.request.use(
     if (currentToken && !config.headers['Authorization']) {
       config.headers['Authorization'] = `Bearer ${currentToken}`;
     }
-    // Debug logging para wallets
-    if (config.url?.includes('wallets')) {
-      console.log('[API DEBUG] Wallet request:', {
-        url: config.url,
-        hasToken: !!currentToken,
-        authHeader: config.headers['Authorization'] ? 'SET' : 'NOT SET',
-      });
-    }
     return config;
   },
   (error) => {
@@ -67,7 +59,7 @@ api.interceptors.response.use(
           // Avoid redirect loop if already on login page
           const currentPath = window.location.pathname;
           if (currentPath !== '/login') {
-            console.warn('🔒 401 Unauthorized - Clearing auth and redirecting to login');
+            
             
             // Clear auth token
             setAuthToken(null);

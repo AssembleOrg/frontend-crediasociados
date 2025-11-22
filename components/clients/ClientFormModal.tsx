@@ -229,7 +229,7 @@ export function ClientFormModal({
               <Typography variant="body2" sx={{ opacity: 0.9 }}>
                 Cuota de Clientes
               </Typography>
-              <Typography variant="h6" sx={{ fontWeight: 700, mt: 0.5 }}>
+              <Typography variant="h6" component="div" sx={{ fontWeight: 700, mt: 0.5 }}>
                 {currentUser.usedClientQuota ?? 0} / {currentUser.clientQuota ?? 0}
               </Typography>
             </Box>

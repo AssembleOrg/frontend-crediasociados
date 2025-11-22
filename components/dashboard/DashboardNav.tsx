@@ -51,7 +51,7 @@ export function DashboardNav() {
       await logout();
       // No necesitamos router.push() porque logout() ya maneja el redirect
     } catch (error) {
-      console.error('Error during logout:', error);
+      // Error during logout
       // En caso de error, forzar redirect
       router.replace('/login');
     } finally {

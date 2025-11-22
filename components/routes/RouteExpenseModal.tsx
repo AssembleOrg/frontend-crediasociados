@@ -102,7 +102,7 @@ export function RouteExpenseModal({
       onExpenseUpdated();
       resetForm();
     } catch (err) {
-      console.error('Error deleting expense:', err);
+      // Error deleting expense
       setError('Error al eliminar el gasto. Intenta nuevamente.');
     } finally {
       setIsSubmitting(false);
@@ -142,7 +142,7 @@ export function RouteExpenseModal({
       onExpenseUpdated();
       resetForm();
     } catch (err) {
-      console.error('Error saving expense:', err);
+      // Error saving expense
       setError(
         editingExpenseId
           ? 'Error al actualizar el gasto. Intenta nuevamente.'

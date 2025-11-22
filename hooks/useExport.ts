@@ -92,7 +92,7 @@ export function useExport() {
       const errorMessage = error instanceof Error ? error.message : 'Error al generar PDF';
       setExportError(errorMessage);
       setExportStatus('error');
-      console.error('Error exporting loan to PDF:', error);
+      
       return false;
     }
   }, [getLoanById, clients, allSubLoans]);
@@ -167,7 +167,7 @@ export function useExport() {
       const errorMessage = error instanceof Error ? error.message : 'Error al generar Excel';
       setExportError(errorMessage);
       setExportStatus('error');
-      console.error('Error exporting loans to Excel:', error);
+      
       return false;
     }
   }, [getLoanById, clients, allSubLoans]);
@@ -267,7 +267,7 @@ export function useExport() {
       const errorMessage = error instanceof Error ? error.message : 'Error al generar presupuesto PDF';
       setExportError(errorMessage);
       setExportStatus('error');
-      console.error('Error exporting simulation to PDF:', error);
+      
       return false;
     }
   }, [clients]);

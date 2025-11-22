@@ -104,7 +104,7 @@ export default function CollectorReportView({
       const data = await collectorReportService.getPeriodReport(startStr, endStr, managerId)
       setReport(data)
     } catch (err: any) {
-      console.error('Error loading report:', err)
+      // Error loading report
       setError(err.response?.data?.message || 'Error al cargar el reporte')
     } finally {
       setLoading(false)

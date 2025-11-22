@@ -93,7 +93,7 @@ export default function WalletTransactionsModal({ open, onClose }: WalletTransac
       setTransactions(data.data || [])
       setTotal(data.meta?.total || 0)
     } catch (err: any) {
-      console.error('Error loading transactions:', err)
+      // Error loading transactions
       setError(err.response?.data?.message || 'Error al cargar las transacciones')
       setTransactions([])
     } finally {
@@ -183,10 +183,10 @@ export default function WalletTransactionsModal({ open, onClose }: WalletTransac
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
           <History sx={{ fontSize: 28 }} />
           <Box>
-            <Typography variant="h6" fontWeight={600}>
+            <Typography variant="h6" component="div" fontWeight={600}>
               Historial de Transacciones
             </Typography>
-            <Typography variant="caption" sx={{ opacity: 0.9, display: 'block', mt: 0.5 }}>
+            <Typography variant="caption" component="div" sx={{ opacity: 0.9, display: 'block', mt: 0.5 }}>
               Retiros, depósitos y transferencias
             </Typography>
           </Box>

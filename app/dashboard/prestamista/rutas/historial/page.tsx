@@ -43,7 +43,7 @@ export default function RutasHistorialPage() {
 
   // Fetch routes on mount
   useEffect(() => {
-    console.log('🔄 Route history page mounted');
+    // Route history page mounted
     fetchRoutes({
       status: 'CLOSED',
       dateFrom: dateFilter.dateFrom,

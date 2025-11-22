@@ -98,7 +98,7 @@ export default function TodayCollectionsModal({ open, onClose, data }: TodayColl
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
           <TrendingUp sx={{ fontSize: 28 }} />
           <Box>
-            <Typography variant="h6" fontWeight={600}>
+            <Typography variant="h6" component="div" fontWeight={600}>
               Cobros Realizados Hoy
             </Typography>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.5 }}>
@@ -128,7 +128,8 @@ export default function TodayCollectionsModal({ open, onClose, data }: TodayColl
           display: 'grid', 
           gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)' }, 
           gap: 2,
-          mb: 3 
+          mb: 3,
+          mt: 3
         }}>
           <Paper 
             elevation={0} 

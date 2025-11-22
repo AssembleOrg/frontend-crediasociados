@@ -115,7 +115,7 @@ export default function ManagersPage() {
   };
 
   const handleCloseModals = useCallback(async () => {
-    console.log('🚪 handleCloseModals called');
+    // handleCloseModals called
     setIsCreateModalOpen(false);
     setIsEditModalOpen(false);
     setIsDeleteDialogOpen(false);
@@ -124,12 +124,12 @@ export default function ManagersPage() {
     setSelectedManagerId(null);
     
     // ✅ REHIDRATACIÓN: Refrescar datos después de cerrar modales
-    console.log('🔄 Starting data refresh...');
+    // Starting data refresh
     await Promise.all([
       fetchUsers(), // Actualiza lista de cobradores
       refreshCurrentUser(), // Actualiza cuotas del subadmin actual
     ]);
-    console.log('✅ Data refresh completed');
+    // Data refresh completed
   }, [fetchUsers, refreshCurrentUser]);
 
   const calculateQuotaPercentage = (used: number, total: number): number => {
