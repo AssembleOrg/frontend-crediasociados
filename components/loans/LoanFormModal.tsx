@@ -146,7 +146,7 @@ export function LoanFormModal({
       errors.amount = amountError
     }
 
-    if (!formData.baseInterestRate || isNaN(Number(formData.baseInterestRate)) || Number(formData.baseInterestRate) < 0) {
+    if (formData.baseInterestRate === undefined || formData.baseInterestRate === null || formData.baseInterestRate === '' || isNaN(Number(formData.baseInterestRate)) || Number(formData.baseInterestRate) < 0) {
       errors.baseInterestRate = 'La tasa de interés debe ser un número mayor o igual a 0'
     }
 

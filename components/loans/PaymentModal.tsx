@@ -91,15 +91,18 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
     if (mode === 'single' && subloan) {
       setSelectedSubloanId(subloan.id ?? '')
       // Auto-fill with pending amount (partial payments allowed)
+      // Para subpréstamos pagados, mostrar el monto pagado para permitir edición
       const pendingAmount = (subloan.totalAmount ?? 0) - (subloan.paidAmount || 0)
-      setPaymentAmount(pendingAmount.toString())
+      setPaymentAmount(pendingAmount > 0 ? pendingAmount.toString() : (subloan.paidAmount || 0).toString())
     } else if (mode === 'selector' && subloans.length > 0) {
-      const firstPending = subloans.find(s => s.status !== 'PAID')
-      if (firstPending) {
-        setSelectedSubloanId(firstPending.id ?? '')
+      // Permitir seleccionar cualquier subpréstamo, incluso los pagados (el backend validará si es editable)
+      const firstSubloan = subloans[0]
+      if (firstSubloan) {
+        setSelectedSubloanId(firstSubloan.id ?? '')
         // Auto-fill with pending amount (partial payments allowed)
-        const pendingAmount = (firstPending.totalAmount ?? 0) - (firstPending.paidAmount || 0)
-        setPaymentAmount(pendingAmount.toString())
+        // Para subpréstamos pagados, mostrar el monto pagado para permitir edición
+        const pendingAmount = (firstSubloan.totalAmount ?? 0) - (firstSubloan.paidAmount || 0)
+        setPaymentAmount(pendingAmount > 0 ? pendingAmount.toString() : (firstSubloan.paidAmount || 0).toString())
       } else {
         setPaymentAmount('')
       }
@@ -113,19 +116,23 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
   // BUT only if user hasn't manually edited the amount
   useEffect(() => {
     if (open && mode === 'selector' && selectedSubloanId && currentSubloan && !hasUserEdited) {
+      // Para subpréstamos pagados, mostrar el monto pagado para permitir edición
       const pendingAmount = (currentSubloan.totalAmount ?? 0) - (currentSubloan.paidAmount || 0)
-      setPaymentAmount(pendingAmount.toString())
+      setPaymentAmount(pendingAmount > 0 ? pendingAmount.toString() : (currentSubloan.paidAmount || 0).toString())
     }
-  }, [selectedSubloanId, open, mode, hasUserEdited])
+  }, [selectedSubloanId, open, mode, hasUserEdited, currentSubloan])
 
   // Calculate payment preview (status changes)
+  // Para subpréstamos pagados, el monto ingresado reemplaza el monto pagado anterior
   useEffect(() => {
     if (currentSubloan && paymentAmount) {
       const amountValue = parseFloat(paymentAmount) || 0
-      const pendingAmount = (currentSubloan.totalAmount ?? 0) - (currentSubloan.paidAmount || 0)
-      const remainingAfterPayment = Math.max(0, pendingAmount - amountValue)
-      const isPartial = amountValue > 0 && remainingAfterPayment > 0
-      const status = remainingAfterPayment === 0 ? 'PAID' : 'PARTIAL'
+      const totalAmount = currentSubloan.totalAmount ?? 0
+      
+      // El monto ingresado es el nuevo monto pagado (reemplaza el anterior si está pagado)
+      const remainingAfterPayment = Math.max(0, totalAmount - amountValue)
+      const isPartial = amountValue > 0 && amountValue < totalAmount
+      const status = remainingAfterPayment === 0 ? 'PAID' : (amountValue > 0 ? 'PARTIAL' : 'PENDING')
 
       setPaymentPreview({
         remainingAfterPayment,

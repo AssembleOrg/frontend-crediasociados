@@ -238,7 +238,7 @@ export function CreateLoanModal({
       errors.amount = amountError
     }
 
-    if (!formData.baseInterestRate || parseFloat(formData.baseInterestRate) < 0) {
+    if (formData.baseInterestRate === undefined || formData.baseInterestRate === null || formData.baseInterestRate === '' || isNaN(parseFloat(formData.baseInterestRate)) || parseFloat(formData.baseInterestRate) < 0) {
       errors.baseInterestRate = 'La tasa de interés base debe ser 0 o mayor'
     }
 

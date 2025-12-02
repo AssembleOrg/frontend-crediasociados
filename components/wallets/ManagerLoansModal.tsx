@@ -254,7 +254,11 @@ export default function ManagerLoansModal({
                   Dinero en Calle
                 </Typography>
                 <Typography variant="h5" fontWeight={700} color="info.main" sx={{ mt: 0.5 }}>
-                  {formatCurrency(managerDetail.dineroEnCalle)}
+                  {formatCurrency(
+                    // Calcular dinero en calle sumando el totalPending de todos los préstamos
+                    // Esto asegura que se reflejen los pagos parciales correctamente
+                    managerDetail.loans.reduce((sum, loan) => sum + (loan.stats.totalPending || 0), 0)
+                  )}
                 </Typography>
               </Paper>
               <Paper 

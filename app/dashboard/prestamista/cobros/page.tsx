@@ -317,7 +317,7 @@ export default function CobrosPage() {
         onClose={() => setPaymentModalOpen(false)}
         subloan={paymentModalMode === 'single' ? selectedPaymentSubloan : null}
         subloans={paymentModalMode === 'selector' && selectedPaymentClient ? 
-          selectedPaymentClient.subLoans.filter(s => s.status !== 'PAID') : []
+          selectedPaymentClient.subLoans : []
         }
         clientName={
           paymentModalMode === 'single' && selectedPaymentSubloan 

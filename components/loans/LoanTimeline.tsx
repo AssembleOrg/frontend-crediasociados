@@ -152,12 +152,12 @@ const TimelineNode: React.FC<TimelineNodeProps> = ({
           position: 'relative',
           minWidth: compact ? 70 : 100,
           flex: compact ? '0 0 70px' : '0 0 100px',
-          cursor: !isPaid && onPaymentClick ? 'pointer' : 'default',
+          cursor: onPaymentClick ? 'pointer' : 'default',
           '&:hover': {
-            transform: !isPaid && onPaymentClick ? 'scale(1.05)' : 'none',
+            transform: onPaymentClick ? 'scale(1.05)' : 'none',
           },
           transition: 'transform 0.2s ease',
-          ...((!isPaid && onPaymentClick) && {
+          ...(onPaymentClick && {
             '&:hover': {
               transform: 'scale(1.05)',
               '& .payment-hint': {
@@ -167,7 +167,7 @@ const TimelineNode: React.FC<TimelineNodeProps> = ({
           })
         }}
         onClick={() => {
-          if (!isPaid && onPaymentClick) {
+          if (onPaymentClick) {
             onPaymentClick(subloan)
           }
         }}
@@ -258,7 +258,7 @@ const TimelineNode: React.FC<TimelineNodeProps> = ({
         />
         
         {/* Payment Clickable Hint */}
-        {!isPaid && onPaymentClick && (
+        {onPaymentClick && (
           <Typography
             className="payment-hint"
             variant="caption"
@@ -271,7 +271,7 @@ const TimelineNode: React.FC<TimelineNodeProps> = ({
               fontWeight: 'bold'
             }}
           >
-            Click para pagar
+            {isPaid ? 'Clic para editar' : 'Clic para pagar'}
           </Typography>
         )}
       </Box>

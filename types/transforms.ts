@@ -151,8 +151,12 @@ export const apiLoanToLoan = (apiLoan: LoanResponseDto): Loan => ({
   clientId: apiLoan.clientId, // Available in CreateLoanResponseDto
   amount: apiLoan.amount,
   originalAmount: (apiLoan as any).originalAmount, // Monto original prestado (sin intereses)
-  baseInterestRate: (apiLoan as any).baseInterestRate || 0.05, // Use API value or fallback
-  penaltyInterestRate: (apiLoan as any).penaltyInterestRate || 0.05, // Use API value or fallback
+  baseInterestRate: (apiLoan as any).baseInterestRate !== undefined && (apiLoan as any).baseInterestRate !== null 
+    ? (apiLoan as any).baseInterestRate 
+    : 0, // Use API value, default to 0 if not provided
+  penaltyInterestRate: (apiLoan as any).penaltyInterestRate !== undefined && (apiLoan as any).penaltyInterestRate !== null 
+    ? (apiLoan as any).penaltyInterestRate 
+    : 0, // Use API value, default to 0 if not provided
   currency: 'ARS' as const,
   paymentFrequency: apiLoan.paymentFrequency as
     | 'DAILY'

@@ -40,13 +40,12 @@ export default function LoanDetailsModal({
   loan,
   subLoans,
   isLoading = false,
-  onGoToCobros,
   onPaymentSuccess
 }: LoanDetailsModalProps) {
   const [paymentModalOpen, setPaymentModalOpen] = useState(false)
   const [selectedSubloan, setSelectedSubloan] = useState<SubLoanWithClientInfo | null>(null)
   const [paymentError, setPaymentError] = useState<string | null>(null)
-
+  console.table(loan)
   if (!loan) return null
 
   const clientName = subLoans.length > 0 
@@ -74,23 +73,26 @@ export default function LoanDetailsModal({
   const sortedSubLoans = [...subLoans].sort((a, b) => (a.paymentNumber ?? 0) - (b.paymentNumber ?? 0))
 
   // Validar que no se pueda pagar una cuota si hay anteriores sin pagar
+  // NOTA: Los subpréstamos pagados pueden ser editados (el backend validará si el pago es más viejo que 24hs)
   const canPaySubloan = (subloan: SubLoanWithClientInfo): { canPay: boolean; reason?: string } => {
-    // Si ya está pagada, no se puede pagar de nuevo
-    if (subloan.status === 'PAID') {
-      return { canPay: false, reason: 'Esta cuota ya está pagada' }
-    }
+    // Permitir edición de subpréstamos pagados (el backend validará si es posible)
+    // if (subloan.status === 'PAID') {
+    //   return { canPay: false, reason: 'Esta cuota ya está pagada' }
+    // }
 
-    // Buscar si hay cuotas anteriores sin pagar
-    const currentPaymentNumber = subloan.paymentNumber ?? 0
-    const previousUnpaid = sortedSubLoans.find(s => 
-      (s.paymentNumber ?? 0) < currentPaymentNumber && 
-      s.status !== 'PAID'
-    )
+    // Buscar si hay cuotas anteriores sin pagar (solo para subpréstamos no pagados)
+    if (subloan.status !== 'PAID') {
+      const currentPaymentNumber = subloan.paymentNumber ?? 0
+      const previousUnpaid = sortedSubLoans.find(s => 
+        (s.paymentNumber ?? 0) < currentPaymentNumber && 
+        s.status !== 'PAID'
+      )
 
-    if (previousUnpaid) {
-      return { 
-        canPay: false, 
-        reason: `No se puede pagar la cuota #${currentPaymentNumber} sin pagar primero la cuota #${previousUnpaid.paymentNumber}` 
+      if (previousUnpaid) {
+        return { 
+          canPay: false, 
+          reason: `No se puede pagar la cuota #${currentPaymentNumber} sin pagar primero la cuota #${previousUnpaid.paymentNumber}` 
+        }
       }
     }
 

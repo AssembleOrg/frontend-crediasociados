@@ -4,7 +4,13 @@ import type { Loan } from '@/types/auth'
  * Calculate the interest rate as a percentage for display
  */
 export const calculateInterestRatePercentage = (loan: Loan): number => {
-  if (!loan.baseInterestRate || loan.baseInterestRate <= 0) {
+  // Explicitly check for 0 or undefined/null
+  if (loan.baseInterestRate === undefined || loan.baseInterestRate === null || loan.baseInterestRate === 0) {
+    return 0
+  }
+  
+  // If rate is negative, return 0 (invalid rate)
+  if (loan.baseInterestRate < 0) {
     return 0
   }
   
@@ -17,7 +23,13 @@ export const calculateInterestRatePercentage = (loan: Loan): number => {
  * Calculate the interest rate as a decimal for calculations
  */
 export const calculateInterestRateDecimal = (loan: Loan): number => {
-  if (!loan.baseInterestRate || loan.baseInterestRate <= 0) {
+  // Explicitly check for 0 or undefined/null
+  if (loan.baseInterestRate === undefined || loan.baseInterestRate === null || loan.baseInterestRate === 0) {
+    return 0
+  }
+  
+  // If rate is negative, return 0 (invalid rate)
+  if (loan.baseInterestRate < 0) {
     return 0
   }
   

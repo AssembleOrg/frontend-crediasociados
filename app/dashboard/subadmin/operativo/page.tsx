@@ -180,9 +180,14 @@ export default function OperativoSubadminPage() {
     setLoadingDineroEnCalle(prev => ({ ...prev, [managerId]: true }));
     try {
       const data = await collectorWalletService.getManagerDetail(managerId);
+      // Calcular dinero en calle sumando el totalPending de todos los préstamos
+      // Esto asegura que se reflejen los pagos parciales correctamente
+      const calculatedDineroEnCalle = data.loans.reduce((sum: number, loan: any) => 
+        sum + (loan.stats?.totalPending || 0), 0
+      );
       setManagersDineroEnCalle(prev => ({
         ...prev,
-        [managerId]: data.dineroEnCalle
+        [managerId]: calculatedDineroEnCalle
       }));
     } catch (error) {
       // Error fetching dinero en calle
