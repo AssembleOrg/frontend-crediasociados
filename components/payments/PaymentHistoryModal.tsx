@@ -19,7 +19,8 @@ import {
   CircularProgress,
   Alert
 } from '@mui/material'
-import { History, Close } from '@mui/icons-material'
+import { History, Close, Refresh } from '@mui/icons-material'
+import { Chip } from '@mui/material'
 import { paymentsService } from '@/services/payments.service'
 import { formatAmount } from '@/lib/formatters'
 import type { Payment } from '@/types/auth'
@@ -40,6 +41,13 @@ export const PaymentHistoryModal: React.FC<PaymentHistoryModalProps> = ({
   totalAmount
 }) => {
   const [payments, setPayments] = useState<Payment[]>([])
+  const [paymentHistory, setPaymentHistory] = useState<Array<{
+    date: string;
+    type?: string;
+    amount: number;
+    balance: number;
+    description?: string;
+  }>>([])
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -49,8 +57,14 @@ export const PaymentHistoryModal: React.FC<PaymentHistoryModalProps> = ({
     try {
       const history = await paymentsService.getPaymentHistory(subLoanId)
       // Handle both array and object response formats
-      const paymentsList = Array.isArray(history) ? history : []
-      setPayments(paymentsList)
+      if (Array.isArray(history)) {
+        setPayments(history)
+        setPaymentHistory([])
+      } else {
+        // If it's an object with paymentHistory field
+        setPayments((history as any).payments || [])
+        setPaymentHistory((history as any).paymentHistory || [])
+      }
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : 'Error al cargar historial de pagos'
       setError(errorMsg)
@@ -65,8 +79,21 @@ export const PaymentHistoryModal: React.FC<PaymentHistoryModalProps> = ({
     }
   }, [open, subLoanId, fetchPaymentHistory])
 
-  const totalPaid = payments.reduce((sum, p) => sum + p.amount, 0)
+  // Calculate total paid from paymentHistory if available, otherwise from payments
+  const totalPaid = paymentHistory.length > 0
+    ? paymentHistory
+        .filter(h => h.type !== 'RESET')
+        .reduce((sum, h) => sum + Math.max(0, h.amount), 0)
+    : payments.reduce((sum, p) => sum + p.amount, 0)
   const remainingAmount = totalAmount - totalPaid
+
+  // Use paymentHistory if available, otherwise fallback to payments
+  const displayHistory = paymentHistory.length > 0 ? paymentHistory : payments.map(p => ({
+    date: p.paymentDate.toString(),
+    amount: p.amount,
+    balance: 0,
+    description: p.description
+  }))
 
   return (
     <Dialog
@@ -132,7 +159,7 @@ export const PaymentHistoryModal: React.FC<PaymentHistoryModalProps> = ({
           </Box>
         ) : error ? (
           <Alert severity="error">{error}</Alert>
-        ) : payments.length === 0 ? (
+        ) : displayHistory.length === 0 ? (
           <Alert severity="info">No hay pagos registrados aún</Alert>
         ) : (
           <TableContainer component={Paper} sx={{ mb: 2 }}>
@@ -140,24 +167,53 @@ export const PaymentHistoryModal: React.FC<PaymentHistoryModalProps> = ({
               <TableHead>
                 <TableRow sx={{ bgcolor: 'grey.100' }}>
                   <TableCell><strong>Fecha</strong></TableCell>
+                  <TableCell><strong>Tipo</strong></TableCell>
                   <TableCell align="right"><strong>Monto</strong></TableCell>
                   <TableCell><strong>Descripción</strong></TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
-                {payments.map((payment) => (
-                  <TableRow key={payment.id} hover>
-                    <TableCell>
-                      {new Date(payment.paymentDate).toLocaleDateString('es-AR')}
-                    </TableCell>
-                    <TableCell align="right" sx={{ fontWeight: 600, color: 'success.main' }}>
-                      +${formatAmount(payment.amount.toString())}
-                    </TableCell>
-                    <TableCell sx={{ fontSize: '0.85rem', color: 'text.secondary' }}>
-                      {payment.description || '-'}
-                    </TableCell>
-                  </TableRow>
-                ))}
+                {displayHistory.map((item, index) => {
+                  const isReset = item.type === 'RESET' || (item.amount < 0 && item.description?.toLowerCase().includes('reseteo'))
+                  const isPositive = !isReset && item.amount > 0
+                  return (
+                    <TableRow key={index} hover>
+                      <TableCell>
+                        {new Date(item.date).toLocaleDateString('es-AR')}
+                      </TableCell>
+                      <TableCell>
+                        {isReset ? (
+                          <Chip
+                            icon={<Refresh />}
+                            label="Reseteo"
+                            size="small"
+                            color="warning"
+                            sx={{ fontWeight: 600 }}
+                          />
+                        ) : (
+                          <Chip
+                            label="Pago"
+                            size="small"
+                            color="success"
+                            sx={{ fontWeight: 600 }}
+                          />
+                        )}
+                      </TableCell>
+                      <TableCell 
+                        align="right" 
+                        sx={{ 
+                          fontWeight: 600, 
+                          color: isReset ? 'warning.main' : isPositive ? 'success.main' : 'text.secondary'
+                        }}
+                      >
+                        {isReset ? '-' : '+'}${formatAmount(Math.abs(item.amount).toString())}
+                      </TableCell>
+                      <TableCell sx={{ fontSize: '0.85rem', color: 'text.secondary' }}>
+                        {item.description || '-'}
+                      </TableCell>
+                    </TableRow>
+                  )
+                })}
               </TableBody>
             </Table>
           </TableContainer>

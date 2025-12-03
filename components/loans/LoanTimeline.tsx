@@ -1,7 +1,7 @@
 'use client'
 
-import { Box, Typography, Chip, Tooltip, useTheme, useMediaQuery } from '@mui/material'
-import { CheckCircle, RadioButtonUnchecked, Warning, Error } from '@mui/icons-material'
+import { Box, Typography, Chip, Tooltip, useTheme, useMediaQuery, IconButton, CircularProgress, Button } from '@mui/material'
+import { CheckCircle, RadioButtonUnchecked, Warning, Error, Refresh } from '@mui/icons-material'
 import type { SubLoanWithClientInfo } from '@/services/subloans-lookup.service'
 import { DateTime } from 'luxon'
 
@@ -10,6 +10,8 @@ interface LoanTimelineProps {
   subLoans: SubLoanWithClientInfo[]
   compact?: boolean
   onPaymentClick?: (subloan: SubLoanWithClientInfo) => void
+  onResetClick?: (subloan: SubLoanWithClientInfo) => void
+  resettingSubloanId?: string | null
 }
 
 interface TimelineNodeProps {
@@ -19,6 +21,8 @@ interface TimelineNodeProps {
   getUrgencyLevel: (subloan: SubLoanWithClientInfo) => 'overdue' | 'today' | 'soon' | 'future'
   compact?: boolean
   onPaymentClick?: (subloan: SubLoanWithClientInfo) => void
+  onResetClick?: (subloan: SubLoanWithClientInfo) => void
+  resettingSubloanId?: string | null
 }
 
 const TimelineNode: React.FC<TimelineNodeProps> = ({
@@ -26,7 +30,9 @@ const TimelineNode: React.FC<TimelineNodeProps> = ({
   isLast,
   getUrgencyLevel,
   compact = false,
-  onPaymentClick
+  onPaymentClick,
+  onResetClick,
+  resettingSubloanId
 }) => {
   const urgency = getUrgencyLevel(subloan)
   const isPaid = subloan.status === 'PAID'
@@ -152,12 +158,12 @@ const TimelineNode: React.FC<TimelineNodeProps> = ({
           position: 'relative',
           minWidth: compact ? 70 : 100,
           flex: compact ? '0 0 70px' : '0 0 100px',
-          cursor: onPaymentClick ? 'pointer' : 'default',
+          cursor: !isPaid && onPaymentClick ? 'pointer' : 'default',
           '&:hover': {
-            transform: onPaymentClick ? 'scale(1.05)' : 'none',
+            transform: !isPaid && onPaymentClick ? 'scale(1.05)' : 'none',
           },
           transition: 'transform 0.2s ease',
-          ...(onPaymentClick && {
+          ...(!isPaid && onPaymentClick && {
             '&:hover': {
               transform: 'scale(1.05)',
               '& .payment-hint': {
@@ -167,7 +173,7 @@ const TimelineNode: React.FC<TimelineNodeProps> = ({
           })
         }}
         onClick={() => {
-          if (onPaymentClick) {
+          if (!isPaid && onPaymentClick) {
             onPaymentClick(subloan)
           }
         }}
@@ -258,7 +264,7 @@ const TimelineNode: React.FC<TimelineNodeProps> = ({
         />
         
         {/* Payment Clickable Hint */}
-        {onPaymentClick && (
+        {!isPaid && onPaymentClick && (
           <Typography
             className="payment-hint"
             variant="caption"
@@ -271,8 +277,40 @@ const TimelineNode: React.FC<TimelineNodeProps> = ({
               fontWeight: 'bold'
             }}
           >
-            {isPaid ? 'Clic para editar' : 'Clic para pagar'}
+            Clic para pagar
           </Typography>
+        )}
+
+        {/* Reset Button for Paid SubLoans */}
+        {isPaid && onResetClick && (
+          <Button
+            size="small"
+            variant="outlined"
+            color="warning"
+            startIcon={resettingSubloanId === subloan.id ? <CircularProgress size={14} /> : <Refresh sx={{ fontSize: 14 }} />}
+            onClick={(e) => {
+              e.stopPropagation()
+              onResetClick(subloan)
+            }}
+            disabled={resettingSubloanId === subloan.id}
+            sx={{
+              mt: 1,
+              minWidth: 'auto',
+              px: 1,
+              py: 0.5,
+              fontSize: '10px',
+              textTransform: 'none',
+              borderWidth: 1.5,
+              fontWeight: 600,
+              '&:hover': {
+                borderWidth: 1.5,
+                bgcolor: 'warning.light',
+                color: 'warning.dark'
+              }
+            }}
+          >
+            {resettingSubloanId === subloan.id ? 'Reseteando...' : 'Resetear'}
+          </Button>
         )}
       </Box>
     </Tooltip>
@@ -283,7 +321,9 @@ export const LoanTimeline: React.FC<LoanTimelineProps> = ({
   clientName, 
   subLoans, 
   compact = false,
-  onPaymentClick
+  onPaymentClick,
+  onResetClick,
+  resettingSubloanId
 }) => {
   const theme = useTheme()
   const isMobile = useMediaQuery(theme.breakpoints.down('md'))
@@ -433,6 +473,8 @@ export const LoanTimeline: React.FC<LoanTimelineProps> = ({
             getUrgencyLevel={getUrgencyLevel}
             compact={isCompactMode}
             onPaymentClick={onPaymentClick}
+            onResetClick={onResetClick}
+            resettingSubloanId={resettingSubloanId}
           />
         ))}
       </Box>

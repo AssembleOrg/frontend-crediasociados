@@ -15,6 +15,10 @@ import {
   Snackbar,
   FormControlLabel,
   Switch,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
 } from '@mui/material';
 import {
   Refresh,
@@ -25,6 +29,7 @@ import {
   Save,
   Close as CloseIcon,
   AttachMoney,
+  Warning,
 } from '@mui/icons-material';
 import { usePathname } from 'next/navigation';
 import {
@@ -53,6 +58,7 @@ import { PaymentModal } from '@/components/loans/PaymentModal';
 import { RouteExpenseModal } from '@/components/routes/RouteExpenseModal';
 import { RouteDatePicker } from '@/components/routes/RouteDatePicker';
 import { CollectionRouteItem } from '@/services/collection-routes.service';
+import { paymentsService } from '@/services/payments.service';
 import { DateTime } from 'luxon';
 
 /**
@@ -62,9 +68,11 @@ interface SortableRouteItemProps {
   item: CollectionRouteItem;
   index: number;
   onPayment: (item: CollectionRouteItem) => void;
+  onReset?: (item: CollectionRouteItem) => void;
+  resettingSubloanId?: string | null;
 }
 
-function SortableRouteItem({ item, index, onPayment }: SortableRouteItemProps) {
+function SortableRouteItem({ item, index, onPayment, onReset, resettingSubloanId }: SortableRouteItemProps) {
   const {
     listeners,
     setNodeRef,
@@ -94,8 +102,10 @@ function SortableRouteItem({ item, index, onPayment }: SortableRouteItemProps) {
         item={item}
         index={index}
         onPayment={onPayment}
+        onReset={onReset}
         isActive={false} // Disable payment in reorder mode
         isDragging={isDragging}
+        resettingSubloanId={resettingSubloanId}
         dragHandleProps={listeners}
       />
     </Box>
@@ -125,6 +135,10 @@ export default function RutasPage() {
   const [expenseModalOpen, setExpenseModalOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState<CollectionRouteItem | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [resetConfirmModalOpen, setResetConfirmModalOpen] = useState(false);
+  const [itemToReset, setItemToReset] = useState<CollectionRouteItem | null>(null);
+  const [resettingSubloanId, setResettingSubloanId] = useState<string | null>(null);
+  const [resetError, setResetError] = useState<string | null>(null);
   
   // Drag & Drop State
   const [isReorderMode, setIsReorderMode] = useState(false);
@@ -183,6 +197,40 @@ export default function RutasPage() {
   const handlePaymentSuccess = () => {
     // Refresh route to get updated amounts
     fetchTodayRoute();
+  };
+
+  const handleResetPayments = (item: CollectionRouteItem) => {
+    if (!item.subLoanId) return;
+    setItemToReset(item);
+    setResetConfirmModalOpen(true);
+  };
+
+  const handleConfirmReset = async () => {
+    if (!itemToReset?.subLoanId) return;
+
+    setResettingSubloanId(itemToReset.subLoanId);
+    setResetError(null);
+    setResetConfirmModalOpen(false);
+
+    try {
+      await paymentsService.resetPayments(itemToReset.subLoanId);
+      // Refresh route to get updated amounts
+      fetchTodayRoute();
+      setSuccessMessage('✅ Pagos reseteados exitosamente');
+      setItemToReset(null);
+    } catch (error: any) {
+      const errorMessage = error?.response?.data?.message || error?.message || 'Error al resetear los pagos';
+      setResetError(errorMessage);
+      setSuccessMessage(`❌ ${errorMessage}`);
+      setTimeout(() => setResetError(null), 5000);
+    } finally {
+      setResettingSubloanId(null);
+    }
+  };
+
+  const handleCancelReset = () => {
+    setResetConfirmModalOpen(false);
+    setItemToReset(null);
   };
 
   const handleOpenCloseModal = () => {
@@ -675,6 +723,8 @@ export default function RutasPage() {
                     item={item}
                     index={index}
                     onPayment={handleOpenPaymentModal}
+                    onReset={handleResetPayments}
+                    resettingSubloanId={resettingSubloanId}
                   />
                 ))}
               </Box>
@@ -690,7 +740,9 @@ export default function RutasPage() {
                 item={item}
                 index={index}
                 onPayment={handleOpenPaymentModal}
+                onReset={handleResetPayments}
                 isActive={!isRouteClosed}
+                resettingSubloanId={resettingSubloanId}
               />
               ))
             ) : (
@@ -769,6 +821,70 @@ export default function RutasPage() {
           }}
         />
       )}
+
+      {/* Reset Confirmation Modal */}
+      <Dialog
+        open={resetConfirmModalOpen}
+        onClose={handleCancelReset}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle sx={{ pb: 2 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            <Warning color="warning" sx={{ fontSize: 28 }} />
+            <Typography variant="h6" fontWeight="bold">
+              Confirmar Reseteo de Pagos
+            </Typography>
+          </Box>
+        </DialogTitle>
+        <DialogContent>
+          <Typography variant="body1" gutterBottom sx={{ mb: 2 }}>
+            ¿Está seguro de resetear todos los pagos de la cuota #{itemToReset?.subLoan.paymentNumber}?
+          </Typography>
+          
+          <Alert severity="warning" sx={{ mb: 2 }}>
+            <Typography variant="body2" fontWeight="bold" gutterBottom>
+              Esta acción eliminará:
+            </Typography>
+            <Typography variant="body2" component="ul" sx={{ pl: 2, mb: 0 }}>
+              <li>Todos los pagos registrados de esta cuota</li>
+              <li>Los efectos en las wallets (se revertirán los créditos)</li>
+              <li>Los registros de la ruta del día (si aplica)</li>
+            </Typography>
+          </Alert>
+
+          <Alert severity="info" sx={{ mb: 2 }}>
+            <Typography variant="body2">
+              <strong>Importante:</strong> Solo se puede resetear si el último pago fue realizado en las últimas 24 horas.
+            </Typography>
+          </Alert>
+
+          <Alert severity="error">
+            <Typography variant="body2" fontWeight="bold">
+              ⚠️ Esta acción no se puede deshacer.
+            </Typography>
+          </Alert>
+        </DialogContent>
+        <DialogActions sx={{ p: 3, pt: 2 }}>
+          <Button 
+            onClick={handleCancelReset}
+            variant="outlined"
+            sx={{ minWidth: 120 }}
+          >
+            Cancelar
+          </Button>
+          <Button
+            onClick={handleConfirmReset}
+            variant="contained"
+            color="warning"
+            startIcon={<Refresh />}
+            disabled={resettingSubloanId === itemToReset?.subLoanId}
+            sx={{ minWidth: 120 }}
+          >
+            {resettingSubloanId === itemToReset?.subLoanId ? 'Reseteando...' : 'Resetear Pagos'}
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       {/* Success/Error Snackbar */}
       <Snackbar

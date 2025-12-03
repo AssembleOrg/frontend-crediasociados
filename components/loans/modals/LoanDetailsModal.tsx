@@ -9,9 +9,9 @@ import {
   Button,
   Box,
   Typography,
-  Alert
+  Alert,
 } from '@mui/material'
-import { Payment } from '@mui/icons-material'
+import { Payment, Refresh, Warning } from '@mui/icons-material'
 import LoanTimeline from '@/components/loans/LoanTimeline'
 import { PaymentModal } from '@/components/loans/PaymentModal'
 import { 
@@ -21,6 +21,7 @@ import {
   getLoanStatusInfo 
 } from '@/lib/loans/loanCalculations'
 import { getFrequencyLabel } from '@/lib/formatters'
+import { paymentsService } from '@/services/payments.service'
 import type { SubLoanWithClientInfo } from '@/services/subloans-lookup.service'
 import type { Loan } from '@/types/auth'
 
@@ -45,6 +46,10 @@ export default function LoanDetailsModal({
   const [paymentModalOpen, setPaymentModalOpen] = useState(false)
   const [selectedSubloan, setSelectedSubloan] = useState<SubLoanWithClientInfo | null>(null)
   const [paymentError, setPaymentError] = useState<string | null>(null)
+  const [resettingSubloanId, setResettingSubloanId] = useState<string | null>(null)
+  const [resetError, setResetError] = useState<string | null>(null)
+  const [resetConfirmModalOpen, setResetConfirmModalOpen] = useState(false)
+  const [subloanToReset, setSubloanToReset] = useState<SubLoanWithClientInfo | null>(null)
   console.table(loan)
   if (!loan) return null
 
@@ -73,26 +78,23 @@ export default function LoanDetailsModal({
   const sortedSubLoans = [...subLoans].sort((a, b) => (a.paymentNumber ?? 0) - (b.paymentNumber ?? 0))
 
   // Validar que no se pueda pagar una cuota si hay anteriores sin pagar
-  // NOTA: Los subpréstamos pagados pueden ser editados (el backend validará si el pago es más viejo que 24hs)
   const canPaySubloan = (subloan: SubLoanWithClientInfo): { canPay: boolean; reason?: string } => {
-    // Permitir edición de subpréstamos pagados (el backend validará si es posible)
-    // if (subloan.status === 'PAID') {
-    //   return { canPay: false, reason: 'Esta cuota ya está pagada' }
-    // }
+    // No permitir pagar subpréstamos ya pagados
+    if (subloan.status === 'PAID') {
+      return { canPay: false, reason: 'Esta cuota ya está pagada' }
+    }
 
-    // Buscar si hay cuotas anteriores sin pagar (solo para subpréstamos no pagados)
-    if (subloan.status !== 'PAID') {
-      const currentPaymentNumber = subloan.paymentNumber ?? 0
-      const previousUnpaid = sortedSubLoans.find(s => 
-        (s.paymentNumber ?? 0) < currentPaymentNumber && 
-        s.status !== 'PAID'
-      )
+    // Buscar si hay cuotas anteriores sin pagar
+    const currentPaymentNumber = subloan.paymentNumber ?? 0
+    const previousUnpaid = sortedSubLoans.find(s => 
+      (s.paymentNumber ?? 0) < currentPaymentNumber && 
+      s.status !== 'PAID'
+    )
 
-      if (previousUnpaid) {
-        return { 
-          canPay: false, 
-          reason: `No se puede pagar la cuota #${currentPaymentNumber} sin pagar primero la cuota #${previousUnpaid.paymentNumber}` 
-        }
+    if (previousUnpaid) {
+      return { 
+        canPay: false, 
+        reason: `No se puede pagar la cuota #${currentPaymentNumber} sin pagar primero la cuota #${previousUnpaid.paymentNumber}` 
       }
     }
 
@@ -117,6 +119,38 @@ export default function LoanDetailsModal({
     setPaymentModalOpen(false)
     setSelectedSubloan(null)
     onPaymentSuccess?.()
+  }
+
+  const handleResetPayments = (subloan: SubLoanWithClientInfo) => {
+    if (!subloan.id) return
+    setSubloanToReset(subloan)
+    setResetConfirmModalOpen(true)
+  }
+
+  const handleConfirmReset = async () => {
+    if (!subloanToReset?.id) return
+
+    setResettingSubloanId(subloanToReset.id)
+    setResetError(null)
+    setResetConfirmModalOpen(false)
+
+    try {
+      await paymentsService.resetPayments(subloanToReset.id)
+      // Refrescar datos después del reset
+      onPaymentSuccess?.()
+      setSubloanToReset(null)
+    } catch (error: any) {
+      const errorMessage = error?.response?.data?.message || error?.message || 'Error al resetear los pagos'
+      setResetError(errorMessage)
+      setTimeout(() => setResetError(null), 5000)
+    } finally {
+      setResettingSubloanId(null)
+    }
+  }
+
+  const handleCancelReset = () => {
+    setResetConfirmModalOpen(false)
+    setSubloanToReset(null)
   }
 
   return (
@@ -218,15 +252,6 @@ export default function LoanDetailsModal({
                 
                 <Box>
                   <Typography variant="body2" color="text.secondary">
-                    Total a devolver
-                  </Typography>
-                  <Typography variant="h6" fontWeight="bold" color="primary.main">
-                    ${totalAmountToRepay.toLocaleString()}
-                  </Typography>
-                </Box>
-                
-                <Box>
-                  <Typography variant="body2" color="text.secondary">
                     Total de intereses
                   </Typography>
                   <Typography variant="h6" fontWeight="bold" color="warning.main">
@@ -272,10 +297,15 @@ export default function LoanDetailsModal({
               </Box>
             </Box>
 
-            {/* Error Alert */}
+            {/* Error Alerts */}
             {paymentError && (
               <Alert severity="warning" sx={{ mb: 2 }} onClose={() => setPaymentError(null)}>
                 {paymentError}
+              </Alert>
+            )}
+            {resetError && (
+              <Alert severity="error" sx={{ mb: 2 }} onClose={() => setResetError(null)}>
+                {resetError}
               </Alert>
             )}
 
@@ -285,6 +315,8 @@ export default function LoanDetailsModal({
               subLoans={subLoans}
               compact={false}
               onPaymentClick={handlePaymentClick}
+              onResetClick={handleResetPayments}
+              resettingSubloanId={resettingSubloanId}
             />
 
             {/* Actions Section */}
@@ -312,6 +344,70 @@ export default function LoanDetailsModal({
           onPaymentSuccess={handlePaymentSuccess}
         />
       )}
+
+      {/* Reset Confirmation Modal */}
+      <Dialog
+        open={resetConfirmModalOpen}
+        onClose={handleCancelReset}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle sx={{ pb: 2 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            <Warning color="warning" sx={{ fontSize: 28 }} />
+            <Typography variant="h6" fontWeight="bold">
+              Confirmar Reseteo de Pagos
+            </Typography>
+          </Box>
+        </DialogTitle>
+        <DialogContent>
+          <Typography variant="body1" gutterBottom sx={{ mb: 2 }}>
+            ¿Está seguro de resetear todos los pagos de la cuota #{subloanToReset?.paymentNumber}?
+          </Typography>
+          
+          <Alert severity="warning" sx={{ mb: 2 }}>
+            <Typography variant="body2" fontWeight="bold" gutterBottom>
+              Esta acción eliminará:
+            </Typography>
+            <Typography variant="body2" component="ul" sx={{ pl: 2, mb: 0 }}>
+              <li>Todos los pagos registrados de esta cuota</li>
+              <li>Los efectos en las wallets (se revertirán los créditos)</li>
+              <li>Los registros de la ruta del día (si aplica)</li>
+            </Typography>
+          </Alert>
+
+          <Alert severity="info" sx={{ mb: 2 }}>
+            <Typography variant="body2">
+              <strong>Importante:</strong> Solo se puede resetear si el último pago fue realizado en las últimas 24 horas.
+            </Typography>
+          </Alert>
+
+          <Alert severity="error">
+            <Typography variant="body2" fontWeight="bold">
+              ⚠️ Esta acción no se puede deshacer.
+            </Typography>
+          </Alert>
+        </DialogContent>
+        <DialogActions sx={{ p: 3, pt: 2 }}>
+          <Button 
+            onClick={handleCancelReset}
+            variant="outlined"
+            sx={{ minWidth: 120 }}
+          >
+            Cancelar
+          </Button>
+          <Button
+            onClick={handleConfirmReset}
+            variant="contained"
+            color="warning"
+            startIcon={<Refresh />}
+            disabled={resettingSubloanId === subloanToReset?.id}
+            sx={{ minWidth: 120 }}
+          >
+            {resettingSubloanId === subloanToReset?.id ? 'Reseteando...' : 'Resetear Pagos'}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Dialog>
   )
 }

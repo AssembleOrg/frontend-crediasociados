@@ -29,7 +29,7 @@ import {
   MenuItem,
   TextField
 } from '@mui/material'
-import { Close, History, TrendingUp, TrendingDown, SwapHoriz, Receipt, AccountBalance } from '@mui/icons-material'
+import { Close, History, TrendingUp, TrendingDown, SwapHoriz, Receipt, AccountBalance, Refresh } from '@mui/icons-material'
 import { collectorWalletService } from '@/services/collector-wallet.service'
 import { useUsers } from '@/hooks/useUsers'
 
@@ -38,7 +38,7 @@ interface WalletHistoryModalProps {
   onClose: () => void
 }
 
-type TransactionType = 'COLLECTION' | 'WITHDRAWAL' | 'ROUTE_EXPENSE' | 'LOAN_DISBURSEMENT' | 'CASH_ADJUSTMENT' | 'ALL'
+type TransactionType = 'COLLECTION' | 'WITHDRAWAL' | 'ROUTE_EXPENSE' | 'LOAN_DISBURSEMENT' | 'CASH_ADJUSTMENT' | 'PAYMENT_RESET' | 'ALL'
 
 export default function WalletHistoryModal({ open, onClose }: WalletHistoryModalProps) {
   const theme = useTheme()
@@ -53,7 +53,7 @@ export default function WalletHistoryModal({ open, onClose }: WalletHistoryModal
   const [selectedManagerId, setSelectedManagerId] = useState<string>('')
   const [transactions, setTransactions] = useState<Array<{
     id: string
-    type: 'COLLECTION' | 'WITHDRAWAL' | 'ROUTE_EXPENSE' | 'LOAN_DISBURSEMENT' | 'CASH_ADJUSTMENT'
+    type: 'COLLECTION' | 'WITHDRAWAL' | 'ROUTE_EXPENSE' | 'LOAN_DISBURSEMENT' | 'CASH_ADJUSTMENT' | 'PAYMENT_RESET'
     amount: number
     currency: string
     description: string
@@ -115,7 +115,7 @@ export default function WalletHistoryModal({ open, onClose }: WalletHistoryModal
         managerId: string; // Required
         page?: number; 
         limit?: number; 
-        type?: 'COLLECTION' | 'WITHDRAWAL' | 'ROUTE_EXPENSE' | 'LOAN_DISBURSEMENT' | 'CASH_ADJUSTMENT';
+        type?: 'COLLECTION' | 'WITHDRAWAL' | 'ROUTE_EXPENSE' | 'LOAN_DISBURSEMENT' | 'CASH_ADJUSTMENT' | 'PAYMENT_RESET';
         startDate?: string; 
         endDate?: string 
       } = {
@@ -186,6 +186,8 @@ export default function WalletHistoryModal({ open, onClose }: WalletHistoryModal
         return 'Desembolso'
       case 'CASH_ADJUSTMENT':
         return 'Ajuste de Caja'
+      case 'PAYMENT_RESET':
+        return 'Reseteo de Pago'
       default:
         return 'Transacción'
     }
@@ -203,6 +205,8 @@ export default function WalletHistoryModal({ open, onClose }: WalletHistoryModal
         return 'error'
       case 'CASH_ADJUSTMENT':
         return 'info'
+      case 'PAYMENT_RESET':
+        return 'warning'
       default:
         return 'default'
     }
@@ -220,6 +224,8 @@ export default function WalletHistoryModal({ open, onClose }: WalletHistoryModal
         return <AccountBalance />
       case 'CASH_ADJUSTMENT':
         return <SwapHoriz />
+      case 'PAYMENT_RESET':
+        return <Refresh />
       default:
         return <History />
     }
@@ -230,7 +236,7 @@ export default function WalletHistoryModal({ open, onClose }: WalletHistoryModal
     if (type === 'CASH_ADJUSTMENT' || type === 'COLLECTION') {
       return '+'
     }
-    // WITHDRAWAL, ROUTE_EXPENSE, LOAN_DISBURSEMENT son negativos (egresos)
+    // WITHDRAWAL, ROUTE_EXPENSE, LOAN_DISBURSEMENT, PAYMENT_RESET son negativos (egresos)
     return '-'
   }
 
@@ -244,6 +250,9 @@ export default function WalletHistoryModal({ open, onClose }: WalletHistoryModal
     }
     if (type === 'COLLECTION') {
       return 'success.main'
+    }
+    if (type === 'PAYMENT_RESET') {
+      return 'warning.main'
     }
     // WITHDRAWAL, ROUTE_EXPENSE, LOAN_DISBURSEMENT son negativos
     return 'error.main'
@@ -361,6 +370,7 @@ export default function WalletHistoryModal({ open, onClose }: WalletHistoryModal
                 <MenuItem value="ROUTE_EXPENSE">Gastos de Ruta</MenuItem>
                 <MenuItem value="LOAN_DISBURSEMENT">Desembolsos</MenuItem>
                 <MenuItem value="CASH_ADJUSTMENT">Ajustes de Caja</MenuItem>
+                <MenuItem value="PAYMENT_RESET">Reseteos de Pago</MenuItem>
               </Select>
             </FormControl>
             
@@ -517,6 +527,8 @@ export default function WalletHistoryModal({ open, onClose }: WalletHistoryModal
                       ? alpha(theme.palette.success.main, 0.02)
                       : tx.type === 'ROUTE_EXPENSE' || tx.type === 'LOAN_DISBURSEMENT'
                       ? alpha(theme.palette.error.main, 0.02)
+                      : tx.type === 'PAYMENT_RESET'
+                      ? alpha(theme.palette.warning.main, 0.02)
                       : alpha(theme.palette.warning.main, 0.02)
 
                     return (

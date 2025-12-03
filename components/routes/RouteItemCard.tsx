@@ -21,6 +21,7 @@ import {
   Payment,
   DragIndicator,
   OpenInNew,
+  Refresh,
 } from '@mui/icons-material';
 import { CollectionRouteItem } from '@/services/collection-routes.service';
 import { DateTime } from 'luxon';
@@ -29,9 +30,11 @@ interface RouteItemCardProps {
   item: CollectionRouteItem;
   index: number;
   onPayment: (item: CollectionRouteItem) => void;
+  onReset?: (item: CollectionRouteItem) => void;
   isActive: boolean;
   isDragging?: boolean;
   dragHandleProps?: any;
+  resettingSubloanId?: string | null;
 }
 
 /**
@@ -41,10 +44,12 @@ interface RouteItemCardProps {
 export function RouteItemCard({ 
   item, 
   index, 
-  onPayment, 
+  onPayment,
+  onReset,
   isActive,
   isDragging,
-  dragHandleProps 
+  dragHandleProps,
+  resettingSubloanId
 }: RouteItemCardProps) {
   const [expanded, setExpanded] = useState(false);
   const theme = useTheme();
@@ -93,6 +98,8 @@ export function RouteItemCard({
   };
 
   const pendingAmount = item.subLoan.totalAmount - item.subLoan.paidAmount;
+  const isPaid = item.subLoan.status === 'PAID';
+  const isResetting = resettingSubloanId === item.subLoanId;
 
   const openGoogleMaps = () => {
     if (item.clientAddress) {
@@ -229,26 +236,51 @@ export function RouteItemCard({
           {/* Actions */}
           {isActive && (
             <Box sx={{ display: 'flex', gap: { xs: 0.5, sm: 0.5 }, flexShrink: 0 }}>
-              <Button
-                variant="contained"
-                size={isMobile ? 'medium' : 'small'}
-                startIcon={<Payment sx={{ fontSize: { xs: 18, sm: 20 } }} />}
-                onClick={() => onPayment(item)}
-                sx={{
-                  textTransform: 'none',
-                  minWidth: { xs: 85, sm: 120 },
-                  px: { xs: 1.5, sm: 2 },
-                  py: { xs: 0.75, sm: 0.5 },
-                  fontSize: { xs: '0.813rem', sm: '0.813rem' },
-                  fontWeight: { xs: 600, sm: 500 },
-                  boxShadow: { xs: 2, sm: 1 },
-                  '&:active': {
-                    transform: 'scale(0.97)', // Feedback on touch
-                  },
-                }}
-              >
-                {isMobile ? 'Pagar' : 'Registrar'}
-              </Button>
+              {isPaid && onReset ? (
+                <Button
+                  variant="outlined"
+                  color="warning"
+                  size={isMobile ? 'medium' : 'small'}
+                  startIcon={<Refresh sx={{ fontSize: { xs: 18, sm: 20 } }} />}
+                  onClick={() => onReset(item)}
+                  disabled={isResetting}
+                  sx={{
+                    textTransform: 'none',
+                    minWidth: { xs: 85, sm: 120 },
+                    px: { xs: 1.5, sm: 2 },
+                    py: { xs: 0.75, sm: 0.5 },
+                    fontSize: { xs: '0.813rem', sm: '0.813rem' },
+                    fontWeight: { xs: 600, sm: 500 },
+                    borderWidth: 1.5,
+                    '&:active': {
+                      transform: 'scale(0.97)',
+                    },
+                  }}
+                >
+                  {isResetting ? (isMobile ? 'Reseteando...' : 'Reseteando...') : (isMobile ? 'Resetear' : 'Resetear')}
+                </Button>
+              ) : (
+                <Button
+                  variant="contained"
+                  size={isMobile ? 'medium' : 'small'}
+                  startIcon={<Payment sx={{ fontSize: { xs: 18, sm: 20 } }} />}
+                  onClick={() => onPayment(item)}
+                  sx={{
+                    textTransform: 'none',
+                    minWidth: { xs: 85, sm: 120 },
+                    px: { xs: 1.5, sm: 2 },
+                    py: { xs: 0.75, sm: 0.5 },
+                    fontSize: { xs: '0.813rem', sm: '0.813rem' },
+                    fontWeight: { xs: 600, sm: 500 },
+                    boxShadow: { xs: 2, sm: 1 },
+                    '&:active': {
+                      transform: 'scale(0.97)', // Feedback on touch
+                    },
+                  }}
+                >
+                  {isMobile ? 'Pagar' : 'Registrar'}
+                </Button>
+              )}
               <IconButton
                 size={isMobile ? 'medium' : 'small'}
                 onClick={() => setExpanded(!expanded)}

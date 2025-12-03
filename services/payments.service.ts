@@ -147,6 +147,38 @@ class PaymentsService {
   formatPaymentDate(date: Date): string {
     return date.toISOString();
   }
+
+  /**
+   * Reset all payments for a SubLoan
+   * Only allowed if the last payment was made within the last 24 hours
+   * 
+   * @param subLoanId The SubLoan ID to reset payments for
+   * @returns Reset response with updated subloan and payment history
+   */
+  async resetPayments(subLoanId: string): Promise<{
+    message: string;
+    subLoan: {
+      id: string;
+      paymentNumber: number;
+      status: 'PENDING' | 'PARTIAL' | 'PAID';
+      paidAmount: number;
+      totalAmount: number;
+      remainingAmount: number;
+    };
+    paymentsDeleted: number;
+    totalAmountReset: number;
+    routesUpdated: number;
+    paymentHistory: Array<{
+      date: string;
+      type?: string;
+      amount: number;
+      balance: number;
+      description?: string;
+    }>;
+  }> {
+    const response = await api.delete(`/payments/subloan/${subLoanId}/reset`);
+    return response.data;
+  }
 }
 
 export const paymentsService = new PaymentsService();
