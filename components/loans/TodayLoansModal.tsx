@@ -57,14 +57,8 @@ export default function TodayLoansModal({ open, onClose, data }: TodayLoansModal
 
   if (!data) return null
 
-  // Calculate totals correctly
-  // Si montoTotalPrestado === montoTotalADevolver, significa que el backend no envió originalAmount
-  const totalPrestado = data.loans.reduce((sum, loan) => {
-    const montoPrestado = loan.montoTotalPrestado !== loan.montoTotalADevolver 
-      ? loan.montoTotalPrestado 
-      : Math.round(loan.montoTotalADevolver / 1.1) // Aproximación si no hay originalAmount
-    return sum + montoPrestado
-  }, 0)
+  // Use totalAmount from backend directly - no calculations needed
+  const totalPrestado = data.totalAmount
   const totalADevolver = data.loans.reduce((sum, loan) => sum + loan.montoTotalADevolver, 0)
   const totalIntereses = totalADevolver - totalPrestado
 
@@ -204,13 +198,8 @@ export default function TodayLoansModal({ open, onClose, data }: TodayLoansModal
                 </TableHead>
                 <TableBody>
                   {data.loans.map((loan, index) => {
-                    // Asegurar que montoTotalPrestado sea el originalAmount
-                    // Si montoTotalPrestado === montoTotalADevolver, significa que el backend no envió originalAmount
-                    // En ese caso, intentamos calcularlo asumiendo un 10% de interés (o usar montoTotalADevolver como fallback)
-                    const montoPrestado = loan.montoTotalPrestado !== loan.montoTotalADevolver 
-                      ? loan.montoTotalPrestado 
-                      : Math.round(loan.montoTotalADevolver / 1.1) // Aproximación si no hay originalAmount
-                    
+                    // Use montoTotalPrestado directly from backend
+                    const montoPrestado = loan.montoTotalPrestado
                     const interes = loan.montoTotalADevolver - montoPrestado
                     const porcentajeInteres = montoPrestado > 0 
                       ? ((interes / montoPrestado) * 100).toFixed(1)

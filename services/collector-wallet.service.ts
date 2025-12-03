@@ -28,16 +28,36 @@ export interface CollectorWalletWithdrawResponse {
 }
 
 export interface TodayCollectionsResponse {
-  date: string;
-  total: number;
-  totalAmount: number;
-  collections: Array<{
-    monto: number;
-    nombreUsuario: string;
-    emailUsuario: string;
-    descripcion: string;
-    fechaCobro: string;
-  }>;
+  date: string | { requested?: string; start?: string; end?: string };
+  collected: {
+    total: number;
+    grossTotal: number;
+    count: number;
+    transactions: Array<{
+      id: string;
+      amount: number;
+      description: string;
+      subLoanId: string;
+      createdAt: string;
+    }>;
+  };
+  resets: {
+    total: number;
+    count: number;
+    transactions: Array<{
+      id: string;
+      amount: number;
+      description: string;
+      subLoanId: string;
+      createdAt: string;
+    }>;
+  };
+  user: {
+    id: string;
+    fullName: string;
+    email: string;
+    role: string;
+  };
 }
 
 class CollectorWalletService {

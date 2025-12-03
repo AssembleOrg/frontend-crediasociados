@@ -14,6 +14,18 @@ export interface DailySummaryResponse {
   }
   collected: {
     total: number
+    grossTotal: number  // Total bruto antes de resets
+    count: number
+    transactions: Array<{
+      id: string
+      amount: number
+      description: string
+      subLoanId: string
+      createdAt: string
+    }>
+  }
+  resets: {
+    total: number
     count: number
     transactions: Array<{
       id: string
@@ -54,6 +66,8 @@ export interface DailySummaryResponse {
   }
   summary: {
     totalCollected: number
+    grossCollected?: number  // Total bruto
+    totalResets?: number  // Total de resets
     totalLoaned: number
     totalExpenses: number
     netBalance: number

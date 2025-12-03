@@ -125,16 +125,36 @@ export function ManagerDashboardCards() {
   // Today collections modal
   const [todayCollectionsModalOpen, setTodayCollectionsModalOpen] = useState(false)
   const [todayCollectionsData, setTodayCollectionsData] = useState<{
-    date: string
-    total: number
-    totalAmount: number
-    collections: Array<{
-      monto: number
-      nombreUsuario: string
-      emailUsuario: string
-      descripcion: string
-      fechaCobro: string
-    }>
+    date: string | { requested?: string; start?: string; end?: string }
+    collected: {
+      total: number
+      grossTotal: number
+      count: number
+      transactions: Array<{
+        id: string
+        amount: number
+        description: string
+        subLoanId: string
+        createdAt: string
+      }>
+    }
+    resets: {
+      total: number
+      count: number
+      transactions: Array<{
+        id: string
+        amount: number
+        description: string
+        subLoanId: string
+        createdAt: string
+      }>
+    }
+    user: {
+      id: string
+      fullName: string
+      email: string
+      role: string
+    }
   } | null>(null)
   const [loadingTodayCollections, setLoadingTodayCollections] = useState(false)
 
@@ -194,16 +214,16 @@ export function ManagerDashboardCards() {
 
   const handleOpenTodayCollections = async () => {
     setTodayCollectionsModalOpen(true)
-    if (!todayCollectionsData) {
-      setLoadingTodayCollections(true)
-      try {
-        const data = await collectorWalletService.getTodayCollections()
-        setTodayCollectionsData(data)
-      } catch (err) {
-        // Error loading today collections
-      } finally {
-        setLoadingTodayCollections(false)
+    // Use dailySummary data directly since it already has all the collection data
+    if (dailySummary) {
+      // Transform dailySummary into the format expected by TodayCollectionsModal
+      const collectionsData = {
+        date: dailySummary.date || new Date().toISOString(),
+        collected: dailySummary.collected || { total: 0, grossTotal: 0, count: 0, transactions: [] },
+        resets: dailySummary.resets || { total: 0, count: 0, transactions: [] },
+        user: dailySummary.user || { id: '', fullName: 'N/A', email: '', role: '' }
       }
+      setTodayCollectionsData(collectionsData as any)
     }
   }
 
