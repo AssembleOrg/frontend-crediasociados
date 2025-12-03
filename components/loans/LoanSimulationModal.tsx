@@ -65,6 +65,7 @@ interface LoanSimulationModalProps {
 export function LoanSimulationModal({
   open,
   onClose,
+  onLoanCreated,
   simulatedLoans,
   formData,
   clientName = 'Cliente seleccionado'
@@ -77,6 +78,15 @@ export function LoanSimulationModal({
   const [success, setSuccess] = useState(false)
   const [loanTrackingNumber, setLoanTrackingNumber] = useState<string | null>(null)
   const { createLoan } = useLoans()
+
+  // Handle closing after success - reset everything and notify parent
+  const handleCloseAfterSuccess = () => {
+    setSuccess(false)
+    setLoanTrackingNumber(null)
+    setError(null)
+    onClose()
+    onLoanCreated?.() // This will close parent and trigger form reset
+  }
 
   const handleConfirmLoan = async () => {
     setIsCreating(true)
@@ -107,11 +117,8 @@ export function LoanSimulationModal({
       const loan = await createLoan(createLoanData);
       setLoanTrackingNumber(loan.loanTrack)
       
-      // ✅ First close the parent CreateLoanModal (blue background)
-      
-      // ✅ Then show success modal on top
+      // Show success modal
       setSuccess(true)
-      // onLoanCreated?.()
 
 
     } catch (err: unknown) {
@@ -157,7 +164,7 @@ export function LoanSimulationModal({
       >
         <DialogTitle sx={{ position: 'relative', textAlign: 'right', pb: 0 }}>
           <IconButton
-            onClick={onClose}
+            onClick={handleCloseAfterSuccess}
             sx={{
               position: 'absolute',
               right: 8,
