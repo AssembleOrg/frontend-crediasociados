@@ -92,16 +92,25 @@ export default function CollectorReportView({
     return days
   }
 
+  // Formatear fecha a YYYY-MM-DD sin depender de zona horaria
+  const formatDateToString = (date: Date): string => {
+    const year = date.getFullYear()
+    const month = String(date.getMonth() + 1).padStart(2, '0')
+    const day = String(date.getDate()).padStart(2, '0')
+    return `${year}-${month}-${day}`
+  }
+
   const loadReport = async (start: Date, end: Date) => {
     try {
       setLoading(true)
       setError(null)
       const startDate = normalizeDate(start)
       const endDate = normalizeDate(end)
-      endDate.setHours(23, 59, 59, 999) // Incluir todo el día final
+      // No establecer horas para evitar problemas de zona horaria
+      // El backend manejará el rango correctamente
       
-      const startStr = startDate.toISOString().split('T')[0]
-      const endStr = endDate.toISOString().split('T')[0]
+      const startStr = formatDateToString(startDate)
+      const endStr = formatDateToString(endDate)
       const data = await collectorReportService.getPeriodReport(startStr, endStr, managerId)
       setReport(data)
     } catch (err: any) {
@@ -625,9 +634,24 @@ export default function CollectorReportView({
                         Neto
                       </Typography>
                     </Box>
-                    <Typography variant="h5" fontWeight={700} sx={{ fontSize: { xs: '1.25rem', sm: '1.5rem' } }}>
-                      {formatCurrency(report.neto ?? report.summary?.neto ?? report.collectorWallet?.netAmount ?? 0)}
-                    </Typography>
+                    {(() => {
+                      // Calcular el neto base
+                      const baseNeto = report.neto ?? report.summary?.neto ?? report.collectorWallet?.netAmount ?? 0
+                      
+                      // Calcular el total de cash adjustments (suma de todas las transacciones CASH_ADJUSTMENT)
+                      const totalCashAdjustments = report.collectorWallet?.transactions
+                        ?.filter(tx => tx.type === 'CASH_ADJUSTMENT')
+                        .reduce((sum, tx) => sum + tx.amount, 0) ?? 0
+                      
+                      // Restar cash adjustments del neto
+                      const netoFinal = baseNeto - totalCashAdjustments
+                      
+                      return (
+                        <Typography variant="h5" fontWeight={700} sx={{ fontSize: { xs: '1.25rem', sm: '1.5rem' } }}>
+                          {formatCurrency(netoFinal)}
+                        </Typography>
+                      )
+                    })()}
                     <Typography variant="caption" sx={{ opacity: 0.9, display: 'block', mt: 0.5, fontSize: { xs: '0.65rem', sm: '0.75rem' } }}>
                       después de retiros
                     </Typography>

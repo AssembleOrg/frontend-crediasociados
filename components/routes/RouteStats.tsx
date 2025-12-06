@@ -1,22 +1,24 @@
 'use client';
 
 import { Box, Paper, Typography, Stack } from '@mui/material';
-import { TrendingUp, TrendingDown, AccountBalance } from '@mui/icons-material';
+import { TrendingUp, TrendingDown, AccountBalance, LocalAtm } from '@mui/icons-material';
 
 interface RouteStatsProps {
   totalCollected: number;
   totalExpenses: number;
+  totalLoaned?: number; // Dinero prestado (se mostrará como negativo)
   netAmount: number;
   currency?: string;
 }
 
 /**
  * RouteStats - Mobile-first stats display
- * Shows collected, expenses, and net amount
+ * Shows collected, dinero prestado, expenses, and net amount
  */
 export function RouteStats({
   totalCollected,
   totalExpenses,
+  totalLoaned = 0,
   netAmount,
   currency = 'ARS', // Mantenido para compatibilidad pero no usado visualmente
 }: RouteStatsProps) {
@@ -28,6 +30,9 @@ export function RouteStats({
     }).format(amount)}`;
   };
 
+  // Mostrar totalLoaned como negativo para el usuario
+  const displayedLoaned = totalLoaned > 0 ? -totalLoaned : 0;
+
   const stats = [
     {
       label: 'Cobrado',
@@ -35,6 +40,13 @@ export function RouteStats({
       icon: <TrendingUp fontSize="small" />,
       color: 'success.main',
       bgColor: 'success.lighter',
+    },
+    {
+      label: 'Dinero Prestado',
+      value: displayedLoaned,
+      icon: <LocalAtm fontSize="small" />,
+      color: 'error.main',
+      bgColor: 'error.lighter',
     },
     {
       label: 'Gastos',

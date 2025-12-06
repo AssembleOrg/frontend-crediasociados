@@ -523,6 +523,7 @@ export default function RutasPage() {
           <RouteStats
             totalCollected={currentRoute.totalCollected}
             totalExpenses={currentRoute.totalExpenses}
+            totalLoaned={currentRoute.totalLoaned}
             netAmount={currentRoute.netAmount}
           />
         </Box>

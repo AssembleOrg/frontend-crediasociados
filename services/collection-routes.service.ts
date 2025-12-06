@@ -47,6 +47,7 @@ export interface CollectionRoute {
   status: CollectionRouteStatus;
   totalCollected: number;
   totalExpenses: number;
+  totalLoaned?: number; // Dinero prestado (se mostrará como negativo)
   netAmount: number;
   notes?: string;
   closedAt?: string;

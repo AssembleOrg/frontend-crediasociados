@@ -128,6 +128,16 @@ export function CloseRouteModal({ open, onClose, route, onConfirm }: CloseRouteM
               {formatCurrency(route.totalCollected)}
             </Typography>
           </Box>
+          {route.totalLoaned && route.totalLoaned > 0 && (
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+              <Typography variant="body2" color="text.secondary">
+                Dinero Prestado:
+              </Typography>
+              <Typography variant="body2" fontWeight="bold" color="error.main">
+                {formatCurrency(-route.totalLoaned)}
+              </Typography>
+            </Box>
+          )}
           <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
             <Typography variant="body2" color="text.secondary">
               Total Gastos:
