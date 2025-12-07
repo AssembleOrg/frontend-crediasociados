@@ -19,6 +19,7 @@ import { useFiltersStore } from '@/stores/filters'
 import { useFinanzasStore } from '@/stores/finanzas'
 import { useOperativaStore } from '@/stores/operativa'
 import { useDolarBlueStore } from '@/stores/dolar-blue'
+import { requestDeduplicator } from '@/lib/request-deduplicator'
 
 /**
  * Clear ALL application caches EXCEPT auth data (user, token)
@@ -26,6 +27,8 @@ import { useDolarBlueStore } from '@/stores/dolar-blue'
  */
 export function clearAllCaches() {
   
+  // Clear request deduplicator cache
+  requestDeduplicator.clearAll()
 
   // Clear users store (stores handle their own cache invalidation)
   // Note: UsersStore, StatsStore, ClientsStore don't have clearCache methods
@@ -288,6 +291,8 @@ export function clearAllData() {
  */
 export function invalidateAllCaches() {
   
+  // Invalidate request deduplicator cache
+  requestDeduplicator.clearAll()
 
   // Invalidate admin cache
   const adminStore = useAdminStore.getState()

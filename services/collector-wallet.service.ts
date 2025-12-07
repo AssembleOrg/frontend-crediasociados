@@ -141,13 +141,13 @@ class CollectorWalletService {
     managerId: string; // Required
     page?: number;
     limit?: number;
-    type?: 'COLLECTION' | 'WITHDRAWAL' | 'ROUTE_EXPENSE' | 'LOAN_DISBURSEMENT' | 'CASH_ADJUSTMENT';
+    type?: 'COLLECTION' | 'WITHDRAWAL' | 'ROUTE_EXPENSE' | 'LOAN_DISBURSEMENT' | 'CASH_ADJUSTMENT' | 'PAYMENT_RESET';
     startDate?: string;
     endDate?: string;
   }): Promise<{
     transactions: Array<{
       id: string;
-      type: 'COLLECTION' | 'WITHDRAWAL' | 'ROUTE_EXPENSE' | 'LOAN_DISBURSEMENT' | 'CASH_ADJUSTMENT';
+      type: 'COLLECTION' | 'WITHDRAWAL' | 'ROUTE_EXPENSE' | 'LOAN_DISBURSEMENT' | 'CASH_ADJUSTMENT' | 'PAYMENT_RESET';
       amount: number;
       currency: string;
       description: string;

@@ -1,8 +1,9 @@
 'use client';
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { walletsService } from '@/services/wallets.service';
 import { useWalletsStore } from '@/stores/wallets';
+import { requestDeduplicator } from '@/lib/request-deduplicator';
 import type {
   Wallet,
   WalletTransaction,
@@ -37,6 +38,10 @@ interface UseWalletReturn extends UseWalletState {
   clearError: () => void;
 }
 
+// Cache key para wallet
+const WALLET_CACHE_KEY = 'wallet:my';
+const WALLET_CACHE_TTL = 30000; // 30 segundos
+
 /**
  * Hook para gestionar operaciones de cartera del usuario
  * Proporciona acceso a saldo, transacciones y operaciones de depósito/transferencia
@@ -49,19 +54,35 @@ export const useWallet = (autoFetch: boolean = true): UseWalletReturn => {
   const [balance, setBalance] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  
+  // Refs para prevenir llamadas duplicadas
+  const isFetchingRef = useRef(false);
+  const hasFetchedRef = useRef(false);
 
   // Get store actions
   const setCurrentUserWallet = useWalletsStore((state) => state.setCurrentUserWallet);
 
   /**
-   * Obtener datos completos de la cartera
+   * Obtener datos completos de la cartera (con deduplicación)
    */
-  const refetchWallet = useCallback(async () => {
+  const refetchWallet = useCallback(async (forceRefresh: boolean = false) => {
+    // Prevenir llamadas duplicadas dentro del mismo componente
+    if (isFetchingRef.current && !forceRefresh) {
+      return;
+    }
+    
+    isFetchingRef.current = true;
     setIsLoading(true);
     setError(null);
 
     try {
-      const walletData = await walletsService.getMyWallet();
+      // Usar deduplicador para evitar llamadas repetidas
+      const walletData = await requestDeduplicator.dedupe(
+        WALLET_CACHE_KEY,
+        () => walletsService.getMyWallet(),
+        { ttl: WALLET_CACHE_TTL, forceRefresh }
+      );
+      
       setWallet(walletData);
       setBalance(walletData.balance);
 
@@ -72,6 +93,8 @@ export const useWallet = (autoFetch: boolean = true): UseWalletReturn => {
         availableForLoan: (walletData as any).availableForLoan ?? walletData.balance,
         lockedAmount: (walletData as any).lockedAmount ?? 0,
       });
+      
+      hasFetchedRef.current = true;
     } catch (err: any) {
       // Handle specific errors gracefully
       let errorMessage = 'Error al cargar la billetera';
@@ -96,6 +119,7 @@ export const useWallet = (autoFetch: boolean = true): UseWalletReturn => {
       setError(errorMessage);
     } finally {
       setIsLoading(false);
+      isFetchingRef.current = false;
     }
   }, [setCurrentUserWallet]);
 
@@ -161,6 +185,9 @@ export const useWallet = (autoFetch: boolean = true): UseWalletReturn => {
           description,
         });
 
+        // Invalidar caché para forzar refresh
+        requestDeduplicator.invalidate(WALLET_CACHE_KEY);
+
         // Actualizar wallet con nuevo balance
         setWallet(result.wallet);
         setBalance(result.wallet.balance);
@@ -198,6 +225,9 @@ export const useWallet = (autoFetch: boolean = true): UseWalletReturn => {
           currency: currency as 'ARS',
           description,
         });
+
+        // Invalidar caché para forzar refresh
+        requestDeduplicator.invalidate(WALLET_CACHE_KEY);
 
         // Actualizar wallet del usuario actual con nuevo balance
         const updatedWallet = {
@@ -263,12 +293,15 @@ export const useWallet = (autoFetch: boolean = true): UseWalletReturn => {
 
   /**
    * Auto-fetch al montar si autoFetch = true
+   * Usa refs para prevenir llamadas duplicadas
    */
   useEffect(() => {
-    if (autoFetch) {
+    // Solo fetch si autoFetch está habilitado y no hemos fetcheado antes
+    if (autoFetch && !hasFetchedRef.current && !isFetchingRef.current) {
       refetchWallet();
     }
-  }, [autoFetch, refetchWallet]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoFetch]); // No incluir refetchWallet para evitar loops
 
   return {
     wallet,

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import {
   Dialog,
   DialogTitle,
@@ -36,6 +36,7 @@ import { PDFDownloadLink } from '@react-pdf/renderer'
 import { ActiveLoansPDF } from './ActiveLoansPDF'
 import { clientsService } from '@/services/clients.service'
 import { collectorWalletService } from '@/services/collector-wallet.service'
+import { requestDeduplicator } from '@/lib/request-deduplicator'
 import { useUsers } from '@/hooks/useUsers'
 import { useCurrentUser } from '@/hooks/useCurrentUser'
 import { DateTime } from 'luxon'
@@ -133,12 +134,18 @@ export default function ActiveLoansClientsModal({ open, onClose }: ActiveLoansCl
     }
   }, [open, isManager, isSubadmin, currentUser?.id])
 
+  // Ref para prevenir llamadas duplicadas
+  const loadingManagerRef = useRef<string | null>(null)
+  
   useEffect(() => {
     if (open && managerIdToUse) {
+      // Prevenir llamadas duplicadas para el mismo manager
+      if (loadingManagerRef.current === managerIdToUse) return
       loadManagerDetail()
     } else if (open && !managerIdToUse && isSubadmin) {
       setManagerDetail(null)
       setError(null)
+      loadingManagerRef.current = null
     }
     // Reset search when manager changes or modal opens
     if (open) {
@@ -150,10 +157,16 @@ export default function ActiveLoansClientsModal({ open, onClose }: ActiveLoansCl
   const loadManagerDetail = async () => {
     if (!managerIdToUse) return
 
+    loadingManagerRef.current = managerIdToUse
     setLoading(true)
     setError(null)
     try {
-      const data = await collectorWalletService.getManagerDetail(managerIdToUse)
+      // Usar deduplicador con caché de 30 segundos
+      const data = await requestDeduplicator.dedupe(
+        `manager:detail:${managerIdToUse}`,
+        () => collectorWalletService.getManagerDetail(managerIdToUse),
+        { ttl: 30000 }
+      )
       setManagerDetail(data)
     } catch (err: any) {
       // Error loading manager detail

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useState, useMemo, useEffect, useRef } from "react";
 import {
   Box,
   Alert,
@@ -39,6 +39,7 @@ import {
   AccountBalanceWallet,
   Warning,
   History,
+  CloudDownload,
 } from "@mui/icons-material";
 import PageHeader from "@/components/ui/PageHeader";
 import { useWallet } from "@/hooks/useWallet";
@@ -51,11 +52,13 @@ import { WithdrawFromCollectorModal } from "@/components/wallets/WithdrawFromCol
 import { CashAdjustmentModal } from "@/components/wallets/CashAdjustmentModal";
 import { DailySummaryModal } from "@/components/wallets/DailySummaryModal";
 import { LiquidationModal } from "@/components/wallets/LiquidationModal";
+import { DownloadBackupModal } from "@/components/wallets/DownloadBackupModal";
 import { UserFormModal } from "@/components/users/UserFormModal";
 import { formatAmount } from "@/lib/formatters";
 import { collectorWalletService } from "@/services/collector-wallet.service";
 import { walletsService } from "@/services/wallets.service";
 import { safeService } from "@/services/safe.service";
+import { requestDeduplicator } from "@/lib/request-deduplicator";
 import type { User } from "@/types/auth";
 import dynamic from "next/dynamic";
 
@@ -143,6 +146,7 @@ export default function OperativoSubadminPage() {
   const [loadingSafeBalances, setLoadingSafeBalances] = useState<Record<string, boolean>>({});
   const [safeModalOpen, setSafeModalOpen] = useState(false);
   const [selectedManagerForSafe, setSelectedManagerForSafe] = useState<User | null>(null);
+  const [downloadBackupModalOpen, setDownloadBackupModalOpen] = useState(false);
   const [toast, setToast] = useState<ToastState>({
     open: false,
     message: "",
@@ -154,11 +158,18 @@ export default function OperativoSubadminPage() {
     return users.filter((user) => user.role === "prestamista");
   }, [users]);
 
-  // Fetch managers balances from the new endpoint
-  const fetchManagersBalances = async () => {
+  // Ref para prevenir llamadas duplicadas
+  const hasFetchedManagersRef = useRef(false);
+  
+  // Fetch managers balances from the new endpoint (con deduplicación)
+  const fetchManagersBalances = async (forceRefresh: boolean = false) => {
     setLoadingManagersBalances(true);
     try {
-      const data = await collectorWalletService.getManagersBalances();
+      const data = await requestDeduplicator.dedupe(
+        'subadmin:managers-balances',
+        () => collectorWalletService.getManagersBalances(),
+        { ttl: 30000, forceRefresh }
+      );
       setManagersBalances(data);
     } catch (error) {
       // Error fetching managers balances
@@ -168,18 +179,24 @@ export default function OperativoSubadminPage() {
     }
   };
 
-  // Fetch managers balances on mount
+  // Fetch managers balances on mount (solo una vez)
   useEffect(() => {
+    if (hasFetchedManagersRef.current) return;
+    hasFetchedManagersRef.current = true;
     fetchManagersBalances();
   }, []);
 
-  // Fetch dinero en calle for each manager
-  const fetchDineroEnCalle = async (managerId: string) => {
-    if (managersDineroEnCalle[managerId] !== undefined) return; // Already loaded
+  // Fetch dinero en calle for each manager (con deduplicación)
+  const fetchDineroEnCalle = async (managerId: string, forceRefresh: boolean = false) => {
+    if (managersDineroEnCalle[managerId] !== undefined && !forceRefresh) return; // Already loaded
     
     setLoadingDineroEnCalle(prev => ({ ...prev, [managerId]: true }));
     try {
-      const data = await collectorWalletService.getManagerDetail(managerId);
+      const data = await requestDeduplicator.dedupe(
+        `manager:detail:${managerId}`,
+        () => collectorWalletService.getManagerDetail(managerId),
+        { ttl: 60000, forceRefresh } // 60 segundos de caché
+      );
       // Calcular dinero en calle sumando el totalPending de todos los préstamos
       // Esto asegura que se reflejen los pagos parciales correctamente
       const calculatedDineroEnCalle = data.loans.reduce((sum: number, loan: any) => 
@@ -429,7 +446,7 @@ export default function OperativoSubadminPage() {
     <Box sx={{ p: 3 }}>
       <PageHeader title="Operativa" subtitle="Gestión de dinero y cobradores" />
 
-      <Box sx={{ display: "flex", gap: 1.5, mb: 2 }}>
+      <Box sx={{ display: "flex", gap: 1.5, mb: 2, flexWrap: "wrap" }}>
         <Button
           variant="outlined"
           startIcon={<History />}
@@ -445,6 +462,22 @@ export default function OperativoSubadminPage() {
           }}
         >
           Historial de Transacciones
+        </Button>
+        <Button
+          variant="outlined"
+          startIcon={<CloudDownload />}
+          onClick={() => setDownloadBackupModalOpen(true)}
+          sx={{
+            borderColor: "success.main",
+            color: "success.main",
+            "&:hover": {
+              borderColor: "success.dark",
+              bgcolor: "success.light",
+              color: "success.dark",
+            },
+          }}
+        >
+          Descargar Copia de Seguridad
         </Button>
       </Box>
 
@@ -1291,6 +1324,12 @@ export default function OperativoSubadminPage() {
           // Refetch del balance de la wallet de cobros cuando se transfiere desde caja fuerte
           fetchManagersBalances();
         }}
+      />
+
+      {/* Download Backup Modal */}
+      <DownloadBackupModal
+        open={downloadBackupModalOpen}
+        onClose={() => setDownloadBackupModalOpen(false)}
       />
     </Box>
   );

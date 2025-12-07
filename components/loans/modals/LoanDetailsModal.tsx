@@ -50,7 +50,6 @@ export default function LoanDetailsModal({
   const [resetError, setResetError] = useState<string | null>(null)
   const [resetConfirmModalOpen, setResetConfirmModalOpen] = useState(false)
   const [subloanToReset, setSubloanToReset] = useState<SubLoanWithClientInfo | null>(null)
-  console.table(loan)
   if (!loan) return null
 
   const clientName = subLoans.length > 0 

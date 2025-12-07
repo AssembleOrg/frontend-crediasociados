@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import dynamic from 'next/dynamic'
 import { Card, CardContent, Typography, Box, Skeleton, Stack, Alert } from '@mui/material'
 import { TrendingUp, TrendingDown, Receipt, AccountBalance, AccountBalanceWallet } from '@mui/icons-material'
@@ -8,6 +8,7 @@ import { dailySummaryService, type DailySummaryResponse } from '@/services/daily
 import { loansService } from '@/services/loans.service'
 import { collectorWalletService } from '@/services/collector-wallet.service'
 import collectionRoutesService, { type ExpenseCategory } from '@/services/collection-routes.service'
+import { requestDeduplicator } from '@/lib/request-deduplicator'
 
 // Dynamic imports to avoid SSR issues and chunk loading conflicts
 const TodayLoansModal = dynamic(
@@ -175,12 +176,24 @@ export function ManagerDashboardCards() {
   } | null>(null)
   const [loadingTodayExpenses, setLoadingTodayExpenses] = useState(false)
 
+  // Ref para prevenir llamadas duplicadas
+  const hasFetchedRef = useRef(false)
+  
   useEffect(() => {
+    // Prevenir llamadas duplicadas
+    if (hasFetchedRef.current) return
+    hasFetchedRef.current = true
+    
     const loadDailySummary = async () => {
       try {
         setIsLoading(true)
         setError(null)
-        const data = await dailySummaryService.getOwnDailySummary()
+        // Usar deduplicador con caché de 30 segundos
+        const data = await requestDeduplicator.dedupe(
+          'manager:daily-summary',
+          () => dailySummaryService.getOwnDailySummary(),
+          { ttl: 30000 }
+        )
         setDailySummary(data)
       } catch (err: any) {
         // Error loading daily summary

@@ -8,6 +8,9 @@ const withBundleAnalyzer = require('@next/bundle-analyzer')({
 const nextConfig: NextConfig = {
   reactStrictMode: true,
 
+  // React Compiler: Automatic memoization and optimization (moved from experimental)
+  reactCompiler: true,
+
   // Compiler optimizations
   compiler: {
     // Remove console.log in production (keep error/warn)
@@ -21,9 +24,6 @@ const nextConfig: NextConfig = {
     // Optimize package imports to reduce bundle size
     optimizePackageImports: ['@mui/material', '@mui/icons-material', 'recharts', 'lucide-react'],
 
-    // React Compiler: Automatic memoization and optimization
-    reactCompiler: true,
-
     // Inline CSS: Eliminates render-blocking CSS requests
     inlineCss: true,
 
@@ -36,9 +36,6 @@ const nextConfig: NextConfig = {
 
   typescript: {
     ignoreBuildErrors: true,
-  },
-  eslint: {
-    ignoreDuringBuilds: true,
   },
 
   // Proxy to backend API for security

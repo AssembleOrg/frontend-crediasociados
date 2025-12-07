@@ -10,6 +10,7 @@ import { subLoansService } from '@/services/sub-loans.service';
 import { loansService } from '@/services/loans.service';
 // import operativaService from '@/services/operativa.service'; // ⚠️ Disabled until backend ready
 import { finanzasService } from '@/services/finanzas.service';
+import { requestDeduplicator } from '@/lib/request-deduplicator';
 
 // Stores
 import { useSubLoansStore } from '@/stores/sub-loans';
@@ -106,7 +107,7 @@ export default function DashboardDataProvider({ children }: DashboardDataProvide
   const CACHE_TTL = 30000; // 30 seconds
 
   /**
-   * Initialize SubLoans + Loans data
+   * Initialize SubLoans + Loans data (con deduplicación)
    */
   const initSubLoans = async (): Promise<void> => {
     if (!user || !token) {
@@ -114,14 +115,28 @@ export default function DashboardDataProvider({ children }: DashboardDataProvide
     }
 
     try {
-
-      // Parallel fetch with timeout
+      // Usar deduplicador para cada llamada individual
       const dataPromise = Promise.all([
-        subLoansLookupService.getAllSubLoansWithClientInfo(),
-        subLoansService.getTodayDueSubLoans(),
-        subLoansService.getAllSubLoans(),
-        subLoansService.getTodayDueSubLoansStats(),
-        loansService.getAllLoans(),
+        requestDeduplicator.dedupe('subloans:with-client', 
+          () => subLoansLookupService.getAllSubLoansWithClientInfo(),
+          { ttl: 30000 }
+        ),
+        requestDeduplicator.dedupe('subloans:today-due',
+          () => subLoansService.getTodayDueSubLoans(),
+          { ttl: 30000 }
+        ),
+        requestDeduplicator.dedupe('subloans:all',
+          () => subLoansService.getAllSubLoans(),
+          { ttl: 30000 }
+        ),
+        requestDeduplicator.dedupe('subloans:stats',
+          () => subLoansService.getTodayDueSubLoansStats(),
+          { ttl: 30000 }
+        ),
+        requestDeduplicator.dedupe('loans:all',
+          () => loansService.getAllLoans(),
+          { ttl: 30000 }
+        ),
       ]);
 
       const timeoutPromise = new Promise<null>((_, reject) =>
@@ -205,63 +220,65 @@ export default function DashboardDataProvider({ children }: DashboardDataProvide
   };
 
   /**
-   * Initialize Finanzas data
+   * Initialize Finanzas data (con deduplicación)
    */
   const initFinanzas = async (): Promise<void> => {
     if (!user) {
       return;
     }
 
-    // Check cache
-    const now = Date.now();
-    if (dataCache.current.finanzas && 
-        now - dataCache.current.finanzas.timestamp < CACHE_TTL) {
+    // Solo cargar finanzas para subadmin y manager
+    if (user.role !== 'subadmin' && user.role !== 'manager') {
+      setLoadingStates((prev) => ({ ...prev, finanzas: false }));
       return;
     }
 
     try {
-      // Only load finanzas for subadmin and manager roles
-      if (user.role !== 'subadmin' && user.role !== 'manager') {
-        return;
-      }
-
-      // Summary with timeout
-      const summaryPromise = finanzasService.getFinancialSummary(user?.id || '', user?.role || 'prestamista');
-      const timeoutPromise = new Promise<null>((_, reject) =>
-        setTimeout(() => reject(new Error('Finanzas summary timeout')), 5000)
+      // Summary con deduplicador (60 segundos de caché)
+      const summary = await requestDeduplicator.dedupe(
+        `finanzas:summary:${user.id}`,
+        () => finanzasService.getFinancialSummary(user?.id || '', user?.role || 'prestamista'),
+        { ttl: 60000 }
       );
-
-      const summary = await Promise.race([summaryPromise, timeoutPromise]);
 
       if (summary) {
         finanzasStore.setFinancialSummary(summary);
       }
 
-      // Parallel fetch of additional data with Promise.allSettled
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const additionalDataPromises: Promise<any>[] = [];
+      // Parallel fetch con deduplicación individual
+      const additionalDataPromises: Promise<unknown>[] = [];
 
       if (user?.role === 'subadmin') {
         additionalDataPromises.push(
-          finanzasService.getManagersFinancial(user?.id || '').catch(() => {
-            return [] as ManagerFinancialData[];
-          }),
-          finanzasService.getPortfolioEvolution(user?.id || '').catch(() => {
-            return [] as PortfolioEvolution[];
-          }),
-          finanzasService.getCapitalDistribution(user?.id || '').catch(() => {
-            return [] as CapitalDistribution[];
-          })
+          requestDeduplicator.dedupe(
+            `finanzas:managers:${user.id}`,
+            () => finanzasService.getManagersFinancial(user?.id || ''),
+            { ttl: 60000 }
+          ).catch(() => [] as ManagerFinancialData[]),
+          requestDeduplicator.dedupe(
+            `finanzas:portfolio:${user.id}`,
+            () => finanzasService.getPortfolioEvolution(user?.id || ''),
+            { ttl: 60000 }
+          ).catch(() => [] as PortfolioEvolution[]),
+          requestDeduplicator.dedupe(
+            `finanzas:capital:${user.id}`,
+            () => finanzasService.getCapitalDistribution(user?.id || ''),
+            { ttl: 60000 }
+          ).catch(() => [] as CapitalDistribution[])
         );
       }
 
       additionalDataPromises.push(
-        finanzasService.getActiveLoansFinancial(user?.id || '', user?.role || 'prestamista').catch(() => {
-          return [] as ActiveLoanFinancial[];
-        }),
-        finanzasService.getIncomeVsExpenses(user?.id || '').catch(() => {
-          return [] as IncomeVsExpenses[];
-        })
+        requestDeduplicator.dedupe(
+          `finanzas:active-loans:${user.id}`,
+          () => finanzasService.getActiveLoansFinancial(user?.id || '', user?.role || 'prestamista'),
+          { ttl: 60000 }
+        ).catch(() => [] as ActiveLoanFinancial[]),
+        requestDeduplicator.dedupe(
+          `finanzas:income-expenses:${user.id}`,
+          () => finanzasService.getIncomeVsExpenses(user?.id || ''),
+          { ttl: 60000 }
+        ).catch(() => [] as IncomeVsExpenses[])
       );
 
       const results = await Promise.allSettled(additionalDataPromises);
@@ -293,12 +310,6 @@ export default function DashboardDataProvider({ children }: DashboardDataProvide
       if (incomeResult.status === 'fulfilled') {
         finanzasStore.setIncomeVsExpenses(incomeResult.value as IncomeVsExpenses[]);
       }
-
-      // Update cache
-      dataCache.current.finanzas = {
-        timestamp: Date.now(),
-        data: summary ? (summary as unknown as Record<string, unknown>) : {}
-      };
     } catch (error) {
       // Finanzas error (continuing)
       // Graceful degradation: keep empty state
@@ -347,9 +358,11 @@ export default function DashboardDataProvider({ children }: DashboardDataProvide
   };
 
   /**
-   * Refresh functions for manual refresh
+   * Refresh functions for manual refresh (invalidan caché antes)
    */
   const refreshSubLoans = async (): Promise<void> => {
+    // Invalidar caché de subloans y loans
+    requestDeduplicator.invalidatePattern(/^(subloans|loans):/);
     setLoadingStates((prev) => ({ ...prev, subLoans: true }));
     await initSubLoans();
   };
@@ -360,11 +373,16 @@ export default function DashboardDataProvider({ children }: DashboardDataProvide
   };
 
   const refreshFinanzas = async (): Promise<void> => {
+    // Invalidar caché de finanzas
+    requestDeduplicator.invalidatePattern(/^finanzas:/);
     setLoadingStates((prev) => ({ ...prev, finanzas: true }));
     await initFinanzas();
   };
 
   const refreshAllData = async (): Promise<void> => {
+    // Invalidar todos los cachés relacionados
+    requestDeduplicator.invalidatePattern(/^(subloans|loans|finanzas):/);
+    
     isInitializedRef.current = false;
     setIsInitialLoading(true);
     setLoadingStates({ subLoans: true, operativa: true, finanzas: true });

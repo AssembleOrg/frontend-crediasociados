@@ -123,6 +123,20 @@ class DailySummaryService {
   getTodayFormatted(): string {
     return this.formatDateForAPI(new Date())
   }
+
+  /**
+   * Download managers report PDF for subadmin
+   * @param startDate - Start date in YYYY-MM-DD format
+   * @param endDate - End date in YYYY-MM-DD format
+   * @returns Blob of the PDF file
+   */
+  async downloadManagersReportPDF(startDate: string, endDate: string): Promise<Blob> {
+    const response = await api.get('/daily-reports/subadmin/managers-report', {
+      params: { startDate, endDate },
+      responseType: 'blob', // Important: tell axios to handle binary data
+    })
+    return response.data
+  }
 }
 
 export const dailySummaryService = new DailySummaryService()
