@@ -326,6 +326,38 @@ class CollectorWalletService {
     );
     return response.data.data || response.data;
   }
+
+  /**
+   * Get last withdrawal for a manager
+   * Returns the most recent withdrawal transaction
+   */
+  async getLastWithdrawal(managerId: string): Promise<{
+    id: string;
+    amount: number;
+    currency: string;
+    description: string;
+    balanceBefore: number;
+    balanceAfter: number;
+    createdAt: string;
+    manager: {
+      id: string;
+      fullName: string;
+      email: string;
+    };
+  } | null> {
+    try {
+      const response = await api.get(`/collector-wallet/last-withdrawal`, {
+        params: { managerId }
+      });
+      return response.data.data || response.data;
+    } catch (err: any) {
+      // If 404 or no withdrawal found, return null
+      if (err.response?.status === 404) {
+        return null;
+      }
+      throw err;
+    }
+  }
 }
 
 export const collectorWalletService = new CollectorWalletService();

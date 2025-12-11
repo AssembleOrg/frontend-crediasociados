@@ -74,18 +74,21 @@ export default function SubadminAnalyticsPage() {
                 variant="outlined"
               />
             )}
-            renderOption={(props, option) => (
-              <Box component="li" {...props}>
-                <Box>
-                  <Typography variant="body1" fontWeight={500}>
-                    {option.fullName}
-                  </Typography>
-                  <Typography variant="caption" color="text.secondary">
-                    {option.email}
-                  </Typography>
+            renderOption={(props, option) => {
+              const { key, ...otherProps } = props;
+              return (
+                <Box component="li" key={key} {...otherProps}>
+                  <Box>
+                    <Typography variant="body1" fontWeight={500}>
+                      {option.fullName}
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      {option.email}
+                    </Typography>
+                  </Box>
                 </Box>
-              </Box>
-            )}
+              );
+            }}
             noOptionsText="No se encontraron cobradores"
           />
         )}

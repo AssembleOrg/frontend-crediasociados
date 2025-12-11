@@ -447,7 +447,7 @@ export default function OperativoSubadminPage() {
       <PageHeader title="Operativa" subtitle="Gestión de dinero y cobradores" />
 
       <Box sx={{ display: "flex", gap: 1.5, mb: 2, flexWrap: "wrap" }}>
-        <Button
+        {/* <Button
           variant="outlined"
           startIcon={<History />}
           onClick={() => setWalletTransactionsModalOpen(true)}
@@ -462,7 +462,7 @@ export default function OperativoSubadminPage() {
           }}
         >
           Historial de Transacciones
-        </Button>
+        </Button> */}
         <Button
           variant="outlined"
           startIcon={<CloudDownload />}

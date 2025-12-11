@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import {
   Box,
   Typography,
@@ -32,8 +32,11 @@ import {
   AttachMoney,
   SwapHoriz,
   AccountBalance,
+  AccountBalanceWallet,
 } from '@mui/icons-material'
 import { collectorReportService, type CollectorPeriodReport } from '@/services/collector-report.service'
+import { collectorWalletService } from '@/services/collector-wallet.service'
+import { useCurrentUser } from '@/hooks/useCurrentUser'
 
 interface CollectorReportViewProps {
   managerId?: string // Optional: if provided, fetch report for this manager (subadmin view)
@@ -47,12 +50,28 @@ export default function CollectorReportView({
   subtitle = 'Selecciona un día o un rango de fechas para ver el reporte'
 }: CollectorReportViewProps) {
   const theme = useTheme()
+  const currentUser = useCurrentUser()
   const [currentMonth, setCurrentMonth] = useState(new Date())
   const [selectedRange, setSelectedRange] = useState<{ start: Date; end: Date } | null>(null)
   const [tempStart, setTempStart] = useState<Date | null>(null) // Para mostrar el rango mientras se selecciona
   const [report, setReport] = useState<CollectorPeriodReport | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [lastWithdrawal, setLastWithdrawal] = useState<{
+    id: string;
+    amount: number;
+    currency: string;
+    description: string;
+    balanceBefore: number;
+    balanceAfter: number;
+    createdAt: string;
+    manager: {
+      id: string;
+      fullName: string;
+      email: string;
+    };
+  } | null>(null)
+  const [loadingLastWithdrawal, setLoadingLastWithdrawal] = useState(false)
 
   // Normalizar fecha (solo día, sin hora)
   const normalizeDate = (date: Date): Date => {
@@ -120,6 +139,32 @@ export default function CollectorReportView({
       setLoading(false)
     }
   }
+
+  // Load last withdrawal when managerId changes
+  useEffect(() => {
+    const loadLastWithdrawal = async () => {
+      // Determine which managerId to use
+      const targetManagerId = managerId || currentUser?.id
+      
+      if (!targetManagerId) {
+        setLastWithdrawal(null)
+        return
+      }
+
+      setLoadingLastWithdrawal(true)
+      try {
+        const withdrawal = await collectorWalletService.getLastWithdrawal(targetManagerId)
+        setLastWithdrawal(withdrawal)
+      } catch (err: any) {
+        // Error loading last withdrawal - silently fail
+        setLastWithdrawal(null)
+      } finally {
+        setLoadingLastWithdrawal(false)
+      }
+    }
+
+    loadLastWithdrawal()
+  }, [managerId, currentUser?.id])
 
   const handleDateClick = (date: Date) => {
     const normalizedDate = normalizeDate(date)
@@ -202,9 +247,9 @@ export default function CollectorReportView({
   }
 
   const formatCurrency = (amount: number) => {
-    return `$${new Intl.NumberFormat('es', {
+    return `$${new Intl.NumberFormat('es-AR', {
       minimumFractionDigits: 0,
-      maximumFractionDigits: 2
+      maximumFractionDigits: 0
     }).format(amount)}`
   }
 
@@ -465,6 +510,56 @@ export default function CollectorReportView({
               </Typography>
             </Box>
           )}
+
+          {/* Último Retiro */}
+          <Divider sx={{ my: 2 }} />
+          {loadingLastWithdrawal ? (
+            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', py: 2 }}>
+              <CircularProgress size={20} />
+            </Box>
+          ) : lastWithdrawal ? (
+            <Box sx={{ 
+              mt: 2, 
+              p: 1.5, 
+              bgcolor: alpha(theme.palette.warning.main, 0.08), 
+              border: `1px solid ${alpha(theme.palette.warning.main, 0.2)}`,
+              borderRadius: 1 
+            }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+                <AccountBalanceWallet sx={{ fontSize: 18, color: 'warning.main' }} />
+                <Typography variant="caption" color="warning.main" fontWeight={600}>
+                  Último Retiro
+                </Typography>
+              </Box>
+              {lastWithdrawal.createdAt && (
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
+                  Fecha: {new Date(lastWithdrawal.createdAt).toLocaleDateString('es-AR', { 
+                    day: '2-digit', 
+                    month: 'long', 
+                    year: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                  })}
+                </Typography>
+              )}
+              {lastWithdrawal.amount !== undefined && lastWithdrawal.amount !== null && (
+                <Typography variant="body2" color="text.secondary">
+                  Monto: <strong>${lastWithdrawal.amount.toLocaleString('es-AR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</strong>
+                </Typography>
+              )}
+            </Box>
+          ) : (
+            <Box sx={{ 
+              mt: 2, 
+              p: 1.5, 
+              bgcolor: alpha(theme.palette.text.disabled, 0.05), 
+              borderRadius: 1 
+            }}>
+              <Typography variant="caption" color="text.secondary">
+                No hay retiros registrados
+              </Typography>
+            </Box>
+          )}
         </Paper>
 
         {/* Reporte */}
@@ -554,107 +649,210 @@ export default function CollectorReportView({
               {/* Summary Cards */}
               <Box sx={{ 
                 display: 'grid', 
-                gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', md: 'repeat(5, 1fr)' }, 
+                gridTemplateColumns: { 
+                  xs: '1fr', 
+                  sm: 'repeat(2, 1fr)', 
+                  md: 'repeat(3, 1fr)',
+                  lg: 'repeat(6, 1fr)' 
+                }, 
                 gap: { xs: 1.5, sm: 2 }, 
                 mb: 3 
               }}>
                 <Card>
-                  <CardContent sx={{ p: { xs: 1.5, sm: 2 } }}>
+                  <CardContent sx={{ p: { xs: 1.5, sm: 2 }, minHeight: { md: 120 } }}>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
                       <TrendingUp sx={{ color: 'success.main', fontSize: { xs: 18, sm: 24 } }} />
                       <Typography variant="caption" color="text.secondary" sx={{ fontSize: { xs: '0.7rem', sm: '0.75rem' } }}>
                         Cobrado
                       </Typography>
                     </Box>
-                    <Typography variant="h5" fontWeight={700} color="success.main" sx={{ fontSize: { xs: '1.25rem', sm: '1.5rem' } }}>
+                    <Typography 
+                      variant="h5" 
+                      fontWeight={700} 
+                      color="success.main" 
+                      sx={{ 
+                        fontSize: { xs: '1.1rem', sm: '1.3rem', md: '1.1rem', lg: '1.5rem' },
+                        lineHeight: 1.2,
+                        wordBreak: 'break-word',
+                        overflowWrap: 'break-word'
+                      }}
+                    >
                       {formatCurrency(report.cobrado ?? report.summary?.cobrado ?? report.collections?.amounts?.totalCollected ?? 0)}
                     </Typography>
-                    <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
+                    <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5, fontSize: { xs: '0.65rem', sm: '0.7rem' } }}>
                       de {formatCurrency(report.collections?.amounts?.totalDue ?? 0)} esperado
                     </Typography>
                   </CardContent>
                 </Card>
 
                 <Card>
-                  <CardContent sx={{ p: { xs: 1.5, sm: 2 } }}>
+                  <CardContent sx={{ p: { xs: 1.5, sm: 2 }, minHeight: { md: 120 } }}>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
                       <AttachMoney sx={{ color: 'info.main', fontSize: { xs: 18, sm: 24 } }} />
                       <Typography variant="caption" color="text.secondary" sx={{ fontSize: { xs: '0.7rem', sm: '0.75rem' } }}>
                         Prestado
                       </Typography>
                     </Box>
-                    <Typography variant="h5" fontWeight={700} color="info.main" sx={{ fontSize: { xs: '1.25rem', sm: '1.5rem' } }}>
+                    <Typography 
+                      variant="h5" 
+                      fontWeight={700} 
+                      color="info.main" 
+                      sx={{ 
+                        fontSize: { xs: '1.1rem', sm: '1.3rem', md: '1.1rem', lg: '1.5rem' },
+                        lineHeight: 1.2,
+                        wordBreak: 'break-word',
+                        overflowWrap: 'break-word'
+                      }}
+                    >
                       {formatCurrency(report.prestado ?? report.summary?.prestado ?? report.loans?.totalAmount ?? 0)}
                     </Typography>
-                    <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5, fontSize: { xs: '0.65rem', sm: '0.75rem' } }}>
+                    <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5, fontSize: { xs: '0.65rem', sm: '0.7rem' } }}>
                       del período
                     </Typography>
                   </CardContent>
                 </Card>
 
                 <Card>
-                  <CardContent sx={{ p: { xs: 1.5, sm: 2 } }}>
+                  <CardContent sx={{ p: { xs: 1.5, sm: 2 }, minHeight: { md: 120 } }}>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
                       <Receipt sx={{ color: 'error.main', fontSize: { xs: 18, sm: 24 } }} />
                       <Typography variant="caption" color="text.secondary" sx={{ fontSize: { xs: '0.7rem', sm: '0.75rem' } }}>
                         Gastado
                       </Typography>
                     </Box>
-                    <Typography variant="h5" fontWeight={700} color="error.main" sx={{ fontSize: { xs: '1.25rem', sm: '1.5rem' } }}>
+                    <Typography 
+                      variant="h5" 
+                      fontWeight={700} 
+                      color="error.main" 
+                      sx={{ 
+                        fontSize: { xs: '1.1rem', sm: '1.3rem', md: '1.1rem', lg: '1.5rem' },
+                        lineHeight: 1.2,
+                        wordBreak: 'break-word',
+                        overflowWrap: 'break-word'
+                      }}
+                    >
                       {formatCurrency(report.gastado ?? report.summary?.gastado ?? report.expenses?.total ?? 0)}
                     </Typography>
-                    <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5, fontSize: { xs: '0.65rem', sm: '0.75rem' } }}>
+                    <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5, fontSize: { xs: '0.65rem', sm: '0.7rem' } }}>
                       del período
                     </Typography>
                   </CardContent>
                 </Card>
 
                 <Card>
-                  <CardContent sx={{ p: { xs: 1.5, sm: 2 } }}>
+                  <CardContent sx={{ p: { xs: 1.5, sm: 2 }, minHeight: { md: 120 } }}>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
                       <TrendingDown sx={{ color: 'warning.main', fontSize: { xs: 18, sm: 24 } }} />
                       <Typography variant="caption" color="text.secondary" sx={{ fontSize: { xs: '0.7rem', sm: '0.75rem' } }}>
                         Retirado
                       </Typography>
                     </Box>
-                    <Typography variant="h5" fontWeight={700} color="warning.main" sx={{ fontSize: { xs: '1.25rem', sm: '1.5rem' } }}>
+                    <Typography 
+                      variant="h5" 
+                      fontWeight={700} 
+                      color="warning.main" 
+                      sx={{ 
+                        fontSize: { xs: '1.1rem', sm: '1.3rem', md: '1.1rem', lg: '1.5rem' },
+                        lineHeight: 1.2,
+                        wordBreak: 'break-word',
+                        overflowWrap: 'break-word'
+                      }}
+                    >
                       {formatCurrency(report.retirado ?? report.summary?.retirado ?? report.collectorWallet?.totalWithdrawals ?? 0)}
                     </Typography>
-                    <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5, fontSize: { xs: '0.65rem', sm: '0.75rem' } }}>
+                    <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5, fontSize: { xs: '0.65rem', sm: '0.7rem' } }}>
                       de la wallet
                     </Typography>
                   </CardContent>
                 </Card>
 
-                <Card sx={{ background: 'linear-gradient(135deg, #667eea 0%, #4facfe 100%)', color: 'white' }}>
-                  <CardContent sx={{ p: { xs: 1.5, sm: 2 } }}>
+                <Card>
+                  <CardContent sx={{ p: { xs: 1.5, sm: 2 }, minHeight: { md: 120 } }}>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+                      <SwapHoriz sx={{ color: 'info.main', fontSize: { xs: 18, sm: 24 } }} />
+                      <Typography variant="caption" color="text.secondary" sx={{ fontSize: { xs: '0.7rem', sm: '0.75rem' } }}>
+                        Ajuste de Caja
+                      </Typography>
+                    </Box>
+                    <Typography 
+                      variant="h5" 
+                      fontWeight={700} 
+                      color="info.main" 
+                      sx={{ 
+                        fontSize: { xs: '1.1rem', sm: '1.3rem', md: '1.1rem', lg: '1.5rem' },
+                        lineHeight: 1.2,
+                        wordBreak: 'break-word',
+                        overflowWrap: 'break-word'
+                      }}
+                    >
+                      {formatCurrency(report.ajusteCaja ?? report.summary?.ajusteCaja ?? report.collectorWallet?.totalCashAdjustments ?? 0)}
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5, fontSize: { xs: '0.65rem', sm: '0.7rem' } }}>
+                      del período
+                    </Typography>
+                  </CardContent>
+                </Card>
+
+                <Card sx={{ background: 'linear-gradient(135deg, #667eea 0%, #4facfe 100%)', color: 'white' }}>
+                  <CardContent sx={{ p: { xs: 1.5, sm: 2 }, minHeight: { md: 120 } }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
                       <AttachMoney sx={{ fontSize: { xs: 18, sm: 24 } }} />
                       <Typography variant="caption" sx={{ opacity: 0.9, fontSize: { xs: '0.7rem', sm: '0.75rem' } }}>
                         Neto
                       </Typography>
                     </Box>
                     {(() => {
-                      // Calcular el neto base
+                      // Calcular el neto base (sin restar ajuste de caja)
                       const baseNeto = report.neto ?? report.summary?.neto ?? report.collectorWallet?.netAmount ?? 0
                       
-                      // Calcular el total de cash adjustments (suma de todas las transacciones CASH_ADJUSTMENT)
-                      const totalCashAdjustments = report.collectorWallet?.transactions
-                        ?.filter(tx => tx.type === 'CASH_ADJUSTMENT')
-                        .reduce((sum, tx) => sum + tx.amount, 0) ?? 0
+                      // Calcular el total de cash adjustments
+                      const totalCashAdjustments = report.ajusteCaja ?? report.summary?.ajusteCaja ?? report.collectorWallet?.totalCashAdjustments ?? 0
                       
-                      // Restar cash adjustments del neto
-                      const netoFinal = baseNeto - totalCashAdjustments
+                      // Neto con ajuste de caja = neto base
+                      const netoConAjuste = baseNeto
+                      
+                      // Neto sin ajuste de caja = neto - ajuste de caja
+                      const netoSinAjuste = baseNeto - totalCashAdjustments
                       
                       return (
-                        <Typography variant="h5" fontWeight={700} sx={{ fontSize: { xs: '1.25rem', sm: '1.5rem' } }}>
-                          {formatCurrency(netoFinal)}
-                        </Typography>
+                        <Box>
+                          <Box sx={{ mb: 1.5 }}>
+                            <Typography variant="caption" sx={{ opacity: 0.8, fontSize: { xs: '0.65rem', sm: '0.7rem' } }}>
+                              Con ajuste de caja
+                            </Typography>
+                            <Typography 
+                              variant="h5" 
+                              fontWeight={700} 
+                              sx={{ 
+                                fontSize: { xs: '1.1rem', sm: '1.3rem', md: '1.1rem', lg: '1.25rem' },
+                                lineHeight: 1.2,
+                                wordBreak: 'break-word',
+                                overflowWrap: 'break-word'
+                              }}
+                            >
+                              {formatCurrency(netoConAjuste)}
+                            </Typography>
+                          </Box>
+                          <Box>
+                            <Typography variant="caption" sx={{ opacity: 0.8, fontSize: { xs: '0.65rem', sm: '0.7rem' } }}>
+                              Sin ajuste de caja
+                            </Typography>
+                            <Typography 
+                              variant="h5" 
+                              fontWeight={700} 
+                              sx={{ 
+                                fontSize: { xs: '1.1rem', sm: '1.3rem', md: '1.1rem', lg: '1.25rem' },
+                                lineHeight: 1.2,
+                                wordBreak: 'break-word',
+                                overflowWrap: 'break-word'
+                              }}
+                            >
+                              {formatCurrency(netoSinAjuste)}
+                            </Typography>
+                          </Box>
+                        </Box>
                       )
                     })()}
-                    <Typography variant="caption" sx={{ opacity: 0.9, display: 'block', mt: 0.5, fontSize: { xs: '0.65rem', sm: '0.75rem' } }}>
-                      después de retiros
-                    </Typography>
                   </CardContent>
                 </Card>
               </Box>
