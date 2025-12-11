@@ -21,10 +21,12 @@ import {
   CardContent,
   Divider,
 } from '@mui/material'
-import { Person, Phone, Email, Home, Work } from '@mui/icons-material'
+import { Person, Phone, Email, Home, Work, Notes, Save, Check } from '@mui/icons-material'
+import CircularProgress from '@mui/material/CircularProgress'
 import type { SelectChangeEvent } from '@mui/material/Select'
 import { useClients } from '@/hooks/useClients'
 import { useCurrentUser } from '@/hooks/useCurrentUser'
+import { loansService } from '@/services/loans.service'
 import { ClientValidation } from '@/lib/validation-utils'
 import { formatDNI, formatCUIT, unformatDNI, unformatCUIT, formatPhoneNumber } from '@/lib/formatters'
 import { LATIN_AMERICAN_COUNTRIES } from '@/lib/countries'
@@ -61,6 +63,12 @@ export function ClientFormModal({
   const [formData, setFormData] = useState(INITIAL_FORM_DATA)
   const [formErrors, setFormErrors] = useState<Record<string, string>>({})
 
+  // Loan description state (separate from client form)
+  const [loanDescription, setLoanDescription] = useState('')
+  const [activeLoanId, setActiveLoanId] = useState<string | null>(null)
+  const [isSavingDescription, setIsSavingDescription] = useState(false)
+  const [descriptionSaved, setDescriptionSaved] = useState(false)
+
   // Initialize form data when client changes (for edit mode)
   useEffect(() => {
     if (mode === 'edit' && client) {
@@ -88,9 +96,21 @@ export function ClientFormModal({
         job: client.job || '',
         countryCode
       })
+
+      // Initialize loan description
+      const activeLoan = client.loans?.find(l => l.status === 'ACTIVE')
+      const loanWithDescription = client.loans?.find(l => l.description)
+      const targetLoan = activeLoan || loanWithDescription
+      if (targetLoan) {
+        setActiveLoanId(targetLoan.id)
+        setLoanDescription(targetLoan.description || '')
+      }
     } else if (mode === 'create') {
       setFormData(INITIAL_FORM_DATA)
+      setLoanDescription('')
+      setActiveLoanId(null)
     }
+    setDescriptionSaved(false)
   }, [client, mode])
 
   const handleInputChange = (field: keyof typeof formData) => (
@@ -176,7 +196,25 @@ export function ClientFormModal({
   const handleClose = () => {
     setFormData(INITIAL_FORM_DATA)
     setFormErrors({})
+    setLoanDescription('')
+    setActiveLoanId(null)
+    setDescriptionSaved(false)
     onClose()
+  }
+
+  const handleSaveDescription = async () => {
+    if (!activeLoanId) return
+
+    setIsSavingDescription(true)
+    try {
+      await loansService.updateLoanDescription(activeLoanId, loanDescription)
+      setDescriptionSaved(true)
+      setTimeout(() => setDescriptionSaved(false), 2000)
+    } catch (err) {
+      console.error('Error saving description:', err)
+    } finally {
+      setIsSavingDescription(false)
+    }
   }
 
   // Don't render if in edit mode but no client provided
@@ -450,6 +488,60 @@ export function ClientFormModal({
                       }
                     }}
                   />
+
+                  {/* Loan Description - Editable */}
+                  {mode === 'edit' && activeLoanId && (
+                    <Box
+                      sx={{
+                        p: 2,
+                        bgcolor: '#fffde7',
+                        borderRadius: 2,
+                        border: '1px solid #fff9c4',
+                      }}
+                    >
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
+                        <Notes fontSize="small" sx={{ color: '#f9a825' }} />
+                        <Typography variant="subtitle2" fontWeight="bold">
+                          Notas del Préstamo
+                        </Typography>
+                      </Box>
+                      <TextField
+                        value={loanDescription}
+                        onChange={(e) => setLoanDescription(e.target.value)}
+                        placeholder="Agregar notas sobre el préstamo..."
+                        multiline
+                        rows={3}
+                        fullWidth
+                        size="small"
+                        sx={{
+                          mb: 1.5,
+                          '& .MuiOutlinedInput-root': {
+                            borderRadius: 1.5,
+                            bgcolor: 'white',
+                          }
+                        }}
+                      />
+                      <Button
+                        variant="contained"
+                        size="small"
+                        onClick={handleSaveDescription}
+                        disabled={isSavingDescription}
+                        startIcon={
+                          isSavingDescription ? <CircularProgress size={16} color="inherit" /> :
+                          descriptionSaved ? <Check /> : <Save />
+                        }
+                        sx={{
+                          borderRadius: 1.5,
+                          bgcolor: descriptionSaved ? '#4caf50' : '#f9a825',
+                          '&:hover': {
+                            bgcolor: descriptionSaved ? '#43a047' : '#f57f17',
+                          }
+                        }}
+                      >
+                        {isSavingDescription ? 'Guardando...' : descriptionSaved ? 'Guardado' : 'Guardar Notas'}
+                      </Button>
+                    </Box>
+                  )}
                 </Box>
               </CardContent>
             </Card>

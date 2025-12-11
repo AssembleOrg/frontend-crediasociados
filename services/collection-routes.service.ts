@@ -30,6 +30,7 @@ export interface CollectionRouteItem {
       loanTrack: string;
       amount: number;
       currency: string;
+      notes?: string;
     };
   };
   expenseDetails?: Array<{

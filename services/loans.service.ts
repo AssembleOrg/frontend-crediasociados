@@ -119,6 +119,11 @@ class LoansService {
     return response.data.data || response.data;
   }
 
+  async updateLoanDescription(loanId: string, description: string): Promise<{ id: string; description: string }> {
+    const response = await api.patch(`/loans/${loanId}/description`, { description });
+    return response.data.data || response.data;
+  }
+
   /**
    * ✅ MÉTODO DEPRECADO: Las wallets pueden ser negativas sin límite
    * Helper: Validate if loan can be created with available wallet balance

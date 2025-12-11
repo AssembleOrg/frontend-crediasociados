@@ -31,6 +31,7 @@ interface RouteItemCardProps {
   index: number;
   onPayment: (item: CollectionRouteItem) => void;
   onReset?: (item: CollectionRouteItem) => void;
+  onCardClick?: (item: CollectionRouteItem) => void;
   isActive: boolean;
   isDragging?: boolean;
   dragHandleProps?: any;
@@ -41,11 +42,12 @@ interface RouteItemCardProps {
  * RouteItemCard - Compact and efficient design
  * Shows essential info with expandable details
  */
-export function RouteItemCard({ 
-  item, 
-  index, 
+export function RouteItemCard({
+  item,
+  index,
   onPayment,
   onReset,
+  onCardClick,
   isActive,
   isDragging,
   dragHandleProps,
@@ -108,9 +110,16 @@ export function RouteItemCard({
     }
   };
 
+  const handleCardClick = () => {
+    if (onCardClick) {
+      onCardClick(item);
+    }
+  };
+
   return (
     <Card
       elevation={isDragging ? 8 : 1}
+      onClick={handleCardClick}
       sx={{
         mb: { xs: 1, sm: 1 },
         borderLeft: { xs: 4, sm: 3 },
@@ -118,6 +127,7 @@ export function RouteItemCard({
         transition: 'all 0.2s ease',
         opacity: isDragging ? 0.9 : 1,
         transform: isDragging ? 'rotate(2deg)' : 'none',
+        cursor: onCardClick ? 'pointer' : 'default',
         '&:hover': {
           boxShadow: 2,
           borderLeftWidth: { xs: 4, sm: 4 },
@@ -139,6 +149,7 @@ export function RouteItemCard({
           {dragHandleProps && (
             <Box
               {...dragHandleProps}
+              onClick={(e: React.MouseEvent) => e.stopPropagation()}
               sx={{
                 cursor: 'grab',
                 color: 'text.secondary',
@@ -242,7 +253,10 @@ export function RouteItemCard({
                   color="warning"
                   size={isMobile ? 'medium' : 'small'}
                   startIcon={<Refresh sx={{ fontSize: { xs: 18, sm: 20 } }} />}
-                  onClick={() => onReset(item)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onReset(item);
+                  }}
                   disabled={isResetting}
                   sx={{
                     textTransform: 'none',
@@ -264,7 +278,10 @@ export function RouteItemCard({
                   variant="contained"
                   size={isMobile ? 'medium' : 'small'}
                   startIcon={<Payment sx={{ fontSize: { xs: 18, sm: 20 } }} />}
-                  onClick={() => onPayment(item)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onPayment(item);
+                  }}
                   sx={{
                     textTransform: 'none',
                     minWidth: { xs: 85, sm: 120 },
@@ -283,7 +300,10 @@ export function RouteItemCard({
               )}
               <IconButton
                 size={isMobile ? 'medium' : 'small'}
-                onClick={() => setExpanded(!expanded)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setExpanded(!expanded);
+                }}
                 sx={{
                   transform: expanded ? 'rotate(180deg)' : 'rotate(0deg)',
                   transition: 'transform 0.3s',
@@ -304,7 +324,10 @@ export function RouteItemCard({
           {!isActive && (
             <IconButton
               size={isMobile ? 'medium' : 'small'}
-              onClick={() => setExpanded(!expanded)}
+              onClick={(e) => {
+                e.stopPropagation();
+                setExpanded(!expanded);
+              }}
               sx={{
                 transform: expanded ? 'rotate(180deg)' : 'rotate(0deg)',
                 transition: 'transform 0.3s',
@@ -390,7 +413,10 @@ export function RouteItemCard({
                     ml: -0.5,
                     transition: 'all 0.2s',
                   }}
-                  onClick={openGoogleMaps}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    openGoogleMaps();
+                  }}
                   title="Abrir en Google Maps"
                 >
                   <LocationOn sx={{ fontSize: 16, color: 'primary.main', mt: 0.2 }} />
@@ -454,6 +480,18 @@ export function RouteItemCard({
                 </Typography>
               </Box>
             </Box>
+
+            {/* Notas del Préstamo - SOLO LECTURA */}
+            {item.subLoan.loan.notes && (
+              <Box sx={{ mt: 2, p: 1.5, bgcolor: '#fffde7', borderRadius: 1 }}>
+                <Typography variant="subtitle2" sx={{ fontWeight: 600, fontSize: '0.875rem', mb: 0.5 }}>
+                  Notas del Préstamo
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  {item.subLoan.loan.notes}
+                </Typography>
+              </Box>
+            )}
 
             {/* Expenses */}
             {item.expenseDetails && item.expenseDetails.length > 0 && (

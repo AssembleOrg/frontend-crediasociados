@@ -57,6 +57,7 @@ import { CloseRouteModal } from '@/components/routes/CloseRouteModal';
 import { PaymentModal } from '@/components/loans/PaymentModal';
 import { RouteExpenseModal } from '@/components/routes/RouteExpenseModal';
 import { RouteDatePicker } from '@/components/routes/RouteDatePicker';
+import { RouteItemDetailModal } from '@/components/routes/RouteItemDetailModal';
 import { CollectionRouteItem } from '@/services/collection-routes.service';
 import { paymentsService } from '@/services/payments.service';
 import { DateTime } from 'luxon';
@@ -69,10 +70,11 @@ interface SortableRouteItemProps {
   index: number;
   onPayment: (item: CollectionRouteItem) => void;
   onReset?: (item: CollectionRouteItem) => void;
+  onCardClick?: (item: CollectionRouteItem) => void;
   resettingSubloanId?: string | null;
 }
 
-function SortableRouteItem({ item, index, onPayment, onReset, resettingSubloanId }: SortableRouteItemProps) {
+function SortableRouteItem({ item, index, onPayment, onReset, onCardClick, resettingSubloanId }: SortableRouteItemProps) {
   const {
     listeners,
     setNodeRef,
@@ -103,6 +105,7 @@ function SortableRouteItem({ item, index, onPayment, onReset, resettingSubloanId
         index={index}
         onPayment={onPayment}
         onReset={onReset}
+        onCardClick={onCardClick}
         isActive={false} // Disable payment in reorder mode
         isDragging={isDragging}
         resettingSubloanId={resettingSubloanId}
@@ -133,7 +136,9 @@ export default function RutasPage() {
   const [closeModalOpen, setCloseModalOpen] = useState(false);
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
   const [expenseModalOpen, setExpenseModalOpen] = useState(false);
+  const [detailModalOpen, setDetailModalOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState<CollectionRouteItem | null>(null);
+  const [selectedDetailItem, setSelectedDetailItem] = useState<CollectionRouteItem | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [resetConfirmModalOpen, setResetConfirmModalOpen] = useState(false);
   const [itemToReset, setItemToReset] = useState<CollectionRouteItem | null>(null);
@@ -192,6 +197,21 @@ export default function RutasPage() {
   const handleClosePaymentModal = () => {
     setPaymentModalOpen(false);
     setSelectedItem(null);
+  };
+
+  const handleOpenDetailModal = (item: CollectionRouteItem) => {
+    setSelectedDetailItem(item);
+    setDetailModalOpen(true);
+  };
+
+  const handleCloseDetailModal = () => {
+    setDetailModalOpen(false);
+    setSelectedDetailItem(null);
+  };
+
+  const handlePaymentFromDetail = (item: CollectionRouteItem) => {
+    handleCloseDetailModal();
+    handleOpenPaymentModal(item);
   };
 
   const handlePaymentSuccess = () => {
@@ -725,6 +745,7 @@ export default function RutasPage() {
                     index={index}
                     onPayment={handleOpenPaymentModal}
                     onReset={handleResetPayments}
+                    onCardClick={handleOpenDetailModal}
                     resettingSubloanId={resettingSubloanId}
                   />
                 ))}
@@ -742,6 +763,7 @@ export default function RutasPage() {
                 index={index}
                 onPayment={handleOpenPaymentModal}
                 onReset={handleResetPayments}
+                onCardClick={handleOpenDetailModal}
                 isActive={!isRouteClosed}
                 resettingSubloanId={resettingSubloanId}
               />
@@ -822,6 +844,14 @@ export default function RutasPage() {
           }}
         />
       )}
+
+      {/* Detail Modal */}
+      <RouteItemDetailModal
+        open={detailModalOpen}
+        onClose={handleCloseDetailModal}
+        item={selectedDetailItem}
+        onPayment={!isRouteClosed ? handlePaymentFromDetail : undefined}
+      />
 
       {/* Reset Confirmation Modal */}
       <Dialog

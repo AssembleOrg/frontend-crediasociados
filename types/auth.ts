@@ -144,6 +144,11 @@ export interface Client {
   verified?: boolean;
   createdAt: Date;
   updatedAt: Date;
+  loans?: Array<{
+    id: string;
+    status: string;
+    description?: string;
+  }>;
 }
 
 // Frontend Loan type (normalized from API)

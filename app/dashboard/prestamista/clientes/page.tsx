@@ -15,12 +15,24 @@ import {
   IconButton,
   Alert,
   Typography,
+  Tooltip,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  TextField,
+  Button,
+  CircularProgress,
+  Snackbar,
 } from '@mui/material'
 import {
   Add,
   Edit,
   Delete,
+  Description,
 } from '@mui/icons-material'
+import { clientsService } from '@/services/clients.service'
+import { loansService } from '@/services/loans.service'
 import { useClients } from '@/hooks/useClients'
 import { ClientFormModal } from '@/components/clients/ClientFormModal'
 import { DeleteClientConfirmDialog } from '@/components/clients/DeleteClientConfirmDialog'
@@ -44,6 +56,71 @@ export default function ClientesPage() {
   const [editModalOpen, setEditModalOpen] = useState(false)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [selectedClient, setSelectedClient] = useState<Client | null>(null)
+
+  // Notes dialog state
+  const [notesDialogOpen, setNotesDialogOpen] = useState(false)
+  const [notesValue, setNotesValue] = useState('')
+  const [notesClientName, setNotesClientName] = useState('')
+  const [currentLoanId, setCurrentLoanId] = useState<string | null>(null)
+  const [loadingNotes, setLoadingNotes] = useState<string | null>(null) // client.id when loading
+  const [savingNotes, setSavingNotes] = useState(false)
+  const [snackbar, setSnackbar] = useState<{ open: boolean; message: string; severity: 'success' | 'error' | 'info' }>({
+    open: false,
+    message: '',
+    severity: 'info'
+  })
+
+  const handleNotesClick = async (client: Client) => {
+    setLoadingNotes(client.id)
+    try {
+      const fullClient = await clientsService.getClientById(client.id)
+      const activeLoan = fullClient.loans?.find((l: { status: string }) => l.status === 'ACTIVE')
+
+      if (activeLoan) {
+        setCurrentLoanId(activeLoan.id)
+        setNotesValue(activeLoan.description || '')
+        setNotesClientName(client.fullName)
+        setNotesDialogOpen(true)
+      } else {
+        setSnackbar({
+          open: true,
+          message: 'Este cliente no tiene préstamo activo',
+          severity: 'info'
+        })
+      }
+    } catch {
+      setSnackbar({
+        open: true,
+        message: 'Error al cargar los datos del cliente',
+        severity: 'error'
+      })
+    } finally {
+      setLoadingNotes(null)
+    }
+  }
+
+  const handleSaveNotes = async () => {
+    if (!currentLoanId) return
+
+    setSavingNotes(true)
+    try {
+      await loansService.updateLoanDescription(currentLoanId, notesValue)
+      setSnackbar({
+        open: true,
+        message: 'Notas guardadas correctamente',
+        severity: 'success'
+      })
+      setNotesDialogOpen(false)
+    } catch {
+      setSnackbar({
+        open: true,
+        message: 'Error al guardar las notas',
+        severity: 'error'
+      })
+    } finally {
+      setSavingNotes(false)
+    }
+  }
 
   // Use server-side pagination from the store
   const page = (pagination?.page || 1) - 1 // MUI uses 0-based indexing
@@ -209,6 +286,19 @@ export default function ClientesPage() {
                         )}
                       </TableCell>
                       <TableCell align="center">
+                        <Tooltip title="Notas del préstamo">
+                          <IconButton
+                            size="small"
+                            onClick={() => handleNotesClick(client)}
+                            disabled={loadingNotes === client.id}
+                          >
+                            {loadingNotes === client.id ? (
+                              <CircularProgress size={20} />
+                            ) : (
+                              <Description />
+                            )}
+                          </IconButton>
+                        </Tooltip>
                         <IconButton
                           size="small"
                           onClick={() => handleEdit(client)}
@@ -300,6 +390,55 @@ export default function ClientesPage() {
           return success
         }}
       />
+
+      {/* Notes Dialog */}
+      <Dialog
+        open={notesDialogOpen}
+        onClose={() => setNotesDialogOpen(false)}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>Notas del Préstamo - {notesClientName}</DialogTitle>
+        <DialogContent>
+          <TextField
+            autoFocus
+            multiline
+            rows={4}
+            fullWidth
+            value={notesValue}
+            onChange={(e) => setNotesValue(e.target.value)}
+            placeholder="Agregar notas o información adicional..."
+            variant="outlined"
+            sx={{ mt: 1 }}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setNotesDialogOpen(false)}>Cancelar</Button>
+          <Button
+            onClick={handleSaveNotes}
+            variant="contained"
+            disabled={savingNotes}
+          >
+            {savingNotes ? <CircularProgress size={20} /> : 'Guardar'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Snackbar */}
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={4000}
+        onClose={() => setSnackbar(prev => ({ ...prev, open: false }))}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <Alert
+          onClose={() => setSnackbar(prev => ({ ...prev, open: false }))}
+          severity={snackbar.severity}
+          sx={{ width: '100%' }}
+        >
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
     </Box>
   )
 }
