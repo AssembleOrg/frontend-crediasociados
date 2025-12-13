@@ -22,7 +22,7 @@ import {
   Chip,
   CircularProgress
 } from '@mui/material'
-import { Payment, AttachMoney, PictureAsPdf, Info } from '@mui/icons-material'
+import { Payment, AttachMoney, PictureAsPdf, Info, Warning } from '@mui/icons-material'
 import { formatAmount, unformatAmount } from '@/lib/formatters'
 import { generatePaymentPDF } from '@/utils/pdf/paymentReceipt'
 import { useOperativa } from '@/hooks/useOperativa'
@@ -69,6 +69,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
   const [errorModalOpen, setErrorModalOpen] = useState(false)
   const [errorMessage, setErrorMessage] = useState('')
   const [successModalOpen, setSuccessModalOpen] = useState(false)
+  const [multiPaymentConfirmOpen, setMultiPaymentConfirmOpen] = useState(false)
   const [successData, setSuccessData] = useState<{
     clientName: string
     paymentNumber: number
@@ -142,11 +143,26 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
   const handleRegisterPayment = async () => {
     if (!currentSubloan) return
 
+    const amountValue = parseFloat(paymentAmount)
+    const pendingAmount = (currentSubloan.totalAmount ?? 0) - (currentSubloan.paidAmount || 0)
+
+    // Check if payment amount exceeds pending amount (will pay multiple installments)
+    if (amountValue > pendingAmount) {
+      setMultiPaymentConfirmOpen(true)
+      return
+    }
+
+    // Proceed with payment registration
+    await executePayment(amountValue)
+  }
+
+  const executePayment = async (amountValue: number) => {
+    if (!currentSubloan) return
+
     // ✅ Set loading state to disable button
     setIsRegistering(true)
 
     try {
-      const amountValue = parseFloat(paymentAmount)
 
       // Register payment using the real payments service endpoint
       // This updates the SubLoan status and creates the payment record
@@ -603,6 +619,93 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
           pdfGenerated={successData.pdfGenerated}
         />
       )}
+
+      {/* Multi-Payment Confirmation Modal */}
+      <Dialog
+        open={multiPaymentConfirmOpen}
+        onClose={() => setMultiPaymentConfirmOpen(false)}
+        maxWidth="sm"
+        fullWidth
+        PaperProps={{
+          sx: {
+            borderRadius: 2,
+          }
+        }}
+      >
+        <DialogTitle sx={{ pb: 2 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            <Warning color="warning" sx={{ fontSize: 28 }} />
+            <Typography variant="h6" fontWeight="bold">
+              Confirmar Pago de Múltiples Cuotas
+            </Typography>
+          </Box>
+        </DialogTitle>
+        <DialogContent>
+          {currentSubloan && (
+            <>
+              <Typography variant="body1" gutterBottom sx={{ mb: 2 }}>
+                El monto a pagar es mayor al saldo pendiente de la cuota actual.
+              </Typography>
+              
+              <Box sx={{ mb: 2, p: 2, bgcolor: 'grey.50', borderRadius: 1 }}>
+                <Typography variant="body2" color="text.secondary" gutterBottom>
+                  Detalles del pago:
+                </Typography>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                  <Typography variant="body2" fontWeight={500}>
+                    Saldo pendiente de la cuota #{currentSubloan.paymentNumber}:
+                  </Typography>
+                  <Typography variant="body2" fontWeight={600} color="error.main">
+                    ${formatAmount(((currentSubloan.totalAmount ?? 0) - (currentSubloan.paidAmount || 0)).toString())}
+                  </Typography>
+                </Box>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <Typography variant="body2" fontWeight={500}>
+                    Monto a pagar:
+                  </Typography>
+                  <Typography variant="body2" fontWeight={600} color="primary.main">
+                    ${formatAmount(paymentAmount)}
+                  </Typography>
+                </Box>
+              </Box>
+
+              <Alert severity="info" sx={{ mb: 2 }}>
+                <Typography variant="body2" fontWeight={600} gutterBottom>
+                  ⚠️ Importante:
+                </Typography>
+                <Typography variant="body2">
+                  Este pago completará la cuota actual y se aplicará el excedente a las siguientes cuotas pendientes.
+                </Typography>
+              </Alert>
+
+              <Typography variant="body2" color="text.secondary">
+                ¿Deseas continuar con el registro del pago?
+              </Typography>
+            </>
+          )}
+        </DialogContent>
+        <DialogActions sx={{ p: 3, pt: 2, gap: 2 }}>
+          <Button
+            onClick={() => setMultiPaymentConfirmOpen(false)}
+            variant="outlined"
+            sx={{ minWidth: 120 }}
+          >
+            Cancelar
+          </Button>
+          <Button
+            onClick={async () => {
+              setMultiPaymentConfirmOpen(false)
+              const amountValue = parseFloat(paymentAmount)
+              await executePayment(amountValue)
+            }}
+            variant="contained"
+            color="primary"
+            sx={{ minWidth: 120 }}
+          >
+            Aceptar
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Dialog>
   )
 }

@@ -8,6 +8,12 @@ const withBundleAnalyzer = require('@next/bundle-analyzer')({
 const nextConfig: NextConfig = {
   reactStrictMode: true,
 
+  // Turbopack root directory - Fix for file watch limit
+  // This prevents Next.js from watching the entire parent directory
+  turbopack: {
+    root: process.cwd(),
+  },
+
   // React Compiler: Automatic memoization and optimization (moved from experimental)
   reactCompiler: true,
 

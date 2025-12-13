@@ -52,7 +52,7 @@ import {
 import { CSS } from '@dnd-kit/utilities';
 import { useCollectionRoutes } from '@/hooks/useCollectionRoutes';
 import { RouteStats } from '@/components/routes/RouteStats';
-import { RouteItemCard } from '@/components/routes/RouteItemCard';
+import { RouteItemCard, type RouteItemCardProps } from '@/components/routes/RouteItemCard';
 import { CloseRouteModal } from '@/components/routes/CloseRouteModal';
 import { PaymentModal } from '@/components/loans/PaymentModal';
 import { RouteExpenseModal } from '@/components/routes/RouteExpenseModal';
@@ -60,7 +60,9 @@ import { RouteDatePicker } from '@/components/routes/RouteDatePicker';
 import { RouteItemDetailModal } from '@/components/routes/RouteItemDetailModal';
 import { CollectionRouteItem } from '@/services/collection-routes.service';
 import { paymentsService } from '@/services/payments.service';
+import { collectorWalletService } from '@/services/collector-wallet.service';
 import { DateTime } from 'luxon';
+import { AccountBalanceWallet } from '@mui/icons-material';
 
 /**
  * Sortable wrapper for RouteItemCard using @dnd-kit
@@ -153,12 +155,35 @@ export default function RutasPage() {
   // Filter State - Show only pending by default
   const [showOnlyPending, setShowOnlyPending] = useState(true);
 
+  // Wallet Balance State
+  const [walletBalance, setWalletBalance] = useState<number | null>(null);
+  const [loadingWalletBalance, setLoadingWalletBalance] = useState(false);
+
   // Fetch route on mount and when pathname changes
   useEffect(() => {
     // Rutas page mounted/changed
     fetchTodayRoute();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pathname]);
+
+  // Fetch wallet balance
+  const fetchWalletBalance = async () => {
+    setLoadingWalletBalance(true);
+    try {
+      const balanceData = await collectorWalletService.getMyBalance();
+      setWalletBalance(balanceData.balance);
+    } catch (error) {
+      // Error fetching wallet balance - set to null to show loading state
+      setWalletBalance(null);
+    } finally {
+      setLoadingWalletBalance(false);
+    }
+  };
+
+  // Fetch wallet balance on mount
+  useEffect(() => {
+    fetchWalletBalance();
+  }, []);
 
   // Update reorderedItems when selectedRoute changes
   useEffect(() => {
@@ -217,6 +242,8 @@ export default function RutasPage() {
   const handlePaymentSuccess = () => {
     // Refresh route to get updated amounts
     fetchTodayRoute();
+    // Refresh wallet balance after payment
+    fetchWalletBalance();
   };
 
   const handleResetPayments = (item: CollectionRouteItem) => {
@@ -236,6 +263,8 @@ export default function RutasPage() {
       await paymentsService.resetPayments(itemToReset.subLoanId);
       // Refresh route to get updated amounts
       fetchTodayRoute();
+      // Refresh wallet balance after reset
+      fetchWalletBalance();
       setSuccessMessage('✅ Pagos reseteados exitosamente');
       setItemToReset(null);
     } catch (error: any) {
@@ -548,6 +577,71 @@ export default function RutasPage() {
           />
         </Box>
       )}
+
+      {/* Wallet Balance Card */}
+      <Box sx={{ mb: { xs: 1.5, sm: 3 } }}>
+        <Card
+          elevation={0}
+          sx={{
+            p: 2,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 2,
+            borderRadius: 1.5,
+            bgcolor: 'background.paper',
+            border: '1px solid',
+            borderColor: 'divider',
+            minHeight: { xs: 80, sm: 90 },
+          }}
+        >
+          <Box
+            sx={{
+              color: 'primary.main',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              width: 48,
+              height: 48,
+              borderRadius: '50%',
+              bgcolor: 'primary.lighter',
+            }}
+          >
+            <AccountBalanceWallet />
+          </Box>
+          <Box sx={{ flex: 1, minWidth: 0 }}>
+            <Typography
+              variant="body2"
+              color="text.secondary"
+              sx={{ fontSize: '0.875rem', fontWeight: 500, mb: 0.5 }}
+            >
+              Wallet de Cobros
+            </Typography>
+            <Typography
+              variant="caption"
+              color="text.secondary"
+              sx={{ fontSize: '0.7rem', display: 'block' }}
+            >
+              Saldo del día actual ({DateTime.now().setLocale('es').toFormat("cccc, d 'de' MMMM")})
+            </Typography>
+            {loadingWalletBalance ? (
+              <CircularProgress size={20} />
+            ) : (
+              <Typography
+                variant="h6"
+                sx={{
+                  fontWeight: 700,
+                  color: walletBalance !== null && walletBalance > 0 ? 'success.main' : 'text.primary',
+                  fontSize: { xs: '1.25rem', sm: '1.5rem' },
+                }}
+              >
+                {walletBalance !== null
+                  ? `$${walletBalance.toLocaleString('es-AR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`
+                  : 'N/A'}
+              </Typography>
+            )}
+          </Box>
+        </Card>
+      </Box>
 
       {/* Info Alert - Mobile Compact */}
       {currentRoute && !isRouteClosed && (

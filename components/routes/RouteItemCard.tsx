@@ -26,7 +26,7 @@ import {
 import { CollectionRouteItem } from '@/services/collection-routes.service';
 import { DateTime } from 'luxon';
 
-interface RouteItemCardProps {
+export interface RouteItemCardProps {
   item: CollectionRouteItem;
   index: number;
   onPayment: (item: CollectionRouteItem) => void;
