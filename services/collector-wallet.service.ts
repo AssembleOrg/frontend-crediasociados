@@ -349,7 +349,8 @@ class CollectorWalletService {
       const response = await api.get(`/collector-wallet/last-withdrawal`, {
         params: { managerId }
       });
-      return response.data.data || response.data;
+      const result = response.data.data;
+      return result ?? null;  // Si data es null/undefined, devolver null explícitamente
     } catch (err: any) {
       // If 404 or no withdrawal found, return null
       if (err.response?.status === 404) {

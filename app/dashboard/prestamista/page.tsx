@@ -6,6 +6,7 @@ import { Box, Grid, CircularProgress, Typography, Button, useMediaQuery, Dialog,
 import { ExpandMore, ExpandLess, Calculate, PersonOff, AccountBalance } from '@mui/icons-material'
 import PageHeader from '@/components/ui/PageHeader'
 import { ManagerDashboardCards } from '@/components/dashboard/ManagerDashboardCards'
+import { NetoAjusteCajaCard } from '@/components/dashboard/NetoAjusteCajaCard'
 import { usePrestamistaDashboardData } from '@/hooks/usePrestamistaDashboardData'
 import { usePrestamistaCharts } from '@/hooks/usePrestamistaCharts'
 import { useWallet } from '@/hooks/useWallet'
@@ -104,6 +105,11 @@ export default function PrestamistaDashboard() {
 
       {/* Manager Dashboard Cards */}
       <ManagerDashboardCards />
+
+      {/* Neto con Ajuste de Caja Card */}
+      <Box sx={{ mb: 3 }}>
+        <NetoAjusteCajaCard />
+      </Box>
 
       {/* Inactive Clients Card */}
       <Card
