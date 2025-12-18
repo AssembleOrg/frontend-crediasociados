@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Box, Button, Alert,  } from '@mui/material'
 import { Add} from '@mui/icons-material'
 import { useRouter } from 'next/navigation'
@@ -22,10 +22,17 @@ import { calculateLoanStats } from '@/lib/loans/loanCalculations'
 
 export default function PrestamosAnalyticsPage() {
   const router = useRouter()
-  const { loans, error } = useLoans()
+  const { loans, error, fetchLoans } = useLoans()
   const { allSubLoansWithClient, isLoading: subLoansLoading, fetchAllSubLoansWithClientInfo } = useSubLoans()
   const { filteredLoans, filterStats, hasActiveFilters } = useLoansFilters()
   const { data: managerData, isLoading: managerDataLoading, refetch: refetchManagerData } = useManagerDashboard()
+
+  // Ensure first-time entry loads latest loans (hook no longer auto-inits)
+  useEffect(() => {
+    if (loans.length === 0) {
+      fetchLoans()
+    }
+  }, [fetchLoans, loans.length])
 
   // Modal states
   const [selectedLoanId, setSelectedLoanId] = useState<string | null>(null)
@@ -168,6 +175,8 @@ export default function PrestamosAnalyticsPage() {
         onPaymentSuccess={() => {
           // Refrescar los datos después de un pago exitoso
           fetchAllSubLoansWithClientInfo()
+          // Refrescar préstamos para mantener el resumen/estado actualizado
+          fetchLoans()
         }}
       />
     </Box>

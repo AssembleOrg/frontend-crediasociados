@@ -158,6 +158,7 @@ export default function RutasPage() {
   // Wallet Balance State
   const [walletBalance, setWalletBalance] = useState<number | null>(null);
   const [loadingWalletBalance, setLoadingWalletBalance] = useState(false);
+  const [walletDayLabel, setWalletDayLabel] = useState<string>('');
 
   // Fetch route on mount and when pathname changes
   useEffect(() => {
@@ -185,6 +186,11 @@ export default function RutasPage() {
     fetchWalletBalance();
   }, []);
 
+  // Avoid hydration mismatches by computing "today" label only on client
+  useEffect(() => {
+    setWalletDayLabel(DateTime.now().setLocale('es').toFormat("cccc, d 'de' MMMM"));
+  }, []);
+
   // Update reorderedItems when selectedRoute changes
   useEffect(() => {
     const route = selectedRoute || todayRoute;
@@ -200,6 +206,8 @@ export default function RutasPage() {
     } else {
       fetchTodayRoute();
     }
+    // Refresh wallet balance as well
+    fetchWalletBalance();
   };
 
   const handleDateSelect = (date: string) => {
@@ -621,7 +629,7 @@ export default function RutasPage() {
               color="text.secondary"
               sx={{ fontSize: '0.7rem', display: 'block' }}
             >
-              Saldo del día actual ({DateTime.now().setLocale('es').toFormat("cccc, d 'de' MMMM")})
+              Saldo del día actual{walletDayLabel ? ` (${walletDayLabel})` : ''}
             </Typography>
             {loadingWalletBalance ? (
               <CircularProgress size={20} />

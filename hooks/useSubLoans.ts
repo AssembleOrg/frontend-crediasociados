@@ -66,7 +66,7 @@ export function useSubLoans() {
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [hasPermissions, setError, setLoading, setPagination, setTodayDueSubLoans])
 
   const fetchStats = useCallback(async () => {
     if (!hasPermissions) return
@@ -83,7 +83,7 @@ export function useSubLoans() {
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [hasPermissions, setError, setLoading, setStats])
 
   const fetchAllSubLoans = useCallback(async (params?: PaginationParams) => {
     if (!hasPermissions) return
@@ -108,7 +108,7 @@ export function useSubLoans() {
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [hasPermissions, setAllSubLoans, setError, setLoading, setPagination])
 
   // ✅ Prevent race conditions: use ref to track if component is mounted
   const isMountedRef = useRef(true)
@@ -194,7 +194,7 @@ export function useSubLoans() {
       setLoading(false)
       isLoadingRef.current = false // ✅ Always reset loading ref
     }
-  }, [])
+  }, [currentUser, hasPermissions, setAllSubLoansWithClient, setError, setLoading, setPagination])
 
   const activateOverdueSubLoans = useCallback(async () => {
     if (!currentUser || !['ADMIN', 'SUBADMIN', 'prestamista'].includes(currentUser.role as string)) {
@@ -220,7 +220,7 @@ export function useSubLoans() {
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [currentUser, fetchStats, fetchTodayDueSubLoans, setError, setLoading])
 
   return {
     todayDueSubLoans,

@@ -75,7 +75,7 @@ export function useLoans() {
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [currentUser, setError, setLoading, setLoans])
 
   const fetchLoanById = useCallback(async (id: string) => {
     try {
