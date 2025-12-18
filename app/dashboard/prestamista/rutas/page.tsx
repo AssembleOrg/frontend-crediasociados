@@ -51,6 +51,8 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { useCollectionRoutes } from '@/hooks/useCollectionRoutes';
+import { useLoans } from '@/hooks/useLoans';
+import { useSubLoans } from '@/hooks/useSubLoans';
 import { RouteStats } from '@/components/routes/RouteStats';
 import { RouteItemCard, type RouteItemCardProps } from '@/components/routes/RouteItemCard';
 import { CloseRouteModal } from '@/components/routes/CloseRouteModal';
@@ -70,13 +72,14 @@ import { AccountBalanceWallet } from '@mui/icons-material';
 interface SortableRouteItemProps {
   item: CollectionRouteItem;
   index: number;
-  onPayment: (item: CollectionRouteItem) => void;
+  onPayment?: (item: CollectionRouteItem) => void;
   onReset?: (item: CollectionRouteItem) => void;
   onCardClick?: (item: CollectionRouteItem) => void;
   resettingSubloanId?: string | null;
+  isRouteClosed?: boolean;
 }
 
-function SortableRouteItem({ item, index, onPayment, onReset, onCardClick, resettingSubloanId }: SortableRouteItemProps) {
+function SortableRouteItem({ item, index, onPayment, onReset, onCardClick, resettingSubloanId, isRouteClosed }: SortableRouteItemProps) {
   const {
     listeners,
     setNodeRef,
@@ -108,7 +111,7 @@ function SortableRouteItem({ item, index, onPayment, onReset, onCardClick, reset
         onPayment={onPayment}
         onReset={onReset}
         onCardClick={onCardClick}
-        isActive={false} // Disable payment in reorder mode
+        isActive={!isRouteClosed && false} // Disable payment in reorder mode (always false), and if route is closed
         isDragging={isDragging}
         resettingSubloanId={resettingSubloanId}
         dragHandleProps={listeners}
@@ -134,6 +137,8 @@ export default function RutasPage() {
     closeRoute,
     updateRouteOrder,
   } = useCollectionRoutes();
+  const { fetchLoans } = useLoans();
+  const { fetchAllSubLoansWithClientInfo } = useSubLoans();
 
   const [closeModalOpen, setCloseModalOpen] = useState(false);
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
@@ -252,6 +257,9 @@ export default function RutasPage() {
     fetchTodayRoute();
     // Refresh wallet balance after payment
     fetchWalletBalance();
+    // Refresh loans and subloans to update progress (e.g., "6 de 10" -> "9 de 10")
+    fetchLoans();
+    fetchAllSubLoansWithClientInfo();
   };
 
   const handleResetPayments = (item: CollectionRouteItem) => {
@@ -273,6 +281,9 @@ export default function RutasPage() {
       fetchTodayRoute();
       // Refresh wallet balance after reset
       fetchWalletBalance();
+      // Refresh loans and subloans to update progress after reset
+      fetchLoans();
+      fetchAllSubLoansWithClientInfo();
       setSuccessMessage('✅ Pagos reseteados exitosamente');
       setItemToReset(null);
     } catch (error: any) {
@@ -845,10 +856,11 @@ export default function RutasPage() {
                     key={item.id}
                     item={item}
                     index={index}
-                    onPayment={handleOpenPaymentModal}
-                    onReset={handleResetPayments}
+                    onPayment={!isRouteClosed ? handleOpenPaymentModal : undefined}
+                    onReset={!isRouteClosed ? handleResetPayments : undefined}
                     onCardClick={handleOpenDetailModal}
                     resettingSubloanId={resettingSubloanId}
+                    isRouteClosed={isRouteClosed}
                   />
                 ))}
               </Box>
@@ -863,8 +875,8 @@ export default function RutasPage() {
                 key={item.id}
                 item={item}
                 index={index}
-                onPayment={handleOpenPaymentModal}
-                onReset={handleResetPayments}
+                onPayment={!isRouteClosed ? handleOpenPaymentModal : undefined}
+                onReset={!isRouteClosed ? handleResetPayments : undefined}
                 onCardClick={handleOpenDetailModal}
                 isActive={!isRouteClosed}
                 resettingSubloanId={resettingSubloanId}

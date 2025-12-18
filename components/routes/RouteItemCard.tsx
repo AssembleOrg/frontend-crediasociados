@@ -29,7 +29,7 @@ import { DateTime } from 'luxon';
 export interface RouteItemCardProps {
   item: CollectionRouteItem;
   index: number;
-  onPayment: (item: CollectionRouteItem) => void;
+  onPayment?: (item: CollectionRouteItem) => void;
   onReset?: (item: CollectionRouteItem) => void;
   onCardClick?: (item: CollectionRouteItem) => void;
   isActive: boolean;
@@ -255,7 +255,9 @@ export function RouteItemCard({
                   startIcon={<Refresh sx={{ fontSize: { xs: 18, sm: 20 } }} />}
                   onClick={(e) => {
                     e.stopPropagation();
-                    onReset(item);
+                    if (onReset) {
+                      onReset(item);
+                    }
                   }}
                   disabled={isResetting}
                   sx={{
@@ -280,7 +282,9 @@ export function RouteItemCard({
                   startIcon={<Payment sx={{ fontSize: { xs: 18, sm: 20 } }} />}
                   onClick={(e) => {
                     e.stopPropagation();
-                    onPayment(item);
+                    if (onPayment) {
+                      onPayment(item);
+                    }
                   }}
                   sx={{
                     textTransform: 'none',
