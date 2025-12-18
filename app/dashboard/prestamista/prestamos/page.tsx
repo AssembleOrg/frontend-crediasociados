@@ -1,9 +1,9 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { Box, Button, Alert,  } from '@mui/material'
+import { Box, Button, Alert, CircularProgress } from '@mui/material'
 import { Add} from '@mui/icons-material'
-import { useRouter } from 'next/navigation'
+import { useRouter, usePathname } from 'next/navigation'
 import { useLoans } from '@/hooks/useLoans'
 import { useSubLoans } from '@/hooks/useSubLoans'
 import { useManagerDashboard } from '@/hooks/useManagerDashboard'
@@ -22,17 +22,23 @@ import { calculateLoanStats } from '@/lib/loans/loanCalculations'
 
 export default function PrestamosAnalyticsPage() {
   const router = useRouter()
-  const { loans, error, fetchLoans } = useLoans()
+  const pathname = usePathname()
+  const { loans, error, isLoading, fetchLoans } = useLoans()
   const { allSubLoansWithClient, isLoading: subLoansLoading, fetchAllSubLoansWithClientInfo } = useSubLoans()
   const { filteredLoans, filterStats, hasActiveFilters } = useLoansFilters()
   const { data: managerData, isLoading: managerDataLoading, refetch: refetchManagerData } = useManagerDashboard()
 
-  // Ensure first-time entry loads latest loans (hook no longer auto-inits)
+  // Always refetch on mount to ensure fresh data
   useEffect(() => {
-    if (loans.length === 0) {
-      fetchLoans()
-    }
-  }, [fetchLoans, loans.length])
+    fetchLoans()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []) // Empty deps - only on mount
+
+  // Also refetch when pathname changes (user navigates to this page)
+  useEffect(() => {
+    fetchLoans()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pathname]) // Refetch when entering the page
 
   // Modal states
   const [selectedLoanId, setSelectedLoanId] = useState<string | null>(null)
@@ -98,71 +104,82 @@ export default function PrestamosAnalyticsPage() {
         </Alert>
       )}
 
+      {/* Loading Indicator */}
+      {isLoading && (
+        <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', py: 4 }}>
+          <CircularProgress />
+        </Box>
+      )}
+
       {/* Tu Cartera Stats - Manager Dashboard Cards */}
-      <ManagerDashboardCards />
+      {!isLoading && <ManagerDashboardCards />}
 
       {/* Filter Panel */}
-      <Box sx={{ mb: 3 }}>
-        <LoansFilterPanel variant="expanded" />
-      </Box>
+      {!isLoading && (
+        <Box sx={{ mb: 3 }}>
+          <LoansFilterPanel variant="expanded" />
+        </Box>
+      )}
 
       {/* Loans Table */}
-      <Box>
-        <Box
-          sx={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            mb: 3,
-          }}
-        >
-          <Box sx={{ typography: 'h6' }}>Tu Cartera de Préstamos</Box>
-          <Box sx={{ display: 'flex', gap: 2 }}>
-            <ExportButtons 
-              filteredLoans={hasActiveFilters ? filteredLoans : undefined}
-            />
-            <Button
-              variant="contained"
-              startIcon={<Add />}
-              onClick={handleCreateLoan}
-            >
-              Nuevo Préstamo
-            </Button>
-          </Box>
-        </Box>
-
-        {error && (
-          <Alert severity="error" sx={{ mb: 3 }}>
-            {error}
-          </Alert>
-        )}
-
-        <LoansTable
-          loans={displayLoans}
-          onViewDetails={handleViewDetails}
-          onLoanDeleted={refetchManagerData}
-        />
-
-        {/* Quick Actions */}
-        {displayStats.total > 0 && (
+      {!isLoading && (
+        <Box>
           <Box
-            sx={{ mt: 3, display: 'flex', gap: 2, justifyContent: 'center' }}
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              mb: 3,
+            }}
           >
-            <Button
-              variant="outlined"
-              onClick={() => router.push('/dashboard/prestamista/cobros')}
-            >
-              Ver Cobros del Día
-            </Button>
-            <Button
-              variant="outlined"
-              onClick={() => router.push('/dashboard/prestamista/clientes')}
-            >
-              Gestionar Clientes
-            </Button>
+            <Box sx={{ typography: 'h6' }}>Tu Cartera de Préstamos</Box>
+            <Box sx={{ display: 'flex', gap: 2 }}>
+              <ExportButtons 
+                filteredLoans={hasActiveFilters ? filteredLoans : undefined}
+              />
+              <Button
+                variant="contained"
+                startIcon={<Add />}
+                onClick={handleCreateLoan}
+              >
+                Nuevo Préstamo
+              </Button>
+            </Box>
           </Box>
-        )}
-      </Box>
+
+          {error && (
+            <Alert severity="error" sx={{ mb: 3 }}>
+              {error}
+            </Alert>
+          )}
+
+          <LoansTable
+            loans={displayLoans}
+            onViewDetails={handleViewDetails}
+            onLoanDeleted={refetchManagerData}
+          />
+
+          {/* Quick Actions */}
+          {displayStats.total > 0 && (
+            <Box
+              sx={{ mt: 3, display: 'flex', gap: 2, justifyContent: 'center' }}
+            >
+              <Button
+                variant="outlined"
+                onClick={() => router.push('/dashboard/prestamista/cobros')}
+              >
+                Ver Cobros del Día
+              </Button>
+              <Button
+                variant="outlined"
+                onClick={() => router.push('/dashboard/prestamista/clientes')}
+              >
+                Gestionar Clientes
+              </Button>
+            </Box>
+          )}
+        </Box>
+      )}
 
       {/* Loan Details Modal */}
       <LoanDetailsModal
