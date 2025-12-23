@@ -1,5 +1,6 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import {
   AppBar,
   Toolbar,
@@ -17,6 +18,12 @@ export function Navbar() {
   const router = useRouter();
   const { isAuthenticated, user, logout } = useAuth();
   const currentUser = useCurrentUser();
+  // Fix hydration: only render auth-dependent content after client mount
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const handleLogin = () => {
     router.push('/login');
@@ -63,7 +70,28 @@ export function Navbar() {
           </Box>
 
           <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
-            {isAuthenticated && user ? (
+            {/* Fix hydration: only show auth-dependent content after mount */}
+            {!mounted ? (
+              // SSR placeholder - matches unauthenticated state
+              <>
+                <Button
+                  variant='outlined'
+                  color='primary'
+                  onClick={() => router.push('/consulta')}
+                  sx={{ px: 3, py: 1 }}
+                >
+                  Consultar Préstamo
+                </Button>
+                <Button
+                  variant='contained'
+                  color='primary'
+                  onClick={handleLogin}
+                  sx={{ px: 3, py: 1 }}
+                >
+                  Iniciar Sesión
+                </Button>
+              </>
+            ) : isAuthenticated && user ? (
               <>
                 <Typography
                   variant='body2'

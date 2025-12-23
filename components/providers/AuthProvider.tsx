@@ -27,19 +27,28 @@ export default function AuthProvider({ children }: AuthProviderProps) {
 
   useEffect(() => {
     const checkRehydration = async () => {
-      // Initialize auth token from store
-      if (authStore.token) {
-        setAuthToken(authStore.token);
-      }
-
+      // With skipHydration: true, store hydrates on first access in client
+      // Wait a tick to ensure client-side only execution
+      await new Promise(resolve => setTimeout(resolve, 0));
+      
+      // Access store to trigger hydration (if not already hydrated)
+      const currentState = useAuthStore.getState();
+      
+      // Wait for any async hydration to complete
       await new Promise(resolve => setTimeout(resolve, 50));
+      
+      // Initialize auth token from store
+      const finalState = useAuthStore.getState();
+      if (finalState.token) {
+        setAuthToken(finalState.token);
+      }
 
       setIsRehydrated(true);
       logger.success('Auth rehydrated and ready');
     };
 
     checkRehydration();
-  }, [authStore.token]);
+  }, []);
 
   if (!isRehydrated) {
     return (
