@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useMemo } from 'react'
 import dynamic from 'next/dynamic'
 import { Box, CircularProgress, Typography, Alert, Grid, Button, useMediaQuery, Dialog, DialogTitle, DialogContent, DialogActions, Card, CardContent, Chip } from '@mui/material'
 import { ExpandMore, ExpandLess, Calculate, PersonOff, AccountBalance, VerifiedUser } from '@mui/icons-material'
@@ -74,17 +74,22 @@ export default function SubadminDashboard() {
   const [unverifiedClientsModalOpen, setUnverifiedClientsModalOpen] = useState(false)
   const [unverifiedClientsCount, setUnverifiedClientsCount] = useState<number | null>(null)
 
-  const managersForChart: ManagerAnalytics[] = detailedManagers.map(manager => ({
-    managerId: manager.id,
-    managerName: manager.fullName,
-    managerEmail: manager.email,
-    totalClients: manager.totalClients,
-    totalLoans: manager.totalLoans,
-    totalAmountLent: manager.totalAmount,
-    totalAmountPending: 0,
-    collectionRate: 0,
-    createdAt: new Date().toISOString()
-  }))
+  // Fix hydration: use useMemo to calculate createdAt only on client
+  const managersForChart: ManagerAnalytics[] = useMemo(() => {
+    // Use a fixed timestamp to avoid hydration mismatch
+    const now = typeof window !== 'undefined' ? new Date().toISOString() : ''
+    return detailedManagers.map(manager => ({
+      managerId: manager.id,
+      managerName: manager.fullName,
+      managerEmail: manager.email,
+      totalClients: manager.totalClients,
+      totalLoans: manager.totalLoans,
+      totalAmountLent: manager.totalAmount,
+      totalAmountPending: 0,
+      collectionRate: 0,
+      createdAt: now
+    }))
+  }, [detailedManagers])
 
   // Load unverified clients count
   useEffect(() => {

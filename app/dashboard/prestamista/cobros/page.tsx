@@ -64,11 +64,19 @@ function isFilteredStats(stats: FilteredStats | LegacyStats): stats is FilteredS
 
 export default function CobrosPage() {
   const pathname = usePathname()
-  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0])
+  // Fix hydration: initialize with empty string, set date in useEffect (client-only)
+  const [selectedDate, setSelectedDate] = useState<string>('')
   const {
     allSubLoansWithClient,
     fetchAllSubLoansWithClientInfo,
   } = useSubLoans()
+
+  // Fix hydration: initialize date on client only
+  useEffect(() => {
+    if (!selectedDate) {
+      setSelectedDate(new Date().toISOString().split('T')[0])
+    }
+  }, [selectedDate])
 
   // ✅ Refetch data when page mounts or route changes
   useEffect(() => {

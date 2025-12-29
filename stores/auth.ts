@@ -154,7 +154,7 @@ export const useAuthStore = create<AuthStore>()(
         isAuthenticated: state.isAuthenticated,
         currentUser: state.currentUser,
       }),
-      skipHydration: false,
+      skipHydration: true, // Skip SSR hydration to prevent React #418 in Brave
       onRehydrateStorage: () => (state, error) => {
         if (error) {
           // Error during rehydration

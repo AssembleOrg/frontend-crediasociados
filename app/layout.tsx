@@ -32,16 +32,6 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="es">
-      <head>
-        <link rel="preconnect" href="https://crediasociados-backend-production.up.railway.app" />
-        <link
-          rel="preload"
-          href="/_next/static/media/4cf2300e9c8272f7-s.p.woff2"
-          as="font"
-          type="font/woff2"
-          crossOrigin="anonymous"
-        />
-      </head>
       <body className={`${geistSans.variable} ${geistMono.variable}`}>
         <ThemeProvider>
           <CacheResetProvider>
