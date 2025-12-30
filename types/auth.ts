@@ -141,6 +141,8 @@ export interface Client {
   email?: string;
   address?: string;
   job?: string;
+  work?: string;
+  description?: string;
   verified?: boolean;
   createdAt: Date;
   updatedAt: Date;

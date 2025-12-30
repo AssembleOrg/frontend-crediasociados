@@ -107,6 +107,8 @@ export const apiClientToClient = (apiClient: ClientResponseDto): Client => ({
   email: apiClient.email || undefined,
   address: apiClient.address || undefined,
   job: apiClient.job || undefined,
+  work: (apiClient as any).work || undefined,
+  description: (apiClient as any).description || undefined,
   verified: (apiClient as any).verified !== undefined ? (apiClient as any).verified : undefined,
   createdAt: new Date(apiClient.createdAt),
   updatedAt: new Date(apiClient.updatedAt),
@@ -123,7 +125,9 @@ export const clientToCreateDto = (
   email: client.email,
   address: client.address,
   job: client.job,
-});
+  work: client.work,
+  description: client.description,
+} as CreateClientDto);
 
 // Transform frontend client to API update DTO
 export const clientToUpdateDto = (client: Partial<Client>): UpdateClientDto => {
@@ -136,6 +140,8 @@ export const clientToUpdateDto = (client: Partial<Client>): UpdateClientDto => {
   if (client.email !== undefined) dto.email = client.email;
   if (client.address !== undefined) dto.address = client.address;
   if (client.job !== undefined) dto.job = client.job;
+  if (client.work !== undefined) (dto as any).work = client.work;
+  if (client.description !== undefined) (dto as any).description = client.description;
 
   return dto;
 };

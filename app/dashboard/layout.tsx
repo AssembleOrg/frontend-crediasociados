@@ -5,6 +5,7 @@ import { DashboardNav } from '@/components/dashboard/DashboardNav';
 import { AuthLoadingOverlay } from '@/components/ui/AuthLoadingOverlay';
 import DolarBlueTicker from '@/components/ui/DolarBlueTicker';
 import { Footer } from '@/components/ui/Footer';
+import { VersionNotification } from '@/components/ui/VersionNotification';
 import { useAuth } from '@/hooks/useAuth';
 
 export default function DashboardLayout({
@@ -31,6 +32,9 @@ export default function DashboardLayout({
         {children}
       </Box>
       <Footer />
+      
+      {/* Version notification - shows once after login */}
+      <VersionNotification />
       
       {/* Global auth loading overlay */}
       <AuthLoadingOverlay 

@@ -48,6 +48,8 @@ const INITIAL_FORM_DATA = {
   email: '',
   address: '',
   job: '',
+  work: '',
+  description: '',
   countryCode: 'AR' // Default to Argentina
 }
 
@@ -94,6 +96,8 @@ export function ClientFormModal({
         email: client.email || '',
         address: client.address || '',
         job: client.job || '',
+        work: client.work || '',
+        description: client.description || '',
         countryCode
       })
 
@@ -176,6 +180,8 @@ export function ClientFormModal({
       email: formData.email || undefined,
       address: formData.address || undefined,
       job: formData.job || undefined,
+      work: formData.work || undefined,
+      description: formData.description || undefined,
     }
 
     let result: boolean
@@ -479,6 +485,50 @@ export function ClientFormModal({
                       startAdornment: (
                         <InputAdornment position="start">
                           <Work color="action" />
+                        </InputAdornment>
+                      ),
+                    }}
+                    sx={{
+                      '& .MuiOutlinedInput-root': {
+                        borderRadius: 2,
+                      }
+                    }}
+                  />
+
+                  <TextField
+                    label="Oficio"
+                    value={formData.work}
+                    onChange={handleInputChange('work')}
+                    error={!!formErrors.work}
+                    helperText={formErrors.work}
+                    fullWidth
+                    InputProps={{
+                      startAdornment: (
+                        <InputAdornment position="start">
+                          <Work color="action" />
+                        </InputAdornment>
+                      ),
+                    }}
+                    sx={{
+                      '& .MuiOutlinedInput-root': {
+                        borderRadius: 2,
+                      }
+                    }}
+                  />
+
+                  <TextField
+                    label="Descripción"
+                    value={formData.description}
+                    onChange={handleInputChange('description')}
+                    error={!!formErrors.description}
+                    helperText={formErrors.description}
+                    multiline
+                    rows={4}
+                    fullWidth
+                    InputProps={{
+                      startAdornment: (
+                        <InputAdornment position="start" sx={{ alignSelf: 'flex-start', mt: 1 }}>
+                          <Notes color="action" />
                         </InputAdornment>
                       ),
                     }}

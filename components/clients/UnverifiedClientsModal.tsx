@@ -27,7 +27,7 @@ import {
   TextField,
   InputAdornment
 } from '@mui/material'
-import { Close, VerifiedUser, Phone, Home, CheckCircle, Search, Warning } from '@mui/icons-material'
+import { Close, VerifiedUser, Phone, Home, CheckCircle, Search, Warning, Work, Description } from '@mui/icons-material'
 import { clientsService } from '@/services/clients.service'
 
 interface UnverifiedClientsModalProps {
@@ -44,6 +44,8 @@ export default function UnverifiedClientsModal({ open, onClose }: UnverifiedClie
     nombre: string
     telefono?: string
     direccion?: string
+    work?: string
+    description?: string
   }>>([])
   const [totalClients, setTotalClients] = useState(0)
   const [loading, setLoading] = useState(false)
@@ -129,10 +131,14 @@ export default function UnverifiedClientsModal({ open, onClose }: UnverifiedClie
       const nombre = client.nombre?.toLowerCase() || ''
       const telefono = client.telefono?.toLowerCase() || ''
       const direccion = client.direccion?.toLowerCase() || ''
+      const work = client.work?.toLowerCase() || ''
+      const description = client.description?.toLowerCase() || ''
       
       return nombre.includes(query) || 
              telefono.includes(query) || 
-             direccion.includes(query)
+             direccion.includes(query) ||
+             work.includes(query) ||
+             description.includes(query)
     })
   }, [clients, searchQuery])
 
@@ -254,7 +260,7 @@ export default function UnverifiedClientsModal({ open, onClose }: UnverifiedClie
             <Box sx={{ mb: 2 }}>
               <TextField
                 fullWidth
-                placeholder="Buscar por nombre, teléfono o dirección..."
+                placeholder="Buscar por nombre, teléfono, dirección, oficio o descripción..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 size="small"
@@ -306,6 +312,12 @@ export default function UnverifiedClientsModal({ open, onClose }: UnverifiedClie
                       {!isMobile && (
                         <TableCell sx={{ fontWeight: 600 }}>Dirección</TableCell>
                       )}
+                      {!isMobile && (
+                        <TableCell sx={{ fontWeight: 600, minWidth: 120 }}>Oficio</TableCell>
+                      )}
+                      {!isMobile && (
+                        <TableCell sx={{ fontWeight: 600, minWidth: 150, maxWidth: 200 }}>Descripción</TableCell>
+                      )}
                       <TableCell align="right" sx={{ fontWeight: 600 }}>Acción</TableCell>
                     </TableRow>
                   </TableHead>
@@ -344,6 +356,22 @@ export default function UnverifiedClientsModal({ open, onClose }: UnverifiedClie
                                   </Typography>
                                 </Box>
                               )}
+                              {client.work && (
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.5 }}>
+                                  <Work sx={{ fontSize: 14, color: 'text.secondary' }} />
+                                  <Typography variant="caption" color="text.secondary">
+                                    {client.work}
+                                  </Typography>
+                                </Box>
+                              )}
+                              {client.description && (
+                                <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 0.5, mt: 0.5 }}>
+                                  <Description sx={{ fontSize: 14, color: 'text.secondary', mt: 0.2, flexShrink: 0 }} />
+                                  <Typography variant="caption" color="text.secondary" sx={{ maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
+                                    {client.description}
+                                  </Typography>
+                                </Box>
+                              )}
                             </>
                           )}
                         </TableCell>
@@ -372,6 +400,51 @@ export default function UnverifiedClientsModal({ open, onClose }: UnverifiedClie
                                   {client.direccion}
                                 </Typography>
                               </Box>
+                            ) : (
+                              <Typography variant="body2" color="text.secondary">
+                                -
+                              </Typography>
+                            )}
+                          </TableCell>
+                        )}
+                        {!isMobile && (
+                          <TableCell>
+                            {client.work ? (
+                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                                <Work sx={{ fontSize: 16, color: 'text.secondary' }} />
+                                <Typography variant="body2" sx={{ maxWidth: 150, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                  {client.work}
+                                </Typography>
+                              </Box>
+                            ) : (
+                              <Typography variant="body2" color="text.secondary">
+                                -
+                              </Typography>
+                            )}
+                          </TableCell>
+                        )}
+                        {!isMobile && (
+                          <TableCell>
+                            {client.description ? (
+                              <Tooltip title={client.description} arrow>
+                                <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 0.5 }}>
+                                  <Description sx={{ fontSize: 16, color: 'text.secondary', mt: 0.2, flexShrink: 0 }} />
+                                  <Typography 
+                                    variant="body2" 
+                                    sx={{ 
+                                      maxWidth: 200, 
+                                      overflow: 'hidden', 
+                                      textOverflow: 'ellipsis',
+                                      display: '-webkit-box',
+                                      WebkitLineClamp: 2,
+                                      WebkitBoxOrient: 'vertical',
+                                      lineHeight: 1.4
+                                    }}
+                                  >
+                                    {client.description}
+                                  </Typography>
+                                </Box>
+                              </Tooltip>
                             ) : (
                               <Typography variant="body2" color="text.secondary">
                                 -
