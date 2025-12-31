@@ -390,7 +390,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
               >
                 Cuota #{currentSubloan.paymentNumber ?? '?'}
               </Typography>
-              <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(3, 1fr)' }, gap: { xs: 1.5, sm: 2 } }}>
+              <Box sx={{ display: 'grid', gridTemplateColumns: { xs: 'repeat(2, 1fr)', sm: 'repeat(4, 1fr)' }, gap: { xs: 1.5, sm: 2 } }}>
                 <Box sx={{ textAlign: 'center', p: { xs: 1.5, sm: 2 }, bgcolor: 'white', borderRadius: 2 }}>
                   <Typography 
                     variant="caption" 
@@ -441,6 +441,25 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
                     $ {formatAmount(((currentSubloan.totalAmount ?? 0) - (currentSubloan.paidAmount || 0)).toString())}
                   </Typography>
                 </Box>
+                {currentSubloan.outstandingBalance !== undefined && (
+                  <Box sx={{ textAlign: 'center', p: { xs: 1.5, sm: 2 }, bgcolor: 'white', borderRadius: 2, border: '1px solid', borderColor: 'warning.main' }}>
+                    <Typography 
+                      variant="caption" 
+                      color="text.secondary"
+                      sx={{ fontSize: { xs: '0.7rem', sm: '0.75rem' } }}
+                    >
+                      Saldo a finalizar
+                    </Typography>
+                    <Typography 
+                      variant="h6" 
+                      fontWeight="bold" 
+                      color="warning.main"
+                      sx={{ fontSize: { xs: '1rem', sm: '1.25rem' } }}
+                    >
+                      $ {formatAmount((currentSubloan.outstandingBalance ?? 0).toString())}
+                    </Typography>
+                  </Box>
+                )}
               </Box>
             </Box>
 

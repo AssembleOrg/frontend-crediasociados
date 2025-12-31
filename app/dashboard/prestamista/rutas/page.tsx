@@ -936,6 +936,7 @@ export default function RutasPage() {
             paidAmount: selectedItem.subLoan.paidAmount,
             status: selectedItem.subLoan.status,
             dueDate: selectedItem.subLoan.dueDate,
+            outstandingBalance: selectedItem.subLoan.outstandingBalance,
             clientName: selectedItem.clientName,
           }}
           clientName={selectedItem.clientName}

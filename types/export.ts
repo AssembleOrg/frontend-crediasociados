@@ -11,6 +11,7 @@ export interface SubLoanResponseDto {
   createdAt: string;
   paymentNumber?: number;
   totalAmount?: number;
+  notes?: string | null;
 }
 
 export interface ExportLoanData {

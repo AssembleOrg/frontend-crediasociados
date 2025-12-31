@@ -14,9 +14,9 @@ import {
 } from '@mui/icons-material'
 import { useAuthStore } from '@/stores/auth'
 
-const VERSION_KEY = 'version_notification_1.2.9'
+const VERSION_KEY = 'version_notification_1.3.1'
 const MAX_SHOW_COUNT = 10
-const VERSION_MESSAGE = 'Nueva versión 1.2.9: Se agregaron los datos trabajo/oficio y referencia a la descripción de clientes'
+const VERSION_MESSAGE = 'Nueva versión 1.3.1: Se agregaron saldos faltantes en ruta del día y descripciones de pagos en cobros diarios'
 
 export function VersionNotification() {
   const [open, setOpen] = useState(false)

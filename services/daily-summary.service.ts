@@ -22,6 +22,13 @@ export interface DailySummaryResponse {
       description: string
       subLoanId: string
       createdAt: string
+      payments?: Array<{
+        id: string
+        description: string
+        amount: number
+        paymentDate: string
+        createdAt: string
+      }>
     }>
   }
   resets: {

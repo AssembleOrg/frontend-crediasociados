@@ -17,9 +17,10 @@ import {
   Paper,
   alpha,
   useTheme,
-  useMediaQuery
+  useMediaQuery,
+  Tooltip
 } from '@mui/material'
-import { Close, TrendingUp, CalendarToday, Person, Refresh } from '@mui/icons-material'
+import { Close, TrendingUp, CalendarToday, Person, Refresh, Info } from '@mui/icons-material'
 import { Chip } from '@mui/material'
 
 interface TodayCollectionsModalProps {
@@ -296,9 +297,70 @@ export default function TodayCollectionsModal({ open, onClose, data }: TodayColl
                           )}
                         </TableCell>
                         <TableCell>
-                          <Typography variant="body2" fontWeight={500}>
-                            {transaction.description}
-                          </Typography>
+                          <Box>
+                            {transaction.description && transaction.description.trim() ? (
+                              <Tooltip 
+                                title={transaction.description} 
+                                arrow 
+                                disableHoverListener={isMobile || transaction.description.length <= 50}
+                                placement="top"
+                              >
+                                <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 0.5 }}>
+                                  {isMobile && (
+                                    <Info sx={{ fontSize: 14, color: 'text.secondary', mt: 0.2, flexShrink: 0 }} />
+                                  )}
+                                  <Typography 
+                                    variant="body2" 
+                                    fontWeight={500}
+                                    sx={{
+                                      maxWidth: isMobile ? '100%' : 200,
+                                      overflow: 'hidden',
+                                      textOverflow: 'ellipsis',
+                                      whiteSpace: isMobile ? 'normal' : 'nowrap',
+                                      display: 'block',
+                                      wordBreak: isMobile ? 'break-word' : 'normal',
+                                      lineHeight: 1.4
+                                    }}
+                                  >
+                                    {transaction.description}
+                                  </Typography>
+                                </Box>
+                              </Tooltip>
+                            ) : (
+                              <Typography 
+                                variant="body2" 
+                                color="text.secondary" 
+                                fontStyle="italic"
+                                sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}
+                              >
+                                Sin descripción
+                              </Typography>
+                            )}
+                            
+                            {/* Payment descriptions */}
+                            {transaction.payments && transaction.payments.length > 0 && (
+                              <Box sx={{ mt: 0.75, display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                                {transaction.payments.map((payment, idx) => (
+                                  payment.description && payment.description.trim() ? (
+                                    <Chip
+                                      key={payment.id || idx}
+                                      label={payment.description}
+                                      size="small"
+                                      variant="outlined"
+                                      sx={{
+                                        fontSize: { xs: '0.65rem', sm: '0.7rem' },
+                                        height: { xs: 20, sm: 22 },
+                                        '& .MuiChip-label': {
+                                          px: { xs: 0.75, sm: 1 }
+                                        }
+                                      }}
+                                    />
+                                  ) : null
+                                ))}
+                              </Box>
+                            )}
+                          </Box>
+                          
                           {isMobile && (
                             <>
                               <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.5 }}>

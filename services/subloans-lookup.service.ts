@@ -17,6 +17,8 @@ export interface SubLoanWithClientInfo {
   createdAt?: string
   paymentNumber?: number
   totalAmount?: number
+  outstandingBalance?: number
+  notes?: string | null
   clientId?: string
   clientName?: string
   clientFullData?: ClientResponseDto
