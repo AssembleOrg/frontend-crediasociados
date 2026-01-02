@@ -14,7 +14,7 @@ import {
   Divider
 } from '@mui/material'
 import { CheckCircle, Close } from '@mui/icons-material'
-import { formatAmount } from '@/lib/formatters'
+import { formatAmount, formatCurrencyDisplay } from '@/lib/formatters'
 
 interface PaymentSuccessModalProps {
   open: boolean
@@ -105,7 +105,7 @@ export const PaymentSuccessModal: React.FC<PaymentSuccessModalProps> = ({
               Monto Pagado
             </Typography>
             <Typography variant="h6" sx={{ fontWeight: 600, color: 'success.main' }}>
-              +${formatAmount(amount.toString())}
+              +{formatCurrencyDisplay(amount)}
             </Typography>
           </Box>
 
@@ -142,7 +142,7 @@ export const PaymentSuccessModal: React.FC<PaymentSuccessModalProps> = ({
                 Aún resta por pagar:
               </Typography>
               <Typography variant="h5" sx={{ fontWeight: 700, color: 'warning.main' }}>
-                ${formatAmount(remainingAmount.toString())}
+                {formatCurrencyDisplay(remainingAmount)}
               </Typography>
             </CardContent>
           </Card>

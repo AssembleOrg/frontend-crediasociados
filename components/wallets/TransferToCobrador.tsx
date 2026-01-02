@@ -20,7 +20,7 @@ import {
   CardContent,
 } from '@mui/material'
 import { SwapHoriz, Close } from '@mui/icons-material'
-import { formatAmount, unformatAmount } from '@/lib/formatters'
+import { formatAmount, unformatAmount, formatCurrencyDisplay } from '@/lib/formatters'
 import { walletsService } from '@/services/wallets.service'
 import { useUsers } from '@/hooks/useUsers'
 import type { User } from '@/types/auth'
@@ -188,7 +188,7 @@ export const TransferToCobrador: React.FC<TransferToCobradoProps> = ({
               fullWidth
               placeholder="$0"
               disabled={isSubmitting}
-              helperText={`Balance actual: $${formatAmount(currentBalance.toString())} (puede ser negativo)`}
+              helperText={`Balance actual: ${formatCurrencyDisplay(currentBalance)} (puede ser negativo)`}
               // error={amountValue > currentBalance && transferAmount !== ''} // Ya no se muestra error por saldo insuficiente
             />
 
@@ -229,7 +229,7 @@ export const TransferToCobrador: React.FC<TransferToCobradoProps> = ({
                         Monto:
                       </Typography>
                       <Typography variant="subtitle2" sx={{ fontWeight: 600, color: 'primary.main' }}>
-                        ${formatAmount(amountValue.toString())}
+                        {formatCurrencyDisplay(amountValue)}
                       </Typography>
                     </Box>
                     <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid', borderTopColor: 'divider', pt: 1 }}>
@@ -237,7 +237,7 @@ export const TransferToCobrador: React.FC<TransferToCobradoProps> = ({
                         Tu saldo después:
                       </Typography>
                       <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
-                        ${formatAmount(remainingBalance.toString())}
+                        {formatCurrencyDisplay(remainingBalance)}
                       </Typography>
                     </Box>
                   </Box>

@@ -16,7 +16,7 @@ import {
   Avatar
 } from '@mui/material'
 import { Person, AccountBalance, Schedule } from '@mui/icons-material'
-import { formatAmount } from '@/lib/formatters'
+import { formatAmount, formatCurrencyDisplay } from '@/lib/formatters'
 import type { ManagerAnalytics } from '@/services/analytics.service'
 
 interface ManagerStatsTableProps {
@@ -112,7 +112,7 @@ const ManagerStatsTable = memo(function ManagerStatsTable({ managers, isLoading 
                       fontWeight={600}
                       color={manager.totalAmountPending > 0 ? 'warning.main' : 'text.secondary'}
                     >
-                      ${formatAmount(manager.totalAmountPending.toString())}
+                      {formatCurrencyDisplay(manager.totalAmountPending)}
                     </Typography>
                   </TableCell>
                   <TableCell align="center">
@@ -190,7 +190,7 @@ const ManagerStatsTable = memo(function ManagerStatsTable({ managers, isLoading 
                       fontWeight={600}
                       color={manager.totalAmountPending > 0 ? 'warning.main' : 'text.secondary'}
                     >
-                      ${formatAmount(manager.totalAmountPending.toString())}
+                      {formatCurrencyDisplay(manager.totalAmountPending)}
                     </Typography>
                   </Box>
                 </Box>

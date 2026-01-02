@@ -123,6 +123,31 @@ export const unformatAmount = (value: string): string => {
   return cleaned
 }
 
+/**
+ * Convert a number to a formatted string compatible with formatAmount
+ * This is for initializing input fields with numeric values from the backend
+ * Backend sends: 8000.59 (JavaScript number format)
+ * Returns: "8000,59" (formatAmount-compatible string)
+ */
+export const numberToFormattedAmount = (num: number): string => {
+  if (num <= 0) return ''
+  // Convert to string with comma as decimal separator for formatAmount
+  return num.toFixed(2).replace('.', ',')
+}
+
+/**
+ * Format a number for display (not for input fields)
+ * Use this for displaying amounts in Typography, labels, etc.
+ * Backend sends: 8000.59
+ * Returns: "$8.000,59" (formatted for display)
+ */
+export const formatCurrencyDisplay = (amount: number): string => {
+  return `$${new Intl.NumberFormat('es-AR', {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2
+  }).format(amount)}`
+}
+
 // Payment frequency localization - Centralizes all frequency translations
 export const getFrequencyLabel = (frequency: string): string => {
   const labels: Record<string, string> = {

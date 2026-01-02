@@ -22,7 +22,7 @@ import {
 import { History, Close, Refresh } from '@mui/icons-material'
 import { Chip } from '@mui/material'
 import { paymentsService } from '@/services/payments.service'
-import { formatAmount } from '@/lib/formatters'
+import { formatAmount, formatCurrencyDisplay } from '@/lib/formatters'
 import type { Payment } from '@/types/auth'
 
 interface PaymentHistoryModalProps {
@@ -134,19 +134,19 @@ export const PaymentHistoryModal: React.FC<PaymentHistoryModalProps> = ({
             <Box sx={{ p: 1.5, bgcolor: 'primary.lighter', borderRadius: 1 }}>
               <Typography variant="caption" color="text.secondary">Monto Total</Typography>
               <Typography variant="h6" sx={{ fontWeight: 600, color: 'primary.main' }}>
-                ${formatAmount(totalAmount.toString())}
+                {formatCurrencyDisplay(totalAmount)}
               </Typography>
             </Box>
             <Box sx={{ p: 1.5, bgcolor: 'success.lighter', borderRadius: 1 }}>
               <Typography variant="caption" color="text.secondary">Pagado</Typography>
               <Typography variant="h6" sx={{ fontWeight: 600, color: 'success.main' }}>
-                ${formatAmount(totalPaid.toString())}
+                {formatCurrencyDisplay(totalPaid)}
               </Typography>
             </Box>
             <Box sx={{ p: 1.5, bgcolor: remainingAmount > 0 ? 'warning.lighter' : 'error.lighter', borderRadius: 1 }}>
               <Typography variant="caption" color="text.secondary">Restante</Typography>
               <Typography variant="h6" sx={{ fontWeight: 600, color: remainingAmount > 0 ? 'warning.main' : 'error.main' }}>
-                ${formatAmount(remainingAmount.toString())}
+                {formatCurrencyDisplay(remainingAmount)}
               </Typography>
             </Box>
           </Box>

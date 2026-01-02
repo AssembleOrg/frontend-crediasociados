@@ -38,6 +38,8 @@ class SubLoansLookupService {
   private clientsCache: Map<string, ClientResponseDto> = new Map()
   private loansLoadingPromise: Promise<void> | null = null
   private clientsLoadingPromise: Promise<void> | null = null
+  // Deduplication: prevent multiple concurrent fetches for the same client ID
+  private pendingClientFetches: Map<string, Promise<ClientResponseDto | null>> = new Map()
   
   /**
    * Clear caches - useful for forcing fresh data
@@ -45,10 +47,12 @@ class SubLoansLookupService {
   clearCache(): void {
     this.loansCache.clear()
     this.clientsCache.clear()
+    this.pendingClientFetches.clear()
   }
 
   /**
    * Get all SubLoans enriched with client information
+   * OPTIMIZED: Uses client info directly from loans (no extra API calls)
    */
   async getAllSubLoansWithClientInfo(params?: PaginationParams): Promise<SubLoanWithClientInfo[]> {
     try {
@@ -59,33 +63,22 @@ class SubLoansLookupService {
         return []
       }
 
-      // 2. Get loans mapping (loanId → clientId)
+      // 2. Get loans mapping (loanId → loan with client info)
       await this.loadLoansCache()
 
-      // 3. Get clients data
-      await this.loadClientsCache()
-
-      // 4. Enrich subloans with client info (with lazy loading for missing clients)
-      const enrichedSubLoans: SubLoanWithClientInfo[] = await Promise.all(
-        subLoans.map(async subLoan => {
-          const loan = this.loansCache.get(subLoan.loanId)
-          const clientId = loan?.client?.id
-          
-          // Try cache first, then lazy load if needed
-          let client = clientId ? this.clientsCache.get(clientId) : undefined
-          if (!client && clientId) {
-            const loadedClient = await this.loadClientById(clientId)
-            client = loadedClient || undefined
-          }
-
-          return {
-            ...subLoan,
-            clientId,
-            clientName: client?.fullName,
-            clientFullData: client
-          }
-        })
-      )
+      // 3. Enrich subloans with client info FROM LOANS (no extra client API calls)
+      const enrichedSubLoans: SubLoanWithClientInfo[] = subLoans.map(subLoan => {
+        const loan = this.loansCache.get(subLoan.loanId)
+        // Use client info directly from the loan response
+        const client = loan?.client as any
+        
+        return {
+          ...subLoan,
+          clientId: client?.id || loan?.clientId,
+          clientName: client?.fullName,
+          clientFullData: client
+        }
+      })
 
       return enrichedSubLoans
 
@@ -97,6 +90,7 @@ class SubLoansLookupService {
 
   /**
    * Get today due SubLoans enriched with client information
+   * OPTIMIZED: Uses client info directly from loans (no extra API calls)
    */
   async getTodayDueSubLoansWithClientInfo(params?: PaginationParams): Promise<SubLoanWithClientInfo[]> {
     try {
@@ -107,33 +101,22 @@ class SubLoansLookupService {
         return []
       }
 
-      // 2. Get loans mapping (loanId → clientId)
+      // 2. Get loans mapping (loanId → loan with client info)
       await this.loadLoansCache()
 
-      // 3. Get clients data
-      await this.loadClientsCache()
-
-      // 4. Enrich subloans with client info (with lazy loading for missing clients)
-      const enrichedSubLoans: SubLoanWithClientInfo[] = await Promise.all(
-        subLoans.map(async subLoan => {
-          const loan = this.loansCache.get(subLoan.loanId)
-          const clientId = loan?.client?.id
-          
-          // Try cache first, then lazy load if needed
-          let client = clientId ? this.clientsCache.get(clientId) : undefined
-          if (!client && clientId) {
-            const loadedClient = await this.loadClientById(clientId)
-            client = loadedClient || undefined
-          }
-
-          return {
-            ...subLoan,
-            clientId,
-            clientName: client?.fullName,
-            clientFullData: client
-          }
-        })
-      )
+      // 3. Enrich subloans with client info FROM LOANS (no extra client API calls)
+      const enrichedSubLoans: SubLoanWithClientInfo[] = subLoans.map(subLoan => {
+        const loan = this.loansCache.get(subLoan.loanId)
+        // Use client info directly from the loan response
+        const client = loan?.client as any
+        
+        return {
+          ...subLoan,
+          clientId: client?.id || loan?.clientId,
+          clientName: client?.fullName,
+          clientFullData: client
+        }
+      })
 
       return enrichedSubLoans
 
@@ -211,22 +194,36 @@ class SubLoansLookupService {
   /**
    * Load a specific client by ID if not in cache
    * This allows lazy loading of clients that weren't in the first page
+   * Uses deduplication to prevent multiple concurrent fetches for the same ID
    */
   private async loadClientById(clientId: string): Promise<ClientResponseDto | null> {
+    // Check cache first
     if (this.clientsCache.has(clientId)) {
       return this.clientsCache.get(clientId) || null
     }
 
-    try {
-      
-      const client = await clientsService.getClientById(clientId)
-      this.clientsCache.set(client.id, client)
-      
-      return client
-    } catch (error) {
-      
-      return null
+    // Check if there's already a pending fetch for this client
+    const pendingFetch = this.pendingClientFetches.get(clientId)
+    if (pendingFetch) {
+      return pendingFetch
     }
+
+    // Create a new fetch promise and store it for deduplication
+    const fetchPromise = (async (): Promise<ClientResponseDto | null> => {
+      try {
+        const client = await clientsService.getClientById(clientId)
+        this.clientsCache.set(client.id, client)
+        return client
+      } catch (error) {
+        return null
+      } finally {
+        // Clean up the pending fetch
+        this.pendingClientFetches.delete(clientId)
+      }
+    })()
+
+    this.pendingClientFetches.set(clientId, fetchPromise)
+    return fetchPromise
   }
 
   /**

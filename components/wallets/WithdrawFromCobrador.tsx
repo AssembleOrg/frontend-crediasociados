@@ -20,7 +20,7 @@ import {
   CardContent,
 } from '@mui/material'
 import { TrendingDown, Close } from '@mui/icons-material'
-import { formatAmount, unformatAmount } from '@/lib/formatters'
+import { formatAmount, unformatAmount, formatCurrencyDisplay } from '@/lib/formatters'
 import { walletsService } from '@/services/wallets.service'
 import { useUsers } from '@/hooks/useUsers'
 import type { User } from '@/types/auth'
@@ -155,7 +155,7 @@ export const WithdrawFromCobrador: React.FC<WithdrawFromCobradoProps> = ({
                             {cobrado.fullName}
                           </Typography>
                           <Typography variant="caption" color="text.secondary">
-                            {cobrado.email} (Balance: ${formatAmount(balance.toString())})
+                            {cobrado.email} (Balance: {formatCurrencyDisplay(balance)})
                           </Typography>
                         </Box>
                       </MenuItem>
@@ -175,7 +175,7 @@ export const WithdrawFromCobrador: React.FC<WithdrawFromCobradoProps> = ({
                   {selectedCobrador.fullName}
                 </Typography>
                 <Typography variant="caption" color="text.secondary">
-                  {selectedCobrador.email} (Balance: ${formatAmount(cobradoBalance.toString())})
+                  {selectedCobrador.email} (Balance: {formatCurrencyDisplay(cobradoBalance)})
                 </Typography>
               </Box>
             )}
@@ -189,7 +189,7 @@ export const WithdrawFromCobrador: React.FC<WithdrawFromCobradoProps> = ({
               fullWidth
               placeholder="$0"
               disabled={isSubmitting || !selectedCobradoId}
-                helperText={`Balance actual: $${formatAmount(cobradoBalance.toString())} (puede ser negativo)`}
+                helperText={`Balance actual: ${formatCurrencyDisplay(cobradoBalance)} (puede ser negativo)`}
               // error={amountValue > cobradoBalance && withdrawAmount !== ''} // Ya no se muestra error por saldo insuficiente
             />
 
@@ -230,7 +230,7 @@ export const WithdrawFromCobrador: React.FC<WithdrawFromCobradoProps> = ({
                         Monto:
                       </Typography>
                       <Typography variant="subtitle2" sx={{ fontWeight: 600, color: 'error.main' }}>
-                        ${formatAmount(amountValue.toString())}
+                        {formatCurrencyDisplay(amountValue)}
                       </Typography>
                     </Box>
                     <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid', borderTopColor: 'divider', pt: 1 }}>
@@ -238,7 +238,7 @@ export const WithdrawFromCobrador: React.FC<WithdrawFromCobradoProps> = ({
                         Balance después:
                       </Typography>
                       <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
-                        ${formatAmount((cobradoBalance - amountValue).toString())}
+                        {formatCurrencyDisplay(cobradoBalance - amountValue)}
                       </Typography>
                     </Box>
                   </Box>

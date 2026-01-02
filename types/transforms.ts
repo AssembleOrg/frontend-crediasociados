@@ -155,6 +155,7 @@ export const clientToUpdateDto = (client: Partial<Client>): UpdateClientDto => {
 export const apiLoanToLoan = (apiLoan: LoanResponseDto): Loan => ({
   id: apiLoan.id,
   clientId: apiLoan.clientId, // Available in CreateLoanResponseDto
+  clientName: (apiLoan as any).client?.fullName || undefined, // Client name from API response
   amount: apiLoan.amount,
   originalAmount: (apiLoan as any).originalAmount, // Monto original prestado (sin intereses)
   baseInterestRate: (apiLoan as any).baseInterestRate !== undefined && (apiLoan as any).baseInterestRate !== null 

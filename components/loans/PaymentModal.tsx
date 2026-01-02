@@ -23,7 +23,7 @@ import {
   CircularProgress
 } from '@mui/material'
 import { Payment, AttachMoney, PictureAsPdf, Info, Warning } from '@mui/icons-material'
-import { formatAmount, unformatAmount } from '@/lib/formatters'
+import { formatAmount, unformatAmount, formatCurrencyDisplay, numberToFormattedAmount } from '@/lib/formatters'
 import { generatePaymentPDF } from '@/utils/pdf/paymentReceipt'
 import { useOperativa } from '@/hooks/useOperativa'
 import { paymentsService } from '@/services/payments.service'
@@ -85,6 +85,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
     return mode === 'single' ? subloan : subloans.find(s => s.id === selectedSubloanId)
   }, [mode, subloan, subloans, selectedSubloanId])
 
+
   // Reset form ONLY when modal opens. Avoid depending on object props to prevent unwanted resets.
   useEffect(() => {
     if (!open) return
@@ -93,14 +94,14 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
       setSelectedSubloanId(subloan.id ?? '')
       // Auto-fill with pending amount (partial payments allowed)
       const pendingAmount = (subloan.totalAmount ?? 0) - (subloan.paidAmount || 0)
-      setPaymentAmount(pendingAmount > 0 ? pendingAmount.toString() : '')
+      setPaymentAmount(pendingAmount > 0 ? numberToFormattedAmount(pendingAmount) : '')
     } else if (mode === 'selector' && subloans.length > 0) {
       // Solo permitir seleccionar subpréstamos no pagados
       const firstPending = subloans.find(s => s.status !== 'PAID')
       if (firstPending) {
         setSelectedSubloanId(firstPending.id ?? '')
         const pendingAmount = (firstPending.totalAmount ?? 0) - (firstPending.paidAmount || 0)
-        setPaymentAmount(pendingAmount > 0 ? pendingAmount.toString() : '')
+        setPaymentAmount(pendingAmount > 0 ? numberToFormattedAmount(pendingAmount) : '')
       } else {
         setPaymentAmount('')
       }
@@ -115,20 +116,23 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
   useEffect(() => {
     if (open && mode === 'selector' && selectedSubloanId && currentSubloan && !hasUserEdited) {
       const pendingAmount = (currentSubloan.totalAmount ?? 0) - (currentSubloan.paidAmount || 0)
-      setPaymentAmount(pendingAmount > 0 ? pendingAmount.toString() : '')
+      setPaymentAmount(pendingAmount > 0 ? numberToFormattedAmount(pendingAmount) : '')
     }
   }, [selectedSubloanId, open, mode, hasUserEdited, currentSubloan])
 
   // Calculate payment preview (status changes)
   useEffect(() => {
     if (currentSubloan && paymentAmount) {
-      const amountValue = parseFloat(paymentAmount) || 0
+      // Convert formatted string to number (handles both "23.130,43" and "23130,43" formats)
+      const amountValue = parseFloat(unformatAmount(paymentAmount)) || 0
       const currentPaidAmount = currentSubloan.paidAmount || 0
       const currentTotalAmount = currentSubloan.totalAmount ?? 0
       const newPaidAmount = currentPaidAmount + amountValue
+      // Use a small epsilon to handle floating point precision issues
       const remainingAfterPayment = Math.max(0, currentTotalAmount - newPaidAmount)
-      const isPartial = newPaidAmount > 0 && remainingAfterPayment > 0
-      const status = remainingAfterPayment === 0 ? 'PAID' : 'PARTIAL'
+      // Consider it paid if remaining is less than 0.01 (1 centavo)
+      const isPartial = newPaidAmount > 0 && remainingAfterPayment >= 0.01
+      const status = remainingAfterPayment < 0.01 ? 'PAID' : 'PARTIAL'
 
       setPaymentPreview({
         remainingAfterPayment,
@@ -143,7 +147,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
   const handleRegisterPayment = async () => {
     if (!currentSubloan) return
 
-    const amountValue = parseFloat(paymentAmount)
+    const amountValue = parseFloat(unformatAmount(paymentAmount)) || 0
     const pendingAmount = (currentSubloan.totalAmount ?? 0) - (currentSubloan.paidAmount || 0)
 
     // Check if payment amount exceeds pending amount (will pay multiple installments)
@@ -260,13 +264,8 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
     setErrorMessage('')
   }
 
-  const formatCurrency = (amount: number) => {
-    // Formato genérico sin especificar país o moneda
-    return `$${new Intl.NumberFormat('es', {
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 2
-    }).format(amount)}`
-  }
+  // Use the shared formatter from lib/formatters
+  const formatCurrency = formatCurrencyDisplay
 
   const formatDate = (dateString?: string) => {
     if (!dateString) return 'N/A'
@@ -404,7 +403,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
                     fontWeight="bold"
                     sx={{ fontSize: { xs: '1rem', sm: '1.25rem' } }}
                   >
-                    $ {formatAmount((currentSubloan.totalAmount ?? 0).toString())}
+                    {formatCurrencyDisplay(currentSubloan.totalAmount ?? 0)}
                   </Typography>
                 </Box>
                 <Box sx={{ textAlign: 'center', p: { xs: 1.5, sm: 2 }, bgcolor: 'white', borderRadius: 2 }}>
@@ -421,7 +420,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
                     color="success.main"
                     sx={{ fontSize: { xs: '1rem', sm: '1.25rem' } }}
                   >
-                    $ {formatAmount((currentSubloan.paidAmount || 0).toString())}
+                    {formatCurrencyDisplay(currentSubloan.paidAmount || 0)}
                   </Typography>
                 </Box>
                 <Box sx={{ textAlign: 'center', p: { xs: 1.5, sm: 2 }, bgcolor: 'white', borderRadius: 2 }}>
@@ -438,7 +437,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
                     color="error.main"
                     sx={{ fontSize: { xs: '1rem', sm: '1.25rem' } }}
                   >
-                    $ {formatAmount(((currentSubloan.totalAmount ?? 0) - (currentSubloan.paidAmount || 0)).toString())}
+                    {formatCurrency((currentSubloan.totalAmount ?? 0) - (currentSubloan.paidAmount || 0))}
                   </Typography>
                 </Box>
                 {currentSubloan.outstandingBalance !== undefined && (
@@ -456,7 +455,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
                       color="warning.main"
                       sx={{ fontSize: { xs: '1rem', sm: '1.25rem' } }}
                     >
-                      $ {formatAmount((currentSubloan.outstandingBalance ?? 0).toString())}
+                      {formatCurrencyDisplay(currentSubloan.outstandingBalance ?? 0)}
                     </Typography>
                   </Box>
                 )}
@@ -505,7 +504,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
                     borderRadius: 2,
                   }
                 }}
-                helperText={`Pendiente: $${formatAmount(((currentSubloan.totalAmount ?? 0) - (currentSubloan.paidAmount || 0)).toString())} - Puedes pagar parcialmente`}
+                helperText={`Pendiente: ${formatCurrency((currentSubloan.totalAmount ?? 0) - (currentSubloan.paidAmount || 0))} - Puedes pagar parcialmente`}
                 fullWidth
               />
             </Box>
@@ -532,7 +531,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
                     />
                     {paymentPreview.remainingAfterPayment > 0 && (
                       <Typography variant="caption" sx={{ color: 'warning.main', fontWeight: 600 }}>
-                        Restará: ${formatAmount(paymentPreview.remainingAfterPayment.toString())}
+                        Restará: {formatCurrencyDisplay(paymentPreview.remainingAfterPayment)}
                       </Typography>
                     )}
                   </Box>
@@ -675,7 +674,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
                     Saldo pendiente de la cuota #{currentSubloan.paymentNumber}:
                   </Typography>
                   <Typography variant="body2" fontWeight={600} color="error.main">
-                    ${formatAmount(((currentSubloan.totalAmount ?? 0) - (currentSubloan.paidAmount || 0)).toString())}
+                    {formatCurrency((currentSubloan.totalAmount ?? 0) - (currentSubloan.paidAmount || 0))}
                   </Typography>
                 </Box>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>

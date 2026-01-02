@@ -157,6 +157,7 @@ export interface Client {
 export interface Loan {
   id: string;
   clientId: string;
+  clientName?: string; // Client name from API response (avoids extra fetch)
   amount: number; // Total a devolver (con intereses)
   originalAmount?: number; // Monto original prestado (sin intereses)
   baseInterestRate: number;

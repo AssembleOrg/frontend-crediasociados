@@ -17,7 +17,7 @@ import {
   CardContent,
 } from '@mui/material'
 import { TrendingUp, Close } from '@mui/icons-material'
-import { formatAmount, unformatAmount } from '@/lib/formatters'
+import { formatAmount, unformatAmount, formatCurrencyDisplay } from '@/lib/formatters'
 
 interface DepositModalProps {
   open: boolean
@@ -156,7 +156,7 @@ export const DepositModal: React.FC<DepositModalProps> = ({
                         Monto a depositar:
                       </Typography>
                       <Typography variant="subtitle2" sx={{ fontWeight: 600, color: 'success.main' }}>
-                        ${formatAmount(amountValue.toString())}
+                        {formatCurrencyDisplay(amountValue)}
                       </Typography>
                     </Box>
                     {/* Moneda removida - sistema agnóstico de moneda */}

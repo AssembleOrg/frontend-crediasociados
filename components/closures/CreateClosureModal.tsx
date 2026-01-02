@@ -21,7 +21,7 @@ import {
   CircularProgress
 } from '@mui/material'
 import { Add, Delete, Receipt } from '@mui/icons-material'
-import { formatAmount, unformatAmount } from '@/lib/formatters'
+import { formatAmount, unformatAmount, formatCurrencyDisplay, numberToFormattedAmount } from '@/lib/formatters'
 import { dailyClosuresService } from '@/services/daily-closures.service'
 import type { Expense } from '@/types/daily-closures'
 import { ExpenseCategory } from '@/types/daily-closures'
@@ -193,7 +193,7 @@ export const CreateClosureModal: React.FC<CreateClosureModalProps> = ({
                 <TextField
                   type="text"
                   label="Monto"
-                  value={formatAmount(expense.amount.toString())}
+                  value={formatAmount(numberToFormattedAmount(expense.amount))}
                   onChange={(e) => updateExpense(index, 'amount', parseFloat(unformatAmount(e.target.value)) || 0)}
                   size="small"
                   placeholder="$0"
@@ -241,13 +241,13 @@ export const CreateClosureModal: React.FC<CreateClosureModalProps> = ({
           <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
             <Typography variant="body2">Gastos:</Typography>
             <Typography variant="body2" sx={{ fontWeight: 600, color: 'error.main' }}>
-              -${formatAmount(totalExpenses.toString())}
+              -{formatCurrencyDisplay(totalExpenses)}
             </Typography>
           </Box>
           <Box sx={{ display: 'flex', justifyContent: 'space-between', pt: 1, borderTop: '1px solid', borderColor: 'divider' }}>
             <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>Neto:</Typography>
             <Typography variant="subtitle2" sx={{ fontWeight: 600, color: netAmount >= 0 ? 'success.main' : 'error.main' }}>
-              ${formatAmount(netAmount.toString())}
+              {formatCurrencyDisplay(netAmount)}
             </Typography>
           </Box>
         </Box>

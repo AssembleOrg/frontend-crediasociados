@@ -29,7 +29,6 @@ import {
 import { useLoans } from '@/hooks/useLoans'
 import { useSubLoans } from '@/hooks/useSubLoans'
 import { useExport } from '@/hooks/useExport'
-import { useClients } from '@/hooks/useClients'
 import { DeleteLoanConfirmModal } from '@/components/loans/DeleteLoanConfirmModal'
 import { getFrequencyLabel, getStatusLabel } from '@/lib/formatters'
 import type { Loan } from '@/types/auth'
@@ -44,7 +43,6 @@ export function LoansTable({ loans: externalLoans, onViewDetails, onLoanDeleted 
   const { loans: hookLoans, isLoading, deleteLoanPermanently } = useLoans()
   const { allSubLoansWithClient } = useSubLoans()
   const { exportLoanToPDF, canExport } = useExport()
-  const { clients } = useClients()
   
   // Use external loans if provided (for filtering), otherwise use hook loans
   const loans = externalLoans || hookLoans
@@ -59,36 +57,29 @@ export function LoansTable({ loans: externalLoans, onViewDetails, onLoanDeleted 
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
   const [snackbarOpen, setSnackbarOpen] = useState(false)
 
-  // Get client info from multiple sources (supports both new and existing loans)
-  const getClientDisplay = (loanId: string) => {
-    // First, try to get loan to find clientId
-    const loan = loans.find(l => l.id === loanId)
-    const clientId = loan?.clientId
-    
-    // Strategy 1: Find client info from allSubLoansWithClient data (for existing loans with subloans)
-    const subloanWithClient = allSubLoansWithClient.find(subloan => subloan.loanId === loanId)
-    if (subloanWithClient?.clientName || subloanWithClient?.clientFullData?.fullName) {
+  // Get client info - uses loan.clientName from API (no extra calls needed)
+  const getClientDisplay = (loan: Loan) => {
+    // Priority 1: Use clientName directly from loan (from API response)
+    if (loan.clientName) {
       return {
-        name: subloanWithClient.clientName || subloanWithClient.clientFullData?.fullName || 'Cliente',
-        id: subloanWithClient.clientId || clientId || 'N/A'
+        name: loan.clientName,
+        id: loan.clientId
       }
     }
     
-    // Strategy 2: Find client in clients list using clientId (for new loans without subloans)
-    if (clientId) {
-      const client = clients.find(c => c.id === clientId)
-      if (client) {
-        return {
-          name: client.fullName,
-          id: client.id
-        }
+    // Priority 2: Fallback to subloans data if available (for backwards compatibility)
+    const subloanWithClient = allSubLoansWithClient.find(subloan => subloan.loanId === loan.id)
+    if (subloanWithClient?.clientName || subloanWithClient?.clientFullData?.fullName) {
+      return {
+        name: subloanWithClient.clientName || subloanWithClient.clientFullData?.fullName || 'Cliente',
+        id: subloanWithClient.clientId || loan.clientId
       }
     }
     
     // Fallback: Show client ID if no name found
     return {
-      name: clientId ? `Cliente ${clientId}` : 'Cliente N/A',
-      id: clientId || 'N/A'
+      name: loan.clientId ? `Cliente ${loan.clientId.slice(0, 8)}...` : 'Cliente N/A',
+      id: loan.clientId || 'N/A'
     }
   }
 
@@ -337,10 +328,10 @@ export function LoansTable({ loans: externalLoans, onViewDetails, onLoanDeleted 
                         <Person color="action" />
                         <Box>
                           <Typography variant="body2" fontWeight="medium">
-                            {getClientDisplay(loan.id).name}
+                            {getClientDisplay(loan).name}
                           </Typography>
                           <Typography variant="caption" color="text.secondary">
-                            ID: {loan.clientId}
+                            ID: {loan.clientId?.slice(0, 12)}...
                           </Typography>
                         </Box>
                       </Box>

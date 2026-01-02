@@ -17,7 +17,7 @@ import {
   CardContent,
 } from '@mui/material'
 import { TrendingDown, Close } from '@mui/icons-material'
-import { formatAmount, unformatAmount } from '@/lib/formatters'
+import { formatAmount, unformatAmount, formatCurrencyDisplay } from '@/lib/formatters'
 
 interface WithdrawalModalProps {
   open: boolean
@@ -121,7 +121,7 @@ export const WithdrawalModal: React.FC<WithdrawalModalProps> = ({
                     Saldo Disponible:
                   </Typography>
                   <Typography variant="subtitle2" sx={{ fontWeight: 600, color: 'text.primary' }}>
-                    ${formatAmount(currentBalance.toString())}
+                    {formatCurrencyDisplay(currentBalance)}
                   </Typography>
                 </Box>
               </CardContent>
@@ -141,7 +141,7 @@ export const WithdrawalModal: React.FC<WithdrawalModalProps> = ({
                 error={wouldBeNegative}
                 helperText={
                   wouldBeNegative
-                    ? `El monto excede el saldo disponible. No puedes retirar más de $${formatAmount(currentBalance.toString())}`
+                    ? `El monto excede el saldo disponible. No puedes retirar más de ${formatCurrencyDisplay(currentBalance)}`
                     : 'Ingresa el monto a retirar'
                 }
               />
@@ -182,7 +182,7 @@ export const WithdrawalModal: React.FC<WithdrawalModalProps> = ({
                         Monto a retirar:
                       </Typography>
                       <Typography variant="subtitle2" sx={{ fontWeight: 600, color: wouldBeNegative ? 'error.main' : 'success.main' }}>
-                        ${formatAmount(amountValue.toString())}
+                        {formatCurrencyDisplay(amountValue)}
                       </Typography>
                     </Box>
                     <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -196,7 +196,7 @@ export const WithdrawalModal: React.FC<WithdrawalModalProps> = ({
                           color: (currentBalance - amountValue) < 0 ? 'error.main' : 'text.primary' 
                         }}
                       >
-                        ${formatAmount((currentBalance - amountValue).toString())}
+                        {formatCurrencyDisplay(currentBalance - amountValue)}
                       </Typography>
                     </Box>
                     {wouldBeNegative && (

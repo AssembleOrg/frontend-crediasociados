@@ -17,7 +17,7 @@ import {
   Tooltip
 } from '@mui/material'
 import { Visibility } from '@mui/icons-material'
-import { formatAmount } from '@/lib/formatters'
+import { formatAmount, formatCurrencyDisplay } from '@/lib/formatters'
 import { dailyClosuresService } from '@/services/daily-closures.service'
 import type { DailyClosure } from '@/types/daily-closures'
 
@@ -111,13 +111,13 @@ export const ClosureHistoryTable: React.FC<ClosureHistoryTableProps> = ({
                     {new Date(closure.closureDate).toLocaleDateString('es-AR')}
                   </TableCell>
                   <TableCell align="right" sx={{ color: 'success.main', fontWeight: 600 }}>
-                    ${formatAmount(closure.totalCollected.toString())}
+                    {formatCurrencyDisplay(closure.totalCollected)}
                   </TableCell>
                   <TableCell align="right" sx={{ color: 'error.main', fontWeight: 600 }}>
-                    -${formatAmount(totalExpenses.toString())}
+                    -{formatCurrencyDisplay(totalExpenses)}
                   </TableCell>
                   <TableCell align="right" sx={{ color: netAmount >= 0 ? 'primary.main' : 'error.main', fontWeight: 600 }}>
-                    ${formatAmount(netAmount.toString())}
+                    {formatCurrencyDisplay(netAmount)}
                   </TableCell>
                   <TableCell align="center">
                     <Tooltip title="Ver detalles">

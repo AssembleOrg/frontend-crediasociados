@@ -12,7 +12,7 @@ import {
   Chip
 } from '@mui/material'
 import { CheckCircle as SuccessIcon } from '@mui/icons-material'
-import { formatAmount } from '@/lib/formatters'
+import { formatAmount, formatCurrencyDisplay } from '@/lib/formatters'
 
 interface PaymentSuccessModalProps {
   open: boolean
@@ -125,7 +125,7 @@ export const PaymentSuccessModal: React.FC<PaymentSuccessModalProps> = ({
                 MONTO PAGADO
               </Typography>
               <Typography variant="body2" sx={{ mt: 0.5, fontWeight: 600, color: 'success.main' }}>
-                ${formatAmount(amount.toString())}
+                {formatCurrencyDisplay(amount)}
               </Typography>
             </Box>
 
@@ -159,7 +159,7 @@ export const PaymentSuccessModal: React.FC<PaymentSuccessModalProps> = ({
                   SALDO PENDIENTE
                 </Typography>
                 <Typography variant="body2" sx={{ mt: 0.5, color: 'warning.main' }}>
-                  ${formatAmount(remainingAmount.toString())}
+                  {formatCurrencyDisplay(remainingAmount)}
                 </Typography>
               </Box>
             )}

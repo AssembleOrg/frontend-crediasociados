@@ -68,10 +68,17 @@ export default function LoanDetailsModal({
   // Use sum of subloans totalAmount for accurate remaining calculation
   const totalSubLoansAmount = subLoans.reduce((sum, subloan) => sum + (subloan.totalAmount || 0), 0)
   const totalPaid = subLoans.reduce((sum, subloan) => sum + (subloan.paidAmount || 0), 0)
-  const remainingAmount = totalSubLoansAmount - totalPaid
-  const remainingPayments = subLoans.filter(subloan => 
-    subloan.status === 'PENDING' || subloan.status === 'OVERDUE'
-  ).length
+  
+  // If no subloans loaded, use loan data as fallback
+  const hasSubLoans = subLoans.length > 0
+  const remainingAmount = hasSubLoans 
+    ? totalSubLoansAmount - totalPaid
+    : (totalAmountToRepay - totalPaid)
+  const remainingPayments = hasSubLoans
+    ? subLoans.filter(subloan => 
+        subloan.status === 'PENDING' || subloan.status === 'OVERDUE'
+      ).length
+    : (loan.totalPayments || 0)
 
   // Sort subloans by payment number
   const sortedSubLoans = [...subLoans].sort((a, b) => (a.paymentNumber ?? 0) - (b.paymentNumber ?? 0))
@@ -309,14 +316,31 @@ export default function LoanDetailsModal({
             )}
 
             {/* Timeline Component */}
-            <LoanTimeline
-              clientName={clientName}
-              subLoans={subLoans}
-              compact={false}
-              onPaymentClick={handlePaymentClick}
-              onResetClick={handleResetPayments}
-              resettingSubloanId={resettingSubloanId}
-            />
+            {isLoading ? (
+              <Box sx={{ textAlign: 'center', py: 4 }}>
+                <Typography variant="body1" color="text.secondary">
+                  Cargando cuotas...
+                </Typography>
+              </Box>
+            ) : subLoans.length === 0 ? (
+              <Box sx={{ textAlign: 'center', py: 4, bgcolor: 'grey.50', borderRadius: 2, p: 3 }}>
+                <Typography variant="h6" color="text.secondary" gutterBottom>
+                  No hay cuotas registradas
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  Este préstamo aún no tiene cuotas generadas. Las cuotas se crean automáticamente al crear el préstamo.
+                </Typography>
+              </Box>
+            ) : (
+              <LoanTimeline
+                clientName={clientName}
+                subLoans={subLoans}
+                compact={false}
+                onPaymentClick={handlePaymentClick}
+                onResetClick={handleResetPayments}
+                resettingSubloanId={resettingSubloanId}
+              />
+            )}
 
             {/* Actions Section */}
           </Box>

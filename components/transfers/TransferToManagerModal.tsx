@@ -20,7 +20,7 @@ import {
   CardContent
 } from '@mui/material'
 import { SwapHoriz, Close } from '@mui/icons-material'
-import { formatAmount, unformatAmount } from '@/lib/formatters'
+import { formatAmount, unformatAmount, formatCurrencyDisplay } from '@/lib/formatters'
 import { walletsService } from '@/services/wallets.service'
 
 interface Manager {
@@ -77,9 +77,9 @@ export const TransferToManagerModal: React.FC<TransferToManagerModalProps> = ({
 
       alert(
         `✅ Transferencia exitosa!\n\n` +
-        `Monto: $${formatAmount(amountValue.toString())}\n` +
+        `Monto: ${formatCurrencyDisplay(amountValue)}\n` +
         `Hacia: ${selectedManager.name}\n` +
-        `Tu saldo ahora: $${formatAmount(remainingBalance.toString())}`
+        `Tu saldo ahora: ${formatCurrencyDisplay(remainingBalance)}`
       )
 
       onSuccess?.()
@@ -167,7 +167,7 @@ export const TransferToManagerModal: React.FC<TransferToManagerModalProps> = ({
           fullWidth
           sx={{ mb: 3 }}
           placeholder="$0"
-          helperText={`Disponible: $${formatAmount(availableBalance.toString())}`}
+          helperText={`Disponible: ${formatCurrencyDisplay(availableBalance)}`}
           disabled={isSubmitting}
         />
 
@@ -201,7 +201,7 @@ export const TransferToManagerModal: React.FC<TransferToManagerModalProps> = ({
                   Monto:
                 </Typography>
                 <Typography variant="body2" sx={{ fontWeight: 600, color: 'primary.main' }}>
-                  ${formatAmount(amountValue.toString())}
+                  {formatCurrencyDisplay(amountValue)}
                 </Typography>
               </Box>
               <Box sx={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px solid', borderColor: 'divider', pt: 1 }}>
@@ -209,7 +209,7 @@ export const TransferToManagerModal: React.FC<TransferToManagerModalProps> = ({
                   Saldo después:
                 </Typography>
                 <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
-                  ${formatAmount(remainingBalance.toString())}
+                  {formatCurrencyDisplay(remainingBalance)}
                 </Typography>
               </Box>
             </CardContent>

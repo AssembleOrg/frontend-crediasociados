@@ -16,7 +16,7 @@ import {
   CardContent,
 } from '@mui/material';
 import { TrendingDown, Close, Wallet } from '@mui/icons-material';
-import { formatAmount, unformatAmount } from '@/lib/formatters';
+import { formatAmount, unformatAmount, formatCurrencyDisplay } from '@/lib/formatters';
 import type { User } from '@/types/auth';
 
 interface WithdrawFromCollectorModalProps {
@@ -133,7 +133,7 @@ export function WithdrawFromCollectorModal({
             {cobrador.email}
           </Typography>
           <Typography variant="body2" sx={{ mt: 1, color: 'success.main', fontWeight: 600 }}>
-            Balance disponible: ${formatAmount(collectorBalance.toString())}
+            Balance disponible: {formatCurrencyDisplay(collectorBalance)}
           </Typography>
         </Box>
 
@@ -156,7 +156,7 @@ export function WithdrawFromCollectorModal({
           placeholder="$0"
           disabled={isLoading}
           sx={{ mb: 3 }}
-          helperText={`Balance disponible: $${formatAmount(collectorBalance.toString())}`}
+          helperText={`Balance disponible: ${formatCurrencyDisplay(collectorBalance)}`}
           error={amountValue > collectorBalance && withdrawAmount !== ''}
           InputProps={{
             startAdornment: <Typography sx={{ mr: 1 }}>$</Typography>,
@@ -219,7 +219,7 @@ export function WithdrawFromCollectorModal({
                     Monto:
                   </Typography>
                   <Typography variant="subtitle2" sx={{ fontWeight: 600, color: 'error.main' }}>
-                    ${formatAmount(amountValue.toString())}
+                    {formatCurrencyDisplay(amountValue)}
                   </Typography>
                 </Box>
                 <Box
@@ -236,7 +236,7 @@ export function WithdrawFromCollectorModal({
                     Balance después:
                   </Typography>
                   <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
-                    ${formatAmount(remainingBalance.toString())}
+                    {formatCurrencyDisplay(remainingBalance)}
                   </Typography>
                 </Box>
               </Box>

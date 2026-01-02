@@ -6,13 +6,10 @@ import { AuthLoadingOverlay } from '@/components/ui/AuthLoadingOverlay';
 import DolarBlueTicker from '@/components/ui/DolarBlueTicker';
 import { Footer } from '@/components/ui/Footer';
 import { VersionNotification } from '@/components/ui/VersionNotification';
+import AuthProvider from '@/components/providers/AuthProvider';
 import { useAuth } from '@/hooks/useAuth';
 
-export default function DashboardLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+function DashboardContent({ children }: { children: React.ReactNode }) {
   const { isLoading } = useAuth();
 
   return (
@@ -42,5 +39,17 @@ export default function DashboardLayout({
         message="Procesando autenticación..."
       />
     </Box>
+  );
+}
+
+export default function DashboardLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  return (
+    <AuthProvider>
+      <DashboardContent>{children}</DashboardContent>
+    </AuthProvider>
   );
 }

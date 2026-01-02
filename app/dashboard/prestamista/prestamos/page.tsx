@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { Box, Button, Alert, CircularProgress } from '@mui/material'
 import { Add} from '@mui/icons-material'
 import { useRouter, usePathname } from 'next/navigation'
@@ -26,19 +26,18 @@ export default function PrestamosAnalyticsPage() {
   const { loans, error, isLoading, fetchLoans } = useLoans()
   const { allSubLoansWithClient, isLoading: subLoansLoading, fetchAllSubLoansWithClientInfo } = useSubLoans()
   const { filteredLoans, filterStats, hasActiveFilters } = useLoansFilters()
-  const { data: managerData, isLoading: managerDataLoading, refetch: refetchManagerData } = useManagerDashboard()
+  const { refetch: refetchManagerData } = useManagerDashboard()
+  
+  // Prevent double fetch in StrictMode
+  const hasFetched = useRef(false)
 
-  // Always refetch on mount to ensure fresh data
+  // Fetch loans ONLY on mount - client names come from API response
   useEffect(() => {
+    if (hasFetched.current) return
+    hasFetched.current = true
     fetchLoans()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []) // Empty deps - only on mount
-
-  // Also refetch when pathname changes (user navigates to this page)
-  useEffect(() => {
-    fetchLoans()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pathname]) // Refetch when entering the page
+  }, [])
 
   // Modal states
   const [selectedLoanId, setSelectedLoanId] = useState<string | null>(null)
@@ -59,6 +58,8 @@ export default function PrestamosAnalyticsPage() {
   const handleViewDetails = (loanId: string) => {
     setSelectedLoanId(loanId)
     setTimelineModalOpen(true)
+    // Load subloans only when modal opens (lazy loading)
+    fetchAllSubLoansWithClientInfo()
   }
 
   const handleGoToCobrosForClient = () => {
