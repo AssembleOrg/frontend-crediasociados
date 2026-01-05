@@ -78,7 +78,14 @@ class SubLoansService {
 
     loans.forEach((loan: any) => {
       if (loan.subLoans && Array.isArray(loan.subLoans)) {
-        allSubLoans.push(...loan.subLoans);
+        // Preserve payments array if present
+        loan.subLoans.forEach((subLoan: any) => {
+          allSubLoans.push({
+            ...subLoan,
+            // Explicitly preserve payments array - it comes from API
+            payments: Array.isArray(subLoan.payments) ? subLoan.payments : undefined
+          } as SubLoanResponseDto & { payments?: any[] });
+        });
       }
     });
 

@@ -125,6 +125,20 @@ const TimelineNode: React.FC<TimelineNodeProps> = ({
     return `En ${diffDays} día${diffDays === 1 ? '' : 's'}`
   }
 
+  // Get payment descriptions for PAID or PARTIAL subloans
+  const getPaymentDescriptions = () => {
+    if ((isPaid || isPartial) && subloan.payments && Array.isArray(subloan.payments) && subloan.payments.length > 0) {
+      const descriptions = subloan.payments
+        .filter((p: any) => p && p.description && typeof p.description === 'string' && p.description.trim())
+        .map((p: any) => p.description.trim())
+      
+      return descriptions.length > 0 ? descriptions.join(', ') : null
+    }
+    return null
+  }
+
+  const paymentDescriptions = getPaymentDescriptions()
+
   return (
     <Tooltip
       title={
@@ -145,6 +159,29 @@ const TimelineNode: React.FC<TimelineNodeProps> = ({
             <Typography variant="caption" display="block" color="success.main">
               Pagado: ${(subloan.paidAmount ?? 0).toLocaleString()}
             </Typography>
+          )}
+          {paymentDescriptions && (
+            <Box
+              sx={{
+                mt: 1,
+                pt: 1,
+                borderTop: '1px solid rgba(255, 255, 255, 0.2)'
+              }}
+            >
+              <Typography 
+                variant="caption" 
+                display="block" 
+                sx={{ 
+                  fontWeight: 600,
+                  color: 'white',
+                  maxWidth: 200,
+                  wordBreak: 'break-word',
+                  fontSize: '1rem'
+                }}
+              >
+                {paymentDescriptions}
+              </Typography>
+            </Box>
           )}
         </Box>
       }

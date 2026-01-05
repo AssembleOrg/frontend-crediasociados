@@ -116,33 +116,45 @@ export function CreateLoanModal({
   }, [open])
 
   // Search clients after 2 characters
+  // Only search if user is actively typing (not when selecting from dropdown)
   useEffect(() => {
     const searchClients = async () => {
+      // Don't search if input is too short or if a client is already selected and input matches the selected client
       if (searchInput.length < 2) {
         setSearchResults([])
         return
       }
 
+      // If a client is selected and the input matches the selected client's label, don't search
+      if (selectedClient) {
+        const selectedLabel = [
+          selectedClient.fullName,
+          selectedClient.dni ? `DNI: ${selectedClient.dni}` : null,
+          selectedClient.cuit ? `CUIT: ${selectedClient.cuit}` : null
+        ].filter(Boolean).join(' • ')
+        
+        if (searchInput === selectedLabel) {
+          // User selected a client, don't search again
+          return
+        }
+      }
+
       setIsSearching(true)
       try {
-        // Try to search by DNI or CUIT
-        const result = await clientsService.searchByDniOrCuit(searchInput, searchInput)
-        if (result) {
-          // Convert ClientResponseDto to Client
-          const clientConverted = apiClientToClient(result)
-          setSearchResults([clientConverted])
+        // Search by DNI, CUIT, or name (partial match)
+        // Backend now supports name parameter for partial matching
+        const results = await clientsService.searchByDniOrCuit(searchInput, searchInput, searchInput)
+        
+        if (results && results.length > 0) {
+          // Convert ClientResponseDto[] to Client[]
+          const clientsConverted = results.map(apiClientToClient)
+          setSearchResults(clientsConverted)
         } else {
-          // If not found by DNI/CUIT, show all clients from the hook
-          const filtered = clients.filter(client =>
-            client.fullName.toLowerCase().includes(searchInput.toLowerCase()) ||
-            client.dni?.includes(searchInput) ||
-            client.cuit?.includes(searchInput)
-          )
-          setSearchResults(filtered)
+          // No results found
+          setSearchResults([])
         }
       } catch (error) {
-        // Error searching clients
-        // Fallback to local filtering
+        // Error searching clients - fallback to local filtering
         const filtered = clients.filter(client =>
           client.fullName.toLowerCase().includes(searchInput.toLowerCase()) ||
           client.dni?.includes(searchInput) ||
@@ -156,7 +168,7 @@ export function CreateLoanModal({
 
     const timeoutId = setTimeout(searchClients, 300)
     return () => clearTimeout(timeoutId)
-  }, [searchInput, clients])
+  }, [searchInput, clients, selectedClient])
 
   // Live preview calculation - updates as user types
   useEffect(() => {
@@ -521,11 +533,32 @@ export function CreateLoanModal({
                     }
                     setSelectedClient(newValue)
                     handleSelectChange('clientId', newValue?.id || '')
+                    // When selecting a client, update searchInput to match the label to prevent re-search
+                    if (newValue) {
+                      const label = [
+                        newValue.fullName,
+                        newValue.dni ? `DNI: ${newValue.dni}` : null,
+                        newValue.cuit ? `CUIT: ${newValue.cuit}` : null
+                      ].filter(Boolean).join(' • ')
+                      setSearchInput(label)
+                    } else {
+                      setSearchInput('')
+                    }
                   }}
                   inputValue={searchInput}
-                  onInputChange={(_, newInputValue) => {
-                    setSearchInput(newInputValue)
+                  onInputChange={(_, newInputValue, reason) => {
+                    // Only update searchInput if user is typing (not when selecting)
+                    // Reason can be: 'input', 'clear', 'reset', 'blur'
+                    if (reason === 'input' || reason === 'clear') {
+                      setSearchInput(newInputValue)
+                      // If clearing, also clear selected client
+                      if (reason === 'clear') {
+                        setSelectedClient(null)
+                        handleSelectChange('clientId', '')
+                      }
+                    }
                   }}
+                  isOptionEqualToValue={(option, value) => option.id === value.id}
                   loading={isSearching}
                   loadingText="Buscando..."
                   noOptionsText={searchInput.length < 2 ? "Escribe al menos 2 caracteres" : "No se encontraron clientes verificados"}

@@ -7,6 +7,15 @@ import type { SubLoanResponseDto } from '@/types/export'
 
 type ClientResponseDto = components['schemas']['ClientResponseDto']
 
+export interface PaymentInfo {
+  id: string
+  amount: number
+  currency: string
+  paymentDate: string
+  description?: string
+  createdAt: string
+}
+
 export interface SubLoanWithClientInfo {
   id?: string
   loanId?: string
@@ -22,6 +31,7 @@ export interface SubLoanWithClientInfo {
   clientId?: string
   clientName?: string
   clientFullData?: ClientResponseDto
+  payments?: PaymentInfo[]
 }
 
 /**
@@ -72,11 +82,27 @@ class SubLoansLookupService {
         // Use client info directly from the loan response
         const client = loan?.client as any
         
+        // Extract payments from subLoan if present (from API response)
+        // Check both in subLoan directly and in the spread
+        const rawSubLoan = subLoan as any
+        const payments = Array.isArray(rawSubLoan.payments) 
+          ? rawSubLoan.payments 
+          : undefined
+        
         return {
           ...subLoan,
           clientId: client?.id || loan?.clientId,
           clientName: client?.fullName,
-          clientFullData: client
+          clientFullData: client,
+          // Preserve payments array if present, mapping to PaymentInfo format
+          payments: payments?.map((p: any) => ({
+            id: p.id,
+            amount: p.amount,
+            currency: p.currency || 'ARS',
+            paymentDate: p.paymentDate,
+            description: p.description || undefined,
+            createdAt: p.createdAt
+          })).filter((p: PaymentInfo) => p.id) // Filter out invalid payments
         }
       })
 
@@ -110,11 +136,27 @@ class SubLoansLookupService {
         // Use client info directly from the loan response
         const client = loan?.client as any
         
+        // Extract payments from subLoan if present (from API response)
+        // Check both in subLoan directly and in the spread
+        const rawSubLoan = subLoan as any
+        const payments = Array.isArray(rawSubLoan.payments) 
+          ? rawSubLoan.payments 
+          : undefined
+        
         return {
           ...subLoan,
           clientId: client?.id || loan?.clientId,
           clientName: client?.fullName,
-          clientFullData: client
+          clientFullData: client,
+          // Preserve payments array if present, mapping to PaymentInfo format
+          payments: payments?.map((p: any) => ({
+            id: p.id,
+            amount: p.amount,
+            currency: p.currency || 'ARS',
+            paymentDate: p.paymentDate,
+            description: p.description || undefined,
+            createdAt: p.createdAt
+          })).filter((p: PaymentInfo) => p.id) // Filter out invalid payments
         }
       })
 

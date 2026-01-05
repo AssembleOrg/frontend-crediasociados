@@ -55,27 +55,31 @@ class ClientsService {
   }
 
   /**
-   * Search client by DNI or CUIT
+   * Search client by DNI, CUIT, or name (partial match)
    * @param dni - DNI to search
    * @param cuit - CUIT to search
-   * @returns Client found or null
+   * @param name - Name to search (partial match, e.g., "car" matches "Carlos", "Marcos", etc.)
+   * @returns Array of clients found (can be empty array)
    */
-  async searchByDniOrCuit(dni?: string, cuit?: string): Promise<ClientResponseDto | null> {
+  async searchByDniOrCuit(dni?: string, cuit?: string, name?: string): Promise<ClientResponseDto[]> {
     const params = new URLSearchParams()
     if (dni) params.append('dni', dni)
     if (cuit) params.append('cuit', cuit)
+    if (name) params.append('name', name)
 
     const queryString = params.toString()
     if (!queryString) {
-      throw new Error('DNI or CUIT is required')
+      throw new Error('DNI, CUIT, or name is required')
     }
 
     try {
       const response = await api.get(`/clients/search?${queryString}`)
-      return response.data.data
+      // Backend returns array for name search, single object for dni/cuit
+      const data = response.data.data
+      return Array.isArray(data) ? data : (data ? [data] : [])
     } catch (error: any) {
       if (error?.response?.status === 404) {
-        return null
+        return []
       }
       throw error
     }
