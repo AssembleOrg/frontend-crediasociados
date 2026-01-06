@@ -61,6 +61,14 @@ export default function WalletHistoryModal({ open, onClose }: WalletHistoryModal
     balanceAfter: number
     subLoanId?: string | null
     createdAt: string
+    paymentDescription?: string | null
+    payments?: Array<{
+      id: string
+      amount: number
+      description?: string | null
+      paymentDate: string
+      createdAt: string
+    }>
   }>>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -510,6 +518,9 @@ export default function WalletHistoryModal({ open, onClose }: WalletHistoryModal
                     <TableCell sx={{ fontWeight: 600 }}>Tipo</TableCell>
                     <TableCell sx={{ fontWeight: 600 }}>Descripción</TableCell>
                     {!isMobile && (
+                      <TableCell sx={{ fontWeight: 600 }}>Pago</TableCell>
+                    )}
+                    {!isMobile && (
                       <TableCell align="right" sx={{ fontWeight: 600 }}>Balance Antes</TableCell>
                     )}
                     <TableCell align="right" sx={{ fontWeight: 600 }}>Monto</TableCell>
@@ -561,6 +572,20 @@ export default function WalletHistoryModal({ open, onClose }: WalletHistoryModal
                           </Typography>
                           {isMobile && (
                             <>
+                              {tx.paymentDescription && (
+                                <Chip
+                                  label={tx.paymentDescription}
+                                  size="small"
+                                  sx={{
+                                    mt: 0.5,
+                                    fontSize: '0.7rem',
+                                    height: 20,
+                                    bgcolor: alpha(theme.palette.info.main, 0.1),
+                                    color: theme.palette.info.main,
+                                    fontWeight: 500
+                                  }}
+                                />
+                              )}
                               <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
                                 Antes: {formatCurrency(tx.balanceBefore)}
                               </Typography>
@@ -570,6 +595,34 @@ export default function WalletHistoryModal({ open, onClose }: WalletHistoryModal
                             </>
                           )}
                         </TableCell>
+                        {!isMobile && (
+                          <TableCell>
+                            {tx.paymentDescription ? (
+                              <Chip
+                                label={tx.paymentDescription}
+                                size="small"
+                                sx={{
+                                  fontSize: '0.75rem',
+                                  height: 24,
+                                  bgcolor: alpha(theme.palette.info.main, 0.1),
+                                  color: theme.palette.info.main,
+                                  fontWeight: 500,
+                                  maxWidth: '100%',
+                                  '& .MuiChip-label': {
+                                    overflow: 'hidden',
+                                    textOverflow: 'ellipsis',
+                                    whiteSpace: 'nowrap',
+                                    px: 1
+                                  }
+                                }}
+                              />
+                            ) : (
+                              <Typography variant="body2" color="text.disabled" sx={{ fontStyle: 'italic' }}>
+                                -
+                              </Typography>
+                            )}
+                          </TableCell>
+                        )}
                         {!isMobile && (
                           <TableCell align="right">
                             <Typography variant="body2" color="text.secondary">

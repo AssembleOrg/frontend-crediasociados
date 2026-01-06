@@ -155,6 +155,14 @@ class CollectorWalletService {
       balanceAfter: number;
       subLoanId?: string | null;
       createdAt: string;
+      paymentDescription?: string | null;
+      payments?: Array<{
+        id: string;
+        amount: number;
+        description?: string | null;
+        paymentDate: string;
+        createdAt: string;
+      }>;
     }>;
     pagination: {
       page: number;
