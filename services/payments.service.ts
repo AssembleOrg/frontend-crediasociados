@@ -13,12 +13,49 @@ interface PaymentResponse {
   payment: Payment;
   subLoan: {
     id: string;
-    status: 'PARTIAL' | 'PAID';
+    paymentNumber: number;
+    status: 'PENDING' | 'PARTIAL' | 'PAID' | 'OVERDUE';
     paidAmount: number;
     totalAmount: number;
     remainingAmount: number;
   };
   distributedPayments: PaymentDistribution[];
+  // Extended response with full loan context (optional, may not be present in all responses)
+  loan?: {
+    id: string;
+    loanTrack: string;
+    amount: number;
+    originalAmount: number;
+    currency: string;
+    client: {
+      id: string;
+      fullName: string;
+      dni: string | null;
+      cuit: string | null;
+    };
+  };
+  loanSummary?: {
+    montoPrestado: number;
+    totalADevolver: number;
+    totalPendiente: number;
+    saldoPagadoTotal: number;
+    totalCuotas: number;
+    cuotasPagadasTotales: number;
+    cuotasPagadasParciales: number;
+    cuotasNoPagadas: number;
+  };
+  subLoans?: Array<{
+    id: string;
+    paymentNumber: number;
+    amount: number;
+    totalAmount: number;
+    status: 'PENDING' | 'PAID' | 'PARTIAL' | 'OVERDUE';
+    dueDate: string;
+    paidDate: string | null;
+    paidAmount: number;
+    pendingAmount: number;
+    daysOverdue: number;
+  }>;
 }
 
 /**

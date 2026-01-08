@@ -200,21 +200,71 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
         // Generate receipt if requested
         if (generatePDF) {
           try {
-            generatePaymentPDF({
-              clientName,
-              paymentNumber: currentSubloan.paymentNumber ?? 0,
-              amount: amountValue,
-              paymentDate: new Date(paymentDate),
-              loanTrack: 'N/A',
-              status: newStatus,
-              remainingAmount: remainingAfterPayment,
-              notes: notes || undefined
-            })
+            // Check if we have the new extended response format
+            if (paymentResult.loan && paymentResult.loanSummary && paymentResult.subLoans) {
+              // Use new format with full loan context
+              generatePaymentPDF({
+                payment: {
+                  id: paymentResult.payment.id,
+                  amount: paymentResult.payment.amount,
+                  paymentDate: new Date(paymentResult.payment.paymentDate),
+                  description: paymentResult.payment.description || undefined
+                },
+                subLoan: {
+                  id: paymentResult.subLoan.id,
+                  paymentNumber: paymentResult.subLoan.paymentNumber,
+                  totalAmount: paymentResult.subLoan.totalAmount,
+                  status: paymentResult.subLoan.status,
+                  paidAmount: paymentResult.subLoan.paidAmount,
+                  pendingAmount: paymentResult.subLoan.remainingAmount
+                },
+                loan: {
+                  id: paymentResult.loan.id,
+                  loanTrack: paymentResult.loan.loanTrack,
+                  amount: paymentResult.loan.amount,
+                  originalAmount: paymentResult.loan.originalAmount,
+                  currency: paymentResult.loan.currency,
+                  client: {
+                    id: paymentResult.loan.client.id,
+                    fullName: paymentResult.loan.client.fullName,
+                    dni: paymentResult.loan.client.dni,
+                    cuit: paymentResult.loan.client.cuit
+                  }
+                },
+                loanSummary: paymentResult.loanSummary,
+                subLoans: paymentResult.subLoans.map(sl => ({
+                  id: sl.id,
+                  paymentNumber: sl.paymentNumber,
+                  amount: sl.amount,
+                  totalAmount: sl.totalAmount,
+                  status: sl.status,
+                  dueDate: new Date(sl.dueDate),
+                  paidDate: sl.paidDate ? new Date(sl.paidDate) : null,
+                  paidAmount: sl.paidAmount,
+                  pendingAmount: sl.pendingAmount,
+                  daysOverdue: sl.daysOverdue
+                })),
+                notes: notes || undefined
+              })
+            } else {
+              // Fallback to legacy format
+              generatePaymentPDF({
+                clientName,
+                paymentNumber: paymentResult.subLoan.paymentNumber || (currentSubloan.paymentNumber ?? 0),
+                amount: amountValue,
+                paymentDate: new Date(paymentDate),
+                loanTrack: 'N/A',
+                status: newStatus,
+                remainingAmount: remainingAfterPayment,
+                notes: notes || undefined
+              })
+            }
 
             // Payment receipt PDF generated
           } catch (error) {
             // Error generating payment receipt
             // Don't block the payment if receipt generation fails
+            console.error('Error generating PDF:', error)
           }
         }
 
