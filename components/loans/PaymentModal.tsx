@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useMemo } from 'react'
+import { createPortal } from 'react-dom'
 import {
   Dialog,
   DialogTitle,
@@ -24,7 +25,7 @@ import {
 } from '@mui/material'
 import { Payment, AttachMoney, PictureAsPdf, Info, Warning } from '@mui/icons-material'
 import { formatAmount, unformatAmount, formatCurrencyDisplay, numberToFormattedAmount } from '@/lib/formatters'
-import { generatePaymentPDF } from '@/utils/pdf/paymentReceipt'
+import { generatePaymentPDF, type PaymentReceiptData } from '@/utils/pdf/paymentReceipt'
 import { useOperativa } from '@/hooks/useOperativa'
 import { paymentsService } from '@/services/payments.service'
 import { PaymentErrorModal } from './PaymentErrorModal'
@@ -80,6 +81,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
     notes?: string
     pdfGenerated: boolean
   } | null>(null)
+  const [receiptData, setReceiptData] = useState<PaymentReceiptData | null>(null)
 
   const currentSubloan = useMemo(() => {
     return mode === 'single' ? subloan : subloans.find(s => s.id === selectedSubloanId)
@@ -88,7 +90,11 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
 
   // Reset form ONLY when modal opens. Avoid depending on object props to prevent unwanted resets.
   useEffect(() => {
-    if (!open) return
+    if (!open) {
+      // Reset receipt data when payment modal closes
+      setReceiptData(null)
+      return
+    }
     setHasUserEdited(false) // Reset edit flag when modal opens
     if (mode === 'single' && subloan) {
       setSelectedSubloanId(subloan.id ?? '')
@@ -110,6 +116,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
     setNotes('')
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, mode])
+
 
   // Auto-fill payment amount when subloan selection changes in selector mode
   // BUT only if user hasn't manually edited the amount
@@ -197,89 +204,123 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
         const remainingAfterPayment = Math.max(0, ((currentSubloan.totalAmount ?? 0) - (currentSubloan.paidAmount || 0)) - amountValue)
         const newStatus = remainingAfterPayment === 0 ? 'PAID' : 'PARTIAL'
 
-        // Generate receipt if requested
-        if (generatePDF) {
-          try {
-            // Check if we have the new extended response format
-            if (paymentResult.loan && paymentResult.loanSummary && paymentResult.subLoans) {
-              // Use new format with full loan context
-              generatePaymentPDF({
-                payment: {
-                  id: paymentResult.payment.id,
-                  amount: paymentResult.payment.amount,
-                  paymentDate: new Date(paymentResult.payment.paymentDate),
-                  description: paymentResult.payment.description || undefined
-                },
-                subLoan: {
-                  id: paymentResult.subLoan.id,
-                  paymentNumber: paymentResult.subLoan.paymentNumber,
-                  totalAmount: paymentResult.subLoan.totalAmount,
-                  status: paymentResult.subLoan.status,
-                  paidAmount: paymentResult.subLoan.paidAmount,
-                  pendingAmount: paymentResult.subLoan.remainingAmount
-                },
-                loan: {
-                  id: paymentResult.loan.id,
-                  loanTrack: paymentResult.loan.loanTrack,
-                  amount: paymentResult.loan.amount,
-                  originalAmount: paymentResult.loan.originalAmount,
-                  currency: paymentResult.loan.currency,
-                  client: {
-                    id: paymentResult.loan.client.id,
-                    fullName: paymentResult.loan.client.fullName,
-                    dni: paymentResult.loan.client.dni,
-                    cuit: paymentResult.loan.client.cuit
-                  }
-                },
-                loanSummary: paymentResult.loanSummary,
-                subLoans: paymentResult.subLoans.map(sl => ({
-                  id: sl.id,
-                  paymentNumber: sl.paymentNumber,
-                  amount: sl.amount,
-                  totalAmount: sl.totalAmount,
-                  status: sl.status,
-                  dueDate: new Date(sl.dueDate),
-                  paidDate: sl.paidDate ? new Date(sl.paidDate) : null,
-                  paidAmount: sl.paidAmount,
-                  pendingAmount: sl.pendingAmount,
-                  daysOverdue: sl.daysOverdue
-                })),
-                notes: notes || undefined
-              })
-            } else {
-              // Fallback to legacy format
-              generatePaymentPDF({
-                clientName,
-                paymentNumber: paymentResult.subLoan.paymentNumber || (currentSubloan.paymentNumber ?? 0),
-                amount: amountValue,
-                paymentDate: new Date(paymentDate),
-                loanTrack: 'N/A',
-                status: newStatus,
-                remainingAmount: remainingAfterPayment,
-                notes: notes || undefined
-              })
-            }
+        // Prepare receipt data if we have the new extended response format
+        let receiptDataToShow: PaymentReceiptData | null = null
+        console.log('Payment result:', paymentResult)
+        console.log('Has loan?', !!paymentResult.loan)
+        console.log('Has loanSummary?', !!paymentResult.loanSummary)
+        console.log('Has subLoans?', !!paymentResult.subLoans)
+        
+        if (paymentResult.loan && paymentResult.loanSummary && paymentResult.subLoans) {
+          receiptDataToShow = {
+            payment: {
+              id: paymentResult.payment.id,
+              amount: paymentResult.payment.amount,
+              paymentDate: new Date(paymentResult.payment.paymentDate),
+              description: paymentResult.payment.description || undefined
+            },
+            subLoan: {
+              id: paymentResult.subLoan.id,
+              paymentNumber: paymentResult.subLoan.paymentNumber,
+              totalAmount: paymentResult.subLoan.totalAmount,
+              status: paymentResult.subLoan.status,
+              paidAmount: paymentResult.subLoan.paidAmount,
+              pendingAmount: paymentResult.subLoan.remainingAmount
+            },
+            loan: {
+              id: paymentResult.loan.id,
+              loanTrack: paymentResult.loan.loanTrack,
+              amount: paymentResult.loan.amount,
+              originalAmount: paymentResult.loan.originalAmount,
+              currency: paymentResult.loan.currency,
+              client: {
+                id: paymentResult.loan.client.id,
+                fullName: paymentResult.loan.client.fullName,
+                dni: paymentResult.loan.client.dni,
+                cuit: paymentResult.loan.client.cuit
+              }
+            },
+            loanSummary: paymentResult.loanSummary,
+            subLoans: paymentResult.subLoans.map(sl => ({
+              id: sl.id,
+              paymentNumber: sl.paymentNumber,
+              amount: sl.amount,
+              totalAmount: sl.totalAmount,
+              status: sl.status,
+              dueDate: new Date(sl.dueDate),
+              paidDate: sl.paidDate ? new Date(sl.paidDate) : null,
+              paidAmount: sl.paidAmount,
+              pendingAmount: sl.pendingAmount,
+              daysOverdue: sl.daysOverdue
+            })),
+            notes: notes || undefined
+          }
+          console.log('Receipt data prepared:', receiptDataToShow)
+        } else {
+          console.log('Missing data for receipt modal, using fallback')
+        }
 
-            // Payment receipt PDF generated
+        // Generate receipt PDF if requested
+        if (generatePDF && receiptDataToShow) {
+          try {
+            generatePaymentPDF(receiptDataToShow)
           } catch (error) {
-            // Error generating payment receipt
-            // Don't block the payment if receipt generation fails
+            console.error('Error generating PDF:', error)
+          }
+        } else if (generatePDF) {
+          // Fallback to legacy format
+          try {
+            generatePaymentPDF({
+              clientName,
+              paymentNumber: paymentResult.subLoan.paymentNumber || (currentSubloan.paymentNumber ?? 0),
+              amount: amountValue,
+              paymentDate: new Date(paymentDate),
+              loanTrack: 'N/A',
+              status: newStatus,
+              remainingAmount: remainingAfterPayment,
+              notes: notes || undefined
+            })
+          } catch (error) {
             console.error('Error generating PDF:', error)
           }
         }
 
-        // Show success feedback with new modal
-        setSuccessData({
-          clientName,
-          paymentNumber: currentSubloan.paymentNumber ?? 0,
-          amount: amountValue,
-          paymentDate: new Date(paymentDate),
-          status: newStatus,
-          remainingAmount: remainingAfterPayment,
-          notes: notes || undefined,
-          pdfGenerated: generatePDF
-        })
-        setSuccessModalOpen(true)
+        // Prepare success modal data and open it
+        // DON'T close payment modal yet - keep it open so state persists
+        if (receiptDataToShow) {
+          console.log('Opening success modal with full receipt data', receiptDataToShow)
+          // Show success modal with full receipt data
+          setSuccessData({
+            clientName,
+            paymentNumber: paymentResult.subLoan.paymentNumber || (currentSubloan.paymentNumber ?? 0),
+            amount: amountValue,
+            paymentDate: new Date(paymentDate),
+            status: newStatus,
+            remainingAmount: remainingAfterPayment,
+            notes: notes || undefined,
+            pdfGenerated: generatePDF
+          })
+          // Store receipt data separately to pass to success modal
+          setReceiptData(receiptDataToShow)
+          setSuccessModalOpen(true)
+          console.log('Success modal state set - should be visible now')
+        } else {
+          console.log('Opening fallback success modal')
+          // Fallback to simple success modal
+          setSuccessData({
+            clientName,
+            paymentNumber: paymentResult.subLoan.paymentNumber || (currentSubloan.paymentNumber ?? 0),
+            amount: amountValue,
+            paymentDate: new Date(paymentDate),
+            status: newStatus,
+            remainingAmount: remainingAfterPayment,
+            notes: notes || undefined,
+            pdfGenerated: generatePDF
+          })
+          setSuccessModalOpen(true)
+        }
+        
+        // DON'T close payment modal - let success modal close it when user closes it
 
         // ✅ Trigger refetch callback after successful payment
         if (onPaymentSuccess) {
@@ -309,6 +350,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
     onClose()
   }
 
+
   const handleErrorRetry = () => {
     setErrorModalOpen(false)
     setErrorMessage('')
@@ -330,8 +372,9 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
   }
 
   return (
+    <>
     <Dialog
-      open={open}
+      open={open && !successModalOpen}
       onClose={onClose}
       maxWidth="md"
       fullWidth
@@ -672,8 +715,8 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
         onRetry={handleErrorRetry}
       />
 
-      {/* Success Modal */}
-      {successData && (
+      {/* Success Modal - Rendered via Portal to appear above everything, even when PaymentModal closes */}
+      {successData && typeof document !== 'undefined' && createPortal(
         <PaymentSuccessModal
           open={successModalOpen}
           onClose={handleSuccessClose}
@@ -685,7 +728,9 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
           remainingAmount={successData.remainingAmount}
           notes={successData.notes}
           pdfGenerated={successData.pdfGenerated}
-        />
+          receiptData={receiptData} // Pass full receipt data if available
+        />,
+        document.body
       )}
 
       {/* Multi-Payment Confirmation Modal */}
@@ -775,6 +820,25 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
         </DialogActions>
       </Dialog>
     </Dialog>
+    
+    {/* Success Modal - Rendered via Portal to appear above everything */}
+    {successData && typeof document !== 'undefined' && createPortal(
+      <PaymentSuccessModal
+        open={successModalOpen}
+        onClose={handleSuccessClose}
+        clientName={successData.clientName}
+        paymentNumber={successData.paymentNumber}
+        amount={successData.amount}
+        paymentDate={successData.paymentDate}
+        status={successData.status}
+        remainingAmount={successData.remainingAmount}
+        notes={successData.notes}
+        pdfGenerated={successData.pdfGenerated}
+        receiptData={receiptData} // Pass full receipt data if available
+      />,
+      document.body
+    )}
+    </>
   )
 }
 
