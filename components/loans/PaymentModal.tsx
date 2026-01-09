@@ -206,10 +206,6 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
 
         // Prepare receipt data if we have the new extended response format
         let receiptDataToShow: PaymentReceiptData | null = null
-        console.log('Payment result:', paymentResult)
-        console.log('Has loan?', !!paymentResult.loan)
-        console.log('Has loanSummary?', !!paymentResult.loanSummary)
-        console.log('Has subLoans?', !!paymentResult.subLoans)
         
         if (paymentResult.loan && paymentResult.loanSummary && paymentResult.subLoans) {
           receiptDataToShow = {
@@ -255,7 +251,6 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
             })),
             notes: notes || undefined
           }
-          console.log('Receipt data prepared:', receiptDataToShow)
         } else {
           console.log('Missing data for receipt modal, using fallback')
         }
@@ -288,7 +283,6 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
         // Prepare success modal data and open it
         // DON'T close payment modal yet - keep it open so state persists
         if (receiptDataToShow) {
-          console.log('Opening success modal with full receipt data', receiptDataToShow)
           // Show success modal with full receipt data
           setSuccessData({
             clientName,
@@ -303,9 +297,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
           // Store receipt data separately to pass to success modal
           setReceiptData(receiptDataToShow)
           setSuccessModalOpen(true)
-          console.log('Success modal state set - should be visible now')
         } else {
-          console.log('Opening fallback success modal')
           // Fallback to simple success modal
           setSuccessData({
             clientName,

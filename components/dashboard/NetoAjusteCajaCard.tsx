@@ -4,11 +4,10 @@ import { useState, useRef, useCallback, useEffect } from 'react'
 import { Card, CardContent, Typography, Box, CircularProgress } from '@mui/material'
 import { TrendingUp, DateRange } from '@mui/icons-material'
 import { collectorWalletService } from '@/services/collector-wallet.service'
-import { collectorReportService } from '@/services/collector-report.service'
 import { useCurrentUser } from '@/hooks/useCurrentUser'
 
-interface NetoData {
-  neto: number
+interface WalletData {
+  balance: number
   startDate: string
   endDate: string
   hasWithdrawal: boolean
@@ -18,7 +17,7 @@ const COOLDOWN_MS = 10000
 
 export function NetoAjusteCajaCard() {
   const currentUser = useCurrentUser()
-  const [data, setData] = useState<NetoData | null>(null)
+  const [data, setData] = useState<WalletData | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [inCooldown, setInCooldown] = useState(false)
@@ -50,6 +49,15 @@ export function NetoAjusteCajaCard() {
     cooldownTimerRef.current = setTimeout(() => setInCooldown(false), COOLDOWN_MS)
 
     try {
+      // Obtener el saldo de la wallet de cobro del cobrador logueado
+      console.log('Getting wallet balance')
+      // const walletData = await collectorWalletService.getBalanceForUser(currentUser.id)
+      // console.log('Wallet data:', walletData)
+      const walletBalance = await collectorWalletService.getMyBalance()
+      console.log('Wallet balance:', walletBalance)
+      const balance = walletBalance.balance ?? 0
+
+      // Obtener el último retiro para calcular el rango de fechas
       const lastWithdrawal = await collectorWalletService.getLastWithdrawal(currentUser.id)
 
       let startDate: string
@@ -70,12 +78,10 @@ export function NetoAjusteCajaCard() {
       }
 
       const endDate = new Date().toISOString().split('T')[0]
-      const report = await collectorReportService.getPeriodReport(startDate, endDate)
-      const neto = report.neto ?? report.summary?.neto ?? 0
 
-      setData({ neto, startDate, endDate, hasWithdrawal })
+      setData({ balance, startDate, endDate, hasWithdrawal })
     } catch {
-      setError('Error al calcular')
+      setError('Error al obtener saldo')
     } finally {
       setIsLoading(false)
     }
@@ -86,7 +92,7 @@ export function NetoAjusteCajaCard() {
     return d.toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit' })
   }
 
-  const isNegative = (data?.neto ?? 0) < 0
+  const isNegative = (data?.balance ?? 0) < 0
 
   // Colores más naturales
   const getBackground = () => {
@@ -141,7 +147,7 @@ export function NetoAjusteCajaCard() {
         ) : data ? (
           <>
             <Typography variant="h4" sx={{ fontWeight: 700, mb: 0.5 }}>
-              {isNegative && '-'}${Math.abs(data.neto).toLocaleString('es-AR')}
+              {isNegative && '-'}${Math.abs(data.balance).toLocaleString('es-AR')}
             </Typography>
             <Typography variant="body2" sx={{ opacity: 0.9, display: 'flex', alignItems: 'center', gap: 0.5 }}>
               <DateRange sx={{ fontSize: 16 }} />

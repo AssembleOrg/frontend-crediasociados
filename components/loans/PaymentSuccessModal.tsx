@@ -18,9 +18,12 @@ import {
   TableHead,
   TableRow,
   Paper,
-  Grid
+  Grid,
+  useTheme,
+  useMediaQuery,
+  IconButton
 } from '@mui/material'
-import { CheckCircle as SuccessIcon, Warning, Receipt } from '@mui/icons-material'
+import { CheckCircle as SuccessIcon, Warning, Receipt, Close } from '@mui/icons-material'
 import { formatCurrencyDisplay } from '@/lib/formatters'
 import type { PaymentReceiptData } from '@/utils/pdf/paymentReceipt'
 
@@ -67,16 +70,32 @@ export const PaymentSuccessModal: React.FC<PaymentSuccessModalProps> = ({
   const overdueSubLoans = receiptData ? receiptData.subLoans.filter(s => s.status === 'OVERDUE') : []
   const hasOverduePayments = overdueSubLoans.length > 0
 
+  const theme = useTheme()
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'))
+  const isTablet = useMediaQuery(theme.breakpoints.down('md'))
+
   return (
     <Dialog
       open={open}
       onClose={onClose}
       maxWidth={hasFullData ? "lg" : "sm"}
       fullWidth
+      fullScreen={isMobile}
+      disableEscapeKeyDown={false}
       PaperProps={{
         sx: {
-          borderRadius: 2,
-          boxShadow: 3
+          borderRadius: isMobile ? 0 : 2,
+          boxShadow: 3,
+          maxHeight: isMobile ? '100vh' : '90vh',
+          m: isMobile ? 0 : 2,
+          overflow: 'hidden',
+          display: 'flex',
+          flexDirection: 'column'
+        }
+      }}
+      sx={{
+        '& .MuiDialog-container': {
+          alignItems: isMobile ? 'flex-end' : 'center'
         }
       }}
     >
@@ -84,26 +103,80 @@ export const PaymentSuccessModal: React.FC<PaymentSuccessModalProps> = ({
         sx={{
           display: 'flex',
           alignItems: 'center',
+          justifyContent: 'space-between',
           gap: 1.5,
-          pb: 1,
-          pt: 2.5,
-          px: 3,
+          pb: { xs: 1.5, sm: 1 },
+          pt: { xs: 2, sm: 2.5 },
+          px: { xs: 2, sm: 3 },
           borderBottom: 1,
           borderColor: 'divider',
-          fontWeight: 600
+          fontWeight: 600,
+          position: 'sticky',
+          top: 0,
+          bgcolor: 'background.paper',
+          zIndex: 1
         }}
       >
-        <SuccessIcon
-          sx={{
-            color: 'success.main',
-            fontSize: 28
-          }}
-        />
-        ✅ Pago registrado exitosamente
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flex: 1, minWidth: 0 }}>
+          <SuccessIcon
+            sx={{
+              color: 'success.main',
+              fontSize: { xs: 24, sm: 28 },
+              flexShrink: 0
+            }}
+          />
+          <Typography
+            variant={isMobile ? "subtitle1" : "h6"}
+            sx={{
+              fontWeight: 600,
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap'
+            }}
+          >
+            ✅ Pago registrado exitosamente
+          </Typography>
+        </Box>
+        {isMobile && (
+          <IconButton
+            onClick={onClose}
+            size="small"
+            sx={{ ml: 1, flexShrink: 0 }}
+          >
+            <Close />
+          </IconButton>
+        )}
       </DialogTitle>
 
-      <DialogContent sx={{ pt: 3 }}>
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
+      <DialogContent
+        sx={{
+          pt: { xs: 2, sm: 3 },
+          px: { xs: 2, sm: 3 },
+          pb: { xs: 2, sm: 3 },
+          overflow: 'auto',
+          flex: 1,
+          '&::-webkit-scrollbar': {
+            width: '8px'
+          },
+          '&::-webkit-scrollbar-track': {
+            background: 'transparent'
+          },
+          '&::-webkit-scrollbar-thumb': {
+            background: 'rgba(0,0,0,0.2)',
+            borderRadius: '4px'
+          }
+        }}
+      >
+        <Box
+          sx={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: { xs: 2, sm: 2.5 },
+            width: '100%',
+            maxWidth: '100%',
+            overflowX: 'hidden'
+          }}
+        >
           {/* Success Alert */}
           <Alert
             severity="success"
@@ -128,7 +201,11 @@ export const PaymentSuccessModal: React.FC<PaymentSuccessModalProps> = ({
               </Typography>
               {hasOverduePayments && overdueSubLoans.length > 0 && (
                 <Box sx={{ mt: 1.5 }}>
-                  <Typography variant="caption" fontWeight={600} sx={{ display: 'block', mb: 1 }}>
+                  <Typography
+                    variant={isMobile ? "body2" : "caption"}
+                    fontWeight={600}
+                    sx={{ display: 'block', mb: 1 }}
+                  >
                     Cuotas vencidas ({overdueSubLoans.length}):
                   </Typography>
                   <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75 }}>
@@ -137,25 +214,53 @@ export const PaymentSuccessModal: React.FC<PaymentSuccessModalProps> = ({
                         key={subLoan.id}
                         sx={{
                           display: 'flex',
+                          flexDirection: { xs: 'column', sm: 'row' },
                           justifyContent: 'space-between',
-                          alignItems: 'center',
-                          p: 1,
+                          alignItems: { xs: 'flex-start', sm: 'center' },
+                          gap: { xs: 0.5, sm: 0 },
+                          p: { xs: 1.5, sm: 1 },
                           bgcolor: 'error.lighter',
                           borderRadius: 1,
                           border: '1px solid',
-                          borderColor: 'error.light'
+                          borderColor: 'error.light',
+                          width: '100%',
+                          boxSizing: 'border-box'
                         }}
                       >
-                        <Box>
-                          <Typography variant="body2" fontWeight={600}>
+                        <Box sx={{ flex: 1, minWidth: 0, width: '100%' }}>
+                          <Typography
+                            variant={isMobile ? "body1" : "body2"}
+                            fontWeight={600}
+                            sx={{ mb: 0.5 }}
+                          >
                             Cuota #{subLoan.paymentNumber}
                           </Typography>
-                          <Typography variant="caption" color="text.secondary">
+                          <Typography
+                            variant={isMobile ? "body2" : "caption"}
+                            color="text.secondary"
+                            sx={{
+                              wordBreak: 'break-word',
+                              overflowWrap: 'break-word'
+                            }}
+                          >
                             Vencida {subLoan.daysOverdue > 0 ? `hace ${subLoan.daysOverdue} día${subLoan.daysOverdue > 1 ? 's' : ''}` : 'hoy'}
-                            {subLoan.dueDate && ` • Vencimiento: ${new Date(subLoan.dueDate).toLocaleDateString('es-AR')}`}
+                            {subLoan.dueDate && (
+                              <Box component="span" sx={{ display: { xs: 'block', sm: 'inline' } }}>
+                                {' '}• Vencimiento: {new Date(subLoan.dueDate).toLocaleDateString('es-AR')}
+                              </Box>
+                            )}
                           </Typography>
                         </Box>
-                        <Typography variant="body2" fontWeight={600} color="error.main">
+                        <Typography
+                          variant={isMobile ? "h6" : "body2"}
+                          fontWeight={600}
+                          color="error.main"
+                          sx={{
+                            flexShrink: 0,
+                            mt: { xs: 0.5, sm: 0 },
+                            alignSelf: { xs: 'flex-end', sm: 'auto' }
+                          }}
+                        >
                           {formatCurrencyDisplay(subLoan.pendingAmount)}
                         </Typography>
                       </Box>
@@ -174,14 +279,17 @@ export const PaymentSuccessModal: React.FC<PaymentSuccessModalProps> = ({
           {/* Payment Details Card */}
           <Box
             sx={{
-              p: 2.5,
+              p: { xs: 2, sm: 2.5 },
               bgcolor: 'background.default',
               border: 1,
               borderColor: 'divider',
-              borderRadius: 1.5,
+              borderRadius: { xs: 1, sm: 1.5 },
               display: 'grid',
               gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' },
-              gap: 2
+              gap: { xs: 1.5, sm: 2 },
+              width: '100%',
+              boxSizing: 'border-box',
+              overflow: 'hidden'
             }}
           >
             {/* Row 1 */}
@@ -267,52 +375,52 @@ export const PaymentSuccessModal: React.FC<PaymentSuccessModalProps> = ({
                   <Receipt fontSize="small" />
                   Resumen del Préstamo
                 </Typography>
-                <Grid container spacing={2}>
-                  <Grid item xs={6} sm={3}>
-                    <Typography variant="caption" color="text.secondary">
+                <Grid container spacing={{ xs: 1.5, sm: 2 }}>
+                  <Grid item xs={6} sm={4} md={3}>
+                    <Typography variant={isMobile ? "body2" : "caption"} color="text.secondary" sx={{ mb: 0.5 }}>
                       Monto Prestado
                     </Typography>
-                    <Typography variant="body2" fontWeight={600}>
+                    <Typography variant={isMobile ? "body1" : "body2"} fontWeight={600} sx={{ wordBreak: 'break-word' }}>
                       {formatCurrencyDisplay(receiptData.loanSummary.montoPrestado)}
                     </Typography>
                   </Grid>
-                  <Grid item xs={6} sm={3}>
-                    <Typography variant="caption" color="text.secondary">
+                  <Grid item xs={6} sm={4} md={3}>
+                    <Typography variant={isMobile ? "body2" : "caption"} color="text.secondary" sx={{ mb: 0.5 }}>
                       Total a Devolver
                     </Typography>
-                    <Typography variant="body2" fontWeight={600}>
+                    <Typography variant={isMobile ? "body1" : "body2"} fontWeight={600} sx={{ wordBreak: 'break-word' }}>
                       {formatCurrencyDisplay(receiptData.loanSummary.totalADevolver)}
                     </Typography>
                   </Grid>
-                  <Grid item xs={6} sm={3}>
-                    <Typography variant="caption" color="text.secondary">
+                  <Grid item xs={6} sm={4} md={3}>
+                    <Typography variant={isMobile ? "body2" : "caption"} color="text.secondary" sx={{ mb: 0.5 }}>
                       Total Pagado
                     </Typography>
-                    <Typography variant="body2" fontWeight={600} color="success.main">
+                    <Typography variant={isMobile ? "body1" : "body2"} fontWeight={600} color="success.main" sx={{ wordBreak: 'break-word' }}>
                       {formatCurrencyDisplay(receiptData.loanSummary.saldoPagadoTotal)}
                     </Typography>
                   </Grid>
-                  <Grid item xs={6} sm={3}>
-                    <Typography variant="caption" color="text.secondary">
+                  <Grid item xs={6} sm={4} md={3}>
+                    <Typography variant={isMobile ? "body2" : "caption"} color="text.secondary" sx={{ mb: 0.5 }}>
                       Total Pendiente
                     </Typography>
-                    <Typography variant="body2" fontWeight={600} color="warning.main">
+                    <Typography variant={isMobile ? "body1" : "body2"} fontWeight={600} color="warning.main" sx={{ wordBreak: 'break-word' }}>
                       {formatCurrencyDisplay(receiptData.loanSummary.totalPendiente)}
                     </Typography>
                   </Grid>
-                  <Grid item xs={6} sm={3}>
-                    <Typography variant="caption" color="text.secondary">
+                  <Grid item xs={6} sm={4} md={3}>
+                    <Typography variant={isMobile ? "body2" : "caption"} color="text.secondary" sx={{ mb: 0.5 }}>
                       Cuotas Pagadas
                     </Typography>
-                    <Typography variant="body2">
+                    <Typography variant={isMobile ? "body1" : "body2"} sx={{ wordBreak: 'break-word' }}>
                       {receiptData.loanSummary.cuotasPagadasTotales} / {receiptData.loanSummary.totalCuotas}
                     </Typography>
                   </Grid>
-                  <Grid item xs={6} sm={3}>
-                    <Typography variant="caption" color="text.secondary">
+                  <Grid item xs={6} sm={4} md={3}>
+                    <Typography variant={isMobile ? "body2" : "caption"} color="text.secondary" sx={{ mb: 0.5 }}>
                       Cuotas Pendientes
                     </Typography>
-                    <Typography variant="body2" color="warning.main">
+                    <Typography variant={isMobile ? "body1" : "body2"} color="warning.main" sx={{ wordBreak: 'break-word' }}>
                       {receiptData.loanSummary.cuotasNoPagadas}
                     </Typography>
                   </Grid>
@@ -352,12 +460,27 @@ export const PaymentSuccessModal: React.FC<PaymentSuccessModalProps> = ({
         </Box>
       </DialogContent>
 
-      <DialogActions sx={{ p: 2.5 }}>
+      <DialogActions
+        sx={{
+          p: { xs: 2, sm: 2.5 },
+          pt: { xs: 1.5, sm: 2.5 },
+          borderTop: 1,
+          borderColor: 'divider',
+          position: 'sticky',
+          bottom: 0,
+          bgcolor: 'background.paper',
+          zIndex: 1
+        }}
+      >
         <Button
           onClick={onClose}
           variant="contained"
           color="primary"
-          sx={{ minWidth: 120 }}
+          fullWidth={isMobile}
+          sx={{
+            minWidth: { xs: '100%', sm: 120 },
+            py: { xs: 1.5, sm: 1 }
+          }}
         >
           Cerrar
         </Button>
