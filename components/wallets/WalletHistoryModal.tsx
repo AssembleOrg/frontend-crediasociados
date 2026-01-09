@@ -182,7 +182,7 @@ export default function WalletHistoryModal({ open, onClose }: WalletHistoryModal
   }
 
   // Helper functions para determinar el estilo según el tipo de transacción
-  const getTransactionLabel = (type: string): string => {
+  const getTransactionLabel = (type: string, amount?: number): string => {
     switch (type) {
       case 'COLLECTION':
         return 'Cobro'
@@ -193,6 +193,10 @@ export default function WalletHistoryModal({ open, onClose }: WalletHistoryModal
       case 'LOAN_DISBURSEMENT':
         return 'Desembolso'
       case 'CASH_ADJUSTMENT':
+        // Si el monto es negativo, agregar el símbolo "-"
+        if (amount !== undefined && amount < 0) {
+          return '- Ajuste de Caja'
+        }
         return 'Ajuste de Caja'
       case 'PAYMENT_RESET':
         return 'Reseteo de Pago'
@@ -201,7 +205,7 @@ export default function WalletHistoryModal({ open, onClose }: WalletHistoryModal
     }
   }
 
-  const getTransactionColor = (type: string): 'success' | 'warning' | 'error' | 'info' | 'default' => {
+  const getTransactionColor = (type: string, amount?: number): 'success' | 'warning' | 'error' | 'info' | 'default' => {
     switch (type) {
       case 'COLLECTION':
         return 'success'
@@ -212,6 +216,10 @@ export default function WalletHistoryModal({ open, onClose }: WalletHistoryModal
       case 'LOAN_DISBURSEMENT':
         return 'error'
       case 'CASH_ADJUSTMENT':
+        // Si el monto es negativo, mostrar en rojo
+        if (amount !== undefined && amount < 0) {
+          return 'error'
+        }
         return 'info'
       case 'PAYMENT_RESET':
         return 'warning'
@@ -239,9 +247,13 @@ export default function WalletHistoryModal({ open, onClose }: WalletHistoryModal
     }
   }
 
-  const getTransactionSign = (type: string): string => {
-    // CASH_ADJUSTMENT y COLLECTION son positivos (ingresos)
-    if (type === 'CASH_ADJUSTMENT' || type === 'COLLECTION') {
+  const getTransactionSign = (type: string, amount: number): string => {
+    // Para CASH_ADJUSTMENT, verificar si el monto es negativo
+    if (type === 'CASH_ADJUSTMENT') {
+      return amount < 0 ? '' : '+'
+    }
+    // COLLECTION siempre es positivo
+    if (type === 'COLLECTION') {
       return '+'
     }
     // WITHDRAWAL, ROUTE_EXPENSE, LOAN_DISBURSEMENT, PAYMENT_RESET son negativos (egresos)
@@ -252,9 +264,10 @@ export default function WalletHistoryModal({ open, onClose }: WalletHistoryModal
     return type === 'CASH_ADJUSTMENT' || type === 'COLLECTION'
   }
 
-  const getAmountColor = (type: string): string => {
+  const getAmountColor = (type: string, amount: number): string => {
+    // Para CASH_ADJUSTMENT, si es negativo mostrar en rojo
     if (type === 'CASH_ADJUSTMENT') {
-      return 'info.main'
+      return amount < 0 ? 'error.main' : 'info.main'
     }
     if (type === 'COLLECTION') {
       return 'success.main'
@@ -560,9 +573,9 @@ export default function WalletHistoryModal({ open, onClose }: WalletHistoryModal
                         <TableCell>
                           <Chip
                             icon={getTransactionIcon(tx.type)}
-                            label={getTransactionLabel(tx.type)}
+                            label={getTransactionLabel(tx.type, tx.amount)}
                             size="small"
-                            color={getTransactionColor(tx.type)}
+                            color={getTransactionColor(tx.type, tx.amount)}
                             sx={{ fontWeight: 600 }}
                           />
                         </TableCell>
@@ -634,9 +647,9 @@ export default function WalletHistoryModal({ open, onClose }: WalletHistoryModal
                           <Typography 
                             variant="body2" 
                             fontWeight={600}
-                            color={getAmountColor(tx.type)}
+                            color={getAmountColor(tx.type, tx.amount)}
                           >
-                            {getTransactionSign(tx.type)}{formatCurrency(tx.amount)}
+                            {getTransactionSign(tx.type, tx.amount)}{formatCurrency(Math.abs(tx.amount))}
                           </Typography>
                         </TableCell>
                         {!isMobile && (
