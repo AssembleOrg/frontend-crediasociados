@@ -79,7 +79,7 @@ export function NetoAjusteCajaCard() {
 
       const endDate = new Date().toISOString().split('T')[0]
 
-      setData({ balance, startDate, endDate, hasWithdrawal })
+      setData({ balance, startDate: startDate!, endDate, hasWithdrawal })
     } catch {
       setError('Error al obtener saldo')
     } finally {

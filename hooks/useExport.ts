@@ -2,7 +2,9 @@ import { useState, useCallback } from 'react';
 import { useLoans } from '@/hooks/useLoans';
 import { useClients } from '@/hooks/useClients';
 import { useSubLoans } from '@/hooks/useSubLoans';
-import type { ExportLoanData, ExportFormat, ExportStatus } from '@/types/export';
+import { clientsService } from '@/services/clients.service';
+import { apiClientToClient } from '@/types/transforms';
+import type { ExportLoanData, ExportStatus } from '@/types/export';
 
 /**
  * useExport Hook - Business Logic Layer
@@ -36,7 +38,9 @@ export function useExport() {
       if (!loan) {
         throw new Error('Préstamo no encontrado');
       }
-
+      console.log('Loan found:', loan)
+      console.log('Clients:', clients)
+      console.log('Loan clientId:', loan.clientId)
       const client = clients.find(c => c.id === loan.clientId);
       if (!client) {
         throw new Error('Cliente no encontrado');
@@ -203,7 +207,30 @@ export function useExport() {
       setExportStatus('generating');
       setExportError(null);
 
-      const client = clients.find(c => c.id === formData.clientId);
+      console.log('Form data:', formData)
+      console.log('Clients:', clients)
+      console.log('Form clientId:', formData.clientId)
+
+      // Primero intentar buscar el cliente en la lista local
+      let client = clients.find(c => c.id === formData.clientId);
+      
+      // Si no se encuentra en la lista local, buscar en el backend
+      if (!client) {
+        try {
+          console.log('Cliente no encontrado en lista local, buscando en backend...');
+          const clientFromBackend = await clientsService.getClientById(formData.clientId);
+          // Transformar el cliente del backend al formato esperado
+          client = apiClientToClient(clientFromBackend);
+          console.log('Cliente encontrado en backend:', client);
+        } catch (error: any) {
+          console.error('Error al buscar cliente en backend:', error);
+          if (error?.response?.status === 404) {
+            throw new Error('Cliente no encontrado');
+          }
+          throw new Error('Error al buscar el cliente. Por favor, intenta nuevamente.');
+        }
+      }
+      
       if (!client) {
         throw new Error('Cliente no encontrado');
       }
