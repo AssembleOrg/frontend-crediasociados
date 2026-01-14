@@ -7,7 +7,7 @@ type CollectionRouteStatus = 'ACTIVE' | 'CLOSED';
 export interface CollectionRouteItem {
   id: string;
   routeId: string;
-  subLoanId: string;
+  subLoanId: string | null; // Can be null for items without subLoan
   clientName: string;
   clientPhone?: string;
   clientAddress?: string;
@@ -18,7 +18,7 @@ export interface CollectionRouteItem {
   notes?: string;
   createdAt: string;
   updatedAt: string;
-  subLoan: {
+  subLoan?: { // Optional - some items may not have subLoan
     id: string;
     paymentNumber: number;
     amount: number;
@@ -26,6 +26,7 @@ export interface CollectionRouteItem {
     paidAmount: number;
     status: string;
     dueDate: string;
+    outstandingBalance?: number; // Optional - may not always be present
     loan: {
       loanTrack: string;
       amount: number;

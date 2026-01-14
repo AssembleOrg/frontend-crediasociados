@@ -197,10 +197,12 @@ export default function RutasPage() {
   }, []);
 
   // Update reorderedItems when selectedRoute changes
+  // Filter out items without subLoan to prevent errors
   useEffect(() => {
     const route = selectedRoute || todayRoute;
     if (route?.items) {
-      setReorderedItems(route.items);
+      // Only include items that have a subLoan
+      setReorderedItems(route.items.filter(item => item.subLoan != null));
     }
   }, [selectedRoute, todayRoute]);
 
@@ -402,15 +404,19 @@ export default function RutasPage() {
   const currentRoute = isViewingToday ? todayRoute : selectedRoute;
 
   // Filter items based on toggle - Purely visual filter
+  // Also filter out items without subLoan (items with subLoanId: null)
   const getFilteredItems = (items: CollectionRouteItem[]) => {
-    if (!showOnlyPending) return items;
-    return items.filter(item => item.subLoan.status === 'PENDING');
+    // First, filter out items without subLoan
+    const itemsWithSubLoan = items.filter(item => item.subLoan != null);
+    
+    if (!showOnlyPending) return itemsWithSubLoan;
+    return itemsWithSubLoan.filter(item => item.subLoan?.status === 'PENDING');
   };
 
   const filteredItems = currentRoute?.items ? getFilteredItems(currentRoute.items) : [];
   const filteredReorderedItems = showOnlyPending 
-    ? reorderedItems.filter(item => item.subLoan.status === 'PENDING')
-    : reorderedItems;
+    ? reorderedItems.filter(item => item.subLoan != null && item.subLoan?.status === 'PENDING')
+    : reorderedItems.filter(item => item.subLoan != null);
 
   // No route for selected date
   if (!currentRoute && !isLoading) {
@@ -924,7 +930,7 @@ export default function RutasPage() {
         onConfirm={handleConfirmClose}
       />
 
-      {selectedItem && (
+      {selectedItem && selectedItem.subLoan && selectedItem.subLoanId && (
         <PaymentModal
           open={paymentModalOpen}
           onClose={handleClosePaymentModal}
@@ -985,7 +991,7 @@ export default function RutasPage() {
         </DialogTitle>
         <DialogContent>
           <Typography variant="body1" gutterBottom sx={{ mb: 2 }}>
-            ¿Está seguro de resetear todos los pagos de la cuota #{itemToReset?.subLoan.paymentNumber}?
+            ¿Está seguro de resetear todos los pagos de la cuota #{itemToReset?.subLoan?.paymentNumber}?
           </Typography>
           
           <Alert severity="warning" sx={{ mb: 2 }}>
