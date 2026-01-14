@@ -2,8 +2,6 @@ import { useState, useCallback } from 'react';
 import { useLoans } from '@/hooks/useLoans';
 import { useClients } from '@/hooks/useClients';
 import { useSubLoans } from '@/hooks/useSubLoans';
-import { clientsService } from '@/services/clients.service';
-import { apiClientToClient } from '@/types/transforms';
 import type { ExportLoanData, ExportStatus } from '@/types/export';
 
 /**
@@ -218,6 +216,10 @@ export function useExport() {
       if (!client) {
         try {
           console.log('Cliente no encontrado en lista local, buscando en backend...');
+          // Importación dinámica para evitar problemas de carga
+          const { clientsService } = await import('@/services/clients.service');
+          const { apiClientToClient } = await import('@/types/transforms');
+          
           const clientFromBackend = await clientsService.getClientById(formData.clientId);
           // Transformar el cliente del backend al formato esperado
           client = apiClientToClient(clientFromBackend);

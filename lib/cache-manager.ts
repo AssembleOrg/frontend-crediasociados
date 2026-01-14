@@ -22,6 +22,96 @@ import { useDolarBlueStore } from '@/stores/dolar-blue'
 import { requestDeduplicator } from '@/lib/request-deduplicator'
 
 /**
+ * Clear ALL browser storages (localStorage, sessionStorage, cookies) EXCEPT auth
+ * Use this on F5 refresh to ensure no corrupted cached data
+ */
+export function clearAllStoragesOnRefresh() {
+  if (typeof window === 'undefined') return;
+
+  // Save auth data temporarily
+  const authStore = useAuthStore.getState();
+  const savedAuth = {
+    userId: authStore.userId,
+    userEmail: authStore.userEmail,
+    userRole: authStore.userRole,
+    token: authStore.token,
+    refreshToken: authStore.refreshToken,
+    isAuthenticated: authStore.isAuthenticated,
+    currentUser: authStore.currentUser,
+  };
+
+  // Clear all localStorage except auth
+  try {
+    const keysToKeep = ['auth-storage']; // Keep auth storage key
+    const allKeys = Object.keys(localStorage);
+    allKeys.forEach(key => {
+      if (!keysToKeep.includes(key)) {
+        localStorage.removeItem(key);
+      }
+    });
+  } catch (e) {
+    // If error, clear everything and restore auth
+    try {
+      localStorage.clear();
+    } catch (e2) {
+      // Ignore
+    }
+  }
+
+  // Clear all sessionStorage
+  try {
+    sessionStorage.clear();
+  } catch (e) {
+    // Ignore errors
+  }
+
+  // Clear all cookies except auth-related
+  try {
+    const cookies = document.cookie.split(';');
+    cookies.forEach(cookie => {
+      const cookieName = cookie.split('=')[0].trim();
+      // Keep auth-storage and auth-storage-token cookies
+      if (!cookieName.includes('auth-storage')) {
+        const hostname = window.location.hostname;
+        const domain = hostname.includes('.') ? `.${hostname.split('.').slice(-2).join('.')}` : hostname;
+        
+        // Clear cookie for current path
+        document.cookie = `${cookieName}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax`;
+        // Clear cookie for root path
+        document.cookie = `${cookieName}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT`;
+        // Clear cookie with domain
+        document.cookie = `${cookieName}=; path=/; domain=${domain}; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax`;
+      }
+    });
+  } catch (e) {
+    // Ignore errors
+  }
+
+  // Clear browser cache using Cache API (if available)
+  if ('caches' in window) {
+    caches.keys().then(cacheNames => {
+      cacheNames.forEach(cacheName => {
+        // Don't clear auth-related caches if any
+        if (!cacheName.includes('auth')) {
+          caches.delete(cacheName).catch(() => {
+            // Ignore errors
+          });
+        }
+      });
+    }).catch(() => {
+      // Ignore errors
+    });
+  }
+
+  // Restore auth data (in case it was cleared)
+  if (savedAuth.isAuthenticated && savedAuth.token) {
+    authStore.setUser(savedAuth.currentUser);
+    authStore.setTokens(savedAuth.token, savedAuth.refreshToken);
+    authStore.setAuthentication(true);
+  }
+}
+
+/**
  * Clear ALL application caches EXCEPT auth data (user, token)
  * Use this on F5 refresh to ensure fresh data from backend
  */
