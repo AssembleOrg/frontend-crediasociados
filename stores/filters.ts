@@ -2,8 +2,9 @@ import { create } from 'zustand'
 
 export interface LoansFilters {
   clientId?: string
+  clientName?: string // Búsqueda parcial por nombre de cliente
   paymentFrequency?: string
-  loanStatus?: 'PENDING' | 'PARTIAL' | 'PAID' | 'ALL'
+  loanStatus?: 'ACTIVE' | 'COMPLETED' | 'ALL' // Mapeado al backend: ACTIVE (ACTIVE/APPROVED), COMPLETED, ALL
 }
 
 export interface CobrosFilters {

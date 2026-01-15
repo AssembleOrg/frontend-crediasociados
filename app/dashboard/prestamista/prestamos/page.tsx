@@ -25,7 +25,7 @@ export default function PrestamosAnalyticsPage() {
   const pathname = usePathname()
   const { loans, error, isLoading, fetchLoans } = useLoans()
   const { allSubLoansWithClient, isLoading: subLoansLoading, fetchAllSubLoansWithClientInfo } = useSubLoans()
-  const { filteredLoans, filterStats, hasActiveFilters } = useLoansFilters()
+  const { filteredLoans, filterStats, hasActiveFilters, isLoading: filtersLoading, error: filtersError } = useLoansFilters()
   const { refetch: refetchManagerData } = useManagerDashboard()
   
   // Prevent double fetch in StrictMode
@@ -68,7 +68,9 @@ export default function PrestamosAnalyticsPage() {
   }
 
   // Get current loan and its subloans for modal
-  const selectedLoan = selectedLoanId ? loans.find(loan => loan.id === selectedLoanId) || null : null
+  // Search in filtered loans if filters are active, otherwise in all loans
+  const loansToSearch = hasActiveFilters ? filteredLoans : loans
+  const selectedLoan = selectedLoanId ? loansToSearch.find(loan => loan.id === selectedLoanId) || null : null
   const selectedLoanSubLoans = selectedLoanId 
     ? allSubLoansWithClient.filter(subloan => subloan.loanId === selectedLoanId)
     : []
@@ -99,21 +101,21 @@ export default function PrestamosAnalyticsPage() {
       />
 
       {/* Error Alert */}
-      {error && (
+      {(error || filtersError) && (
         <Alert severity="error" sx={{ mb: 3 }}>
-          {error}
+          {error || filtersError}
         </Alert>
       )}
 
       {/* Loading Indicator */}
-      {isLoading && (
+      {(isLoading || filtersLoading) && (
         <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', py: 4 }}>
           <CircularProgress />
         </Box>
       )}
 
       {/* Tu Cartera Stats - Manager Dashboard Cards */}
-      {!isLoading && <ManagerDashboardCards />}
+      {!isLoading && !filtersLoading && <ManagerDashboardCards />}
 
       {/* Filter Panel */}
       {!isLoading && (
@@ -123,7 +125,7 @@ export default function PrestamosAnalyticsPage() {
       )}
 
       {/* Loans Table */}
-      {!isLoading && (
+      {!isLoading && !filtersLoading && (
         <Box>
           <Box
             sx={{

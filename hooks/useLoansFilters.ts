@@ -1,62 +1,141 @@
-import { useCallback, useMemo } from 'react'
-import { useLoansStore } from '@/stores/loans'
-import { useClientsStore } from '@/stores/clients' 
+import { useCallback, useMemo, useEffect, useState, useRef } from 'react'
 import { useFiltersStore, type LoansFilters } from '@/stores/filters'
 import { getFrequencyLabel } from '@/lib/formatters'
-import type { Loan } from '@/types/auth'
+import { loansService } from '@/services/loans.service'
+import { apiLoanToLoan } from '@/types/transforms'
+import type { Loan, PaginatedResponse, LoanResponseDto } from '@/types/auth'
 
 /**
  * THE CONDUCTOR - useLoansFilters Hook
  * 
  * Business logic controller that orchestrates:
- * - Filtering logic for loans
+ * - Server-side filtering via API calls
  * - State management for filter UI
  * - Data transformations and calculations
  * - Filter persistence and clearing
  */
 export function useLoansFilters() {
-  const { loans } = useLoansStore()
-  const { clients } = useClientsStore()
   const { 
     loansFilters, 
     setLoansFilters, 
     clearLoansFilters 
   } = useFiltersStore()
 
-  // Filter loans based on current filters
-  const filteredLoans = useMemo(() => {
-    let filtered = [...loans]
+  const [filteredLoans, setFilteredLoans] = useState<Loan[]>([])
+  const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [pagination, setPagination] = useState<{
+    page: number
+    limit: number
+    total: number
+    totalPages: number
+  }>({
+    page: 1,
+    limit: 50,
+    total: 0,
+    totalPages: 0
+  })
 
-    // Client filter
-    if (loansFilters.clientId) {
-      filtered = filtered.filter(loan => loan.clientId === loansFilters.clientId)
-    }
+  // Debounce timer for client name search
+  const debounceTimerRef = useRef<NodeJS.Timeout | null>(null)
 
-    // Payment frequency filter
-    if (loansFilters.paymentFrequency) {
-      filtered = filtered.filter(loan => loan.paymentFrequency === loansFilters.paymentFrequency)
-    }
+  // Fetch filtered loans from backend
+  const fetchFilteredLoans = useCallback(async (page: number = 1, limit: number = 50) => {
+    setIsLoading(true)
+    setError(null)
 
-    // Loan status filter (based on payment status of subloans)
-    if (loansFilters.loanStatus && loansFilters.loanStatus !== 'ALL') {
-      filtered = filtered.filter(loan => {
-        // Determine loan status based on its status field
-        // PENDING: loan.status is PENDING
-        // PARTIAL: loan.status is ACTIVE and has PARTIAL subloans
-        // PAID: loan.status is COMPLETED or all subloans are PAID
-        if (loansFilters.loanStatus === 'PENDING') {
-          return loan.status === 'PENDING'
-        } else if (loansFilters.loanStatus === 'PARTIAL') {
-          return loan.status === 'ACTIVE' || loan.status === 'APPROVED'
-        } else if (loansFilters.loanStatus === 'PAID') {
-          return loan.status === 'COMPLETED'
-        }
-        return true
+    try {
+      const params: Parameters<typeof loansService.getLoansPaginated>[0] = {
+        page,
+        limit,
+      }
+
+      // Add filters
+      if (loansFilters.clientName && loansFilters.clientName.length >= 2) {
+        params.clientName = loansFilters.clientName
+      }
+      if (loansFilters.clientId) {
+        params.clientId = loansFilters.clientId
+      }
+      if (loansFilters.loanStatus && loansFilters.loanStatus !== 'ALL') {
+        params.loanStatus = loansFilters.loanStatus
+      }
+      if (loansFilters.paymentFrequency) {
+        params.paymentFrequency = loansFilters.paymentFrequency as 'DAILY' | 'WEEKLY' | 'BIWEEKLY' | 'MONTHLY'
+      }
+
+      const response: PaginatedResponse<LoanResponseDto> = await loansService.getLoansPaginated(params)
+      
+      // Transform API loans to frontend loans
+      const transformedLoans = response.data.map(apiLoanToLoan)
+      
+      setFilteredLoans(transformedLoans)
+      setPagination({
+        page: response.meta.page,
+        limit: response.meta.limit,
+        total: response.meta.total,
+        totalPages: response.meta.totalPages
       })
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Error desconocido al filtrar préstamos'
+      setError(errorMessage)
+      setFilteredLoans([])
+    } finally {
+      setIsLoading(false)
+    }
+  }, [loansFilters])
+
+  // Check if any filters are active
+  const hasActiveFilters = useMemo(() => {
+    return Object.entries(loansFilters).some(([key, value]) => {
+      if (key === 'clientName') {
+        return value !== undefined && value !== null && value !== '' && value.length >= 2
+      }
+      return value !== undefined && value !== null && value !== ''
+    })
+  }, [loansFilters])
+
+  // Fetch filtered loans when filters change (with debounce for clientName)
+  useEffect(() => {
+    // Clear existing timer
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current)
     }
 
-    return filtered
-  }, [loans, loansFilters])
+    // If no filters are active, clear filtered loans
+    if (!hasActiveFilters) {
+      setFilteredLoans([])
+      setPagination(prev => ({ ...prev, total: 0, totalPages: 0, page: 1 }))
+      return
+    }
+
+    // If clientName is being used and has less than 2 characters, don't fetch yet
+    if (loansFilters.clientName && loansFilters.clientName.length < 2) {
+      setFilteredLoans([])
+      setPagination(prev => ({ ...prev, total: 0, totalPages: 0 }))
+      return
+    }
+
+    // Reset to page 1 when filters change (except when only clientName is being typed)
+    const shouldResetPage = !loansFilters.clientName || loansFilters.clientName.length >= 2
+    const pageToUse = shouldResetPage ? 1 : pagination.page
+
+    // Debounce clientName search (300ms)
+    if (loansFilters.clientName && loansFilters.clientName.length >= 2) {
+      debounceTimerRef.current = setTimeout(() => {
+        fetchFilteredLoans(pageToUse, pagination.limit)
+      }, 300)
+    } else {
+      // No debounce for other filters
+      fetchFilteredLoans(pageToUse, pagination.limit)
+    }
+
+    return () => {
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current)
+      }
+    }
+  }, [loansFilters, hasActiveFilters, fetchFilteredLoans, pagination.limit])
 
   // Filter statistics
   const filterStats = useMemo(() => {
@@ -88,12 +167,10 @@ export function useLoansFilters() {
         { value: 'BIWEEKLY', label: getFrequencyLabel('BIWEEKLY') },
         { value: 'MONTHLY', label: getFrequencyLabel('MONTHLY') }
       ],
-      clients: clients.map(client => ({
-        value: client.id,
-        label: client.fullName
-      }))
+      // Clients will be loaded asynchronously via search endpoint
+      clients: [] as Array<{ value: string; label: string }>
     }
-  }, [clients])
+  }, [])
 
   // Update a specific filter
   const updateFilter = useCallback(<K extends keyof LoansFilters>(
@@ -101,25 +178,27 @@ export function useLoansFilters() {
     value: LoansFilters[K]
   ) => {
     const newFilters = { ...loansFilters, [key]: value }
+    // Reset page when filters change (except when typing clientName)
+    if (key !== 'clientName' || (key === 'clientName' && (!value || (typeof value === 'string' && value.length < 2)))) {
+      setPagination(prev => ({ ...prev, page: 1 }))
+    }
     setLoansFilters(newFilters)
   }, [loansFilters, setLoansFilters])
 
   // Clear all filters
   const clearAllFilters = useCallback(() => {
     clearLoansFilters()
+    setPagination(prev => ({ ...prev, page: 1, total: 0, totalPages: 0 }))
+    setFilteredLoans([])
   }, [clearLoansFilters])
-
-  // Check if any filters are active
-  const hasActiveFilters = useMemo(() => {
-    return Object.values(loansFilters).some(value => 
-      value !== undefined && value !== null && value !== ''
-    )
-  }, [loansFilters])
 
   return {
     // Filtered data
     filteredLoans,
     filterStats,
+    isLoading,
+    error,
+    pagination,
     
     // Filter state
     filters: loansFilters,
@@ -131,6 +210,7 @@ export function useLoansFilters() {
     // Actions
     updateFilter,
     clearAllFilters,
-    setLoansFilters
+    setLoansFilters,
+    refetch: fetchFilteredLoans
   }
 }

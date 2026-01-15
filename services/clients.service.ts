@@ -55,6 +55,32 @@ class ClientsService {
   }
 
   /**
+   * Search clients for autocomplete (new endpoint with role-based access)
+   * Uses /clients/search-autocomplete endpoint for multiple results
+   * @param query - Partial search query (minimum 2 characters)
+   * @param limit - Maximum results (default: 20, max: 50)
+   * @returns Array of clients with basic info for autocomplete
+   */
+  async searchClients(query: string, limit: number = 20): Promise<Array<{
+    id: string
+    fullName: string
+    dni?: string | null
+    phone?: string | null
+    email?: string | null
+  }>> {
+    if (query.length < 2) {
+      return []
+    }
+    
+    const searchParams = new URLSearchParams()
+    searchParams.append('query', query)
+    if (limit) searchParams.append('limit', Math.min(limit, 50).toString())
+
+    const response = await api.get(`/clients/search-autocomplete?${searchParams.toString()}`)
+    return response.data.data || []
+  }
+
+  /**
    * Search client by DNI, CUIT, or name (partial match)
    * @param dni - DNI to search
    * @param cuit - CUIT to search

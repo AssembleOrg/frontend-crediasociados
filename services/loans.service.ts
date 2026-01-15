@@ -19,15 +19,24 @@ import type {
  */
 class LoansService {
   async getLoansPaginated(
-    params: PaginationParams = {}
+    params: PaginationParams & {
+      clientName?: string
+      loanStatus?: 'ACTIVE' | 'COMPLETED' | 'ALL'
+      paymentFrequency?: 'DAILY' | 'WEEKLY' | 'BIWEEKLY' | 'MONTHLY'
+      clientId?: string
+    } = {}
   ): Promise<PaginatedResponse<LoanResponseDto>> {
     const searchParams = new URLSearchParams();
 
-    if (params.page) searchParams.append('page', params.page.toString());
-    if (params.limit) searchParams.append('limit', params.limit.toString());
+    // if (params.page) searchParams.append('page', params.page.toString());
+    // if (params.limit) searchParams.append('limit', params.limit.toString());
+    if (params.clientName) searchParams.append('clientName', params.clientName);
+    if (params.loanStatus) searchParams.append('loanStatus', params.loanStatus);
+    if (params.paymentFrequency) searchParams.append('paymentFrequency', params.paymentFrequency);
+    if (params.clientId) searchParams.append('clientId', params.clientId);
 
     const queryString = searchParams.toString();
-    const url = queryString ? `/pagination?${queryString}` : '/pagination';
+    const url = queryString ? `/loans/pagination?${queryString}` : '/loans/pagination';
 
     const response = await api.get(url);
 

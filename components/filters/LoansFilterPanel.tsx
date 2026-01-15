@@ -14,17 +14,28 @@ import {
   Autocomplete,
   TextField,
   ToggleButton,
-  ToggleButtonGroup
+  ToggleButtonGroup,
+  CircularProgress
 } from '@mui/material'
 import { 
   FilterList, 
   Clear
 } from '@mui/icons-material'
 import { useLoansFilters } from '@/hooks/useLoansFilters'
+import { clientsService } from '@/services/clients.service'
+import { useState, useCallback, useMemo } from 'react'
 
 interface LoansFilterPanelProps {
   variant?: 'expanded' | 'compact'
   onClose?: () => void
+}
+
+interface ClientOption {
+  id: string
+  fullName: string
+  dni?: string | null
+  phone?: string | null
+  email?: string | null
 }
 
 export function LoansFilterPanel({ variant: _variant = 'expanded', onClose }: LoansFilterPanelProps) {
@@ -33,16 +44,86 @@ export function LoansFilterPanel({ variant: _variant = 'expanded', onClose }: Lo
     filterOptions,
     filterStats,
     hasActiveFilters,
+    isLoading,
     updateFilter,
     clearAllFilters
   } = useLoansFilters()
 
+  const [clientSearchQuery, setClientSearchQuery] = useState('')
+  const [clientOptions, setClientOptions] = useState<ClientOption[]>([])
+  const [isSearchingClients, setIsSearchingClients] = useState(false)
+  const [selectedClient, setSelectedClient] = useState<ClientOption | null>(null)
+
+  // Search clients asynchronously
+  const searchClients = useCallback(async (query: string) => {
+    if (query.length < 2) {
+      setClientOptions([])
+      return
+    }
+
+    setIsSearchingClients(true)
+    try {
+      const results = await clientsService.searchClients(query, 20)
+      setClientOptions(results)
+    } catch (error) {
+      console.error('Error searching clients:', error)
+      setClientOptions([])
+    } finally {
+      setIsSearchingClients(false)
+    }
+  }, [])
+
+  // Handle client search input change
+  const handleClientInputChange = useCallback((_event: any, newValue: string) => {
+    setClientSearchQuery(newValue)
+    if (newValue.length >= 2) {
+      searchClients(newValue)
+    } else {
+      setClientOptions([])
+      setSelectedClient(null)
+      updateFilter('clientName', undefined)
+      updateFilter('clientId', undefined)
+    }
+  }, [searchClients, updateFilter])
+
+  // Handle client selection
+  const handleClientChange = useCallback((_event: any, newValue: ClientOption | null) => {
+    setSelectedClient(newValue)
+    if (newValue) {
+      updateFilter('clientId', newValue.id)
+      updateFilter('clientName', newValue.fullName)
+    } else {
+      updateFilter('clientId', undefined)
+      updateFilter('clientName', undefined)
+    }
+  }, [updateFilter])
+
+  // Initialize selected client from filter
+  useMemo(() => {
+    if (filters.clientId && filters.clientName && !selectedClient) {
+      setSelectedClient({
+        id: filters.clientId,
+        fullName: filters.clientName,
+        dni: null,
+        phone: null,
+        email: null
+      })
+      setClientSearchQuery(filters.clientName)
+    } else if (!filters.clientId && selectedClient) {
+      setSelectedClient(null)
+      setClientSearchQuery('')
+    }
+  }, [filters.clientId, filters.clientName, selectedClient])
+
   const handleClearFilters = () => {
     clearAllFilters()
+    setClientSearchQuery('')
+    setSelectedClient(null)
+    setClientOptions([])
     onClose?.()
   }
 
-  const handleLoanStatusFilter = (loanStatus: 'PENDING' | 'PARTIAL' | 'PAID' | 'ALL' | null) => {
+  const handleLoanStatusFilter = (loanStatus: 'ACTIVE' | 'COMPLETED' | 'ALL' | null) => {
     updateFilter('loanStatus', loanStatus || undefined)
   }
 
@@ -62,6 +143,9 @@ export function LoansFilterPanel({ variant: _variant = 'expanded', onClose }: Lo
                 size="small" 
                 sx={{ ml: 2 }}
               />
+            )}
+            {isLoading && (
+              <CircularProgress size={16} sx={{ ml: 2 }} />
             )}
           </Box>
           {hasActiveFilters && (
@@ -83,21 +167,32 @@ export function LoansFilterPanel({ variant: _variant = 'expanded', onClose }: Lo
           }, 
           gap: 2 
         }}>
-          {/* Client Filter */}
+          {/* Client Filter - Async Search */}
           <Box>
             <Autocomplete
               size="small"
-              options={filterOptions.clients}
-              getOptionLabel={(option) => option.label}
-              value={filterOptions.clients.find(c => c.value === filters.clientId) || null}
-              onChange={(_, newValue) => {
-                updateFilter('clientId', newValue?.value)
-              }}
+              options={clientOptions}
+              getOptionLabel={(option) => option.fullName || ''}
+              value={selectedClient}
+              inputValue={clientSearchQuery}
+              onInputChange={handleClientInputChange}
+              onChange={handleClientChange}
+              loading={isSearchingClients}
+              filterOptions={(x) => x} // Disable client-side filtering, we use server-side
               renderInput={(params) => (
                 <TextField
                   {...params}
                   label="Cliente"
-                  placeholder="Seleccionar cliente..."
+                  placeholder="Buscar por nombre (mín. 2 caracteres)..."
+                  InputProps={{
+                    ...params.InputProps,
+                    endAdornment: (
+                      <>
+                        {isSearchingClients ? <CircularProgress color="inherit" size={20} /> : null}
+                        {params.InputProps.endAdornment}
+                      </>
+                    ),
+                  }}
                 />
               )}
             />
@@ -128,7 +223,7 @@ export function LoansFilterPanel({ variant: _variant = 'expanded', onClose }: Lo
         {/* Loan Status Filter */}
         <Box sx={{ mt: 2, mb: 2 }}>
           <Typography variant="subtitle2" gutterBottom>
-            Estado de Cuotas
+            Estado del Préstamo
           </Typography>
           <ToggleButtonGroup
             value={filters.loanStatus || 'ALL'}
@@ -164,20 +259,7 @@ export function LoansFilterPanel({ variant: _variant = 'expanded', onClose }: Lo
               Todos
             </ToggleButton>
             <ToggleButton
-              value="PENDING"
-              sx={{
-                color: 'default',
-                borderColor: 'default',
-                '&.Mui-selected': {
-                  backgroundColor: 'default',
-                  color: 'white'
-                }
-              }}
-            >
-              Pendiente
-            </ToggleButton>
-            <ToggleButton
-              value="PARTIAL"
+              value="ACTIVE"
               sx={{
                 color: 'info.main',
                 borderColor: 'info.main',
@@ -187,10 +269,10 @@ export function LoansFilterPanel({ variant: _variant = 'expanded', onClose }: Lo
                 }
               }}
             >
-              Parcial
+              Activo
             </ToggleButton>
             <ToggleButton
-              value="PAID"
+              value="COMPLETED"
               sx={{
                 color: 'success.main',
                 borderColor: 'success.main',
@@ -200,7 +282,7 @@ export function LoansFilterPanel({ variant: _variant = 'expanded', onClose }: Lo
                 }
               }}
             >
-              Pagado
+              Completado
             </ToggleButton>
           </ToggleButtonGroup>
         </Box>
