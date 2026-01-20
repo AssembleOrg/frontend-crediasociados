@@ -29,7 +29,7 @@ export function GoogleAddressAutocomplete({
   error = false,
   helperText,
   label = 'Dirección (lugar de cobro)',
-  placeholder = 'Ej: Av. Corrientes 1234, Buenos Aires',
+  placeholder = 'Ej: Av. Corrientes 1234, Buenos Aires o Av. Paulista 1000, São Paulo',
   required = false,
   fullWidth = true,
 }: GoogleAddressAutocompleteProps) {
@@ -88,7 +88,7 @@ export function GoogleAddressAutocomplete({
         autocompleteService.current.getPlacePredictions(
           {
             input,
-            componentRestrictions: { country: 'ar' },
+            componentRestrictions: { country: ['ar', 'br'] }, // Argentina y Brasil
             types: ['address'],
             sessionToken: sessionToken.current || undefined,
           },

@@ -38,7 +38,7 @@ export function AddressAutocomplete({
   error = false,
   helperText,
   label = 'Dirección (lugar de cobro)',
-  placeholder = 'Ej: Av. Corrientes 1234, Buenos Aires',
+  placeholder = 'Ej: Av. Corrientes 1234, Buenos Aires o Av. Paulista 1000, São Paulo',
   required = false,
   fullWidth = true,
 }: AddressAutocompleteProps) {
@@ -84,7 +84,7 @@ export function AddressAutocomplete({
         `text=${encodeURIComponent(input)}&` +
         `apiKey=${apiKey}&` +
         `lang=es&` +
-        `filter=countrycode:ar`, // Solo Argentina
+        `filter=countrycode:ar,br`, // Argentina y Brasil
         {
           signal: abortControllerRef.current.signal,
         }

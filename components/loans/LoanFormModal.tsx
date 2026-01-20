@@ -141,7 +141,7 @@ export function LoanFormModal({
 
     // Validate amount with proper validation
     const amountError = ValidationUtils.validateRequired(formData.amount, 'Monto del préstamo') ||
-                        ValidationUtils.validateAmount(formData.amount, 1000, 100000000) // Min $1000, Max $100M
+                        ValidationUtils.validateAmount(formData.amount, 1, 100000000) // Min $1, Max $100M
     if (amountError) {
       errors.amount = amountError
     }
