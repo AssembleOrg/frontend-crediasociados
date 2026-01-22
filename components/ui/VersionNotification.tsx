@@ -14,9 +14,9 @@ import {
 } from '@mui/icons-material'
 import { useAuthStore } from '@/stores/auth'
 
-const VERSION_KEY = 'version_notification_1.3.5'
+const VERSION_KEY = 'version_notification_1.3.7'
 const MAX_SHOW_COUNT = 10
-const VERSION_MESSAGE = 'Nueva versión 1.3.5: Se agregaron notas en cobros diarios y en pagos. Se agregaron datos de prestamos en el comprobante de pago. Se corrigieron errores en el neto del cobrador para el dashboard.'
+const VERSION_MESSAGE = 'Nueva versión 1.3.7: Dinero Neto en calle en subadmin operativa. Manejo de calles para Brasil.'
 
 export function VersionNotification() {
   const [open, setOpen] = useState(false)
