@@ -39,6 +39,7 @@ export function GoogleAddressAutocomplete({
   const [loading, setLoading] = useState(false)
   const autocompleteService = useRef<google.maps.places.AutocompleteService | null>(null)
   const placesService = useRef<google.maps.places.PlacesService | null>(null)
+  const geocoder = useRef<google.maps.Geocoder | null>(null)
   const sessionToken = useRef<google.maps.places.AutocompleteSessionToken | null>(null)
 
   // Get API key from environment
@@ -58,12 +59,22 @@ export function GoogleAddressAutocomplete({
     }
   }, [apiKey])
 
-  // Initialize Google Places services
+  // Sync inputValue with value when value changes externally (but not when user is typing)
+  useEffect(() => {
+    // Only sync if inputValue is empty or matches value exactly
+    // This prevents interference when user is typing
+    if (value && (inputValue === '' || inputValue === value)) {
+      setInputValue(value)
+    }
+  }, [value])
+
+  // Initialize Google Places services and Geocoder
   useEffect(() => {
     if (!isLoaded) return
 
     try {
       autocompleteService.current = new google.maps.places.AutocompleteService()
+      geocoder.current = new google.maps.Geocoder()
       sessionToken.current = new google.maps.places.AutocompleteSessionToken()
       
       // Create a dummy div for PlacesService (required by Google)
@@ -74,7 +85,7 @@ export function GoogleAddressAutocomplete({
     }
   }, [isLoaded])
 
-  // Fetch predictions
+  // Fetch predictions using Autocomplete first, then Geocoding as fallback
   const fetchPredictions = useCallback(
     async (input: string) => {
       if (!input || input.length < 3 || !autocompleteService.current) {
@@ -85,6 +96,7 @@ export function GoogleAddressAutocomplete({
       setLoading(true)
 
       try {
+        // First, try Autocomplete API
         autocompleteService.current.getPlacePredictions(
           {
             input,
@@ -93,20 +105,74 @@ export function GoogleAddressAutocomplete({
             sessionToken: sessionToken.current || undefined,
           },
           (predictions, status) => {
-            setLoading(false)
-            
-            if (status === google.maps.places.PlacesServiceStatus.OK && predictions) {
-              setOptions(predictions.map(p => ({
+            // If Autocomplete found results, use them
+            if (status === google.maps.places.PlacesServiceStatus.OK && predictions && predictions.length > 0) {
+              const formattedOptions = predictions.map(p => ({
                 description: p.description,
                 place_id: p.place_id
-              })))
-            } else {
+              }))
+              console.log('Autocomplete results:', formattedOptions)
+              setOptions(formattedOptions)
+              setLoading(false)
+              return
+            }
+
+            // If Autocomplete didn't find results, try Geocoding API as fallback
+            if (!geocoder.current) {
+              setLoading(false)
+              setOptions([])
+              return
+            }
+
+            try {
+              geocoder.current.geocode(
+                {
+                  address: input,
+                  componentRestrictions: {
+                    country: ['ar', 'br'] // Argentina y Brasil
+                  }
+                },
+                (results, geocodeStatus) => {
+                  setLoading(false)
+                  
+                  if (geocodeStatus === google.maps.GeocoderStatus.OK && results && results.length > 0) {
+                    // Format Geocoding results to match Autocomplete format
+                    // Prioritize address-like results, but include others if no addresses found
+                    const addressResults = results.filter(result => {
+                      const types = result.types || []
+                      return types.includes('street_address') || 
+                             types.includes('route') || 
+                             types.includes('premise') ||
+                             types.includes('subpremise')
+                    })
+
+                    // Use address results if available, otherwise use all results
+                    const resultsToUse = addressResults.length > 0 ? addressResults : results
+
+                    const geocodeOptions: PlacePrediction[] = resultsToUse
+                      .slice(0, 5) // Limit to 5 results
+                      .map(result => ({
+                        description: result.formatted_address || input,
+                        place_id: result.place_id || `geocode_${result.geometry.location.lat()}_${result.geometry.location.lng()}`
+                      }))
+
+                    if (geocodeOptions.length > 0) {
+                      setOptions(geocodeOptions)
+                    } else {
+                      setOptions([])
+                    }
+                  } else {
+                    setOptions([])
+                  }
+                }
+              )
+            } catch (geocodeErr) {
+              setLoading(false)
               setOptions([])
             }
           }
         )
       } catch (err) {
-        
         setLoading(false)
         setOptions([])
       }
@@ -125,8 +191,12 @@ export function GoogleAddressAutocomplete({
 
   // Handle input change
   const handleInputChange = useCallback(
-    (_event: any, newInputValue: string) => {
+    (_event: any, newInputValue: string, reason?: string) => {
       setInputValue(newInputValue)
+      // Clear options when user clears input
+      if (reason === 'clear' || newInputValue === '') {
+        setOptions([])
+      }
     },
     []
   )
@@ -253,7 +323,7 @@ export function GoogleAddressAutocomplete({
         freeSolo
         options={options}
         getOptionLabel={(option) => typeof option === 'string' ? option : option.description}
-        value={value}
+        value={value ? (options.find(opt => opt.description === value) || value) : null}
         inputValue={inputValue}
         onInputChange={handleInputChange}
         onChange={handleChange}
@@ -264,6 +334,16 @@ export function GoogleAddressAutocomplete({
             ? "Escribe al menos 3 caracteres"
             : "No se encontraron sugerencias"
         }
+        filterOptions={(x) => x} // Disable client-side filtering, we handle it server-side
+        isOptionEqualToValue={(option, val) => {
+          if (typeof val === 'string') {
+            return option.description === val
+          }
+          if (val && typeof val === 'object' && 'place_id' in val) {
+            return option.place_id === val.place_id
+          }
+          return false
+        }}
         renderInput={(params) => (
           <TextField
             {...params}
