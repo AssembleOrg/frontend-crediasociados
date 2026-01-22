@@ -224,6 +224,7 @@ class CollectorWalletService {
       availableClientQuota: number;
     };
     dineroEnCalle: number;
+    dineroPrestado?: number;
     totalLoans: number;
     loans: Array<{
       id: string;

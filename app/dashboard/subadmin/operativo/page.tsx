@@ -141,6 +141,7 @@ export default function OperativoSubadminPage() {
   const [liquidationModalOpen, setLiquidationModalOpen] = useState(false);
   const [selectedManagerForLiquidation, setSelectedManagerForLiquidation] = useState<User | null>(null);
   const [managersDineroEnCalle, setManagersDineroEnCalle] = useState<Record<string, number>>({});
+  const [managersDineroPrestado, setManagersDineroPrestado] = useState<Record<string, number>>({});
   const [loadingDineroEnCalle, setLoadingDineroEnCalle] = useState<Record<string, boolean>>({});
   const [safeBalances, setSafeBalances] = useState<Record<string, number>>({});
   const [loadingSafeBalances, setLoadingSafeBalances] = useState<Record<string, boolean>>({});
@@ -206,9 +207,20 @@ export default function OperativoSubadminPage() {
         ...prev,
         [managerId]: calculatedDineroEnCalle
       }));
+      
+      // Guardar dinero prestado (dineroPrestado) del endpoint
+      const dineroPrestado = data.dineroPrestado || 0;
+      setManagersDineroPrestado(prev => ({
+        ...prev,
+        [managerId]: dineroPrestado
+      }));
     } catch (error) {
       // Error fetching dinero en calle
       setManagersDineroEnCalle(prev => ({
+        ...prev,
+        [managerId]: 0
+      }));
+      setManagersDineroPrestado(prev => ({
         ...prev,
         [managerId]: 0
       }));
@@ -893,6 +905,7 @@ export default function OperativoSubadminPage() {
             <Grid container spacing={2}>
               {cobradores.map((cobrador) => {
                 const dineroEnCalle = managersDineroEnCalle[cobrador.id];
+                const dineroPrestado = managersDineroPrestado[cobrador.id];
                 const isLoading = loadingDineroEnCalle[cobrador.id];
                 return (
                   <Grid size={{ xs: 12 }} key={cobrador.id}>
@@ -970,6 +983,31 @@ export default function OperativoSubadminPage() {
                               }}
                             >
                               ${dineroEnCalle !== undefined ? dineroEnCalle.toLocaleString("es-AR") : "0"}
+                            </Typography>
+                          )}
+                        </Box>
+
+                        {/* Neto en Calle */}
+                        <Box sx={{ mt: 2, mb: 2 }}>
+                          <Typography
+                            variant="caption"
+                            color="text.secondary"
+                            display="block"
+                            sx={{ mb: 0.5 }}
+                          >
+                            Neto en Calle
+                          </Typography>
+                          {isLoading ? (
+                            <CircularProgress size={16} />
+                          ) : (
+                            <Typography
+                              variant="body1"
+                              sx={{
+                                fontWeight: 600,
+                                color: "success.main",
+                              }}
+                            >
+                              ${dineroPrestado !== undefined ? dineroPrestado.toLocaleString("es-AR") : "0"}
                             </Typography>
                           )}
                         </Box>

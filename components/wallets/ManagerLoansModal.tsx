@@ -66,6 +66,7 @@ export default function ManagerLoansModal({
       availableClientQuota: number
     }
     dineroEnCalle: number
+    dineroPrestado?: number
     totalLoans: number
     loans: Array<{
       id: string
@@ -240,7 +241,7 @@ export default function ManagerLoansModal({
         {/* Manager Info Summary */}
         {managerDetail && !loading && (
           <>
-            <Box sx={{ mb: 3, display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)' }, gap: 2, mt: 2 }}>
+            <Box sx={{ mb: 3, display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(3, 1fr)' }, gap: 2, mt: 2 }}>
               <Paper 
                 elevation={0} 
                 sx={{ 
@@ -259,6 +260,22 @@ export default function ManagerLoansModal({
                     // Esto asegura que se reflejen los pagos parciales correctamente
                     managerDetail.loans.reduce((sum, loan) => sum + (loan.stats.totalPending || 0), 0)
                   )}
+                </Typography>
+              </Paper>
+              <Paper 
+                elevation={0} 
+                sx={{ 
+                  p: 2, 
+                  bgcolor: alpha(theme.palette.success.main, 0.08),
+                  border: `1px solid ${alpha(theme.palette.success.main, 0.2)}`,
+                  borderRadius: 2
+                }}
+              >
+                <Typography variant="body2" color="text.secondary" fontWeight={500}>
+                  Neto en Calle
+                </Typography>
+                <Typography variant="h5" fontWeight={700} color="success.main" sx={{ mt: 0.5 }}>
+                  {formatCurrency(managerDetail.dineroPrestado || 0)}
                 </Typography>
               </Paper>
               <Paper 
