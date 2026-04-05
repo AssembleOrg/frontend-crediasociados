@@ -18,6 +18,60 @@ import type {
  * antes de permitir la creación de un préstamo. La cartera se debita automáticamente.
  */
 class LoansService {
+  private getNestedValue<T>(value: unknown, path: string[]): T | undefined {
+    return path.reduce<unknown>((acc, key) => {
+      if (!acc || typeof acc !== 'object') return undefined;
+      return (acc as Record<string, unknown>)[key];
+    }, value) as T | undefined;
+  }
+
+  private extractPaginatedLoansPayload(value: unknown): PaginatedResponse<LoanResponseDto> {
+    const payloadCandidates: unknown[] = [
+      this.getNestedValue<unknown>(value, ['data']), // response.data
+      this.getNestedValue<unknown>(value, ['data', 'data']), // response.data.data
+      this.getNestedValue<unknown>(value, ['data', 'data', 'data']), // legacy nested shape
+      value,
+    ];
+
+    for (const candidate of payloadCandidates) {
+      if (!candidate || typeof candidate !== 'object') continue;
+      const candidateObj = candidate as Record<string, unknown>;
+
+      const data = Array.isArray(candidateObj.data)
+        ? (candidateObj.data as LoanResponseDto[])
+        : undefined;
+      const meta =
+        candidateObj.meta && typeof candidateObj.meta === 'object'
+          ? (candidateObj.meta as PaginatedResponse<LoanResponseDto>['meta'])
+          : undefined;
+
+      if (data && meta) {
+        return { data, meta };
+      }
+    }
+
+    return {
+      data: [],
+      meta: { page: 1, limit: 10, total: 0, totalPages: 0 },
+    };
+  }
+
+  private extractLoanArrayPayload(value: unknown): LoanResponseDto[] {
+    const arrayCandidates: unknown[] = [
+      this.getNestedValue<unknown>(value, ['data', 'data']), // response.data.data
+      this.getNestedValue<unknown>(value, ['data']), // response.data
+      value,
+    ];
+
+    for (const candidate of arrayCandidates) {
+      if (Array.isArray(candidate)) {
+        return candidate as LoanResponseDto[];
+      }
+    }
+
+    return [];
+  }
+
   async getLoansPaginated(
     params: PaginationParams & {
       clientName?: string
@@ -39,16 +93,12 @@ class LoansService {
     const url = queryString ? `/loans/pagination?${queryString}` : '/loans/pagination';
 
     const response = await api.get(url);
-
-    return {
-      data: response.data.data.data,
-      meta: response.data.data.meta,
-    };
+    return this.extractPaginatedLoansPayload(response.data);
   }
 
   async getAllLoans(): Promise<LoanResponseDto[]> {
     const response = await api.get('/loans');
-    return response.data.data;
+    return this.extractLoanArrayPayload(response.data);
   }
 
   async getActiveLoansWithClientId(): Promise<LoanListResponseDto[]> {

@@ -13,6 +13,44 @@ import type {
  * No state management, no complex logic - just API calls.
  */
 class ClientsService {
+  private getNestedValue<T>(value: unknown, path: string[]): T | undefined {
+    return path.reduce<unknown>((acc, key) => {
+      if (!acc || typeof acc !== 'object') return undefined
+      return (acc as Record<string, unknown>)[key]
+    }, value) as T | undefined
+  }
+
+  private extractPaginatedClientsPayload(value: unknown): PaginatedResponse<ClientResponseDto> {
+    const payloadCandidates: unknown[] = [
+      this.getNestedValue<unknown>(value, ['data']), // response.data
+      this.getNestedValue<unknown>(value, ['data', 'data']), // response.data.data (legacy)
+      this.getNestedValue<unknown>(value, ['data', 'data', 'data']), // deeply nested legacy
+      value,
+    ]
+
+    for (const candidate of payloadCandidates) {
+      if (!candidate || typeof candidate !== 'object') continue
+
+      const candidateObj = candidate as Record<string, unknown>
+      const data = Array.isArray(candidateObj.data)
+        ? (candidateObj.data as ClientResponseDto[])
+        : undefined
+      const meta =
+        candidateObj.meta && typeof candidateObj.meta === 'object'
+          ? (candidateObj.meta as PaginatedResponse<ClientResponseDto>['meta'])
+          : undefined
+
+      if (data && meta) {
+        return { data, meta }
+      }
+    }
+
+    return {
+      data: [],
+      meta: { page: 1, limit: 10, total: 0, totalPages: 0 },
+    }
+  }
+
   async getClients(params: PaginationParams = {}): Promise<PaginatedResponse<ClientResponseDto>> {
     const searchParams = new URLSearchParams()
     
@@ -23,11 +61,7 @@ class ClientsService {
     const url = queryString ? `/clients?${queryString}` : '/clients'
     
     const response = await api.get(url)
-    
-    return {
-      data: response.data.data.data,
-      meta: response.data.data.meta
-    }
+    return this.extractPaginatedClientsPayload(response.data)
   }
 
   async getClientById(id: string): Promise<ClientResponseDto> {

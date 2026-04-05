@@ -52,9 +52,32 @@ export interface SubLoanWithClientDto {
  * El historial de pagos se guarda en formato JSON en el SubLoan
  */
 class SubLoansService {
+  private getNestedValue<T>(value: unknown, path: string[]): T | undefined {
+    return path.reduce<unknown>((acc, key) => {
+      if (!acc || typeof acc !== 'object') return undefined;
+      return (acc as Record<string, unknown>)[key];
+    }, value) as T | undefined;
+  }
+
+  private extractArrayPayload<T>(value: unknown): T[] {
+    const arrayCandidates: unknown[] = [
+      this.getNestedValue<unknown>(value, ['data', 'data']), // deeply nested legacy
+      this.getNestedValue<unknown>(value, ['data']), // standard wrapped payload
+      value,
+    ];
+
+    for (const candidate of arrayCandidates) {
+      if (Array.isArray(candidate)) {
+        return candidate as T[];
+      }
+    }
+
+    return [];
+  }
+
   async getTodayDueSubLoans(): Promise<SubLoanResponseDto[]> {
     const response = await api.get('/sub-loans/today-due');
-    return response.data.data.data || response.data.data || [];
+    return this.extractArrayPayload<SubLoanResponseDto>(response.data);
   }
 
   async getTodayDueSubLoansStats(): Promise<SubLoanStatsResponseDto> {
@@ -73,7 +96,7 @@ class SubLoansService {
     const response = await api.get('/loans');
 
     // Extraer subloans de todos los préstamos
-    const loans = response.data.data || [];
+    const loans = this.extractArrayPayload<any>(response.data);
     const allSubLoans: SubLoanResponseDto[] = [];
 
     loans.forEach((loan: any) => {
@@ -99,7 +122,7 @@ class SubLoansService {
 
   async getSubLoansByLoanId(loanId: string): Promise<SubLoanResponseDto[]> {
     const response = await api.get(`/subloans/loan/${loanId}`);
-    return response.data.data;
+    return this.extractArrayPayload<SubLoanResponseDto>(response.data);
   }
 
   /**

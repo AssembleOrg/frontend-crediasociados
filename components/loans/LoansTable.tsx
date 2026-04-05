@@ -85,11 +85,13 @@ export function LoansTable({ loans: externalLoans, onViewDetails, onLoanDeleted 
 
   // Calculate interest rate - Uses same logic as StandaloneLoanSimulator
   const getInterestRate = (loan: Loan) => {
+    const normalizedBaseRate = Number(loan.baseInterestRate)
+
     // Primary source: Use baseInterestRate directly from loan (from API)
-    if (loan.baseInterestRate && loan.baseInterestRate > 0) {
+    if (Number.isFinite(normalizedBaseRate) && normalizedBaseRate > 0) {
       // If baseInterestRate is already a percentage (> 1), use as-is
       // If it's a decimal (< 1), convert to percentage
-      return loan.baseInterestRate > 1 ? loan.baseInterestRate : loan.baseInterestRate * 100;
+      return normalizedBaseRate > 1 ? normalizedBaseRate : normalizedBaseRate * 100;
     }
     
     // Fallback: Calculate from subloans if baseInterestRate is not available

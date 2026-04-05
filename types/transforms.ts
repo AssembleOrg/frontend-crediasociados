@@ -150,19 +150,34 @@ export const clientToUpdateDto = (client: Partial<Client>): UpdateClientDto => {
 // LOAN TRANSFORMATIONS
 // ========================
 
+const toSafeNumber = (value: unknown, fallback = 0): number => {
+  if (typeof value === 'number') {
+    return Number.isFinite(value) ? value : fallback;
+  }
+  if (typeof value === 'string') {
+    const normalized = value.replace(',', '.').trim();
+    const parsed = Number(normalized);
+    return Number.isFinite(parsed) ? parsed : fallback;
+  }
+  return fallback;
+};
+
 // Transform API loan response to frontend loan
 // Note: Using actual baseInterestRate and penaltyInterestRate from API response
 export const apiLoanToLoan = (apiLoan: LoanResponseDto): Loan => ({
   id: apiLoan.id,
   clientId: apiLoan.clientId, // Available in CreateLoanResponseDto
   clientName: (apiLoan as any).client?.fullName || undefined, // Client name from API response
-  amount: apiLoan.amount,
-  originalAmount: (apiLoan as any).originalAmount, // Monto original prestado (sin intereses)
+  amount: toSafeNumber(apiLoan.amount), // Can arrive as string in some endpoints
+  originalAmount:
+    (apiLoan as any).originalAmount !== undefined && (apiLoan as any).originalAmount !== null
+      ? toSafeNumber((apiLoan as any).originalAmount)
+      : undefined, // Monto original prestado (sin intereses)
   baseInterestRate: (apiLoan as any).baseInterestRate !== undefined && (apiLoan as any).baseInterestRate !== null 
-    ? (apiLoan as any).baseInterestRate 
+    ? toSafeNumber((apiLoan as any).baseInterestRate) 
     : 0, // Use API value, default to 0 if not provided
   penaltyInterestRate: (apiLoan as any).penaltyInterestRate !== undefined && (apiLoan as any).penaltyInterestRate !== null 
-    ? (apiLoan as any).penaltyInterestRate 
+    ? toSafeNumber((apiLoan as any).penaltyInterestRate) 
     : 0, // Use API value, default to 0 if not provided
   currency: 'ARS' as const,
   paymentFrequency: apiLoan.paymentFrequency as
@@ -188,19 +203,19 @@ export const apiLoanToLoan = (apiLoan: LoanResponseDto): Loan => ({
         | 'SATURDAY'
         | 'SUNDAY')
     : undefined,
-  totalPayments: apiLoan.totalPayments,
+  totalPayments: toSafeNumber(apiLoan.totalPayments),
   firstDueDate: apiLoan.firstDueDate
     ? new Date(apiLoan.firstDueDate)
     : undefined,
   loanTrack: apiLoan.loanTrack,
   description: apiLoan.description || undefined,
   notes: undefined, // Not available in current API response
-  status: 'ACTIVE', // Default, not available in current API response
-  requestDate: new Date(apiLoan.createdAt), // Use createdAt as requestDate
-  approvedDate: undefined, // Not available in current API response
-  completedDate: undefined, // Not available in current API response
+  status: ((apiLoan as any).status || 'ACTIVE') as Loan['status'],
+  requestDate: new Date((apiLoan as any).requestDate || apiLoan.createdAt),
+  approvedDate: (apiLoan as any).approvedDate ? new Date((apiLoan as any).approvedDate) : undefined,
+  completedDate: (apiLoan as any).completedDate ? new Date((apiLoan as any).completedDate) : undefined,
   createdAt: new Date(apiLoan.createdAt),
-  updatedAt: new Date(apiLoan.createdAt), // Use createdAt as updatedAt placeholder
+  updatedAt: new Date((apiLoan as any).updatedAt || apiLoan.createdAt),
   // client: apiLoan.client ? {...} : undefined, // Available but empty Record<string, never>
 });
 

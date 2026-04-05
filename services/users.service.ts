@@ -13,6 +13,46 @@ import type {
  * No state management, no complex logic - just API calls.
  */
 class UsersService {
+  private getNestedValue<T>(value: unknown, path: string[]): T | undefined {
+    return path.reduce<unknown>((acc, key) => {
+      if (!acc || typeof acc !== 'object') return undefined;
+      return (acc as Record<string, unknown>)[key];
+    }, value) as T | undefined;
+  }
+
+  private extractPaginatedUsersPayload(
+    value: unknown
+  ): PaginatedResponse<UserResponseDto> {
+    const payloadCandidates: unknown[] = [
+      this.getNestedValue<unknown>(value, ['data']), // response.data
+      this.getNestedValue<unknown>(value, ['data', 'data']), // legacy nested
+      this.getNestedValue<unknown>(value, ['data', 'data', 'data']), // deeply nested legacy
+      value,
+    ];
+
+    for (const candidate of payloadCandidates) {
+      if (!candidate || typeof candidate !== 'object') continue;
+      const candidateObj = candidate as Record<string, unknown>;
+
+      const data = Array.isArray(candidateObj.data)
+        ? (candidateObj.data as UserResponseDto[])
+        : undefined;
+      const meta =
+        candidateObj.meta && typeof candidateObj.meta === 'object'
+          ? (candidateObj.meta as PaginatedResponse<UserResponseDto>['meta'])
+          : undefined;
+
+      if (data && meta) {
+        return { data, meta };
+      }
+    }
+
+    return {
+      data: [],
+      meta: { page: 1, limit: 10, total: 0, totalPages: 0 },
+    };
+  }
+
   async getUsers(
     params: PaginationParams = {}
   ): Promise<PaginatedResponse<UserResponseDto>> {
@@ -26,10 +66,7 @@ class UsersService {
 
     const response = await api.get(url);
 
-    return {
-      data: response.data.data.data,
-      meta: response.data.data.meta,
-    };
+    return this.extractPaginatedUsersPayload(response.data);
   }
 
   async getUserById(id: string): Promise<UserResponseDto> {
@@ -86,35 +123,7 @@ class UsersService {
     
     const response = await api.get(url);
 
-    // Try different response structures
-    let data, meta;
-
-    if (response.data?.data?.data) {
-      // Structure: response.data.data.data
-      data = response.data.data.data;
-      meta = response.data.data.meta;
-    } else if (response.data?.data) {
-      // Structure: response.data.data (direct array)
-      data = Array.isArray(response.data.data)
-        ? response.data.data
-        : response.data.data.data;
-      meta = response.data.meta;
-    } else if (Array.isArray(response.data)) {
-      // Structure: response.data (direct array)
-      data = response.data;
-      meta = {
-        total: response.data.length,
-        page: 1,
-        limit: response.data.length,
-      };
-    } else {
-      
-      throw new Error('Estructura de respuesta inesperada del servidor');
-    }
-
-    
-
-    return { data, meta };
+    return this.extractPaginatedUsersPayload(response.data);
   }
 }
 
