@@ -11,18 +11,28 @@ import {
   ToggleButton,
   ToggleButtonGroup,
   Divider,
-  Autocomplete
+  Autocomplete,
+  CircularProgress
 } from '@mui/material'
 import {
   FilterList,
   Clear
 } from '@mui/icons-material'
 import { useCobrosFilters } from '@/hooks/useCobrosFilters'
-import { useClients } from '@/hooks/useClients'
+import { clientsService } from '@/services/clients.service'
+import { useCallback, useEffect, useState } from 'react'
 
 interface CobrosFilterPanelProps {
   variant?: 'expanded' | 'compact'
   onClose?: () => void
+}
+
+interface ClientOption {
+  id: string
+  fullName: string
+  dni?: string | null
+  phone?: string | null
+  email?: string | null
 }
 
 export function CobrosFilterPanel({ variant = 'expanded', onClose }: CobrosFilterPanelProps) {
@@ -31,14 +41,20 @@ export function CobrosFilterPanel({ variant = 'expanded', onClose }: CobrosFilte
     filterStats,
     hasActiveFilters,
     statusFilterOptions,
+    clientOptions: baseClientOptions,
     updateFilter,
     clearAllFilters
   } = useCobrosFilters()
-  
-  const { clients } = useClients()
+  const [clientSearchQuery, setClientSearchQuery] = useState('')
+  const [selectedClient, setSelectedClient] = useState<ClientOption | null>(null)
+  const [clientOptions, setClientOptions] = useState<ClientOption[]>(baseClientOptions)
+  const [isSearchingClients, setIsSearchingClients] = useState(false)
 
   const handleClearFilters = () => {
     clearAllFilters()
+    setClientSearchQuery('')
+    setSelectedClient(null)
+    setClientOptions(baseClientOptions)
     onClose?.()
   }
 
@@ -49,6 +65,51 @@ export function CobrosFilterPanel({ variant = 'expanded', onClose }: CobrosFilte
   const handlePaymentStatusFilter = (paymentStatus: 'PENDING' | 'PARTIAL' | 'PAID' | 'ALL' | null) => {
     updateFilter('paymentStatus', paymentStatus || undefined)
   }
+
+  const searchClients = useCallback(async (query: string) => {
+    if (query.length < 2) {
+      setClientOptions(baseClientOptions)
+      return
+    }
+
+    setIsSearchingClients(true)
+    try {
+      const results = await clientsService.searchClients(query, 20)
+      setClientOptions(results)
+    } catch (_error) {
+      setClientOptions([])
+    } finally {
+      setIsSearchingClients(false)
+    }
+  }, [baseClientOptions])
+
+  useEffect(() => {
+    if (clientSearchQuery.length < 2) {
+      setClientOptions(baseClientOptions)
+      return
+    }
+
+    const timer = setTimeout(() => {
+      searchClients(clientSearchQuery)
+    }, 300)
+
+    return () => clearTimeout(timer)
+  }, [clientSearchQuery, searchClients, baseClientOptions])
+
+  useEffect(() => {
+    if (!filters.clientId) {
+      if (selectedClient) setSelectedClient(null)
+      return
+    }
+
+    const selected = clientOptions.find(c => c.id === filters.clientId)
+      || baseClientOptions.find(c => c.id === filters.clientId)
+
+    if (selected && selected.id !== selectedClient?.id) {
+      setSelectedClient(selected)
+      setClientSearchQuery(selected.fullName)
+    }
+  }, [filters.clientId, clientOptions, baseClientOptions, selectedClient])
 
   // Payment status filter options
   const paymentStatusOptions = [
@@ -207,20 +268,58 @@ export function CobrosFilterPanel({ variant = 'expanded', onClose }: CobrosFilte
           <Box sx={{ flex: 1 }}>
             <Autocomplete
               size="small"
-              options={clients}
+              options={clientOptions}
               getOptionLabel={(option) => option.fullName}
-              value={clients.find(c => c.id === filters.clientId) || null}
-              onChange={(_, newValue) => {
-                updateFilter('clientId', newValue?.id)
+              isOptionEqualToValue={(option, value) => option.id === value.id}
+              filterOptions={(x) => x}
+              value={selectedClient}
+              inputValue={clientSearchQuery}
+              onInputChange={(_, newValue, reason) => {
+                // MUI emits "reset" on value sync; ignore to avoid overwriting typing.
+                if (reason === 'reset') return
+
+                if (reason === 'clear') {
+                  setClientSearchQuery('')
+                  setSelectedClient(null)
+                  updateFilter('clientId', undefined)
+                  setClientOptions(baseClientOptions)
+                  return
+                }
+
+                setClientSearchQuery(newValue)
+                if (selectedClient) {
+                  setSelectedClient(null)
+                  updateFilter('clientId', undefined)
+                }
               }}
+              onChange={(_, newValue) => {
+                setSelectedClient(newValue)
+                updateFilter('clientId', newValue?.id)
+                if (newValue) {
+                  setClientSearchQuery(newValue.fullName)
+                } else {
+                  setClientSearchQuery('')
+                  setClientOptions(baseClientOptions)
+                }
+              }}
+              loading={isSearchingClients}
               renderInput={(params) => (
                 <TextField
                   {...params}
                   label="Cliente"
-                  placeholder="Seleccionar cliente..."
+                  placeholder="Buscar cliente (mín. 2 caracteres)..."
+                  InputProps={{
+                    ...params.InputProps,
+                    endAdornment: (
+                      <>
+                        {isSearchingClients ? <CircularProgress color="inherit" size={16} /> : null}
+                        {params.InputProps.endAdornment}
+                      </>
+                    ),
+                  }}
                 />
               )}
-              noOptionsText="No hay clientes disponibles"
+              noOptionsText={clientSearchQuery.length < 2 ? 'Escribí al menos 2 caracteres' : 'No hay clientes disponibles'}
             />
           </Box>
           

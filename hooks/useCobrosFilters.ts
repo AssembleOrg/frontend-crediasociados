@@ -1,6 +1,5 @@
 import { useCallback, useMemo } from 'react'
 import { useSubLoans } from '@/hooks/useSubLoans'
-import { useClientsStore } from '@/stores/clients'
 import { useFiltersStore, type CobrosFilters } from '@/stores/filters'
 import type { SubLoanWithClientInfo } from '@/services/subloans-lookup.service'
 import { getUrgencyLevel, getSubloanUrgencyLevel, isSubloanSettled } from '@/lib/cobros/urgencyHelpers'
@@ -16,7 +15,6 @@ import { getUrgencyLevel, getSubloanUrgencyLevel, isSubloanSettled } from '@/lib
  */
 export function useCobrosFilters() {
   const { allSubLoansWithClient } = useSubLoans()
-  const { clients } = useClientsStore()
   const { 
     cobrosFilters, 
     setCobrosFilters, 
@@ -235,6 +233,19 @@ export function useCobrosFilters() {
     }
   ] as const, [globalStats, notifiedClients])
 
+  const clientOptions = useMemo(() => {
+    const map = new Map<string, { id: string; fullName: string }>()
+    allSubLoansWithClient.forEach((subloan) => {
+      const clientId = subloan.clientId
+      if (!clientId || map.has(clientId)) return
+      map.set(clientId, {
+        id: clientId,
+        fullName: subloan.clientName || `Cliente #${clientId.slice(0, 8)}`
+      })
+    })
+    return Array.from(map.values()).sort((a, b) => a.fullName.localeCompare(b.fullName))
+  }, [allSubLoansWithClient])
+
   return {
     // Filtered data
     filteredSubLoans,
@@ -248,6 +259,7 @@ export function useCobrosFilters() {
     
     // Status filter options for buttons
     statusFilterOptions,
+    clientOptions,
     
     // Actions
     updateFilter,
