@@ -1,5 +1,5 @@
 import type { SubLoanWithClientInfo } from '@/services/subloans-lookup.service'
-import { getUrgencyLevel } from './urgencyHelpers'
+import { getSubloanUrgencyLevel, isSubloanSettled } from './urgencyHelpers'
 
 export interface ClientSummary {
   clientId: string
@@ -38,10 +38,11 @@ export const getClientsSummary = (allSubLoansWithClient: SubLoanWithClientInfo[]
     const clientName = firstSubloan.clientName || `Cliente #${firstSubloan.loanId}`
     
     // Calculate stats
-    const overdueCount = subLoans.filter(s => getUrgencyLevel(s.dueDate) === 'overdue').length
-    const todayCount = subLoans.filter(s => getUrgencyLevel(s.dueDate) === 'today').length
-    const soonCount = subLoans.filter(s => getUrgencyLevel(s.dueDate) === 'soon').length
-    const paidCount = subLoans.filter(s => s.status === 'PAID').length
+    const pendingOrActiveSubLoans = subLoans.filter(s => !isSubloanSettled(s))
+    const overdueCount = pendingOrActiveSubLoans.filter(s => getSubloanUrgencyLevel(s) === 'overdue').length
+    const todayCount = pendingOrActiveSubLoans.filter(s => getSubloanUrgencyLevel(s) === 'today').length
+    const soonCount = pendingOrActiveSubLoans.filter(s => getSubloanUrgencyLevel(s) === 'soon').length
+    const paidCount = subLoans.filter(s => isSubloanSettled(s)).length
     
     // Determine overall urgency level (worst case)
     let urgencyLevel: 'overdue' | 'today' | 'soon' | 'future' = 'future'
@@ -81,7 +82,7 @@ export const getClientsSummary = (allSubLoansWithClient: SubLoanWithClientInfo[]
 export const getStatusStats = (allSubLoansWithClient: SubLoanWithClientInfo[]) => {
   const stats = {
     total: allSubLoansWithClient.length,
-    completed: allSubLoansWithClient.filter(p => p.status === 'PAID').length,
+    completed: allSubLoansWithClient.filter(p => isSubloanSettled(p)).length,
     partial: 0, // TODO: backend no diferencia parcial aún
     pending: allSubLoansWithClient.filter(p => p.status === 'PENDING').length,
     overdue: allSubLoansWithClient.filter(p => p.status === 'OVERDUE').length,

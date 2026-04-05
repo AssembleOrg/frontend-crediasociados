@@ -1,4 +1,5 @@
 import type { SubLoanWithClientInfo } from '@/services/subloans-lookup.service'
+import { DateTime } from 'luxon'
 
 export type UrgencyLevel = 'OVERDUE' | 'TODAY' | 'SOON' | 'UPCOMING' | 'overdue' | 'today' | 'soon' | 'future'
 
@@ -14,15 +15,38 @@ export interface UrgencyColors {
 export const getUrgencyLevel = (dueDate?: string): 'overdue' | 'today' | 'soon' | 'future' => {
   if (!dueDate) return 'future'
 
-  const today = new Date()
-  const due = new Date(dueDate)
-  const diffTime = due.getTime() - today.getTime()
-  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+  // Use explicit timezone boundaries to avoid Safari/iOS date drift.
+  const timezone = 'America/Argentina/Buenos_Aires'
+  const today = DateTime.now().setZone(timezone).startOf('day')
+  const due = DateTime.fromISO(dueDate, { setZone: true })
+    .setZone(timezone)
+    .startOf('day')
+  const diffDays = Math.round(due.diff(today, 'days').days)
 
   if (diffDays < 0) return 'overdue' // Ya vencido
   if (diffDays === 0) return 'today' // Vence hoy
   if (diffDays <= 2) return 'soon' // Vence pronto (1-2 días)
   return 'future' // Futuro (más de 2 días)
+}
+
+const normalizeStatus = (status?: string): string => (status || '').trim().toUpperCase()
+
+export const isSubloanSettled = (
+  subloan: Pick<SubLoanWithClientInfo, 'status'>
+): boolean => {
+  const status = normalizeStatus(subloan.status)
+  return status === 'PAID' || status === 'COMPLETED' || status === 'CANCELLED'
+}
+
+/**
+ * Determines urgency for a subloan considering payment status.
+ * Paid subloans are never treated as overdue/today/soon.
+ */
+export const getSubloanUrgencyLevel = (
+  subloan: Pick<SubLoanWithClientInfo, 'status' | 'dueDate'>
+): 'overdue' | 'today' | 'soon' | 'future' => {
+  if (isSubloanSettled(subloan)) return 'future'
+  return getUrgencyLevel(subloan.dueDate)
 }
 
 /**

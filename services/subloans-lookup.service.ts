@@ -19,6 +19,7 @@ export interface PaymentInfo {
 export interface SubLoanWithClientInfo {
   id?: string
   loanId?: string
+  loanTrack?: string
   amount?: number
   paidAmount?: number
   status?: string
@@ -92,6 +93,7 @@ class SubLoansLookupService {
         return {
           ...subLoan,
           clientId: client?.id || loan?.clientId,
+          loanTrack: (loan as any)?.loanTrack,
           clientName: client?.fullName,
           clientFullData: client,
           // Preserve payments array if present, mapping to PaymentInfo format
@@ -146,6 +148,7 @@ class SubLoansLookupService {
         return {
           ...subLoan,
           clientId: client?.id || loan?.clientId,
+          loanTrack: (loan as any)?.loanTrack,
           clientName: client?.fullName,
           clientFullData: client,
           // Preserve payments array if present, mapping to PaymentInfo format

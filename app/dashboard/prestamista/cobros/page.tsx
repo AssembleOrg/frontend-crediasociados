@@ -30,7 +30,7 @@ const OverduePaymentsModal = dynamic(() => import('@/components/cobros/modals/Ov
 const ClientTimelineModal = dynamic(() => import('@/components/cobros/modals/ClientTimelineModal'), { ssr: false })
 
 // Extracted utilities
-import { getUrgencyLevel } from '@/lib/cobros/urgencyHelpers'
+import { getSubloanUrgencyLevel } from '@/lib/cobros/urgencyHelpers'
 import { getClientsSummary, getStatusStats, type ClientSummary } from '@/lib/cobros/clientSummaryHelpers'
 
 // Type guard to check if stats is filtered stats or legacy stats
@@ -135,7 +135,7 @@ export default function CobrosPage() {
   )
 
   const overduePayments = useMemo(() =>
-    allSubLoansWithClient.filter(p => p.dueDate && getUrgencyLevel(p.dueDate) === 'overdue'),
+    allSubLoansWithClient.filter(p => getSubloanUrgencyLevel(p) === 'overdue'),
     [allSubLoansWithClient]
   )
 

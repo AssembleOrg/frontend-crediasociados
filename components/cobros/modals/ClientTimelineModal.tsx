@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import {
   Dialog,
   DialogTitle,
@@ -15,6 +15,7 @@ import { Payment } from '@mui/icons-material'
 import LoanTimeline from '@/components/loans/LoanTimeline'
 import type { ClientSummary } from '@/lib/cobros/clientSummaryHelpers'
 import type { SubLoanWithClientInfo } from '@/services/subloans-lookup.service'
+import { getSubloanUrgencyLevel, isSubloanSettled } from '@/lib/cobros/urgencyHelpers'
 
 interface ClientTimelineModalProps {
   open: boolean
@@ -32,6 +33,45 @@ export default function ClientTimelineModal({
   onRegisterPaymentClick
 }: ClientTimelineModalProps) {
   const [showClientInfo, setShowClientInfo] = useState<string | null>(null)
+
+  const groupedByLoan = useMemo(() => {
+    const groups = new Map<string, SubLoanWithClientInfo[]>()
+
+    const sourceSubLoans = clientSummary?.subLoans || []
+    sourceSubLoans.forEach((subloan) => {
+      const loanKey = subloan.loanId || 'unknown-loan'
+      if (!groups.has(loanKey)) {
+        groups.set(loanKey, [])
+      }
+      groups.get(loanKey)!.push(subloan)
+    })
+
+    return Array.from(groups.entries()).map(([loanId, subLoans]) => {
+      const first = subLoans[0]
+      const loanLabel = first?.loanTrack || `PRÉSTAMO ${loanId.slice(0, 8)}`
+      const sortedSubLoans = [...subLoans].sort(
+        (a, b) => (a.paymentNumber ?? 0) - (b.paymentNumber ?? 0)
+      )
+      const overdueCount = sortedSubLoans.filter(s => getSubloanUrgencyLevel(s) === 'overdue').length
+      const paidCount = sortedSubLoans.filter(s => isSubloanSettled(s)).length
+      const pendingCount = sortedSubLoans.length - paidCount
+      const summaryLabel =
+        overdueCount > 0
+          ? `${overdueCount} vencida${overdueCount === 1 ? '' : 's'}`
+          : pendingCount > 0
+          ? `${pendingCount} pendiente${pendingCount === 1 ? '' : 's'}`
+          : 'al día'
+
+      return {
+        loanId,
+        loanLabel,
+        subLoans: sortedSubLoans,
+        totalInstallments: sortedSubLoans.length,
+        summaryLabel,
+        overdueCount,
+      }
+    })
+  }, [clientSummary?.subLoans])
 
   if (!clientSummary) {
     return null
@@ -122,13 +162,39 @@ export default function ClientTimelineModal({
             </Box>
           </Box>
 
-          {/* Timeline Component */}
-          <LoanTimeline
-            clientName={clientSummary.clientName}
-            subLoans={clientSummary.subLoans}
-            compact={false}
-            onPaymentClick={onPaymentClick}
-          />
+          {/* Timeline Component (grouped by loan to avoid mixing installments) */}
+          {groupedByLoan.map((loanGroup) => (
+            <Box
+              key={loanGroup.loanId}
+              sx={{ mb: 3, p: 2, border: 1, borderColor: 'divider', borderRadius: 2 }}
+            >
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1, gap: 1 }}>
+                <Typography variant="subtitle1" fontWeight="bold">
+                  {`Préstamo ${loanGroup.loanLabel} (${loanGroup.totalInstallments} cuota${loanGroup.totalInstallments === 1 ? '' : 's'})`}
+                </Typography>
+                <Typography
+                  variant="caption"
+                  sx={{
+                    px: 1,
+                    py: 0.5,
+                    borderRadius: 1,
+                    bgcolor: loanGroup.overdueCount > 0 ? 'error.light' : 'success.light',
+                    color: loanGroup.overdueCount > 0 ? 'error.dark' : 'success.dark',
+                    fontWeight: 700,
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  {loanGroup.summaryLabel}
+                </Typography>
+              </Box>
+              <LoanTimeline
+                clientName={`${clientSummary.clientName} - ${loanGroup.loanLabel}`}
+                subLoans={loanGroup.subLoans}
+                compact={false}
+                onPaymentClick={onPaymentClick}
+              />
+            </Box>
+          ))}
 
           {/* Urgent Actions */}
           {(clientSummary.stats.overdue > 0 || clientSummary.stats.today > 0) && (
