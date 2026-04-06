@@ -42,8 +42,16 @@ class UsersService {
           ? (candidateObj.meta as PaginatedResponse<UserResponseDto>['meta'])
           : undefined;
 
-      if (data && meta) {
-        return { data, meta };
+      if (data) {
+        return {
+          data,
+          meta: meta ?? {
+            page: 1,
+            limit: data.length,
+            total: data.length,
+            totalPages: 1,
+          },
+        };
       }
     }
 
