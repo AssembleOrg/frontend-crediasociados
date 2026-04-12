@@ -119,6 +119,14 @@ class LoansService {
     return response.data.data || response.data || [];
   }
 
+  async getDashboardStats(): Promise<{
+    loansEvolution: Array<{ date: string; loans: number }>
+    paymentsDistribution: Array<{ status: string; count: number }>
+  }> {
+    const response = await api.get('/loans/dashboard-stats');
+    return response.data?.data || response.data;
+  }
+
   async getLoanById(id: string): Promise<LoanResponseDto> {
     const response = await api.get(`/loans/${id}`);
     return response.data.data;

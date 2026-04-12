@@ -58,7 +58,7 @@ export const useUsers = () => {
 
       if (authUser.role === 'prestamista') {
         // MANAGER/PRESTAMISTA doesn't manage users - skip fetch entirely
-        // lock released
+        setIsLoading(false)
         return
       } else if (authUser.role === 'superadmin') {
         // Only SUPERADMIN can see ALL users

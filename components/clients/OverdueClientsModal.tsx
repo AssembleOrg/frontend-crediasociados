@@ -38,6 +38,7 @@ import type { OverdueClientEntry } from '@/services/sub-loans.service'
 import { useUsers } from '@/hooks/useUsers'
 import { useCurrentUser } from '@/hooks/useCurrentUser'
 import { DateTime } from 'luxon'
+import { getFrequencyLabel } from '@/lib/formatters'
 
 interface OverdueClientsModalProps {
   open: boolean
@@ -196,7 +197,7 @@ export default function OverdueClientsModal({ open, onClose }: OverdueClientsMod
             {entry.loans.map(loan => (
               <Box key={loan.id} sx={{ mt: 1.5 }}>
                 <Typography variant="caption" color="text.secondary" fontWeight={600}>
-                  {loan.loanTrack} - {loan.paymentFrequency}
+                  {loan.loanTrack} - {getFrequencyLabel(loan.paymentFrequency)}
                 </Typography>
                 {loan.overdueInstallments.map(inst => (
                   <Box
@@ -288,7 +289,7 @@ export default function OverdueClientsModal({ open, onClose }: OverdueClientsMod
                           {loan.loanTrack}
                         </Typography>
                         <Typography variant="caption" color="text.secondary">
-                          {loan.paymentFrequency}
+                          {getFrequencyLabel(loan.paymentFrequency)}
                         </Typography>
                       </TableCell>
                     )}

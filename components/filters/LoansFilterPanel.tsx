@@ -120,8 +120,7 @@ export function LoansFilterPanel({ variant: _variant = 'expanded', onClose }: Lo
   }
 
   const handleLoanStatusFilter = (loanStatus: 'ACTIVE' | 'COMPLETED' | 'ALL' | null) => {
-    // 'ALL' means no filter - clear it
-    updateFilter('loanStatus', loanStatus === 'ALL' ? undefined : (loanStatus || undefined))
+    updateFilter('loanStatus', loanStatus || undefined)
   }
 
   return (

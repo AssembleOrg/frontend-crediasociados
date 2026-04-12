@@ -54,12 +54,12 @@ const PaymentsDistributionChart = dynamic(
 export default function PrestamistaDashboard() {
   const {
     clients,
-    loans,
-    subLoans,
+    loansEvolution,
+    paymentsDistribution,
     isLoading
   } = usePrestamistaDashboardData()
 
-  const chartData = usePrestamistaCharts(clients, loans, subLoans)
+  const chartData = usePrestamistaCharts(clients, loansEvolution, paymentsDistribution)
 
   // Wallet management
 

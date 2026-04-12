@@ -67,7 +67,7 @@ export function useLoans() {
 
       const response = await loansService.getLoansPaginated({
         page: params?.page || 1,
-        limit: params?.limit || 100,
+        limit: params?.limit || 25,
         loanStatus: 'ACTIVE',
       })
       const transformedLoans = response.data.map(apiLoanToLoan)

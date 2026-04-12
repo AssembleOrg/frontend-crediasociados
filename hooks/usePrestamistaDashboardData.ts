@@ -1,34 +1,54 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useClients } from '@/hooks/useClients'
-import { useLoans } from '@/hooks/useLoans'
-import { useSubLoans } from '@/hooks/useSubLoans'
+import { loansService } from '@/services/loans.service'
 
 export const usePrestamistaDashboardData = () => {
   const { clients, isLoading: clientsLoading } = useClients()
-  const { loans, isLoading: loansLoading } = useLoans()
-  const { allSubLoansWithClient, isLoading: subLoansLoading } = useSubLoans()
 
-  const [isInitialized, setIsInitialized] = useState(false)
+  const [loansEvolution, setLoansEvolution] = useState<Array<{ date: string; loans: number }>>([])
+  const [paymentsDistribution, setPaymentsDistribution] = useState<Array<{ status: string; count: number }>>([])
+  const [statsLoading, setStatsLoading] = useState(true)
+  const hasFetched = useRef(false)
 
   useEffect(() => {
-    if (!clientsLoading && !loansLoading && !subLoansLoading) {
-      setIsInitialized(true)
+    if (hasFetched.current) return
+    hasFetched.current = true
+
+    const loadStats = async () => {
+      try {
+        const stats = await loansService.getDashboardStats()
+        setLoansEvolution(stats.loansEvolution || [])
+        setPaymentsDistribution(stats.paymentsDistribution || [])
+      } catch {
+        // Graceful degradation
+      } finally {
+        setStatsLoading(false)
+      }
     }
-  }, [clientsLoading, loansLoading, subLoansLoading])
+    loadStats()
+  }, [])
 
   const refreshData = useCallback(async () => {
-    // Triggers re-fetch by hooks
-    setIsInitialized(false)
+    hasFetched.current = false
+    setStatsLoading(true)
+    try {
+      const stats = await loansService.getDashboardStats()
+      setLoansEvolution(stats.loansEvolution || [])
+      setPaymentsDistribution(stats.paymentsDistribution || [])
+    } catch {
+      // Graceful degradation
+    } finally {
+      setStatsLoading(false)
+    }
   }, [])
 
   return {
     clients,
-    loans,
-    subLoans: allSubLoansWithClient,
-    isLoading: clientsLoading || loansLoading || subLoansLoading,
-    isInitialized,
+    loansEvolution,
+    paymentsDistribution,
+    isLoading: clientsLoading || statsLoading,
     refreshData
   }
 }

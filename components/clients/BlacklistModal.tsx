@@ -152,9 +152,9 @@ export default function BlacklistModal({ open, onClose }: BlacklistModalProps) {
         </IconButton>
       </DialogTitle>
 
-      <DialogContent sx={{ p: { xs: 2, sm: 3 }, bgcolor: 'background.default' }}>
+      <DialogContent sx={{ p: { xs: 2, sm: 3 }, pt: { xs: 3, sm: 3 }, bgcolor: 'background.default' }}>
         {/* Actions bar */}
-        <Box sx={{ display: 'flex', gap: 2, mb: 3, flexWrap: 'wrap' }}>
+        <Box sx={{ display: 'flex', gap: 2, mb: 3, flexWrap: 'wrap', mt: 1 }}>
           <Button
             variant="contained"
             startIcon={<Add />}
