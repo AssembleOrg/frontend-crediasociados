@@ -19,6 +19,9 @@ import {
   Menu,
   MenuItem,
   useTheme,
+  useMediaQuery,
+  Card,
+  CardContent,
 } from '@mui/material';
 import {
   Search,
@@ -36,7 +39,8 @@ import { DeleteUserConfirmDialog } from '@/components/users/DeleteUserConfirmDia
 import { TableSkeleton } from '@/components/ui/TableSkeleton';
 
 export default function SubadminsPage() {
-  useTheme();
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
   const [searchTerm, setSearchTerm] = useState('');
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
@@ -219,157 +223,119 @@ export default function SubadminsPage() {
         </Paper>
       )}
 
-      <Paper elevation={1}>
-        <TableContainer>
-          <Table>
-            <TableHead>
-              <TableRow>
-                <TableCell>Sub-Administrador</TableCell>
-                <TableCell align='center'>Rol</TableCell>
-                <TableCell
-                  align='center'
-                  sx={{ display: { xs: 'none', sm: 'table-cell' } }}
-                >
-                  Cuota Total
-                </TableCell>
-                <TableCell
-                  align='center'
-                  sx={{ display: { xs: 'none', md: 'table-cell' } }}
-                >
-                  Cuota Usada
-                </TableCell>
-                <TableCell
-                  align='center'
-                  sx={{ display: { xs: 'none', lg: 'table-cell' } }}
-                >
-                  Cuota Disponible
-                </TableCell>
-                <TableCell
-                  align='center'
-                  sx={{ display: { xs: 'none', md: 'table-cell' } }}
-                >
-                  Teléfono
-                </TableCell>
-                <TableCell align='center'>Acciones</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {isLoading ? (
-                <TableSkeleton columns={6} rows={8} />
-              ) : (
-                <>
-                  {filteredSubadmins.map((subadmin) => (
-                    <TableRow
-                      key={subadmin.id}
-                      hover
-                    >
-                      <TableCell>
-                        <Typography
-                          variant='subtitle2'
-                          sx={{ fontWeight: 500 }}
-                        >
-                          {subadmin.fullName}
-                        </Typography>
-                        <Typography
-                          variant='caption'
-                          color='text.secondary'
-                        >
-                          {subadmin.email}
-                        </Typography>
-                        <Typography
-                          variant='caption'
-                          color='text.secondary'
-                          sx={{ display: { xs: 'block', sm: 'none' }, mt: 0.5 }}
-                        >
-                          Rol: {RoleUtils.getRoleDisplayName(subadmin.role as UserRole)} • Creado:{' '}
-                          {formatDate(subadmin.createdAt.toISOString())}
-                        </Typography>
-                      </TableCell>
-                      <TableCell align='center'>
-                        <Chip
-                          label={RoleUtils.getRoleDisplayName(subadmin.role as UserRole)}
-                          color='warning'
-                          size='small'
-                        />
-                      </TableCell>
-                      <TableCell
-                        align='center'
-                        sx={{ display: { xs: 'none', sm: 'table-cell' } }}
-                      >
-                        <Typography variant='body2' sx={{ fontWeight: 600 }}>
-                          {subadmin.clientQuota ?? 0}
-                        </Typography>
-                      </TableCell>
-                      <TableCell
-                        align='center'
-                        sx={{ display: { xs: 'none', md: 'table-cell' } }}
-                      >
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                          <Typography variant='body2' sx={{ fontWeight: 500 }}>
-                            {subadmin.usedClientQuota ?? 0}
+      {/* Mobile: Cards */}
+      {isMobile ? (
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+          {isLoading ? (
+            <Paper sx={{ p: 4, textAlign: 'center' }}>
+              <Typography color="text.secondary">Cargando...</Typography>
+            </Paper>
+          ) : filteredSubadmins.length === 0 ? (
+            <Paper sx={{ p: 4, textAlign: 'center' }}>
+              <Typography variant='body2' color='text.secondary'>
+                {subadmins.length === 0 ? 'No hay asociados registrados todavia' : 'No se encontraron asociados'}
+              </Typography>
+            </Paper>
+          ) : (
+            filteredSubadmins.map((subadmin) => {
+              const quotaPct = calculateQuotaPercentage(subadmin.usedClientQuota ?? 0, subadmin.clientQuota ?? 0);
+              const available = (subadmin.clientQuota ?? 0) - (subadmin.usedClientQuota ?? 0);
+              return (
+                <Card key={subadmin.id} variant="outlined">
+                  <CardContent sx={{ px: 2, py: 1.5, '&:last-child': { pb: 1.5 } }}>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 0.5 }}>
+                      <Box sx={{ flex: 1, minWidth: 0 }}>
+                        <Typography variant="subtitle2" fontWeight={600} noWrap>{subadmin.fullName}</Typography>
+                        <Typography variant="caption" color="text.secondary" display="block" noWrap>{subadmin.email}</Typography>
+                      </Box>
+                      <IconButton size="small" onClick={(e) => handleMenuOpen(e, subadmin.id)}>
+                        <MoreVert />
+                      </IconButton>
+                    </Box>
+                    <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', flexWrap: 'wrap', mt: 1 }}>
+                      <Chip
+                        label={`${subadmin.usedClientQuota ?? 0} / ${subadmin.clientQuota ?? 0} clientes`}
+                        size="small"
+                        color={getQuotaColor(quotaPct)}
+                        variant="outlined"
+                        sx={{ fontWeight: 600, fontSize: '0.75rem' }}
+                      />
+                      <Chip
+                        label={`${available} disponibles`}
+                        size="small"
+                        color={available > 0 ? 'success' : 'default'}
+                        sx={{ fontWeight: 500, fontSize: '0.75rem' }}
+                      />
+                    </Box>
+                  </CardContent>
+                </Card>
+              );
+            })
+          )}
+        </Box>
+      ) : (
+        /* Desktop: Table */
+        <Paper elevation={1}>
+          <TableContainer>
+            <Table>
+              <TableHead>
+                <TableRow>
+                  <TableCell>Asociado</TableCell>
+                  <TableCell align='center'>Rol</TableCell>
+                  <TableCell align='center'>Cuota Total</TableCell>
+                  <TableCell align='center' sx={{ display: { xs: 'none', md: 'table-cell' } }}>Cuota Usada</TableCell>
+                  <TableCell align='center' sx={{ display: { xs: 'none', lg: 'table-cell' } }}>Disponible</TableCell>
+                  <TableCell align='center' sx={{ display: { xs: 'none', md: 'table-cell' } }}>Telefono</TableCell>
+                  <TableCell align='center'>Acciones</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {isLoading ? (
+                  <TableSkeleton columns={7} rows={8} />
+                ) : (
+                  <>
+                    {filteredSubadmins.map((subadmin) => (
+                      <TableRow key={subadmin.id} hover>
+                        <TableCell>
+                          <Typography variant='subtitle2' sx={{ fontWeight: 500 }}>{subadmin.fullName}</Typography>
+                          <Typography variant='caption' color='text.secondary'>{subadmin.email}</Typography>
+                        </TableCell>
+                        <TableCell align='center'>
+                          <Chip label={RoleUtils.getRoleDisplayName(subadmin.role as UserRole)} color='warning' size='small' />
+                        </TableCell>
+                        <TableCell align='center'>
+                          <Typography variant='body2' sx={{ fontWeight: 600 }}>{subadmin.clientQuota ?? 0}</Typography>
+                        </TableCell>
+                        <TableCell align='center' sx={{ display: { xs: 'none', md: 'table-cell' } }}>
+                          <Typography variant='body2'>{subadmin.usedClientQuota ?? 0} ({calculateQuotaPercentage(subadmin.usedClientQuota ?? 0, subadmin.clientQuota ?? 0)}%)</Typography>
+                        </TableCell>
+                        <TableCell align='center' sx={{ display: { xs: 'none', lg: 'table-cell' } }}>
+                          <Chip label={(subadmin.clientQuota ?? 0) - (subadmin.usedClientQuota ?? 0)} color={getQuotaColor(calculateQuotaPercentage(subadmin.usedClientQuota ?? 0, subadmin.clientQuota ?? 0))} variant='outlined' size='small' sx={{ fontWeight: 600 }} />
+                        </TableCell>
+                        <TableCell align='center' sx={{ display: { xs: 'none', md: 'table-cell' } }}>
+                          <Typography variant='body2' color='text.secondary'>{subadmin.phone || '-'}</Typography>
+                        </TableCell>
+                        <TableCell align='center'>
+                          <IconButton size='small' onClick={(e) => handleMenuOpen(e, subadmin.id)}><MoreVert /></IconButton>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                    {filteredSubadmins.length === 0 && !isLoading && (
+                      <TableRow>
+                        <TableCell colSpan={7} sx={{ textAlign: 'center', py: 4 }}>
+                          <Typography variant='body2' color='text.secondary'>
+                            {subadmins.length === 0 ? 'No hay asociados registrados todavia' : 'No se encontraron asociados'}
                           </Typography>
-                          <Typography variant='caption' color='text.secondary'>
-                            ({calculateQuotaPercentage(subadmin.usedClientQuota ?? 0, subadmin.clientQuota ?? 0)}%)
-                          </Typography>
-                        </Box>
-                      </TableCell>
-                      <TableCell
-                        align='center'
-                        sx={{ display: { xs: 'none', lg: 'table-cell' } }}
-                      >
-                        <Chip
-                          label={(subadmin.clientQuota ?? 0) - (subadmin.usedClientQuota ?? 0)}
-                          color={getQuotaColor(calculateQuotaPercentage(subadmin.usedClientQuota ?? 0, subadmin.clientQuota ?? 0))}
-                          variant='outlined'
-                          size='small'
-                          sx={{ fontWeight: 600 }}
-                        />
-                      </TableCell>
-                      <TableCell
-                        align='center'
-                        sx={{ display: { xs: 'none', md: 'table-cell' } }}
-                      >
-                        <Typography
-                          variant='body2'
-                          color='text.secondary'
-                        >
-                          {subadmin.phone || 'No especificado'}
-                        </Typography>
-                      </TableCell>
-                      <TableCell align='center'>
-                        <IconButton
-                          size='small'
-                          onClick={(e) => handleMenuOpen(e, subadmin.id)}
-                        >
-                          <MoreVert />
-                        </IconButton>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-
-                  {filteredSubadmins.length === 0 && !isLoading && (
-                    <TableRow>
-                      <TableCell
-                        colSpan={7}
-                        sx={{ textAlign: 'center', py: 4 }}
-                      >
-                        <Typography
-                          variant='body2'
-                          color='text.secondary'
-                        >
-                          {subadmins.length === 0
-                            ? 'No hay asociados registrados todavía'
-                            : 'No se encontraron asociados que coincidan con la búsqueda'}
-                        </Typography>
-                      </TableCell>
-                    </TableRow>
-                  )}
-                </>
-              )}
-            </TableBody>
-          </Table>
-        </TableContainer>
-      </Paper>
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </>
+                )}
+              </TableBody>
+            </Table>
+          </TableContainer>
+        </Paper>
+      )}
 
       <Menu
         anchorEl={anchorEl}

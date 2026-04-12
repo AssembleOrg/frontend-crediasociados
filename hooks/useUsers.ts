@@ -38,16 +38,16 @@ export const useUsers = () => {
   const abortControllerRef = useRef<AbortController | null>(null)
 
   const fetchUsers = useCallback(async (params?: PaginationParams): Promise<void> => {
-    if (!authUser) return
+    const authState = useAuthStore.getState()
+    const user = authState.currentUser
+    const role = user?.role || authState.userRole
 
-    // Prevent DUPLICATE in-flight requests, but allow refresh after completion
-    // Deduplication handled at service level via requestDeduplicator
+    if (!user && !authState.isAuthenticated) return
 
     setIsLoading(true)
     setError(null)
 
     try {
-      // Cancel previous requests
       if (abortControllerRef.current) {
         abortControllerRef.current.abort()
       }
@@ -56,16 +56,15 @@ export const useUsers = () => {
       const filters = { ...usersStore.filters, ...params }
       let response
 
-      if (authUser.role === 'prestamista') {
-        // MANAGER/PRESTAMISTA doesn't manage users - skip fetch entirely
+      if (role === 'prestamista') {
         setIsLoading(false)
         return
-      } else if (authUser.role === 'superadmin') {
-        // Only SUPERADMIN can see ALL users
+      } else if (role === 'superadmin') {
         response = await usersService.getUsers(filters)
       } else {
-        // ADMIN and SUBADMIN see only users they created (hierarchical access)
-        response = await usersService.getCreatedUsers(authUser?.id || '', filters)
+        // ADMIN and SUBADMIN
+        const userId = user?.id || authState.userId || ''
+        response = await usersService.getCreatedUsers(userId, filters)
       }
 
       const users = response.data.map(apiUserToUser)
@@ -95,7 +94,7 @@ export const useUsers = () => {
       setIsLoading(false)
       // lock released
     }
-  }, [authUser])
+  }, []) // Stable reference - reads auth from store directly
 
   const createUser = useCallback(async (
     userData: Omit<User, 'id' | 'createdAt' | 'updatedAt'> & { password: string }
@@ -281,10 +280,10 @@ export const useUsers = () => {
     }
   }, [])
 
+  // Fetch complete user data if quotas are missing (after F5)
   useEffect(() => {
     if (!currentUser) return
 
-    // Fetch complete user data if quotas are missing (after F5)
     const hasIncompleteData =
       currentUser.clientQuota === undefined ||
       currentUser.usedClientQuota === undefined ||
@@ -297,19 +296,11 @@ export const useUsers = () => {
         }
       });
     }
+  }, [currentUser?.id])
 
-    // Only fetch if store is empty - prevents N duplicate calls
-    // when multiple components use useUsers() on the same page
-    if (usersStore.users.length === 0) {
-      fetchUsers()
-    }
-
-    return () => {
-      if (abortControllerRef.current) {
-        abortControllerRef.current.abort()
-      }
-    }
-  }, [currentUser?.id]) // Only depend on ID to avoid infinite loops
+  // NOTE: fetchUsers() is NOT auto-called here.
+  // Each layout (subadmin, admin) calls fetchUsers() explicitly on mount.
+  // This avoids timing issues with auth hooks after login.
 
   const clearError = useCallback(() => {
     setError(null)

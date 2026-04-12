@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect } from 'react';
 import {
   Box,
   Paper,
@@ -11,6 +12,7 @@ import {
 import { Dashboard, People, Analytics } from '@mui/icons-material';
 import { useRouter, usePathname } from 'next/navigation';
 import { QuickActions } from '@/components/dashboard/QuickActions';
+import { useUsers } from '@/hooks/useUsers';
 
 const adminMenuItems = [
   { label: 'Dashboard', icon: <Dashboard />, path: '/dashboard/admin' },
@@ -52,6 +54,11 @@ export default function AdminLayout({
 }) {
   const router = useRouter();
   const pathname = usePathname();
+  const { fetchUsers } = useUsers();
+
+  useEffect(() => {
+    fetchUsers();
+  }, []);
 
   return (
     <Box

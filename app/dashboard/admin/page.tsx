@@ -40,10 +40,10 @@ export default function AdminDashboard() {
 
   if (error) {
     return (
-      <Box sx={{ p: 3 }}>
+      <Box sx={{ p: { xs: 1, sm: 2, md: 3 } }}>
         <PageHeader
           title="Dashboard Principal"
-          subtitle="Gestión de red y análisis"
+          subtitle="Gestion de red y analisis"
         />
         <Alert severity="error" sx={{ mt: 2 }}>
           {error}
@@ -53,7 +53,7 @@ export default function AdminDashboard() {
   }
 
   return (
-    <Box sx={{ p: 3 }}>
+    <Box sx={{ p: { xs: 1, sm: 2, md: 3 } }}>
       {/* Header */}
       <PageHeader
         title="Dashboard Principal"
@@ -138,10 +138,11 @@ export default function AdminDashboard() {
         onClose={() => setSimulatorOpen(false)}
         maxWidth="lg"
         fullWidth
+        fullScreen={isMobile}
         PaperProps={{
           sx: {
-            borderRadius: 3,
-            boxShadow: '0 20px 40px rgba(0,0,0,0.1)',
+            borderRadius: isMobile ? 0 : 3,
+            m: { xs: 0, sm: 2 },
           }
         }}
       >

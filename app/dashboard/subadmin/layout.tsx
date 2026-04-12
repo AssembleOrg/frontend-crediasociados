@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect } from 'react';
 import {
   Box,
   Paper,
@@ -12,6 +13,7 @@ import { Dashboard, People, Analytics, Receipt, Payment } from '@mui/icons-mater
 import { useRouter, usePathname } from 'next/navigation';
 import { QuickActions } from '@/components/dashboard/QuickActions';
 import DashboardDataProvider from '@/components/providers/DashboardDataProvider';
+import { useUsers } from '@/hooks/useUsers';
 
 const subadminMenuItems = [
   { label: 'Dashboard', icon: <Dashboard />, path: '/dashboard/subadmin' },
@@ -82,6 +84,11 @@ export default function SubadminLayout({
 }) {
   const router = useRouter();
   const pathname = usePathname();
+  const { users, fetchUsers } = useUsers();
+
+  useEffect(() => {
+    fetchUsers();
+  }, []);
 
   return (
     <DashboardDataProvider>

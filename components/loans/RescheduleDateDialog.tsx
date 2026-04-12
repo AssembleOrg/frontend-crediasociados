@@ -90,7 +90,7 @@ export default function RescheduleDateDialog({
     }
   }
 
-  const isDateValid = newDate > todayIso
+  const isDateValid = newDate >= todayIso
 
   const generateCalendarDays = () => {
     const startOfMonth = calendarMonth.startOf('month')
@@ -139,7 +139,7 @@ export default function RescheduleDateDialog({
           sx={{ mb: 2, mt: 1 }}
           InputLabelProps={{ shrink: true }}
           error={dateInput.length === 10 && !isDateValid}
-          helperText={dateInput.length === 10 && !isDateValid ? 'La fecha debe ser posterior a hoy' : ''}
+          helperText={dateInput.length === 10 && !isDateValid ? 'La fecha no puede ser anterior a hoy' : ''}
         />
 
         <Box sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2, p: 1.5 }}>
@@ -168,7 +168,7 @@ export default function RescheduleDateDialog({
               const isSelected = day.toISODate() === newDate
               const isCurrentMonth = day.month === calendarMonth.month
               const isTodayDate = day.equals(today)
-              const isDisabled = day <= today
+              const isDisabled = day < today
 
               return (
                 <Button
