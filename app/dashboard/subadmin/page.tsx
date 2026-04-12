@@ -3,7 +3,7 @@
 import React, { useState, useMemo } from 'react'
 import dynamic from 'next/dynamic'
 import { Box, CircularProgress, Typography, Alert, Grid, Button, useMediaQuery, Dialog, DialogTitle, DialogContent, DialogActions, Card, CardContent, Chip } from '@mui/material'
-import { ExpandMore, ExpandLess, Calculate, PersonOff, AccountBalance, VerifiedUser } from '@mui/icons-material'
+import { ExpandMore, ExpandLess, Calculate, PersonOff, AccountBalance, VerifiedUser, Warning, Block } from '@mui/icons-material'
 import PageHeader from '@/components/ui/PageHeader'
 import { useSubadminDashboardData } from '@/hooks/useSubadminDashboardData'
 import { useSubadminCharts } from '@/hooks/useSubadminCharts'
@@ -28,6 +28,18 @@ const ActiveLoansClientsModal = dynamic(
 // Dynamic import for UnverifiedClientsModal
 const UnverifiedClientsModal = dynamic(
   () => import('@/components/clients/UnverifiedClientsModal'),
+  { ssr: false }
+)
+
+// Dynamic import for OverdueClientsModal
+const OverdueClientsModal = dynamic(
+  () => import('@/components/clients/OverdueClientsModal'),
+  { ssr: false }
+)
+
+// Dynamic import for BlacklistModal
+const BlacklistModal = dynamic(
+  () => import('@/components/clients/BlacklistModal'),
   { ssr: false }
 )
 
@@ -72,6 +84,8 @@ export default function SubadminDashboard() {
   const [inactiveClientsModalOpen, setInactiveClientsModalOpen] = useState(false)
   const [activeLoansClientsModalOpen, setActiveLoansClientsModalOpen] = useState(false)
   const [unverifiedClientsModalOpen, setUnverifiedClientsModalOpen] = useState(false)
+  const [overdueClientsModalOpen, setOverdueClientsModalOpen] = useState(false)
+  const [blacklistModalOpen, setBlacklistModalOpen] = useState(false)
   const [unverifiedClientsCount, setUnverifiedClientsCount] = useState<number | null>(null)
 
   // Fix hydration: use useMemo to calculate createdAt only on client
@@ -255,6 +269,90 @@ export default function SubadminDashboard() {
         </CardContent>
       </Card>
 
+      {/* Overdue Clients Card */}
+      <Card
+        sx={{
+          mb: 3,
+          cursor: 'pointer',
+          transition: 'all 0.2s',
+          background: 'linear-gradient(135deg, #d32f2f 0%, #f44336 100%)',
+          color: 'white',
+          '&:hover': {
+            transform: 'translateY(-4px)',
+            boxShadow: '0 12px 28px rgba(244, 67, 54, 0.3)',
+          },
+        }}
+        onClick={() => setOverdueClientsModalOpen(true)}
+      >
+        <CardContent sx={{ p: 3 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            <Box
+              sx={{
+                width: 64,
+                height: 64,
+                borderRadius: 2,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                bgcolor: 'rgba(255,255,255,0.2)',
+              }}
+            >
+              <Warning sx={{ fontSize: 32 }} />
+            </Box>
+            <Box sx={{ flex: 1 }}>
+              <Typography variant="h6" fontWeight={600} gutterBottom>
+                Clientes con Cuotas Vencidas
+              </Typography>
+              <Typography variant="body2" sx={{ opacity: 0.9 }}>
+                Consulta los clientes con cuotas vencidas de tus managers
+              </Typography>
+            </Box>
+          </Box>
+        </CardContent>
+      </Card>
+
+      {/* Blacklist Card */}
+      <Card
+        sx={{
+          mb: 3,
+          cursor: 'pointer',
+          transition: 'all 0.2s',
+          background: 'linear-gradient(135deg, #424242 0%, #616161 100%)',
+          color: 'white',
+          '&:hover': {
+            transform: 'translateY(-4px)',
+            boxShadow: '0 12px 28px rgba(66, 66, 66, 0.3)',
+          },
+        }}
+        onClick={() => setBlacklistModalOpen(true)}
+      >
+        <CardContent sx={{ p: 3 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            <Box
+              sx={{
+                width: 64,
+                height: 64,
+                borderRadius: 2,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                bgcolor: 'rgba(255,255,255,0.2)',
+              }}
+            >
+              <Block sx={{ fontSize: 32 }} />
+            </Box>
+            <Box sx={{ flex: 1 }}>
+              <Typography variant="h6" fontWeight={600} gutterBottom>
+                Lista Negra
+              </Typography>
+              <Typography variant="body2" sx={{ opacity: 0.9 }}>
+                Gestiona clientes baneados del sistema
+              </Typography>
+            </Box>
+          </Box>
+        </CardContent>
+      </Card>
+
       {/* Active Loans Clients Card */}
       <Card
         sx={{
@@ -413,6 +511,18 @@ export default function SubadminDashboard() {
       <ActiveLoansClientsModal
         open={activeLoansClientsModalOpen}
         onClose={() => setActiveLoansClientsModalOpen(false)}
+      />
+
+      {/* Blacklist Modal */}
+      <BlacklistModal
+        open={blacklistModalOpen}
+        onClose={() => setBlacklistModalOpen(false)}
+      />
+
+      {/* Overdue Clients Modal */}
+      <OverdueClientsModal
+        open={overdueClientsModalOpen}
+        onClose={() => setOverdueClientsModalOpen(false)}
       />
 
       {/* Unverified Clients Modal */}

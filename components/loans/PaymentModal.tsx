@@ -23,7 +23,7 @@ import {
   Chip,
   CircularProgress
 } from '@mui/material'
-import { Payment, AttachMoney, PictureAsPdf, Info, Warning } from '@mui/icons-material'
+import { Payment, AttachMoney, PictureAsPdf, Info, Warning, TuneRounded } from '@mui/icons-material'
 import { formatAmount, unformatAmount, formatCurrencyDisplay, numberToFormattedAmount } from '@/lib/formatters'
 import { generatePaymentPDF, type PaymentReceiptData } from '@/utils/pdf/paymentReceipt'
 import { useOperativa } from '@/hooks/useOperativa'
@@ -59,7 +59,9 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
   const [notes, setNotes] = useState<string>('')
   const [generatePDF, setGeneratePDF] = useState<boolean>(false) // Default: do not generate PDF
   const [isRegistering, setIsRegistering] = useState<boolean>(false) // ✅ Loading state for button
-  const [hasUserEdited, setHasUserEdited] = useState<boolean>(false) // ✅ Track if user manually edited the amount
+  const [hasUserEdited, setHasUserEdited] = useState<boolean>(false)
+  const [adjustEnabled, setAdjustEnabled] = useState<boolean>(false)
+  const [adjustedAmount, setAdjustedAmount] = useState<string>('') // new total amount for the installment
   const [paymentPreview, setPaymentPreview] = useState<{
     remainingAfterPayment: number
     status: 'PARTIAL' | 'PAID'
@@ -95,7 +97,9 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
       setReceiptData(null)
       return
     }
-    setHasUserEdited(false) // Reset edit flag when modal opens
+    setHasUserEdited(false)
+    setAdjustEnabled(false)
+    setAdjustedAmount('')
     if (mode === 'single' && subloan) {
       setSelectedSubloanId(subloan.id ?? '')
       // Auto-fill with pending amount (partial payments allowed)
@@ -127,17 +131,18 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
     }
   }, [selectedSubloanId, open, mode, hasUserEdited, currentSubloan])
 
+  // Effective total amount for this installment (adjusted or original)
+  const effectiveTotalAmount = adjustEnabled && adjustedAmount
+    ? (parseFloat(unformatAmount(adjustedAmount)) || 0)
+    : (currentSubloan?.totalAmount ?? 0)
+
   // Calculate payment preview (status changes)
   useEffect(() => {
     if (currentSubloan && paymentAmount) {
-      // Convert formatted string to number (handles both "23.130,43" and "23130,43" formats)
       const amountValue = parseFloat(unformatAmount(paymentAmount)) || 0
       const currentPaidAmount = currentSubloan.paidAmount || 0
-      const currentTotalAmount = currentSubloan.totalAmount ?? 0
       const newPaidAmount = currentPaidAmount + amountValue
-      // Use a small epsilon to handle floating point precision issues
-      const remainingAfterPayment = Math.max(0, currentTotalAmount - newPaidAmount)
-      // Consider it paid if remaining is less than 0.01 (1 centavo)
+      const remainingAfterPayment = Math.max(0, effectiveTotalAmount - newPaidAmount)
       const isPartial = newPaidAmount > 0 && remainingAfterPayment >= 0.01
       const status = remainingAfterPayment < 0.01 ? 'PAID' : 'PARTIAL'
 
@@ -149,7 +154,16 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
     } else {
       setPaymentPreview(null)
     }
-  }, [currentSubloan, paymentAmount])
+  }, [currentSubloan, paymentAmount, effectiveTotalAmount])
+
+  // When adjusted amount changes, auto-fill payment with the new pending amount
+  useEffect(() => {
+    if (adjustEnabled && currentSubloan && !hasUserEdited && adjustedAmount) {
+      const newTotal = parseFloat(unformatAmount(adjustedAmount)) || 0
+      const pendingAmount = newTotal - (currentSubloan.paidAmount || 0)
+      setPaymentAmount(pendingAmount > 0 ? numberToFormattedAmount(pendingAmount) : '')
+    }
+  }, [adjustedAmount, adjustEnabled])
 
   const handleRegisterPayment = async () => {
     if (!currentSubloan) return
@@ -182,7 +196,8 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
         amount: amountValue,
         currency: 'ARS',
         paymentDate: paymentDate,
-        description: notes || undefined
+        description: notes || undefined,
+        ...(adjustEnabled && adjustedAmount ? { adjustedTotalAmount: parseFloat(unformatAmount(adjustedAmount)) || undefined } : {}),
       })
 
       if (paymentResult) {
@@ -569,12 +584,82 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
                 }}
                 fullWidth
               /> */}
+              {/* Adjust Installment Amount - BEFORE payment amount */}
+              <Box sx={{ mb: 2, p: 2, border: '1px solid', borderColor: adjustEnabled ? 'primary.main' : 'divider', borderRadius: 2, bgcolor: adjustEnabled ? 'primary.lighter' : 'transparent', transition: 'all 0.2s' }}>
+                <FormControlLabel
+                  control={
+                    <Checkbox
+                      checked={adjustEnabled}
+                      onChange={(e) => {
+                        setAdjustEnabled(e.target.checked)
+                        if (!e.target.checked) {
+                          setAdjustedAmount('')
+                          if (currentSubloan && !hasUserEdited) {
+                            const pendingAmount = (currentSubloan.totalAmount ?? 0) - (currentSubloan.paidAmount || 0)
+                            setPaymentAmount(pendingAmount > 0 ? numberToFormattedAmount(pendingAmount) : '')
+                          }
+                        } else if (currentSubloan) {
+                          setAdjustedAmount(numberToFormattedAmount(currentSubloan.totalAmount ?? 0))
+                        }
+                      }}
+                      color="primary"
+                      size="small"
+                    />
+                  }
+                  label={
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <TuneRounded fontSize="small" color={adjustEnabled ? 'primary' : 'action'} />
+                      <Typography variant="body2" fontWeight={adjustEnabled ? 600 : 400}>
+                        Ajustar monto de esta cuota
+                      </Typography>
+                    </Box>
+                  }
+                />
+                {adjustEnabled && currentSubloan && (
+                  <Box sx={{ mt: 1.5 }}>
+                    <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 1 }}>
+                      Monto original: {formatCurrencyDisplay(currentSubloan.totalAmount ?? 0)}
+                    </Typography>
+                    <TextField
+                      size="small"
+                      fullWidth
+                      label="Nuevo monto de la cuota"
+                      type="text"
+                      inputMode="numeric"
+                      value={formatAmount(adjustedAmount)}
+                      onChange={(e) => {
+                        const raw = unformatAmount(e.target.value)
+                        setAdjustedAmount(raw)
+                      }}
+                      InputProps={{
+                        startAdornment: <InputAdornment position="start">$</InputAdornment>,
+                      }}
+                      sx={{ mb: 1 }}
+                    />
+                    {effectiveTotalAmount !== (currentSubloan.totalAmount ?? 0) && effectiveTotalAmount > 0 && (
+                      <Alert
+                        severity={effectiveTotalAmount < (currentSubloan.totalAmount ?? 0) ? 'success' : 'warning'}
+                        sx={{ py: 0.5 }}
+                      >
+                        <Typography variant="caption">
+                          {effectiveTotalAmount < (currentSubloan.totalAmount ?? 0)
+                            ? `Cuota reducida a ${formatCurrencyDisplay(effectiveTotalAmount)} (descuento de ${formatCurrencyDisplay((currentSubloan.totalAmount ?? 0) - effectiveTotalAmount)})`
+                            : `Cuota aumentada a ${formatCurrencyDisplay(effectiveTotalAmount)} (recargo de ${formatCurrencyDisplay(effectiveTotalAmount - (currentSubloan.totalAmount ?? 0))})`
+                          }
+                        </Typography>
+                      </Alert>
+                    )}
+                  </Box>
+                )}
+              </Box>
+
+              {/* Payment Amount - right after adjustment */}
               <TextField
                 label="Monto a Registrar"
                 type="text"
                 value={formatAmount(paymentAmount)}
                 onChange={(e) => {
-                  setHasUserEdited(true) // Mark as edited
+                  setHasUserEdited(true)
                   const raw = unformatAmount(e.target.value)
                   setPaymentAmount(raw)
                 }}
@@ -585,27 +670,25 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
                       <AttachMoney />
                     </InputAdornment>
                   ),
-                  sx: {
-                    borderRadius: 2,
-                  }
+                  sx: { borderRadius: 2 }
                 }}
-                helperText={`Pendiente: ${formatCurrency((currentSubloan.totalAmount ?? 0) - (currentSubloan.paidAmount || 0))} - Puedes pagar parcialmente`}
+                helperText={`Pendiente: ${formatCurrencyDisplay(effectiveTotalAmount - (currentSubloan.paidAmount || 0))} - Puedes pagar parcialmente`}
                 fullWidth
               />
             </Box>
 
-            {/* Payment Preview - Status Display */}
+            {/* Payment Preview */}
             {paymentPreview && (
               <Alert
                 icon={<Info />}
                 severity={paymentPreview.isPartial ? 'warning' : 'success'}
                 sx={{ mb: 3 }}
               >
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, justifyContent: 'space-between' }}>
+                <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, alignItems: { sm: 'center' }, gap: 1, justifyContent: 'space-between' }}>
                   <Typography variant="body2">
                     {paymentPreview.isPartial
-                      ? `⚠️ Este será un pago PARCIAL`
-                      : `✅ Este completará el pago (PAGADO)`}
+                      ? 'Este sera un pago PARCIAL'
+                      : 'Este completara el pago (PAGADO)'}
                   </Typography>
                   <Box sx={{ display: 'flex', gap: 1 }}>
                     <Chip
@@ -616,7 +699,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
                     />
                     {paymentPreview.remainingAfterPayment > 0 && (
                       <Typography variant="caption" sx={{ color: 'warning.main', fontWeight: 600 }}>
-                        Restará: {formatCurrencyDisplay(paymentPreview.remainingAfterPayment)}
+                        Restara: {formatCurrencyDisplay(paymentPreview.remainingAfterPayment)}
                       </Typography>
                     )}
                   </Box>

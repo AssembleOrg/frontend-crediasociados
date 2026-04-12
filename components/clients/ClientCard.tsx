@@ -132,149 +132,85 @@ export function ClientCard({ client, onEdit, onDelete }: ClientCardProps) {
   return (
     <Card
       onClick={() => onEdit(client)}
+      variant="outlined"
       sx={{
-        mb: 2,
+        mb: 1.5,
         opacity: client.verified === false ? 0.7 : 1,
         bgcolor: client.verified === false ? 'grey.50' : 'background.paper',
-        '&:hover': {
-          transform: 'scale(1.01)',
-          boxShadow: 3,
-        },
         cursor: 'pointer',
-        transition: 'all 0.2s ease-in-out',
       }}
     >
-      <CardContent sx={{ p: { xs: 1.5, sm: 2 }, '&:last-child': { pb: { xs: 1.5, sm: 2 } } }}>
-        {/* Header: Nombre + Estado + Notas */}
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1.5 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <Person color="primary" fontSize="small" />
-            <Typography
-              variant="h6"
-              component="h3"
-              fontWeight="bold"
-              sx={{
-                color: client.verified === false ? 'text.disabled' : 'text.primary',
-                opacity: client.verified === false ? 0.6 : 1
-              }}
-            >
-              {client.fullName || 'Sin nombre'}
-            </Typography>
-          </Box>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-            <Tooltip title="Notas del préstamo">
-              <IconButton
-                size="medium"
-                onClick={handleNotesClick}
-                disabled={loadingNotes}
-                sx={{
-                  color: 'text.secondary',
-                  minWidth: 44,
-                  minHeight: 44,
-                }}
-              >
-                {loadingNotes ? <CircularProgress size={24} /> : <Description />}
-              </IconButton>
-            </Tooltip>
-            {getStatusChip()}
-          </Box>
+      <CardContent sx={{ px: { xs: 1.5, sm: 2 }, py: 1.5, '&:last-child': { pb: 1.5 } }}>
+        {/* Name */}
+        <Typography
+          variant="subtitle1"
+          fontWeight={600}
+          sx={{ color: client.verified === false ? 'text.disabled' : 'text.primary', mb: 0.5 }}
+        >
+          {client.fullName || 'Sin nombre'}
+        </Typography>
+
+        {/* Status */}
+        <Box sx={{ mb: 1 }}>
+          {getStatusChip()}
         </Box>
 
-        {/* Info Grid - 2 columnas en sm+, 1 en mobile */}
-        <Box sx={{
-          display: 'grid',
-          gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' },
-          gap: { xs: 0.5, sm: 1 },
-          mb: 2
-        }}>
-          {/* Col 1: DNI + Teléfono + CUIT */}
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
-            {client.dni && (
-              <Typography variant="body2" color="text.secondary" sx={{ display: 'flex', alignItems: 'center' }}>
-                <Badge sx={{ fontSize: 16, mr: 0.5 }} />
-                {client.dni}
-              </Typography>
-            )}
-            {client.phone && (
-              <Typography variant="body2" color="text.secondary" sx={{ display: 'flex', alignItems: 'center' }}>
-                <Phone sx={{ fontSize: 16, mr: 0.5 }} />
-                {client.phone}
-              </Typography>
-            )}
-            {client.cuit && (
-              <Typography variant="body2" color="text.secondary" sx={{ display: 'flex', alignItems: 'center' }}>
-                <Numbers sx={{ fontSize: 16, mr: 0.5 }} />
-                {client.cuit}
-              </Typography>
-            )}
-          </Box>
+        {/* Info - each on its own line */}
+        {client.dni && (
+          <Typography variant="body2" color="text.secondary" sx={{ display: 'flex', alignItems: 'center', mb: 0.25 }}>
+            <Badge sx={{ fontSize: 16, mr: 0.75, color: 'text.disabled' }} />
+            DNI: {client.dni}
+          </Typography>
+        )}
+        {client.phone && (
+          <Typography variant="body2" color="text.secondary" sx={{ display: 'flex', alignItems: 'center', mb: 0.25 }}>
+            <Phone sx={{ fontSize: 16, mr: 0.75, color: 'text.disabled' }} />
+            {client.phone}
+          </Typography>
+        )}
+        {client.email && (
+          <Typography variant="body2" color="text.secondary" sx={{ display: 'flex', alignItems: 'flex-start', mb: 0.25, wordBreak: 'break-all' }}>
+            <Email sx={{ fontSize: 16, mr: 0.75, flexShrink: 0, color: 'text.disabled', mt: '2px' }} />
+            {client.email}
+          </Typography>
+        )}
+        {client.job && (
+          <Typography variant="body2" color="text.secondary" sx={{ display: 'flex', alignItems: 'flex-start', mb: 0.25 }}>
+            <Work sx={{ fontSize: 16, mr: 0.75, flexShrink: 0, color: 'text.disabled', mt: '2px' }} />
+            {client.job}
+          </Typography>
+        )}
+        {client.address && (
+          <Typography variant="body2" color="text.secondary" sx={{ display: 'flex', alignItems: 'flex-start', mb: 0.25 }}>
+            <LocationOn sx={{ fontSize: 16, mr: 0.75, flexShrink: 0, color: 'text.disabled', mt: '2px' }} />
+            {client.address}
+          </Typography>
+        )}
 
-          {/* Col 2: Email + Dirección + Ocupación */}
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
-            {client.email && (
-              <Typography variant="body2" color="text.secondary" noWrap sx={{ display: 'flex', alignItems: 'center' }}>
-                <Email sx={{ fontSize: 16, mr: 0.5, flexShrink: 0 }} />
-                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{client.email}</span>
-              </Typography>
-            )}
-            {client.address && (
-              <Typography variant="body2" color="text.secondary" noWrap sx={{ display: 'flex', alignItems: 'center' }}>
-                <LocationOn sx={{ fontSize: 16, mr: 0.5, flexShrink: 0 }} />
-                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{client.address}</span>
-              </Typography>
-            )}
-            {client.job && (
-              <Typography variant="body2" color="text.secondary" noWrap sx={{ display: 'flex', alignItems: 'center' }}>
-                <Work sx={{ fontSize: 16, mr: 0.5, flexShrink: 0 }} />
-                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{client.job}</span>
-              </Typography>
-            )}
-          </Box>
-        </Box>
-
-        {/* Actions: Touch-friendly buttons */}
-        <Box sx={{
-          display: 'flex',
-          gap: 1,
-          pt: 1,
-          borderTop: 1,
-          borderColor: 'divider'
-        }}>
-          <Button
-            variant="contained"
+        {/* Actions */}
+        <Box sx={{ display: 'flex', gap: 0.5, justifyContent: 'flex-end', borderTop: '1px solid', borderColor: 'divider', pt: 1, mt: 1 }}>
+          <IconButton
+            size="small"
+            onClick={handleNotesClick}
+            disabled={loadingNotes}
+            color="info"
+          >
+            {loadingNotes ? <CircularProgress size={16} /> : <Description fontSize="small" />}
+          </IconButton>
+          <IconButton
+            size="small"
             color="primary"
-            size="large"
-            startIcon={<Edit />}
-            onClick={(e) => {
-              e.stopPropagation()
-              onEdit(client)
-            }}
-            sx={{
-              flex: 1,
-              minHeight: 44, // Touch target minimum
-              borderRadius: 2
-            }}
+            onClick={(e) => { e.stopPropagation(); onEdit(client) }}
           >
-            Editar
-          </Button>
-
-          <Button
-            variant="outlined"
+            <Edit fontSize="small" />
+          </IconButton>
+          <IconButton
+            size="small"
             color="error"
-            size="large"
-            startIcon={<Delete />}
-            onClick={(e) => {
-              e.stopPropagation()
-              onDelete(client)
-            }}
-            sx={{
-              flex: 1,
-              minHeight: 44, // Touch target minimum
-              borderRadius: 2
-            }}
+            onClick={(e) => { e.stopPropagation(); onDelete(client) }}
           >
-            Eliminar
-          </Button>
+            <Delete fontSize="small" />
+          </IconButton>
         </Box>
       </CardContent>
 

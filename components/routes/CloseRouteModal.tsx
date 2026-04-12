@@ -13,6 +13,8 @@ import {
   CircularProgress,
   Alert,
   Divider,
+  useTheme,
+  useMediaQuery,
 } from '@mui/material';
 import { CheckCircle, Cancel } from '@mui/icons-material';
 import { CollectionRoute } from '@/services/collection-routes.service';
@@ -29,6 +31,8 @@ interface CloseRouteModalProps {
  * Allows manager to add notes before closing
  */
 export function CloseRouteModal({ open, onClose, route, onConfirm }: CloseRouteModalProps) {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const [notes, setNotes] = useState('');
   const [isClosing, setIsClosing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -68,7 +72,7 @@ export function CloseRouteModal({ open, onClose, route, onConfirm }: CloseRouteM
   if (!route) return null;
 
   const totalClients = route.items.length;
-  const paidClients = route.items.filter((item) => item.subLoan.status === 'PAID').length;
+  const paidClients = route.items.filter((item) => item.subLoan?.status === 'PAID').length;
 
   return (
     <Dialog
@@ -76,12 +80,12 @@ export function CloseRouteModal({ open, onClose, route, onConfirm }: CloseRouteM
       onClose={handleClose}
       maxWidth="sm"
       fullWidth
-      fullScreen={false} // Mobile responsive
+      fullScreen={isMobile}
       PaperProps={{
         sx: {
-          m: { xs: 2, sm: 3 },
-          mt: { xs: 2, sm: 4 },
-          maxHeight: { xs: '90vh', sm: '80vh' },
+          m: { xs: 0, sm: 3 },
+          mt: { xs: 0, sm: 4 },
+          borderRadius: { xs: 0, sm: 2 },
         },
       }}
     >

@@ -2,50 +2,7 @@ import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import type { User, AuthState, UserRole } from '@/types/auth';
 
-// Hybrid storage: cookies for tokens (secure), localStorage for user data (no size limit)
-const hybridStorage = {
-  getItem: (key: string): string | null => {
-    if (typeof window === 'undefined') return null;
-    
-    // Try localStorage first (preferred for large data)
-    const localValue = localStorage.getItem(key);
-    if (localValue) return localValue;
-    
-    // Fallback to cookies for backward compatibility
-    const cookies = document.cookie.split(';');
-    const cookie = cookies.find((c) => c.trim().startsWith(`${key}=`));
-    return cookie ? decodeURIComponent(cookie.split('=')[1]) : null;
-  },
-  setItem: (key: string, value: string): void => {
-    if (typeof window === 'undefined') return;
-    
-    // Store in localStorage (no size limit)
-    localStorage.setItem(key, value);
-    
-    // Also set a lightweight cookie for token/auth checks
-    // Only store essential auth data in cookie (< 4KB limit)
-    try {
-      const data = JSON.parse(value);
-      const lightweightData = {
-        userId: data.state?.userId || data.userId,
-        userRole: data.state?.userRole || data.userRole,
-        token: data.state?.token || data.token,
-        refreshToken: data.state?.refreshToken || data.refreshToken,
-        isAuthenticated: data.state?.isAuthenticated || data.isAuthenticated,
-      };
-      const cookieValue = encodeURIComponent(JSON.stringify(lightweightData));
-      document.cookie = `${key}-token=${cookieValue}; path=/; max-age=259200; SameSite=Lax`; // 3 days
-    } catch (e) {
-      
-    }
-  },
-  removeItem: (key: string): void => {
-    if (typeof window === 'undefined') return;
-    localStorage.removeItem(key);
-    document.cookie = `${key}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT`;
-    document.cookie = `${key}-token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT`;
-  },
-};
+const SESSION_MARKER = 'cookie-session';
 
 /**
  * THE WAREHOUSE - Auth Store
@@ -68,7 +25,7 @@ interface AuthStore {
   // Simple synchronous setters only
   setUser: (user: User | null) => void;
   updateCurrentUser: (user: User) => void;
-  setTokens: (token: string | null, refreshToken: string | null) => void;
+  setTokens: (_token: string | null, _refreshToken: string | null) => void;
   setAuthentication: (isAuthenticated: boolean) => void;
   clearAuth: () => void;
   getDashboardRoute: () => string;
@@ -105,8 +62,8 @@ export const useAuthStore = create<AuthStore>()(
         });
       },
 
-      setTokens: (token: string | null, refreshToken: string | null) => {
-        set({ token, refreshToken });
+      setTokens: (_token: string | null, _refreshToken: string | null) => {
+        set({ token: SESSION_MARKER, refreshToken: null });
       },
 
       setAuthentication: (isAuthenticated: boolean) => {
@@ -144,13 +101,24 @@ export const useAuthStore = create<AuthStore>()(
     }),
     {
       name: 'auth-storage',
-      storage: createJSONStorage(() => hybridStorage),
+      version: 2,
+      storage: createJSONStorage(() => localStorage),
+      migrate: (persistedState: any) => {
+        if (!persistedState || typeof persistedState !== 'object') {
+          return persistedState;
+        }
+
+        return {
+          ...persistedState,
+          token: persistedState.isAuthenticated ? SESSION_MARKER : null,
+          refreshToken: null,
+        };
+      },
       partialize: (state) => ({
         userId: state.userId,
         userEmail: state.userEmail,
         userRole: state.userRole,
         token: state.token,
-        refreshToken: state.refreshToken,
         isAuthenticated: state.isAuthenticated,
         currentUser: state.currentUser,
       }),

@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { 
+import {
   Dialog,
   DialogTitle,
   DialogContent,
@@ -10,6 +10,8 @@ import {
   Box,
   Typography,
   Alert,
+  useTheme,
+  useMediaQuery,
 } from '@mui/material'
 import { Payment, Refresh, Warning } from '@mui/icons-material'
 import LoanTimeline from '@/components/loans/LoanTimeline'
@@ -43,6 +45,8 @@ export default function LoanDetailsModal({
   isLoading = false,
   onPaymentSuccess
 }: LoanDetailsModalProps) {
+  const theme = useTheme()
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'))
   const [paymentModalOpen, setPaymentModalOpen] = useState(false)
   const [selectedSubloan, setSelectedSubloan] = useState<SubLoanWithClientInfo | null>(null)
   const [paymentError, setPaymentError] = useState<string | null>(null)
@@ -165,24 +169,24 @@ export default function LoanDetailsModal({
       onClose={onClose}
       maxWidth="xl"
       fullWidth
+      fullScreen={isMobile}
       PaperProps={{
         sx: {
-          width: { xs: '95vw', sm: '95vw', md: '95vw' },
-          height: { xs: '90vh', sm: 'auto' },
+          width: { sm: '95vw', md: '95vw' },
           maxWidth: '1800px',
-          m: { xs: 1, sm: 2 },
-          borderRadius: { xs: 2, sm: 3 },
+          m: { xs: 0, sm: 2 },
+          borderRadius: { xs: 0, sm: 3 },
         },
       }}
     >
-      <DialogTitle sx={{ pt: 2.5, px: 3, pb: 2 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-          <Payment color="primary" />
-          <Typography variant="h6">Detalles del Préstamo</Typography>
+      <DialogTitle sx={{ pt: 2, px: { xs: 2, sm: 3 }, pb: 1.5 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+          <Payment color="primary" fontSize={isMobile ? 'small' : 'medium'} />
+          <Typography variant={isMobile ? 'subtitle1' : 'h6'} fontWeight={600}>Detalles del Prestamo</Typography>
         </Box>
       </DialogTitle>
-      
-      <DialogContent sx={{ p: { xs: 2, sm: 3 }, overflow: 'auto' }}>
+
+      <DialogContent sx={{ p: { xs: 1.5, sm: 3 }, overflow: 'auto' }}>
         {isLoading ? (
           <Box sx={{ textAlign: 'center', py: 4 }}>
             <Typography variant="h6" color="text.secondary" gutterBottom>
@@ -192,9 +196,12 @@ export default function LoanDetailsModal({
         ) : (
           <Box>
             {/* Loan Summary Header */}
-            <Box sx={{ mb: 4, p: 3, bgcolor: '#f9f9f9', borderRadius: 2 }}>
-              <Typography variant="h5" fontWeight="bold" gutterBottom>
-                {clientName} - {loan.loanTrack}
+            <Box sx={{ mb: { xs: 2, sm: 4 }, p: { xs: 1.5, sm: 3 }, bgcolor: '#f9f9f9', borderRadius: 2 }}>
+              <Typography variant={isMobile ? 'subtitle1' : 'h5'} fontWeight="bold" gutterBottom>
+                {clientName}
+              </Typography>
+              <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 1 }}>
+                {loan.loanTrack}
               </Typography>
 
               {/* Remaining Summary - Highlighted */}
@@ -233,70 +240,44 @@ export default function LoanDetailsModal({
               <Box
                 sx={{
                   display: 'grid',
-                  gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
-                  gap: 3,
+                  gridTemplateColumns: { xs: '1fr 1fr', sm: 'repeat(auto-fit, minmax(150px, 1fr))' },
+                  gap: { xs: 1.5, sm: 3 },
                   mt: 2,
                 }}
               >
                 <Box>
-                  <Typography variant="body2" color="text.secondary">
-                    Monto del préstamo
-                  </Typography>
-                  <Typography variant="h6" fontWeight="bold">
+                  <Typography variant="caption" color="text.secondary">Monto</Typography>
+                  <Typography variant={isMobile ? 'body1' : 'h6'} fontWeight="bold">
                     ${principalAmount.toLocaleString()}
                   </Typography>
                 </Box>
-                
                 <Box>
-                  <Typography variant="body2" color="text.secondary">
-                    Tasa de interés
-                  </Typography>
-                  <Typography variant="h6" fontWeight="bold" color="primary.main">
+                  <Typography variant="caption" color="text.secondary">Tasa</Typography>
+                  <Typography variant={isMobile ? 'body1' : 'h6'} fontWeight="bold" color="primary.main">
                     {formatInterestRate(loan)}
                   </Typography>
                 </Box>
-                
                 <Box>
-                  <Typography variant="body2" color="text.secondary">
-                    Total de intereses
-                  </Typography>
-                  <Typography variant="h6" fontWeight="bold" color="warning.main">
+                  <Typography variant="caption" color="text.secondary">Intereses</Typography>
+                  <Typography variant={isMobile ? 'body1' : 'h6'} fontWeight="bold" color="warning.main">
                     ${interestAmount.toLocaleString()}
                   </Typography>
                 </Box>
-
                 <Box>
-                  <Typography variant="body2" color="text.secondary">
-                    Estado
-                  </Typography>
-                  <Typography variant="h6" fontWeight="bold" color={`${statusInfo.color}.main`}>
+                  <Typography variant="caption" color="text.secondary">Estado</Typography>
+                  <Typography variant={isMobile ? 'body1' : 'h6'} fontWeight="bold" color={`${statusInfo.color}.main`}>
                     {statusInfo.label}
                   </Typography>
                 </Box>
-                
                 <Box>
-                  <Typography variant="body2" color="text.secondary">
-                    Total cuotas
-                  </Typography>
-                  <Typography variant="h6" fontWeight="bold">
-                    {loan.totalPayments}
+                  <Typography variant="caption" color="text.secondary">Cuotas</Typography>
+                  <Typography variant={isMobile ? 'body1' : 'h6'} fontWeight="bold">
+                    {loan.totalPayments} ({getFrequencyLabel(loan.paymentFrequency)})
                   </Typography>
                 </Box>
-                
                 <Box>
-                  <Typography variant="body2" color="text.secondary">
-                    Frecuencia
-                  </Typography>
-                  <Typography variant="h6" fontWeight="bold">
-                    {getFrequencyLabel(loan.paymentFrequency)}
-                  </Typography>
-                </Box>
-                
-                <Box>
-                  <Typography variant="body2" color="text.secondary">
-                    Fecha de creación
-                  </Typography>
-                  <Typography variant="h6" fontWeight="bold">
+                  <Typography variant="caption" color="text.secondary">Creado</Typography>
+                  <Typography variant={isMobile ? 'body1' : 'h6'} fontWeight="bold">
                     {new Date(loan.createdAt).toLocaleDateString('es-AR')}
                   </Typography>
                 </Box>
@@ -339,6 +320,7 @@ export default function LoanDetailsModal({
                 onPaymentClick={handlePaymentClick}
                 onResetClick={handleResetPayments}
                 resettingSubloanId={resettingSubloanId}
+                onDateUpdated={onPaymentSuccess}
               />
             )}
 

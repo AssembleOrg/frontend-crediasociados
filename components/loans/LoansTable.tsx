@@ -12,19 +12,25 @@ import {
   TableRow,
   Paper,
   Chip,
+  Card,
+  CardContent,
   Button,
   TablePagination,
   LinearProgress,
   IconButton,
   Snackbar,
-  Alert as MuiAlert
+  Alert as MuiAlert,
+  useTheme,
+  useMediaQuery,
 } from '@mui/material'
 import {
   Visibility,
   MonetizationOn,
   Person,
   PictureAsPdf,
-  DeleteForever
+  DeleteForever,
+  ViewList,
+  ViewModule,
 } from '@mui/icons-material'
 import { useLoans } from '@/hooks/useLoans'
 import { useSubLoans } from '@/hooks/useSubLoans'
@@ -40,14 +46,17 @@ interface LoansTableProps {
 }
 
 export function LoansTable({ loans: externalLoans, onViewDetails, onLoanDeleted }: LoansTableProps) {
+  const theme = useTheme()
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'))
   const { loans: hookLoans, isLoading, deleteLoanPermanently } = useLoans()
   const { allSubLoansWithClient } = useSubLoans()
   const { exportLoanToPDF, canExport } = useExport()
-  
+
   // Use external loans if provided (for filtering), otherwise use hook loans
   const loans = externalLoans || hookLoans
   const [page, setPage] = useState(0)
-  const [rowsPerPage, setRowsPerPage] = useState(10)
+  const [rowsPerPage, setRowsPerPage] = useState(25)
+  const [viewMode, setViewMode] = useState<'list' | 'cards'>(isMobile ? 'cards' : 'list')
   
   // Delete modal state
   const [deleteModalOpen, setDeleteModalOpen] = useState(false)
@@ -233,6 +242,8 @@ export function LoansTable({ loans: externalLoans, onViewDetails, onLoanDeleted 
     )
   }
 
+  // Backend sorts by: status priority (ACTIVE first, COMPLETED last),
+  // fully-paid ACTIVE loans after active ones with pending payments, then by date desc
   const paginatedLoans = loans.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
 
   const handleChangePage = (event: unknown, newPage: number) => {
@@ -300,14 +311,27 @@ export function LoansTable({ loans: externalLoans, onViewDetails, onLoanDeleted 
   }
 
   return (
-    <Paper sx={{ overflow: 'hidden' }}>
-      {/* Table - Always visible */}
-      <TableContainer sx={{ maxHeight: '70vh', overflowX: 'auto' }}>
-        <Table stickyHeader>
+    <Paper sx={{ overflow: 'hidden', mx: { xs: -1, sm: 0 }, borderRadius: { xs: 0, sm: 1 } }}>
+      {/* View Toggle */}
+      <Box sx={{ display: 'flex', justifyContent: 'flex-end', p: 1, borderBottom: '1px solid', borderColor: 'divider' }}>
+        <Box sx={{ display: 'flex', bgcolor: 'action.hover', borderRadius: 1, p: 0.25 }}>
+          <IconButton size="small" onClick={() => setViewMode('list')} sx={{ borderRadius: 1, bgcolor: viewMode === 'list' ? 'primary.main' : 'transparent', color: viewMode === 'list' ? 'white' : 'text.secondary', '&:hover': { bgcolor: viewMode === 'list' ? 'primary.dark' : 'action.selected' } }}>
+            <ViewList fontSize="small" />
+          </IconButton>
+          <IconButton size="small" onClick={() => setViewMode('cards')} sx={{ borderRadius: 1, bgcolor: viewMode === 'cards' ? 'primary.main' : 'transparent', color: viewMode === 'cards' ? 'white' : 'text.secondary', '&:hover': { bgcolor: viewMode === 'cards' ? 'primary.dark' : 'action.selected' } }}>
+            <ViewModule fontSize="small" />
+          </IconButton>
+        </Box>
+      </Box>
+
+      {viewMode === 'list' ? (
+        /* LIST VIEW - Table */
+        <TableContainer sx={{ maxHeight: '70vh', overflowX: 'auto' }}>
+          <Table stickyHeader>
             <TableHead>
               <TableRow sx={{ bgcolor: 'grey.50' }}>
                 <TableCell><strong>Cliente</strong></TableCell>
-                <TableCell><strong>Préstamo</strong></TableCell>
+                <TableCell><strong>Prestamo</strong></TableCell>
                 <TableCell align="right"><strong>Monto</strong></TableCell>
                 <TableCell align="center"><strong>Tasa %</strong></TableCell>
                 <TableCell align="center"><strong>Estado</strong></TableCell>
@@ -318,114 +342,43 @@ export function LoansTable({ loans: externalLoans, onViewDetails, onLoanDeleted 
             </TableHead>
             <TableBody>
               {paginatedLoans.map((loan) => {
-                const { totalPayments, completedPayments, progress, statusGroups } = getProgressInfo(loan)
-                
+                const { totalPayments, completedPayments } = getProgressInfo(loan)
                 return (
-                  <TableRow 
-                    key={loan.id}
-                    sx={{ '&:hover': { bgcolor: 'action.hover' } }}
-                  >
+                  <TableRow key={loan.id} hover>
                     <TableCell>
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                         <Person color="action" />
                         <Box>
-                          <Typography variant="body2" fontWeight="medium">
-                            {getClientDisplay(loan).name}
-                          </Typography>
-                          <Typography variant="caption" color="text.secondary">
-                            ID: {loan.clientId?.slice(0, 12)}...
-                          </Typography>
+                          <Typography variant="body2" fontWeight="medium">{getClientDisplay(loan).name}</Typography>
+                          <Typography variant="caption" color="text.secondary">ID: {loan.clientId?.slice(0, 12)}...</Typography>
                         </Box>
                       </Box>
                     </TableCell>
-                    
                     <TableCell>
-                      <Chip 
-                        label={loan.loanTrack || loan.id} 
-                        size="small" 
-                        variant="outlined"
-                        sx={{ fontFamily: 'monospace', fontWeight: 'bold' }}
-                      />
+                      <Chip label={loan.loanTrack || loan.id} size="small" variant="outlined" sx={{ fontFamily: 'monospace', fontWeight: 'bold' }} />
                     </TableCell>
-                    
                     <TableCell align="right">
-                      <Typography variant="body2" fontWeight="bold">
-                        {formatCurrency(loan.originalAmount ?? loan.amount)}
-                      </Typography>
-                      <Typography variant="caption" color="text.secondary">
-                        {getFrequencyLabel(loan.paymentFrequency)}
-                      </Typography>
+                      <Typography variant="body2" fontWeight="bold">{formatCurrency(loan.originalAmount ?? loan.amount)}</Typography>
+                      <Typography variant="caption" color="text.secondary">{getFrequencyLabel(loan.paymentFrequency)}</Typography>
                     </TableCell>
-                    
                     <TableCell align="center">
-                      <Typography variant="body2" fontWeight="bold" color="primary.main">
-                        {getInterestRate(loan).toFixed(1)}%
-                      </Typography>
-                      <Typography variant="caption" color="text.secondary">
-                        interés
-                      </Typography>
+                      <Typography variant="body2" fontWeight="bold" color="primary.main">{getInterestRate(loan).toFixed(1)}%</Typography>
                     </TableCell>
-                    
-                    <TableCell align="center">
-                      {getStatusChip(loan.status)}
-                    </TableCell>
-                    
+                    <TableCell align="center">{getStatusChip(loan.status)}</TableCell>
                     <TableCell align="center">
                       <Box sx={{ minWidth: 100 }}>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
-                          <Typography variant="caption">
-                            {completedPayments} de {totalPayments}
-                          </Typography>
-                        </Box>
-                        <MultiColorProgressBar 
-                          loanId={loan.id}
-                          totalPayments={totalPayments}
-                        />
+                        <Typography variant="caption">{completedPayments} de {totalPayments}</Typography>
+                        <MultiColorProgressBar loanId={loan.id} totalPayments={totalPayments} />
                       </Box>
                     </TableCell>
-                    
                     <TableCell align="center">
-                      <Typography variant="body2">
-                        {formatDate(loan.createdAt.toISOString())}
-                      </Typography>
+                      <Typography variant="body2">{formatDate(loan.createdAt.toISOString())}</Typography>
                     </TableCell>
-                    
                     <TableCell align="center">
                       <Box sx={{ display: 'flex', gap: 0.5, justifyContent: 'center' }}>
-                        <IconButton 
-                          size="small" 
-                          onClick={() => onViewDetails?.(loan.id)}
-                          title="Ver Detalles"
-                        >
-                          <Visibility fontSize="small" />
-                        </IconButton>
-                        <IconButton 
-                          size="small" 
-                          onClick={() => exportLoanToPDF(loan.id)}
-                          disabled={!canExport(loan.id)}
-                          title="Exportar PDF"
-                          sx={{
-                            color: 'error.main',
-                            '&:hover': {
-                              backgroundColor: 'error.50'
-                            }
-                          }}
-                        >
-                          <PictureAsPdf fontSize="small" />
-                        </IconButton>
-                        <IconButton 
-                          size="small" 
-                          onClick={() => handleDeleteClick(loan)}
-                          title="Eliminar Permanentemente"
-                          sx={{
-                            color: 'error.dark',
-                            '&:hover': {
-                              backgroundColor: 'error.100'
-                            }
-                          }}
-                        >
-                          <DeleteForever fontSize="small" />
-                        </IconButton>
+                        <IconButton size="small" onClick={() => onViewDetails?.(loan.id)} title="Ver Detalles"><Visibility fontSize="small" /></IconButton>
+                        <IconButton size="small" onClick={() => exportLoanToPDF(loan.id)} disabled={!canExport(loan.id)} title="Exportar PDF" sx={{ color: 'error.main' }}><PictureAsPdf fontSize="small" /></IconButton>
+                        <IconButton size="small" onClick={() => handleDeleteClick(loan)} title="Eliminar" sx={{ color: 'error.dark' }}><DeleteForever fontSize="small" /></IconButton>
                       </Box>
                     </TableCell>
                   </TableRow>
@@ -434,6 +387,56 @@ export function LoansTable({ loans: externalLoans, onViewDetails, onLoanDeleted 
             </TableBody>
           </Table>
         </TableContainer>
+      ) : (
+        /* CARDS VIEW */
+        <Box sx={{ px: { xs: 0.5, sm: 2 }, py: 1, display: 'flex', flexDirection: 'column', gap: 1 }}>
+          {paginatedLoans.map((loan) => {
+            const { totalPayments, completedPayments } = getProgressInfo(loan)
+            return (
+              <Card key={loan.id} variant="outlined" sx={{ cursor: 'pointer' }} onClick={() => onViewDetails?.(loan.id)}>
+                <CardContent sx={{ px: { xs: 1.5, sm: 2 }, py: 1.5, '&:last-child': { pb: 1.5 } }}>
+                  {/* Row 1: Client name + Status */}
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 0.5 }}>
+                    <Typography variant="subtitle2" fontWeight={600}>{getClientDisplay(loan).name}</Typography>
+                    {getStatusChip(loan.status)}
+                  </Box>
+                  {/* Row 2: Loan track */}
+                  <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 1 }}>
+                    {loan.loanTrack} - {getFrequencyLabel(loan.paymentFrequency)}
+                  </Typography>
+                  {/* Row 3: Amount + Interest */}
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+                    <Typography variant="body1" fontWeight={700}>
+                      {formatCurrency(loan.originalAmount ?? loan.amount)}
+                    </Typography>
+                    <Typography variant="body2" fontWeight={600} color="primary.main">
+                      {getInterestRate(loan).toFixed(1)}% interes
+                    </Typography>
+                  </Box>
+                  {/* Row 4: Progress bar */}
+                  <Box sx={{ mb: 1 }}>
+                    <Typography variant="caption" color="text.secondary" sx={{ mb: 0.5, display: 'block' }}>
+                      Progreso: {completedPayments}/{totalPayments} cuotas
+                    </Typography>
+                    <MultiColorProgressBar loanId={loan.id} totalPayments={totalPayments} />
+                  </Box>
+                  {/* Row 5: Date + Actions */}
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid', borderColor: 'divider', pt: 1 }}>
+                    <Typography variant="caption" color="text.disabled">
+                      {formatDate(loan.createdAt.toISOString())}
+                    </Typography>
+                    <Box sx={{ display: 'flex', gap: 0.5 }}>
+                      <IconButton size="small" onClick={(e) => { e.stopPropagation(); onViewDetails?.(loan.id) }}><Visibility fontSize="small" /></IconButton>
+                      <IconButton size="small" onClick={(e) => { e.stopPropagation(); exportLoanToPDF(loan.id) }} disabled={!canExport(loan.id)} sx={{ color: 'error.main' }}><PictureAsPdf fontSize="small" /></IconButton>
+                      <IconButton size="small" onClick={(e) => { e.stopPropagation(); handleDeleteClick(loan) }} sx={{ color: 'error.dark' }}><DeleteForever fontSize="small" /></IconButton>
+                    </Box>
+                  </Box>
+                </CardContent>
+              </Card>
+            )
+          })}
+        </Box>
+      )}
 
       {/* Pagination */}
       <TablePagination
@@ -443,10 +446,19 @@ export function LoansTable({ loans: externalLoans, onViewDetails, onLoanDeleted 
         onPageChange={handleChangePage}
         rowsPerPage={rowsPerPage}
         onRowsPerPageChange={handleChangeRowsPerPage}
-        labelRowsPerPage="Préstamos por página:"
-        labelDisplayedRows={({ from, to, count }) => 
-          `${from}-${to} de ${count !== -1 ? count : `más de ${to}`}`
+        labelRowsPerPage={isMobile ? "Por pag:" : "Prestamos por pagina:"}
+        labelDisplayedRows={({ from, to, count }) =>
+          `${from}-${to} de ${count !== -1 ? count : `mas de ${to}`}`
         }
+        sx={{
+          '& .MuiTablePagination-toolbar': {
+            flexDirection: { xs: 'column', sm: 'row' },
+            gap: { xs: 0.5, sm: 0 },
+            minHeight: { xs: 'auto', sm: 52 },
+            py: { xs: 1, sm: 0 },
+          },
+          '& .MuiTablePagination-spacer': { display: { xs: 'none', sm: 'flex' } }
+        }}
       />
 
       {/* Delete Confirmation Modal */}

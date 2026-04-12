@@ -1,4 +1,5 @@
 import api from './api';
+import { requestDeduplicator } from '@/lib/request-deduplicator';
 import type { SubLoanResponseDto } from '@/types/export';
 
 interface SubLoanStatsResponseDto {
@@ -41,6 +42,100 @@ export interface SubLoanWithClientDto {
     dni?: string
     phone?: string
   }
+}
+
+export interface OverdueInstallment {
+  id: string
+  paymentNumber: number
+  totalAmount: number
+  paidAmount: number
+  pendingAmount: number
+  dueDate: string
+  status: string
+}
+
+export interface OverdueClientLoan {
+  id: string
+  loanTrack: string
+  amount: number
+  originalAmount: number
+  currency: string
+  paymentFrequency: string
+  totalPayments: number
+  overdueInstallments: OverdueInstallment[]
+}
+
+export interface OverdueClientEntry {
+  client: {
+    id: string
+    fullName: string
+    dni: string | null
+    phone: string | null
+  }
+  manager: {
+    id: string
+    fullName: string
+  }
+  loans: OverdueClientLoan[]
+  totalOverdueAmount: number
+  totalOverdueInstallments: number
+}
+
+export interface CobrosClientSubLoan {
+  id: string
+  loanId: string
+  paymentNumber: number
+  amount: number
+  totalAmount: number
+  paidAmount: number
+  status: string
+  dueDate: string
+  paidDate: string | null
+  loanTrack: string
+  payments?: Array<{ id: string; amount: number; paymentDate: string; description?: string; createdAt: string }>
+}
+
+export interface CobrosClient {
+  client: { id: string; fullName: string; dni: string | null; phone: string | null }
+  subLoans: CobrosClientSubLoan[]
+  stats: {
+    overdue: number
+    today: number
+    soon: number
+    paid: number
+    total: number
+    totalAmount: number
+    paidAmount: number
+  }
+  urgencyLevel: 'overdue' | 'today' | 'soon' | 'future'
+}
+
+export interface CobrosGlobalStats {
+  overdue: number
+  today: number
+  soon: number
+  future: number
+  paid: number
+  total: number
+}
+
+export interface CobrosResponse {
+  clients: CobrosClient[]
+  globalStats: CobrosGlobalStats
+  meta: {
+    page: number
+    limit: number
+    total: number
+    totalPages: number
+    hasNextPage: boolean
+  }
+}
+
+export interface OverdueClientsResponse {
+  clients: OverdueClientEntry[]
+  total: number
+  totalOverdueAmount: number
+  totalOverdueInstallments: number
 }
 
 /**
@@ -92,8 +187,11 @@ class SubLoansService {
 
   // Para cobros: obtener TODOS los subloans (no solo today-due)
   async getAllSubLoans(): Promise<SubLoanResponseDto[]> {
-    // Usar loans sin paginación para extraer todos los subloans
-    const response = await api.get('/loans');
+    const response = await requestDeduplicator.dedupe(
+      'loans:get-all',
+      () => api.get('/loans'),
+      { ttl: 5000 }
+    );
 
     // Extraer subloans de todos los préstamos
     const loans = this.extractArrayPayload<any>(response.data);
@@ -136,6 +234,46 @@ class SubLoansService {
   }): Promise<SubLoanWithClientDto[]> {
     const response = await api.get('/subloans/with-client-info', { params: filters });
     return response.data.data || response.data || [];
+  }
+
+  /**
+   * Get clients with overdue installments, grouped by client
+   * Uses backend endpoint: GET /sub-loans/overdue-clients
+   */
+  async getOverdueClients(): Promise<OverdueClientsResponse> {
+    const response = await api.get('/sub-loans/overdue-clients');
+    // ResponseInterceptor wraps in {data: {clients, total, ...}, success, message}
+    const payload = response.data?.data || response.data;
+    return payload as OverdueClientsResponse;
+  }
+
+  /**
+   * Update the due date of a subloan
+   */
+  async updateDueDate(subLoanId: string, dueDate: string): Promise<any> {
+    const response = await api.patch(`/sub-loans/${subLoanId}/due-date`, { dueDate });
+    return response.data?.data || response.data;
+  }
+
+  /**
+   * Get cobros data: server-side filtered, grouped by client, paginated, with global stats
+   */
+  async getCobros(filters?: {
+    urgency?: 'overdue' | 'today' | 'soon' | 'future' | 'all'
+    paymentStatus?: 'PENDING' | 'PARTIAL' | 'PAID' | 'OVERDUE'
+    clientId?: string
+    page?: number
+    limit?: number
+  }): Promise<CobrosResponse> {
+    const params: Record<string, string> = {}
+    if (filters?.urgency && filters.urgency !== 'all') params.urgency = filters.urgency
+    if (filters?.paymentStatus) params.paymentStatus = filters.paymentStatus
+    if (filters?.clientId) params.clientId = filters.clientId
+    if (filters?.page) params.page = String(filters.page)
+    if (filters?.limit) params.limit = String(filters.limit)
+
+    const response = await api.get('/sub-loans/cobros', { params })
+    return response.data?.data || response.data
   }
 
   /**

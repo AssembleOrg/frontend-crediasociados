@@ -40,7 +40,7 @@ export const UsersList = ({ onEditUser, onCreateUser }: UsersListProps) => {
 
   const [searchTerm, setSearchTerm] = useState('')
   const [currentPage, setCurrentPage] = useState(0)
-  const [rowsPerPage, setRowsPerPage] = useState(10)
+  const [rowsPerPage, setRowsPerPage] = useState(25)
 
   // Local filtering and pagination
   const filteredUsers = useMemo(() => {
@@ -216,7 +216,7 @@ export const UsersList = ({ onEditUser, onCreateUser }: UsersListProps) => {
           onPageChange={handlePageChange}
           rowsPerPage={rowsPerPage}
           onRowsPerPageChange={handleRowsPerPageChange}
-          rowsPerPageOptions={[5, 10, 25, 50]}
+          rowsPerPageOptions={[25, 50, 100]}
           labelRowsPerPage="Filas por página:"
         />
       </Paper>

@@ -33,6 +33,8 @@ import {
   SwapHoriz,
   AccountBalance,
   AccountBalanceWallet,
+  ViewList,
+  ViewModule,
 } from '@mui/icons-material'
 import { collectorReportService, type CollectorPeriodReport } from '@/services/collector-report.service'
 import { collectorWalletService } from '@/services/collector-wallet.service'
@@ -355,6 +357,7 @@ export default function CollectorReportView({
   }
 
   const isMobile = useMediaQuery(theme.breakpoints.down('md'))
+  const [txViewMode, setTxViewMode] = useState<'list' | 'cards'>(isMobile ? 'cards' : 'list')
 
   return (
     <Box sx={{ 
@@ -1261,34 +1264,120 @@ export default function CollectorReportView({
               </Paper>
 
               {/* Transactions */}
-              <Paper sx={{ p: { xs: 2, sm: 3 }, mb: 3 }}>
-                <Typography variant="h6" fontWeight={600} sx={{ mb: 2, fontSize: { xs: '1.1rem', sm: '1.25rem' } }}>
-                  Transacciones de la Wallet
-                </Typography>
+              <Paper sx={{ p: { xs: 1, sm: 3 }, mb: 3 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+                  <Typography variant="h6" fontWeight={600} sx={{ fontSize: { xs: '1.1rem', sm: '1.25rem' } }}>
+                    Transacciones de la Wallet
+                  </Typography>
+                  {report.collectorWallet?.transactions && report.collectorWallet.transactions.length > 0 && (
+                    <Box sx={{ display: 'flex', bgcolor: 'action.hover', borderRadius: 1, p: 0.25 }}>
+                      <IconButton
+                        size="small"
+                        onClick={() => setTxViewMode('list')}
+                        sx={{
+                          borderRadius: 1,
+                          bgcolor: txViewMode === 'list' ? 'primary.main' : 'transparent',
+                          color: txViewMode === 'list' ? 'white' : 'text.secondary',
+                          '&:hover': { bgcolor: txViewMode === 'list' ? 'primary.dark' : 'action.selected' },
+                        }}
+                      >
+                        <ViewList fontSize="small" />
+                      </IconButton>
+                      <IconButton
+                        size="small"
+                        onClick={() => setTxViewMode('cards')}
+                        sx={{
+                          borderRadius: 1,
+                          bgcolor: txViewMode === 'cards' ? 'primary.main' : 'transparent',
+                          color: txViewMode === 'cards' ? 'white' : 'text.secondary',
+                          '&:hover': { bgcolor: txViewMode === 'cards' ? 'primary.dark' : 'action.selected' },
+                        }}
+                      >
+                        <ViewModule fontSize="small" />
+                      </IconButton>
+                    </Box>
+                  )}
+                </Box>
                 <Divider sx={{ mb: 2 }} />
-                
+
                 {report.collectorWallet?.transactions && report.collectorWallet.transactions.length > 0 ? (
-                  <TableContainer sx={{ overflowX: 'auto', maxWidth: '100%' }}>
-                    <Table sx={{ minWidth: 600 }}>
-                      <TableHead>
-                        <TableRow>
-                          <TableCell>Fecha</TableCell>
-                          <TableCell>Tipo</TableCell>
-                          <TableCell>Descripción</TableCell>
-                          <TableCell align="right">Balance Antes</TableCell>
-                          <TableCell align="right">Balance Después</TableCell>
-                          <TableCell align="right">Monto</TableCell>
-                        </TableRow>
-                      </TableHead>
-                      <TableBody>
-                        {report.collectorWallet.transactions.map((tx) => (
-                          <TableRow key={tx.id} hover>
-                            <TableCell>
-                              <Typography variant="body2">
-                                {formatDate(tx.createdAt)}
-                              </Typography>
-                            </TableCell>
-                            <TableCell>
+                  txViewMode === 'list' ? (
+                    /* LIST VIEW */
+                    <TableContainer sx={{ overflowX: 'auto', maxWidth: '100%' }}>
+                      <Table sx={{ minWidth: 600 }}>
+                        <TableHead>
+                          <TableRow>
+                            <TableCell>Fecha</TableCell>
+                            <TableCell>Tipo</TableCell>
+                            <TableCell>Descripción</TableCell>
+                            <TableCell align="right">Balance Antes</TableCell>
+                            <TableCell align="right">Balance Después</TableCell>
+                            <TableCell align="right">Monto</TableCell>
+                          </TableRow>
+                        </TableHead>
+                        <TableBody>
+                          {report.collectorWallet.transactions.map((tx) => (
+                            <TableRow key={tx.id} hover>
+                              <TableCell>
+                                <Typography variant="body2">
+                                  {formatDate(tx.createdAt)}
+                                </Typography>
+                              </TableCell>
+                              <TableCell>
+                                <Chip
+                                  icon={getTransactionIcon(tx.type)}
+                                  label={getTransactionLabel(tx.type, tx.amount)}
+                                  size="small"
+                                  color={getTransactionColor(tx.type, tx.amount)}
+                                  sx={{ fontWeight: 600 }}
+                                />
+                              </TableCell>
+                              <TableCell>
+                                <Typography variant="body2">
+                                  {tx.description}
+                                </Typography>
+                              </TableCell>
+                              <TableCell align="right">
+                                <Typography variant="body2" color="text.secondary">
+                                  {formatCurrency(tx.balanceBefore)}
+                                </Typography>
+                              </TableCell>
+                              <TableCell align="right">
+                                <Typography variant="body2" fontWeight={600}>
+                                  {formatCurrency(tx.balanceAfter)}
+                                </Typography>
+                              </TableCell>
+                              <TableCell align="right">
+                                <Typography
+                                  variant="body1"
+                                  fontWeight={600}
+                                  color={getAmountColor(tx.type, tx.amount)}
+                                >
+                                  {getTransactionSign(tx.type, tx.amount)}{formatCurrency(Math.abs(tx.amount))}
+                                </Typography>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </TableContainer>
+                  ) : (
+                    /* CARDS VIEW */
+                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                      {report.collectorWallet.transactions.map((tx) => (
+                        <Card
+                          key={tx.id}
+                          variant="outlined"
+                          sx={{
+                            borderLeft: 4,
+                            borderLeftColor: tx.type === 'COLLECTION' ? 'success.main'
+                              : tx.type === 'CASH_ADJUSTMENT' && tx.amount >= 0 ? 'info.main'
+                              : 'error.main',
+                          }}
+                        >
+                          <CardContent sx={{ px: { xs: 1.5, sm: 2 }, py: { xs: 1.25, sm: 1.5 }, '&:last-child': { pb: { xs: 1.25, sm: 1.5 } } }}>
+                            {/* Row 1: Type chip */}
+                            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 0.5 }}>
                               <Chip
                                 icon={getTransactionIcon(tx.type)}
                                 label={getTransactionLabel(tx.type, tx.amount)}
@@ -1296,36 +1385,39 @@ export default function CollectorReportView({
                                 color={getTransactionColor(tx.type, tx.amount)}
                                 sx={{ fontWeight: 600 }}
                               />
-                            </TableCell>
-                            <TableCell>
-                              <Typography variant="body2">
-                                {tx.description}
-                              </Typography>
-                            </TableCell>
-                            <TableCell align="right">
-                              <Typography variant="body2" color="text.secondary">
+                            </Box>
+                            {/* Row 2: Amount */}
+                            <Typography
+                              variant="h6"
+                              fontWeight={700}
+                              color={getAmountColor(tx.type, tx.amount)}
+                              sx={{ fontSize: '1.25rem', mb: 0.5 }}
+                            >
+                              {getTransactionSign(tx.type, tx.amount)}{formatCurrency(Math.abs(tx.amount))}
+                            </Typography>
+                            {/* Row 2: Description */}
+                            <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                              {tx.description}
+                            </Typography>
+                            {/* Row 3: Date */}
+                            <Typography variant="caption" color="text.disabled" sx={{ mb: 0.5, display: 'block' }}>
+                              {formatDate(tx.createdAt)}
+                            </Typography>
+                            {/* Row 4: Balances */}
+                            <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+                              <Typography variant="caption" color="text.disabled">
                                 {formatCurrency(tx.balanceBefore)}
                               </Typography>
-                            </TableCell>
-                            <TableCell align="right">
-                              <Typography variant="body2" fontWeight={600}>
+                              <Typography variant="caption" color="text.disabled">→</Typography>
+                              <Typography variant="caption" fontWeight={600}>
                                 {formatCurrency(tx.balanceAfter)}
                               </Typography>
-                            </TableCell>
-                            <TableCell align="right">
-                              <Typography
-                                variant="body1"
-                                fontWeight={600}
-                                color={getAmountColor(tx.type, tx.amount)}
-                              >
-                                {getTransactionSign(tx.type, tx.amount)}{formatCurrency(Math.abs(tx.amount))}
-                              </Typography>
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </TableContainer>
+                            </Box>
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </Box>
+                  )
                 ) : (
                   <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center', py: 3 }}>
                     No hay transacciones registradas en este período

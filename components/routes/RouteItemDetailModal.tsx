@@ -10,6 +10,8 @@ import {
   Typography,
   Chip,
   Divider,
+  useTheme,
+  useMediaQuery,
 } from '@mui/material';
 import {
   Person,
@@ -36,6 +38,8 @@ export function RouteItemDetailModal({
   item,
   onPayment,
 }: RouteItemDetailModalProps) {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   if (!item) {
     return null;
   }
@@ -97,10 +101,11 @@ export function RouteItemDetailModal({
       onClose={onClose}
       maxWidth="sm"
       fullWidth
+      fullScreen={isMobile}
       PaperProps={{
         sx: {
-          borderRadius: { xs: 2, sm: 3 },
-          m: { xs: 1, sm: 2 },
+          borderRadius: { xs: 0, sm: 3 },
+          m: { xs: 0, sm: 2 },
         },
       }}
     >

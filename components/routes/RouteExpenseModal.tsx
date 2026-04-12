@@ -23,6 +23,8 @@ import {
   IconButton,
   Divider,
   Paper,
+  useTheme,
+  useMediaQuery,
 } from '@mui/material';
 import {
   AttachMoney,
@@ -62,6 +64,8 @@ export function RouteExpenseModal({
   isRouteClosed,
   onExpenseUpdated,
 }: RouteExpenseModalProps) {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const [category, setCategory] = useState<ExpenseCategory>('COMBUSTIBLE');
   const [amount, setAmount] = useState('');
   const [description, setDescription] = useState('');
@@ -172,15 +176,17 @@ export function RouteExpenseModal({
   };
 
   return (
-    <Dialog 
-      open={open} 
-      onClose={onClose} 
-      maxWidth="sm" 
+    <Dialog
+      open={open}
+      onClose={onClose}
+      maxWidth="sm"
       fullWidth
+      fullScreen={isMobile}
       sx={{
         '& .MuiDialog-paper': {
-          m: { xs: 1, sm: 2 },
-          mt: { xs: 2, sm: 3 },
+          m: { xs: 0, sm: 2 },
+          mt: { xs: 0, sm: 3 },
+          borderRadius: { xs: 0, sm: 2 },
           maxHeight: { xs: 'calc(100% - 16px)', sm: 'calc(100% - 64px)' },
           width: { xs: 'calc(100% - 16px)', sm: 'auto' },
         }

@@ -63,39 +63,37 @@ export function Navbar() {
             onClick={() => router.push('/')}
           >
             <Logo
-              width={150}
-              height={100}
+              width={120}
+              height={80}
               priority
             />
           </Box>
 
-          <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
-            {/* Fix hydration: only show auth-dependent content after mount */}
+          <Box sx={{ display: 'flex', gap: { xs: 1, sm: 2 }, alignItems: 'center' }}>
             {!mounted ? (
-              // SSR placeholder - matches unauthenticated state
               <>
                 <Button
                   variant='outlined'
                   color='primary'
                   onClick={() => router.push('/consulta')}
-                  sx={{ px: 3, py: 1 }}
+                  sx={{ px: { xs: 1.5, sm: 3 }, py: 1, fontSize: { xs: '0.75rem', sm: '0.875rem' }, whiteSpace: 'nowrap' }}
                 >
-                  Consultar Préstamo
+                  Consultar
                 </Button>
                 <Button
                   variant='contained'
                   color='primary'
                   onClick={handleLogin}
-                  sx={{ px: 3, py: 1 }}
+                  sx={{ px: { xs: 1.5, sm: 3 }, py: 1, fontSize: { xs: '0.75rem', sm: '0.875rem' }, whiteSpace: 'nowrap' }}
                 >
-                  Iniciar Sesión
+                  Ingresar
                 </Button>
               </>
             ) : isAuthenticated && user ? (
               <>
                 <Typography
                   variant='body2'
-                  sx={{ color: 'text.secondary' }}
+                  sx={{ color: 'text.secondary', display: { xs: 'none', sm: 'block' } }}
                 >
                   Hola, {currentUser?.fullName || 'Usuario'}
                 </Typography>
@@ -103,6 +101,7 @@ export function Navbar() {
                   variant='outlined'
                   color='primary'
                   onClick={handleDashboard}
+                  sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' }, whiteSpace: 'nowrap' }}
                 >
                   Mi Panel
                 </Button>
@@ -110,8 +109,9 @@ export function Navbar() {
                   variant='contained'
                   color='primary'
                   onClick={handleLogout}
+                  sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' }, whiteSpace: 'nowrap' }}
                 >
-                  Cerrar Sesión
+                  Salir
                 </Button>
               </>
             ) : (
@@ -120,17 +120,17 @@ export function Navbar() {
                   variant='outlined'
                   color='primary'
                   onClick={() => router.push('/consulta')}
-                  sx={{ px: 3, py: 1 }}
+                  sx={{ px: { xs: 1.5, sm: 3 }, py: 1, fontSize: { xs: '0.75rem', sm: '0.875rem' }, whiteSpace: 'nowrap' }}
                 >
-                  Consultar Préstamo
+                  Consultar
                 </Button>
                 <Button
                   variant='contained'
                   color='primary'
                   onClick={handleLogin}
-                  sx={{ px: 3, py: 1 }}
+                  sx={{ px: { xs: 1.5, sm: 3 }, py: 1, fontSize: { xs: '0.75rem', sm: '0.875rem' }, whiteSpace: 'nowrap' }}
                 >
-                  Iniciar Sesión
+                  Ingresar
                 </Button>
               </>
             )}

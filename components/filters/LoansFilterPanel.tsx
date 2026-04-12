@@ -13,8 +13,6 @@ import {
   Chip,
   Autocomplete,
   TextField,
-  ToggleButton,
-  ToggleButtonGroup,
   CircularProgress
 } from '@mui/material'
 import { 
@@ -46,6 +44,7 @@ export function LoansFilterPanel({ variant: _variant = 'expanded', onClose }: Lo
     hasActiveFilters,
     isLoading,
     updateFilter,
+    updateFilters,
     clearAllFilters
   } = useLoansFilters()
 
@@ -81,22 +80,19 @@ export function LoansFilterPanel({ variant: _variant = 'expanded', onClose }: Lo
     } else {
       setClientOptions([])
       setSelectedClient(null)
-      updateFilter('clientName', undefined)
-      updateFilter('clientId', undefined)
+      updateFilters({ clientName: undefined, clientId: undefined })
     }
   }, [searchClients, updateFilter])
 
-  // Handle client selection
+  // Handle client selection - batch update to prevent double fetch
   const handleClientChange = useCallback((_event: any, newValue: ClientOption | null) => {
     setSelectedClient(newValue)
     if (newValue) {
-      updateFilter('clientId', newValue.id)
-      updateFilter('clientName', newValue.fullName)
+      updateFilters({ clientId: newValue.id, clientName: newValue.fullName })
     } else {
-      updateFilter('clientId', undefined)
-      updateFilter('clientName', undefined)
+      updateFilters({ clientId: undefined, clientName: undefined })
     }
-  }, [updateFilter])
+  }, [updateFilters])
 
   // Initialize selected client from filter
   useMemo(() => {
@@ -124,38 +120,36 @@ export function LoansFilterPanel({ variant: _variant = 'expanded', onClose }: Lo
   }
 
   const handleLoanStatusFilter = (loanStatus: 'ACTIVE' | 'COMPLETED' | 'ALL' | null) => {
-    updateFilter('loanStatus', loanStatus || undefined)
+    // 'ALL' means no filter - clear it
+    updateFilter('loanStatus', loanStatus === 'ALL' ? undefined : (loanStatus || undefined))
   }
 
   return (
     <Card elevation={2}>
       <CardContent>
-        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center' }}>
-            <FilterList sx={{ mr: 1, color: 'primary.main' }} />
+        <Box sx={{ mb: 2 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: hasActiveFilters ? 1 : 0 }}>
+            <FilterList sx={{ color: 'primary.main', flexShrink: 0 }} />
             <Typography variant="h6">
-              Filtros de Préstamos
+              Filtros
             </Typography>
-            {hasActiveFilters && (
-              <Chip 
-                label={`${filterStats.total} resultados`}
-                color="primary" 
-                size="small" 
-                sx={{ ml: 2 }}
-              />
-            )}
-            {isLoading && (
-              <CircularProgress size={16} sx={{ ml: 2 }} />
-            )}
+            {isLoading && <CircularProgress size={16} />}
           </Box>
           {hasActiveFilters && (
-            <Button
-              startIcon={<Clear />}
-              onClick={handleClearFilters}
-              size="small"
-            >
-              Limpiar
-            </Button>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <Chip
+                label={`${filterStats.total} resultados`}
+                color="primary"
+                size="small"
+              />
+              <Button
+                startIcon={<Clear />}
+                onClick={handleClearFilters}
+                size="small"
+              >
+                Limpiar
+              </Button>
+            </Box>
           )}
         </Box>
 
@@ -225,66 +219,31 @@ export function LoansFilterPanel({ variant: _variant = 'expanded', onClose }: Lo
           <Typography variant="subtitle2" gutterBottom>
             Estado del Préstamo
           </Typography>
-          <ToggleButtonGroup
-            value={filters.loanStatus || 'ALL'}
-            exclusive
-            onChange={(_, value) => handleLoanStatusFilter(value)}
-            size="small"
-            fullWidth
-            sx={{
-              display: 'flex',
-              flexWrap: 'wrap',
-              gap: 1,
-              '& .MuiToggleButton-root': {
-                borderRadius: 2,
-                border: '1px solid',
-                px: 2,
-                py: 1,
-                flex: '1 1 auto',
-                minWidth: 'auto'
-              }
-            }}
-          >
-            <ToggleButton
-              value="ALL"
-              sx={{
-                color: 'primary.main',
-                borderColor: 'primary.main',
-                '&.Mui-selected': {
-                  backgroundColor: 'primary.main',
-                  color: 'white'
-                }
-              }}
-            >
-              Todos
-            </ToggleButton>
-            <ToggleButton
-              value="ACTIVE"
-              sx={{
-                color: 'info.main',
-                borderColor: 'info.main',
-                '&.Mui-selected': {
-                  backgroundColor: 'info.main',
-                  color: 'white'
-                }
-              }}
-            >
-              Activo
-            </ToggleButton>
-            <ToggleButton
-              value="COMPLETED"
-              sx={{
-                color: 'success.main',
-                borderColor: 'success.main',
-                '&.Mui-selected': {
-                  backgroundColor: 'success.main',
-                  color: 'white'
-                }
-              }}
-            >
-              Completado
-            </ToggleButton>
-          </ToggleButtonGroup>
+          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75 }}>
+            {[
+              { value: 'ALL', label: 'Todos', color: '#1976d2' },
+              { value: 'ACTIVE', label: 'Activos', color: '#2e7d32' },
+              { value: 'COMPLETED', label: 'Completados', color: '#757575' },
+            ].map((opt) => {
+              const isSelected = (filters.loanStatus || 'ALL') === opt.value
+              return (
+                <Chip
+                  key={opt.value}
+                  label={opt.label}
+                  size="small"
+                  onClick={() => handleLoanStatusFilter(opt.value as any)}
+                  sx={{
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    bgcolor: isSelected ? opt.color : 'transparent',
+                    color: isSelected ? 'white' : opt.color,
+                    border: `1.5px solid ${opt.color}`,
+                    '&:hover': { bgcolor: isSelected ? opt.color : `${opt.color}15` },
+                  }}
+                />
+              )
+            })}
+          </Box>
         </Box>
 
         {/* Filter Summary */}

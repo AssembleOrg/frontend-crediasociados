@@ -75,7 +75,7 @@ export default function SubLoansProvider({ children }: SubLoansProviderProps) {
       setError(null);
 
       
-      // Add timeout to prevent blocking (5 seconds for critical data)
+      // Add timeout to prevent blocking (increased to reduce false negatives on slow networks)
       const dataPromise = Promise.all([
         // 1. All SubLoans with Client Info
         subLoansLookupService.getAllSubLoansWithClientInfo(),
@@ -97,7 +97,7 @@ export default function SubLoansProvider({ children }: SubLoansProviderProps) {
         setTimeout(() => {
           
           resolve(null);
-        }, 5000)
+        }, 12000)
       );
 
       const result = await Promise.race([dataPromise, timeoutPromise]);
@@ -114,7 +114,9 @@ export default function SubLoansProvider({ children }: SubLoansProviderProps) {
         setTodayDueSubLoans([]);
         setAllSubLoans([]);
         // Don't set stats since the store expects SubLoanStats, not null
-        setLoans([]);
+        // IMPORTANT: do NOT clear loans store here.
+        // Loans may have been loaded successfully by Loans page/hook, and clearing here
+        // causes "200 OK with data but empty UI" race conditions.
         return false;
       }
 
@@ -160,7 +162,7 @@ export default function SubLoansProvider({ children }: SubLoansProviderProps) {
       setTodayDueSubLoans([]);
       setAllSubLoans([]);
       // Don't set stats since the store expects SubLoanStats, not null
-      setLoans([]);
+      // IMPORTANT: keep existing loans in store on partial provider failure.
       
       return false;
 

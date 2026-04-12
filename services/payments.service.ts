@@ -67,6 +67,7 @@ interface RegisterPaymentRequest {
   currency: 'ARS';
   paymentDate: string;
   description?: string;
+  adjustedTotalAmount?: number;
 }
 
 /**

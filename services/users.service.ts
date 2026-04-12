@@ -1,4 +1,5 @@
 import api from './api';
+import { requestDeduplicator } from '@/lib/request-deduplicator';
 import type {
   UserResponseDto,
   CreateUserDto,
@@ -128,8 +129,11 @@ class UsersService {
       ? `/users/${id}/created-users?${queryString}`
       : `/users/${id}/created-users`;
 
-    
-    const response = await api.get(url);
+    const response = await requestDeduplicator.dedupe(
+      `users:created:${id}:${queryString}`,
+      () => api.get(url),
+      { ttl: 5000 }
+    );
 
     return this.extractPaginatedUsersPayload(response.data);
   }

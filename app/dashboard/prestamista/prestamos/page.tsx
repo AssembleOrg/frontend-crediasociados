@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useRef } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Box, Button, Alert, CircularProgress } from '@mui/material'
 import { Add} from '@mui/icons-material'
 import { useRouter, usePathname } from 'next/navigation'
@@ -28,15 +28,13 @@ export default function PrestamosAnalyticsPage() {
   const { filteredLoans, filterStats, hasActiveFilters, isLoading: filtersLoading, error: filtersError } = useLoansFilters()
   const { refetch: refetchManagerData } = useManagerDashboard()
   
-  // Prevent double fetch in StrictMode
+  // Load loans + subloans when this page mounts
   const hasFetched = useRef(false)
-
-  // Fetch loans ONLY on mount - client names come from API response
   useEffect(() => {
     if (hasFetched.current) return
     hasFetched.current = true
     fetchLoans()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    fetchAllSubLoansWithClientInfo()
   }, [])
 
   // Modal states
@@ -76,7 +74,7 @@ export default function PrestamosAnalyticsPage() {
     : []
 
   return (
-    <Box sx={{ p: 3 }}>
+    <Box sx={{ p: { xs: 1, sm: 2, md: 3 } }}>
       {/* Header */}
       <PageHeader
         title="Análisis de Cartera"
@@ -127,25 +125,19 @@ export default function PrestamosAnalyticsPage() {
       {/* Loans Table */}
       {!isLoading && !filtersLoading && (
         <Box>
-          <Box
-            sx={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              mb: 3,
-            }}
-          >
-            <Box sx={{ typography: 'h6' }}>Tu Cartera de Préstamos</Box>
-            <Box sx={{ display: 'flex', gap: 2 }}>
-              <ExportButtons 
+          <Box sx={{ mb: 3 }}>
+            <Box sx={{ typography: 'h6', mb: { xs: 1.5, sm: 0 } }}>Tu Cartera de Prestamos</Box>
+            <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+              <ExportButtons
                 filteredLoans={hasActiveFilters ? filteredLoans : undefined}
               />
               <Button
                 variant="contained"
                 startIcon={<Add />}
                 onClick={handleCreateLoan}
+                size="small"
               >
-                Nuevo Préstamo
+                Nuevo Prestamo
               </Button>
             </Box>
           </Box>

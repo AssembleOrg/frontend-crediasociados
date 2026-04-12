@@ -65,13 +65,17 @@ export function useLoans() {
       setLoading(true)
       setError(null)
 
-      const response = await loansService.getAllLoans()
-      const transformedLoans = response.map(apiLoanToLoan)
+      const response = await loansService.getLoansPaginated({
+        page: params?.page || 1,
+        limit: params?.limit || 100,
+        loanStatus: 'ACTIVE',
+      })
+      const transformedLoans = response.data.map(apiLoanToLoan)
       setLoans(transformedLoans)
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Error desconocido'
       setError(`Error al cargar préstamos: ${errorMessage}`)
-      
+
     } finally {
       setLoading(false)
     }

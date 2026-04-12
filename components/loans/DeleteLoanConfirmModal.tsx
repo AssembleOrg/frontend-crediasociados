@@ -14,6 +14,7 @@ import {
   CircularProgress,
 } from '@mui/material'
 import { Warning, DeleteForever } from '@mui/icons-material'
+import { useTheme, useMediaQuery } from '@mui/material'
 
 interface DeleteLoanConfirmModalProps {
   open: boolean
@@ -30,6 +31,8 @@ export function DeleteLoanConfirmModal({
   loanTrack,
   loanAmount,
 }: DeleteLoanConfirmModalProps) {
+  const theme = useTheme()
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'))
   const [confirmText, setConfirmText] = useState('')
   const [isDeleting, setIsDeleting] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -72,10 +75,11 @@ export function DeleteLoanConfirmModal({
       onClose={handleClose}
       maxWidth="sm"
       fullWidth
+      fullScreen={isMobile}
       PaperProps={{
         sx: {
-          borderRadius: 3,
-          boxShadow: '0 20px 40px rgba(0,0,0,0.2)',
+          borderRadius: isMobile ? 0 : 3,
+          m: { xs: 0, sm: 2 },
         },
       }}
     >
@@ -83,26 +87,25 @@ export function DeleteLoanConfirmModal({
         sx={{
           display: 'flex',
           alignItems: 'center',
-          gap: 2,
+          gap: 1.5,
           bgcolor: 'error.main',
           color: 'white',
           py: 2,
-          pt: 3,
-          px: 3,
+          px: { xs: 2, sm: 3 },
         }}
       >
-        <Warning sx={{ fontSize: 32 }} />
+        <Warning sx={{ fontSize: { xs: 24, sm: 32 } }} />
         <Box>
-          <Typography variant="h6" component="div">
-            Eliminar Préstamo Permanentemente
+          <Typography variant={isMobile ? 'subtitle1' : 'h6'} component="div" fontWeight={600}>
+            Eliminar Prestamo
           </Typography>
           <Typography variant="caption" sx={{ opacity: 0.9 }}>
-            Esta acción no se puede deshacer
+            Esta accion no se puede deshacer
           </Typography>
         </Box>
       </DialogTitle>
 
-      <DialogContent sx={{ pt: 3 }}>
+      <DialogContent sx={{ pt: 3, px: { xs: 2, sm: 3 } }}>
         <Alert severity="error" sx={{ mb: 3 }}>
           <Typography variant="body2" fontWeight="bold" gutterBottom>
             ⚠️ ADVERTENCIA: Esta acción es irreversible
@@ -170,13 +173,12 @@ export function DeleteLoanConfirmModal({
         )}
       </DialogContent>
 
-      <DialogActions sx={{ p: 3, gap: 1 }}>
+      <DialogActions sx={{ p: { xs: 2, sm: 3 }, gap: 1, flexDirection: { xs: 'column-reverse', sm: 'row' } }}>
         <Button
           onClick={handleClose}
           disabled={isDeleting}
           variant="outlined"
-          size="large"
-          sx={{ minWidth: 120 }}
+          fullWidth={isMobile}
         >
           Cancelar
         </Button>
@@ -185,17 +187,16 @@ export function DeleteLoanConfirmModal({
           disabled={!isConfirmValid || isDeleting}
           variant="contained"
           color="error"
-          size="large"
+          fullWidth={isMobile}
           startIcon={
             isDeleting ? (
-              <CircularProgress size={20} color="inherit" />
+              <CircularProgress size={18} color="inherit" />
             ) : (
               <DeleteForever />
             )
           }
-          sx={{ minWidth: 160 }}
         >
-          {isDeleting ? 'Eliminando...' : 'Eliminar Permanentemente'}
+          {isDeleting ? 'Eliminando...' : 'Eliminar'}
         </Button>
       </DialogActions>
     </Dialog>

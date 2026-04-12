@@ -1,4 +1,5 @@
 import api from './api'
+import { requestDeduplicator } from '@/lib/request-deduplicator'
 import type { 
   ClientResponseDto, 
   CreateClientDto, 
@@ -60,7 +61,11 @@ class ClientsService {
     const queryString = searchParams.toString()
     const url = queryString ? `/clients?${queryString}` : '/clients'
     
-    const response = await api.get(url)
+    const response = await requestDeduplicator.dedupe(
+      `clients:list:${queryString}`,
+      () => api.get(url),
+      { ttl: 5000 }
+    )
     return this.extractPaginatedClientsPayload(response.data)
   }
 

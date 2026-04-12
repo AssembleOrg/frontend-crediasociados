@@ -131,8 +131,11 @@ export const unformatAmount = (value: string): string => {
  */
 export const numberToFormattedAmount = (num: number): string => {
   if (num <= 0) return ''
-  // Convert to string with comma as decimal separator for formatAmount
-  return num.toFixed(2).replace('.', ',')
+  // Only include decimals if they exist (avoid ",00")
+  const hasDecimals = num % 1 !== 0
+  return hasDecimals
+    ? num.toFixed(2).replace('.', ',')
+    : Math.floor(num).toString()
 }
 
 /**

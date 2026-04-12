@@ -81,7 +81,7 @@ export default function Home() {
           <Typography
             variant='h1'
             sx={{
-              fontSize: { xs: '2.5rem', md: '3.5rem' },
+              fontSize: { xs: '1.8rem', sm: '2.5rem', md: '3.5rem' },
               fontWeight: 700,
               mb: 3,
               color: 'primary.main',
@@ -100,6 +100,8 @@ export default function Home() {
               maxWidth: 650,
               mx: 'auto',
               fontWeight: 300,
+              fontSize: { xs: '1rem', sm: '1.25rem', md: '1.5rem' },
+              px: { xs: 1, sm: 0 },
             }}
           >
             Software profesional que organiza tu cartera de clientes y optimiza
@@ -118,7 +120,7 @@ export default function Home() {
             <Button
               variant='contained'
               size='large'
-              sx={{ px: 4, py: 1.5, fontSize: '1.1rem' }}
+              sx={{ px: { xs: 3, sm: 4 }, py: 1.5, fontSize: { xs: '0.95rem', sm: '1.1rem' } }}
               onClick={() => router.push('/login')}
             >
               Comenzar Ahora
@@ -126,10 +128,10 @@ export default function Home() {
             <Button
               variant='outlined'
               size='large'
-              sx={{ px: 4, py: 1.5, fontSize: '1.1rem' }}
+              sx={{ px: { xs: 3, sm: 4 }, py: 1.5, fontSize: { xs: '0.95rem', sm: '1.1rem' } }}
               onClick={() => router.push('/consulta')}
             >
-              Consultar Préstamo
+              Consultar Prestamo
             </Button>
           </Box>
 
@@ -197,19 +199,20 @@ export default function Home() {
           sx={{
             mb: 10,
             bgcolor: 'primary.main',
-            py: 8,
-            px: 4,
+            py: { xs: 5, md: 8 },
+            px: { xs: 2, sm: 3, md: 4 },
             borderRadius: 3,
             color: 'white',
+            mx: { xs: -2, sm: 0 },
           }}
         >
           <Typography
             variant='h2'
             textAlign='center'
             sx={{
-              mb: 6,
+              mb: { xs: 4, md: 6 },
               fontWeight: 600,
-              fontSize: { xs: '2rem', md: '2.5rem' },
+              fontSize: { xs: '1.5rem', sm: '2rem', md: '2.5rem' },
               color: 'white',
             }}
           >
@@ -273,7 +276,7 @@ export default function Home() {
             <Box>
               <Typography
                 variant='h3'
-                sx={{ mb: 3, fontWeight: 600 }}
+                sx={{ mb: 3, fontWeight: 600, fontSize: { xs: '1.5rem', sm: '2rem', md: '2.5rem' } }}
               >
                 Multiplica tus Ganancias, Reduce tus Riesgos
               </Typography>
@@ -359,7 +362,7 @@ export default function Home() {
                     gap: 3,
                   }}
                 >
-                  <Box sx={{ minWidth: '140px', textAlign: 'center' }}>
+                  <Box sx={{ minWidth: { xs: '100%', sm: '140px' }, textAlign: 'center' }}>
                     <Typography
                       variant='subtitle1'
                       sx={{ fontWeight: 600, color: 'primary.main', mb: 1 }}
@@ -374,7 +377,7 @@ export default function Home() {
                       reportes
                     </Typography>
                   </Box>
-                  <Box sx={{ minWidth: '140px', textAlign: 'center' }}>
+                  <Box sx={{ minWidth: { xs: '100%', sm: '140px' }, textAlign: 'center' }}>
                     <Typography
                       variant='subtitle1'
                       sx={{ fontWeight: 600, color: 'primary.main', mb: 1 }}
@@ -399,12 +402,13 @@ export default function Home() {
         <Box
           sx={{
             textAlign: 'center',
-            py: 8,
-            px: 4,
+            py: { xs: 5, md: 8 },
+            px: { xs: 2, sm: 3, md: 4 },
             bgcolor: 'primary.main',
             borderRadius: 3,
             mb: 6,
             boxShadow: 3,
+            mx: { xs: -2, sm: 0 },
           }}
         >
           <Typography
@@ -413,7 +417,7 @@ export default function Home() {
               mb: 2,
               fontWeight: 600,
               color: 'white',
-              fontSize: { xs: '2rem', md: '3rem' },
+              fontSize: { xs: '1.5rem', sm: '2rem', md: '3rem' },
             }}
           >
             ¿Listo para Transformar tu Negocio?
@@ -423,7 +427,7 @@ export default function Home() {
             sx={{
               mb: 4,
               color: 'rgba(255, 255, 255, 0.9)',
-              fontSize: { xs: '1.1rem', md: '1.25rem' },
+              fontSize: { xs: '0.95rem', sm: '1.1rem', md: '1.25rem' },
             }}
           >
             Únete a cientos de prestamistas que ya aumentaron sus ganancias con
@@ -433,9 +437,9 @@ export default function Home() {
             variant='contained'
             size='large'
             sx={{
-              px: 6,
+              px: { xs: 4, sm: 6 },
               py: 2,
-              fontSize: '1.2rem',
+              fontSize: { xs: '1rem', sm: '1.2rem' },
               bgcolor: 'white',
               color: 'primary.main',
               fontWeight: 600,

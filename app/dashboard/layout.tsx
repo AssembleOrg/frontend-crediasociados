@@ -2,7 +2,7 @@
 
 import { Box } from '@mui/material';
 import { DashboardNav } from '@/components/dashboard/DashboardNav';
-import { AuthLoadingOverlay } from '@/components/ui/AuthLoadingOverlay';
+import { SplashScreen } from '@/components/ui/SplashScreen';
 import DolarBlueTicker from '@/components/ui/DolarBlueTicker';
 import { Footer } from '@/components/ui/Footer';
 import { VersionNotification } from '@/components/ui/VersionNotification';
@@ -33,11 +33,8 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
       {/* Version notification - shows once after login */}
       <VersionNotification />
       
-      {/* Global auth loading overlay */}
-      <AuthLoadingOverlay 
-        open={isLoading} 
-        message="Procesando autenticación..."
-      />
+      {/* Global auth loading splash */}
+      <SplashScreen visible={isLoading} />
     </Box>
   );
 }

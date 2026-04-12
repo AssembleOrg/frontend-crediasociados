@@ -124,7 +124,7 @@ export default function ClientesPage() {
 
   // Use server-side pagination from the store
   const page = (pagination?.page || 1) - 1 // MUI uses 0-based indexing
-  const rowsPerPage = pagination?.limit || 10
+  const rowsPerPage = pagination?.limit || 25
   const totalClients = pagination?.total || 0
 
   const handleChangePage = (event: unknown, newPage: number) => {
@@ -159,7 +159,7 @@ export default function ClientesPage() {
   }, [fetchClients])
 
   return (
-    <Box sx={{ p: 3 }}>
+    <Box sx={{ p: { xs: 1, sm: 2, md: 3 } }}>
       {/* Header */}
       <PageHeader
         title="Gestión de Clientes"
@@ -186,7 +186,7 @@ export default function ClientesPage() {
       )}
 
       {/* Clients - Responsive Layout */}
-      <Paper sx={{ overflow: 'hidden' }}>
+      <Paper sx={{ overflow: 'hidden', mx: { xs: -1, sm: 0 }, borderRadius: { xs: 0, sm: 1 } }}>
         {/* Desktop Table - lg+ */}
         <Box sx={{ display: { xs: 'none', lg: 'block' } }}>
           <TableContainer>
@@ -323,7 +323,7 @@ export default function ClientesPage() {
         </Box>
 
         {/* Mobile Cards - xs to lg */}
-        <Box sx={{ display: { xs: 'block', lg: 'none' }, p: 2 }}>
+        <Box sx={{ display: { xs: 'block', lg: 'none' }, px: { xs: 0.5, sm: 2 }, py: 1 }}>
           {isLoading ? (
             // Loading skeleton for mobile
             <Box>

@@ -22,6 +22,7 @@ import {
   DragIndicator,
   OpenInNew,
   Refresh,
+  EditCalendar,
 } from '@mui/icons-material';
 import { CollectionRouteItem } from '@/services/collection-routes.service';
 import { DateTime } from 'luxon';
@@ -31,6 +32,7 @@ export interface RouteItemCardProps {
   index: number;
   onPayment?: (item: CollectionRouteItem) => void;
   onReset?: (item: CollectionRouteItem) => void;
+  onReschedule?: (item: CollectionRouteItem) => void;
   onCardClick?: (item: CollectionRouteItem) => void;
   isActive: boolean;
   isDragging?: boolean;
@@ -47,6 +49,7 @@ export function RouteItemCard({
   index,
   onPayment,
   onReset,
+  onReschedule,
   onCardClick,
   isActive,
   isDragging,
@@ -134,15 +137,15 @@ export function RouteItemCard({
         },
       }}
     >
-      <CardContent sx={{ p: { xs: 1.25, sm: 2 }, '&:last-child': { pb: { xs: 1.25, sm: 2 } } }}>
-        {/* Main Row - Compact Layout */}
+      <CardContent sx={{ px: { xs: 1, sm: 2 }, py: { xs: 1, sm: 1.5 }, '&:last-child': { pb: { xs: 1, sm: 1.5 } } }}>
+        {/* Main Row */}
         <Box
           sx={{
             display: 'flex',
             alignItems: 'center',
-            gap: { xs: 1, sm: 1.5 },
+            gap: { xs: 0.75, sm: 1.5 },
             flexWrap: 'nowrap',
-            overflow: 'visible', // Ensure nothing is cut off
+            overflow: 'visible',
           }}
         >
           {/* Drag Handle */}
@@ -179,7 +182,7 @@ export function RouteItemCard({
           />
 
           {/* Client Name */}
-          <Box sx={{ flex: '1 1 auto', minWidth: { xs: 0, sm: 180 }, maxWidth: { xs: '40%', sm: 'none' } }}>
+          <Box sx={{ flex: '1 1 auto', minWidth: 0 }}>
             <Typography
               variant="body2"
               sx={{
@@ -301,6 +304,24 @@ export function RouteItemCard({
                 >
                   {isMobile ? 'Pagar' : 'Registrar'}
                 </Button>
+              )}
+              {!isPaid && onReschedule && (
+                <IconButton
+                  size={isMobile ? 'medium' : 'small'}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onReschedule(item);
+                  }}
+                  sx={{
+                    width: { xs: 40, sm: 32 },
+                    height: { xs: 40, sm: 32 },
+                    bgcolor: '#1976d2',
+                    color: 'white',
+                    '&:hover': { bgcolor: '#1565c0' },
+                  }}
+                >
+                  <EditCalendar sx={{ fontSize: { xs: 18, sm: 16 } }} />
+                </IconButton>
               )}
               <IconButton
                 size={isMobile ? 'medium' : 'small'}

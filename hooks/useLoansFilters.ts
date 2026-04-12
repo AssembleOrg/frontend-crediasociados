@@ -40,35 +40,37 @@ export function useLoansFilters() {
   const debounceTimerRef = useRef<NodeJS.Timeout | null>(null)
 
   // Fetch filtered loans from backend
+  // No dependencies on loansFilters - reads from store directly to avoid re-creation loops
   const fetchFilteredLoans = useCallback(async (page: number = 1, limit: number = 50) => {
     setIsLoading(true)
     setError(null)
 
     try {
+      // Read filters from store at call time (not from closure)
+      const currentFilters = useFiltersStore.getState().loansFilters
+
       const params: Parameters<typeof loansService.getLoansPaginated>[0] = {
         page,
         limit,
       }
 
-      // Add filters
-      if (loansFilters.clientName && loansFilters.clientName.length >= 2) {
-        params.clientName = loansFilters.clientName
+      if (currentFilters.clientName && currentFilters.clientName.length >= 2) {
+        params.clientName = currentFilters.clientName
       }
-      if (loansFilters.clientId) {
-        params.clientId = loansFilters.clientId
+      if (currentFilters.clientId) {
+        params.clientId = currentFilters.clientId
       }
-      if (loansFilters.loanStatus && loansFilters.loanStatus !== 'ALL') {
-        params.loanStatus = loansFilters.loanStatus
+      if (currentFilters.loanStatus && currentFilters.loanStatus !== 'ALL') {
+        params.loanStatus = currentFilters.loanStatus
       }
-      if (loansFilters.paymentFrequency) {
-        params.paymentFrequency = loansFilters.paymentFrequency as 'DAILY' | 'WEEKLY' | 'BIWEEKLY' | 'MONTHLY'
+      if (currentFilters.paymentFrequency) {
+        params.paymentFrequency = currentFilters.paymentFrequency as 'DAILY' | 'WEEKLY' | 'BIWEEKLY' | 'MONTHLY'
       }
 
       const response: PaginatedResponse<LoanResponseDto> = await loansService.getLoansPaginated(params)
-      
-      // Transform API loans to frontend loans
+
       const transformedLoans = response.data.map(apiLoanToLoan)
-      
+
       setFilteredLoans(transformedLoans)
       setPagination({
         page: response.meta.page,
@@ -83,7 +85,7 @@ export function useLoansFilters() {
     } finally {
       setIsLoading(false)
     }
-  }, [loansFilters])
+  }, []) // Stable reference - reads from store directly
 
   // Check if any filters are active
   const hasActiveFilters = useMemo(() => {
@@ -95,39 +97,40 @@ export function useLoansFilters() {
     })
   }, [loansFilters])
 
-  // Fetch filtered loans when filters change (with debounce for clientName)
+  // Stable key for filters - only changes when actual filter values change
+  const filtersKey = useMemo(() => {
+    return JSON.stringify({
+      cn: loansFilters.clientName || '',
+      ci: loansFilters.clientId || '',
+      ls: loansFilters.loanStatus || '',
+      pf: loansFilters.paymentFrequency || '',
+    })
+  }, [loansFilters.clientName, loansFilters.clientId, loansFilters.loanStatus, loansFilters.paymentFrequency])
+
+  // Fetch filtered loans when filters change
   useEffect(() => {
-    // Clear existing timer
     if (debounceTimerRef.current) {
       clearTimeout(debounceTimerRef.current)
     }
 
-    // If no filters are active, clear filtered loans
     if (!hasActiveFilters) {
       setFilteredLoans([])
       setPagination(prev => ({ ...prev, total: 0, totalPages: 0, page: 1 }))
       return
     }
 
-    // If clientName is being used and has less than 2 characters, don't fetch yet
     if (loansFilters.clientName && loansFilters.clientName.length < 2) {
       setFilteredLoans([])
       setPagination(prev => ({ ...prev, total: 0, totalPages: 0 }))
       return
     }
 
-    // Reset to page 1 when filters change (except when only clientName is being typed)
-    const shouldResetPage = !loansFilters.clientName || loansFilters.clientName.length >= 2
-    const pageToUse = shouldResetPage ? 1 : pagination.page
-
-    // Debounce clientName search (300ms)
     if (loansFilters.clientName && loansFilters.clientName.length >= 2) {
       debounceTimerRef.current = setTimeout(() => {
-        fetchFilteredLoans(pageToUse, pagination.limit)
+        fetchFilteredLoans(1, pagination.limit)
       }, 300)
     } else {
-      // No debounce for other filters
-      fetchFilteredLoans(pageToUse, pagination.limit)
+      fetchFilteredLoans(1, pagination.limit)
     }
 
     return () => {
@@ -135,7 +138,8 @@ export function useLoansFilters() {
         clearTimeout(debounceTimerRef.current)
       }
     }
-  }, [loansFilters, hasActiveFilters, fetchFilteredLoans, pagination.limit])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filtersKey])
 
   // Filter statistics
   const filterStats = useMemo(() => {
@@ -174,16 +178,24 @@ export function useLoansFilters() {
 
   // Update a specific filter
   const updateFilter = useCallback(<K extends keyof LoansFilters>(
-    key: K, 
+    key: K,
     value: LoansFilters[K]
   ) => {
-    const newFilters = { ...loansFilters, [key]: value }
-    // Reset page when filters change (except when typing clientName)
+    const current = useFiltersStore.getState().loansFilters
+    const newFilters = { ...current, [key]: value }
     if (key !== 'clientName' || (key === 'clientName' && (!value || (typeof value === 'string' && value.length < 2)))) {
       setPagination(prev => ({ ...prev, page: 1 }))
     }
     setLoansFilters(newFilters)
-  }, [loansFilters, setLoansFilters])
+  }, [setLoansFilters])
+
+  // Batch update multiple filters at once (prevents multiple re-renders/fetches)
+  const updateFilters = useCallback((updates: Partial<LoansFilters>) => {
+    const current = useFiltersStore.getState().loansFilters
+    const newFilters = { ...current, ...updates }
+    setPagination(prev => ({ ...prev, page: 1 }))
+    setLoansFilters(newFilters)
+  }, [setLoansFilters])
 
   // Clear all filters
   const clearAllFilters = useCallback(() => {
@@ -209,6 +221,7 @@ export function useLoansFilters() {
     
     // Actions
     updateFilter,
+    updateFilters,
     clearAllFilters,
     setLoansFilters,
     refetch: fetchFilteredLoans

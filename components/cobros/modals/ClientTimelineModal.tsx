@@ -9,7 +9,9 @@ import {
   Button,
   Box,
   Typography,
-  Divider
+  Divider,
+  useTheme,
+  useMediaQuery,
 } from '@mui/material'
 import { Payment } from '@mui/icons-material'
 import LoanTimeline from '@/components/loans/LoanTimeline'
@@ -23,6 +25,7 @@ interface ClientTimelineModalProps {
   clientSummary: ClientSummary | null
   onPaymentClick: (subloan: SubLoanWithClientInfo) => void
   onRegisterPaymentClick: (clientSummary: ClientSummary) => void
+  onDateUpdated?: () => void
 }
 
 export default function ClientTimelineModal({
@@ -30,7 +33,8 @@ export default function ClientTimelineModal({
   onClose,
   clientSummary,
   onPaymentClick,
-  onRegisterPaymentClick
+  onRegisterPaymentClick,
+  onDateUpdated
 }: ClientTimelineModalProps) {
   const [showClientInfo, setShowClientInfo] = useState<string | null>(null)
 
@@ -73,6 +77,9 @@ export default function ClientTimelineModal({
     })
   }, [clientSummary?.subLoans])
 
+  const theme = useTheme()
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'))
+
   if (!clientSummary) {
     return null
   }
@@ -83,13 +90,13 @@ export default function ClientTimelineModal({
       onClose={onClose}
       maxWidth="lg"
       fullWidth
+      fullScreen={isMobile}
       PaperProps={{
         sx: {
-          width: { xs: '95vw', sm: '90vw', md: '1400px' },
-          height: { xs: '90vh', sm: 'auto' },
+          width: { sm: '90vw', md: '1400px' },
           maxWidth: 'none',
-          m: { xs: 1, sm: 3 },
-          borderRadius: { xs: 2, sm: 3 },
+          m: { xs: 0, sm: 3 },
+          borderRadius: { xs: 0, sm: 3 },
         },
       }}
     >
@@ -192,33 +199,43 @@ export default function ClientTimelineModal({
                 subLoans={loanGroup.subLoans}
                 compact={false}
                 onPaymentClick={onPaymentClick}
+                onDateUpdated={onDateUpdated}
               />
             </Box>
           ))}
 
           {/* Urgent Actions */}
-          {(clientSummary.stats.overdue > 0 || clientSummary.stats.today > 0) && (
+          {(clientSummary.stats.overdue > 0 || clientSummary.stats.today > 0 || clientSummary.stats.soon > 0) && (
             <Box
               sx={{
                 mt: 4,
-                p: 3,
-                bgcolor: clientSummary.urgencyLevel === 'overdue' ? '#ffebee' : '#fff3e0',
+                p: { xs: 2, sm: 3 },
+                bgcolor: clientSummary.urgencyLevel === 'overdue' ? '#ffebee'
+                  : clientSummary.urgencyLevel === 'today' ? '#fff3e0'
+                  : '#fff8e1',
                 borderRadius: 2,
                 border: 1,
-                borderColor: clientSummary.urgencyLevel === 'overdue' ? 'error.main' : 'warning.main',
+                borderColor: clientSummary.urgencyLevel === 'overdue' ? 'error.main'
+                  : clientSummary.urgencyLevel === 'today' ? 'warning.main'
+                  : '#ffc107',
               }}
             >
               <Typography
                 variant="h6"
                 fontWeight="bold"
-                color={clientSummary.urgencyLevel === 'overdue' ? 'error.main' : 'warning.main'}
+                color={clientSummary.urgencyLevel === 'overdue' ? 'error.main'
+                  : clientSummary.urgencyLevel === 'today' ? 'warning.main'
+                  : '#ff6f00'}
                 gutterBottom
               >
-                Atención Requerida
+                {clientSummary.urgencyLevel === 'soon' ? 'Vence Pronto' : 'Atencion Requerida'}
               </Typography>
               <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                Este cliente requiere seguimiento inmediato por cuotas{' '}
-                {clientSummary.urgencyLevel === 'overdue' ? 'vencidas' : 'que vencen hoy'}.
+                {clientSummary.urgencyLevel === 'overdue'
+                  ? 'Este cliente requiere seguimiento inmediato por cuotas vencidas.'
+                  : clientSummary.urgencyLevel === 'today'
+                  ? 'Este cliente tiene cuotas que vencen hoy.'
+                  : `Este cliente tiene ${clientSummary.stats.soon} cuota${clientSummary.stats.soon > 1 ? 's' : ''} por vencer pronto.`}
               </Typography>
               <Box
                 sx={{
@@ -239,14 +256,16 @@ export default function ClientTimelineModal({
                 >
                   Contactar Cliente
                 </Button>
-                <Button
-                  variant="outlined"
-                  color={clientSummary.urgencyLevel === 'overdue' ? 'error' : 'warning'}
-                  size="small"
-                  onClick={() => onRegisterPaymentClick(clientSummary)}
-                >
-                  Registrar Pago
-                </Button>
+                {clientSummary.urgencyLevel !== 'soon' && (
+                  <Button
+                    variant="outlined"
+                    color={clientSummary.urgencyLevel === 'overdue' ? 'error' : 'warning'}
+                    size="small"
+                    onClick={() => onRegisterPaymentClick(clientSummary)}
+                  >
+                    Registrar Pago
+                  </Button>
+                )}
               </Box>
 
               {/* Client Contact Information - Collapsible */}

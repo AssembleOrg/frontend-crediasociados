@@ -13,31 +13,10 @@ const api: AxiosInstance = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
-  withCredentials: false, // Set to true if using cookies for auth
+  withCredentials: true,
 });
 
-let currentToken: string | null = null;
-
-export const setAuthToken = (token: string | null) => {
-  currentToken = token;
-  if (token) {
-    api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-  } else {
-    delete api.defaults.headers.common['Authorization'];
-  }
-};
-
-api.interceptors.request.use(
-  (config) => {
-    if (currentToken && !config.headers['Authorization']) {
-      config.headers['Authorization'] = `Bearer ${currentToken}`;
-    }
-    return config;
-  },
-  (error) => {
-    return Promise.reject(error);
-  }
-);
+export const setAuthToken = (_token: string | null) => {};
 api.interceptors.response.use(
   (response: AxiosResponse) => response,
   (error) => {
@@ -60,9 +39,6 @@ api.interceptors.response.use(
           const currentPath = window.location.pathname;
           if (currentPath !== '/login') {
             
-            
-            // Clear auth token
-            setAuthToken(null);
             
             // Clear auth store
             const authStore = useAuthStore.getState();

@@ -72,13 +72,10 @@ export interface PaymentDistribution {
 
 export interface LoginResponse {
   user: UserResponseDto;
-  token: string;
-  refreshToken: string;
 }
 
 export interface RefreshResponse {
-  token: string;
-  refreshToken: string;
+  ok: boolean;
 }
 
 // Pagination types

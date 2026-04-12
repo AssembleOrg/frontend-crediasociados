@@ -1,8 +1,10 @@
 'use client'
 
-import { Box, Typography, Chip, Tooltip, useTheme, useMediaQuery, IconButton, CircularProgress, Button } from '@mui/material'
-import { CheckCircle, RadioButtonUnchecked, Warning, Error, Refresh } from '@mui/icons-material'
+import { useState } from 'react'
+import { Box, Typography, Chip, Tooltip, useTheme, useMediaQuery, IconButton, CircularProgress, Button, Dialog, DialogTitle, DialogContent, DialogActions, TextField, Stack } from '@mui/material'
+import { CheckCircle, RadioButtonUnchecked, Warning, Error, Refresh, AttachMoney, Edit, CalendarMonth, ChevronLeft, ChevronRight } from '@mui/icons-material'
 import type { SubLoanWithClientInfo } from '@/services/subloans-lookup.service'
+import { subLoansService } from '@/services/sub-loans.service'
 import { DateTime } from 'luxon'
 
 interface LoanTimelineProps {
@@ -12,6 +14,7 @@ interface LoanTimelineProps {
   onPaymentClick?: (subloan: SubLoanWithClientInfo) => void
   onResetClick?: (subloan: SubLoanWithClientInfo) => void
   resettingSubloanId?: string | null
+  onDateUpdated?: () => void
 }
 
 interface TimelineNodeProps {
@@ -23,6 +26,7 @@ interface TimelineNodeProps {
   onPaymentClick?: (subloan: SubLoanWithClientInfo) => void
   onResetClick?: (subloan: SubLoanWithClientInfo) => void
   resettingSubloanId?: string | null
+  onDateUpdated?: () => void
 }
 
 const TimelineNode: React.FC<TimelineNodeProps> = ({
@@ -32,61 +36,47 @@ const TimelineNode: React.FC<TimelineNodeProps> = ({
   compact = false,
   onPaymentClick,
   onResetClick,
-  resettingSubloanId
+  resettingSubloanId,
+  onDateUpdated
 }) => {
   const urgency = getUrgencyLevel(subloan)
   const isPaid = subloan.status === 'PAID'
   const isPartial = subloan.status === 'PARTIAL'
 
-  // Get colors based on status
+  // Reset only allowed if last payment was today
+  const canReset = isPaid && onResetClick && (() => {
+    if (!subloan.payments || subloan.payments.length === 0) return false
+    const todayStr = DateTime.now().setZone('America/Argentina/Buenos_Aires').toFormat('yyyy-MM-dd')
+    return subloan.payments.some((p: any) => {
+      const payDate = DateTime.fromISO(p.paymentDate || p.createdAt).setZone('America/Argentina/Buenos_Aires').toFormat('yyyy-MM-dd')
+      return payDate === todayStr
+    })
+  })()
+
+  const [editDateOpen, setEditDateOpen] = useState(false)
+  const [newDate, setNewDate] = useState('')
+  const [dateInput, setDateInput] = useState('') // DD/MM/YYYY text input
+  const [saving, setSaving] = useState(false)
+  const [calendarMonth, setCalendarMonth] = useState<DateTime>(() => DateTime.now().startOf('month'))
+
+  const today = DateTime.now().setZone('America/Argentina/Buenos_Aires').toISODate() || ''
+
   const getNodeColors = () => {
     if (isPaid) {
-      return {
-        primary: '#4caf50',
-        bg: '#e8f5e8',
-        icon: CheckCircle,
-        border: '#4caf50'
-      }
+      return { primary: '#4caf50', bg: '#e8f5e8', icon: CheckCircle, border: '#4caf50' }
     }
-
     if (isPartial) {
-      return {
-        primary: '#2196f3',
-        bg: '#e3f2fd',
-        icon: CheckCircle,
-        border: '#2196f3'
-      }
+      return { primary: '#2196f3', bg: '#e3f2fd', icon: CheckCircle, border: '#2196f3' }
     }
-
     switch (urgency) {
       case 'overdue':
-        return {
-          primary: '#f44336',
-          bg: '#ffebee',
-          icon: Error,
-          border: '#f44336'
-        }
+        return { primary: '#f44336', bg: '#ffebee', icon: Error, border: '#f44336' }
       case 'today':
-        return {
-          primary: '#ff9800',
-          bg: '#fff3e0',
-          icon: Warning,
-          border: '#ff9800'
-        }
+        return { primary: '#ff9800', bg: '#fff3e0', icon: Warning, border: '#ff9800' }
       case 'soon':
-        return {
-          primary: '#ffc107',
-          bg: '#fff8e1',
-          icon: Warning,
-          border: '#ffc107'
-        }
+        return { primary: '#ffc107', bg: '#fff8e1', icon: Warning, border: '#ffc107' }
       default:
-        return {
-          primary: '#9e9e9e',
-          bg: '#f5f5f5',
-          icon: RadioButtonUnchecked,
-          border: '#e0e0e0'
-        }
+        return { primary: '#9e9e9e', bg: '#f5f5f5', icon: RadioButtonUnchecked, border: '#e0e0e0' }
     }
   }
 
@@ -95,10 +85,7 @@ const TimelineNode: React.FC<TimelineNodeProps> = ({
 
   const formatDate = (dateString?: string) => {
     if (!dateString) return 'N/A'
-    return new Date(dateString).toLocaleDateString('es-AR', {
-      month: 'short',
-      day: 'numeric'
-    })
+    return new Date(dateString).toLocaleDateString('es-AR', { month: 'short', day: 'numeric' })
   }
 
   const getDaysInfo = () => {
@@ -109,130 +96,219 @@ const TimelineNode: React.FC<TimelineNodeProps> = ({
       const pending = totalAmount - paidAmount
       return `Pagado parcial: $${paidAmount.toLocaleString()} (Resta: $${pending.toLocaleString()})`
     }
-
-    // Use dueDate
     const dateToCheck = subloan.dueDate
     if (!dateToCheck) return 'Sin fecha vencimiento'
-
-    // Use Luxon for date calculations
-    const today = DateTime.now().setZone('America/Argentina/Buenos_Aires').startOf('day')
+    const todayDt = DateTime.now().setZone('America/Argentina/Buenos_Aires').startOf('day')
     const targetDate = DateTime.fromISO(dateToCheck).setZone('America/Argentina/Buenos_Aires').startOf('day')
-    const diffDays = Math.round(targetDate.diff(today, 'days').days)
-
-    if (diffDays < 0) return `${Math.abs(diffDays)} día${Math.abs(diffDays) === 1 ? '' : 's'} vencida`
+    const diffDays = Math.round(targetDate.diff(todayDt, 'days').days)
+    if (diffDays < 0) return `${Math.abs(diffDays)} dia${Math.abs(diffDays) === 1 ? '' : 's'} vencida`
     if (diffDays === 0) return 'Vence hoy'
-    if (diffDays === 1) return 'Vence mañana'
-    return `En ${diffDays} día${diffDays === 1 ? '' : 's'}`
+    if (diffDays === 1) return 'Vence manana'
+    return `En ${diffDays} dia${diffDays === 1 ? '' : 's'}`
   }
 
-  // Get payment descriptions for PAID or PARTIAL subloans
   const getPaymentDescriptions = () => {
     if ((isPaid || isPartial) && subloan.payments && Array.isArray(subloan.payments) && subloan.payments.length > 0) {
       const descriptions = subloan.payments
         .filter((p: any) => p && p.description && typeof p.description === 'string' && p.description.trim())
         .map((p: any) => p.description.trim())
-      
       return descriptions.length > 0 ? descriptions.join(', ') : null
     }
     return null
   }
 
   const paymentDescriptions = getPaymentDescriptions()
+  const canInteract = !isPaid && (onPaymentClick || onDateUpdated)
+  const [showActions, setShowActions] = useState(false)
+
+  const handleNodeClick = () => {
+    if (!canInteract) return
+    setShowActions(prev => !prev)
+  }
+
+  const handlePayClick = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    setShowActions(false)
+    if (onPaymentClick) onPaymentClick(subloan)
+  }
+
+  const handleEditDateClick = (e: React.MouseEvent<HTMLElement>) => {
+    e.stopPropagation()
+    setShowActions(false)
+    const currentDate = subloan.dueDate
+      ? DateTime.fromISO(subloan.dueDate).setZone('America/Argentina/Buenos_Aires')
+      : DateTime.now().setZone('America/Argentina/Buenos_Aires')
+    const iso = currentDate.toISODate() || today
+    setNewDate(iso)
+    setDateInput(currentDate.toFormat('dd/MM/yyyy'))
+    setCalendarMonth(currentDate.startOf('month'))
+    setEditDateOpen(true)
+  }
+
+  const handleCalendarDateClick = (day: DateTime) => {
+    const iso = day.toISODate() || ''
+    setNewDate(iso)
+    setDateInput(day.toFormat('dd/MM/yyyy'))
+  }
+
+  const handleDateInputChange = (value: string) => {
+    // Allow typing with auto-formatting
+    const digits = value.replace(/\D/g, '')
+    let formatted = ''
+    if (digits.length <= 2) formatted = digits
+    else if (digits.length <= 4) formatted = digits.slice(0, 2) + '/' + digits.slice(2)
+    else formatted = digits.slice(0, 2) + '/' + digits.slice(2, 4) + '/' + digits.slice(4, 8)
+    setDateInput(formatted)
+
+    // Try to parse complete date
+    if (digits.length === 8) {
+      const parsed = DateTime.fromFormat(formatted, 'dd/MM/yyyy')
+      if (parsed.isValid) {
+        setNewDate(parsed.toISODate() || '')
+        setCalendarMonth(parsed.startOf('month'))
+      }
+    }
+  }
+
+  const handleSaveDate = async () => {
+    if (!subloan.id || !newDate) return
+    setSaving(true)
+    try {
+      await subLoansService.updateDueDate(subloan.id, new Date(newDate + 'T12:00:00').toISOString())
+      setEditDateOpen(false)
+      if (onDateUpdated) onDateUpdated()
+    } catch (err) {
+      // Error saving
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const isDateValid = newDate >= today
+
+  // Calendar generation
+  const generateCalendarDays = () => {
+    const startOfMonth = calendarMonth.startOf('month')
+    const endOfMonth = calendarMonth.endOf('month')
+    const startDay = startOfMonth.startOf('week')
+    const endDay = endOfMonth.endOf('week')
+    const days: DateTime[] = []
+    let current = startDay
+    while (current <= endDay) {
+      days.push(current)
+      current = current.plus({ days: 1 })
+    }
+    return days
+  }
 
   return (
-    <Tooltip
-      title={
-        <Box sx={{ p: 1 }}>
-          <Typography variant="body2" fontWeight="bold">
-            Cuota #{subloan.paymentNumber}
-          </Typography>
-          <Typography variant="caption" display="block">
-            Monto: ${(subloan.totalAmount ?? 0).toLocaleString()}
-          </Typography>
-          <Typography variant="caption" display="block">
-            Vencimiento: {subloan.dueDate ? formatDate(subloan.dueDate) : 'N/A'}
-          </Typography>
-          <Typography variant="caption" display="block" color={colors.primary}>
-            {getDaysInfo()}
-          </Typography>
-          {(subloan.paidAmount ?? 0) > 0 && (
-            <Typography variant="caption" display="block" color="success.main">
-              Pagado: ${(subloan.paidAmount ?? 0).toLocaleString()}
+    <>
+      <Tooltip
+        title={
+          <Box sx={{ p: 1 }}>
+            <Typography variant="body2" fontWeight="bold">
+              Cuota #{subloan.paymentNumber}
             </Typography>
-          )}
-          {paymentDescriptions && (
-            <Box
-              sx={{
-                mt: 1,
-                pt: 1,
-                borderTop: '1px solid rgba(255, 255, 255, 0.2)'
-              }}
-            >
-              <Typography 
-                variant="caption" 
-                display="block" 
-                sx={{ 
-                  fontWeight: 600,
+            <Typography variant="caption" display="block">
+              Monto: ${(subloan.totalAmount ?? 0).toLocaleString()}
+            </Typography>
+            <Typography variant="caption" display="block">
+              Vencimiento: {subloan.dueDate ? formatDate(subloan.dueDate) : 'N/A'}
+            </Typography>
+            <Typography variant="caption" display="block" color={colors.primary}>
+              {getDaysInfo()}
+            </Typography>
+            {(subloan.paidAmount ?? 0) > 0 && (
+              <Typography variant="caption" display="block" color="success.main">
+                Pagado: ${(subloan.paidAmount ?? 0).toLocaleString()}
+              </Typography>
+            )}
+            {paymentDescriptions && (
+              <Box sx={{ mt: 1, pt: 1, borderTop: '1px solid rgba(255, 255, 255, 0.2)' }}>
+                <Typography variant="caption" display="block" sx={{ fontWeight: 600, color: 'white', maxWidth: 200, wordBreak: 'break-word', fontSize: '1rem' }}>
+                  {paymentDescriptions}
+                </Typography>
+              </Box>
+            )}
+          </Box>
+        }
+        arrow
+        disableHoverListener={showActions || editDateOpen}
+      >
+        <Box
+          sx={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            position: 'relative',
+            minWidth: compact ? 80 : 'auto',
+            flex: compact ? '0 0 80px' : '1 0 100px',
+            cursor: canInteract ? 'pointer' : 'default',
+            transition: 'transform 0.2s ease',
+            // No extra padding - ears are inline now
+            ...(canInteract && {
+              '&:hover': {
+                transform: 'scale(1.05)',
+                '& .payment-hint': { opacity: 1 }
+              },
+            })
+          }}
+          onClick={handleNodeClick}
+        >
+          {/* Action Buttons Row (inline, not absolute) */}
+          {canInteract && showActions ? (
+            <Box sx={{ display: 'flex', gap: 0.5, mb: 0.5, justifyContent: 'center' }}>
+              {onPaymentClick && (
+                <IconButton
+                  size="small"
+                  onClick={handlePayClick}
+                  sx={{
+                    width: compact ? 22 : 26,
+                    height: compact ? 22 : 26,
+                    bgcolor: '#4caf50',
+                    color: 'white',
+                    boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
+                    '&:hover': { bgcolor: '#388e3c' },
+                  }}
+                >
+                  <AttachMoney sx={{ fontSize: compact ? 13 : 15 }} />
+                </IconButton>
+              )}
+              <IconButton
+                size="small"
+                onClick={handleEditDateClick}
+                sx={{
+                  width: compact ? 22 : 26,
+                  height: compact ? 22 : 26,
+                  bgcolor: '#1976d2',
                   color: 'white',
-                  maxWidth: 200,
-                  wordBreak: 'break-word',
-                  fontSize: '1rem'
+                  boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
+                  '&:hover': { bgcolor: '#1565c0' },
                 }}
               >
-                {paymentDescriptions}
-              </Typography>
+                <Edit sx={{ fontSize: compact ? 12 : 14 }} />
+              </IconButton>
             </Box>
+          ) : (
+            // Spacer to keep consistent height when actions not shown
+            <Box sx={{ height: compact ? 22 : 26, mb: 0.5 }} />
           )}
-        </Box>
-      }
-      arrow
-    >
-      <Box
-        sx={{
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          position: 'relative',
-          minWidth: compact ? 70 : 100,
-          flex: compact ? '0 0 70px' : '0 0 100px',
-          cursor: !isPaid && onPaymentClick ? 'pointer' : 'default',
-          '&:hover': {
-            transform: !isPaid && onPaymentClick ? 'scale(1.05)' : 'none',
-          },
-          transition: 'transform 0.2s ease',
-          ...(!isPaid && onPaymentClick && {
-            '&:hover': {
-              transform: 'scale(1.05)',
-              '& .payment-hint': {
-                opacity: 1
-              }
-            },
-          })
-        }}
-        onClick={() => {
-          if (!isPaid && onPaymentClick) {
-            onPaymentClick(subloan)
-          }
-        }}
-      >
-        {/* Connection Line */}
-        {!isLast && (
-          <Box
-            sx={{
+
+          {/* Connection Line */}
+          {!isLast && (
+            <Box sx={{
               position: 'absolute',
-              top: compact ? 16 : 20,
+              top: compact ? 38 : 42,
               left: '50%',
-              right: compact ? -35 : -50,
+              right: compact ? -32 : -50,
               height: 2,
               bgcolor: isPaid ? '#4caf50' : '#e0e0e0',
               zIndex: 0
-            }}
-          />
-        )}
+            }} />
+          )}
 
-        {/* Node Icon */}
-        <Box
-          sx={{
+          {/* Node Icon */}
+          <Box sx={{
             width: compact ? 32 : 40,
             height: compact ? 32 : 40,
             borderRadius: '50%',
@@ -244,177 +320,241 @@ const TimelineNode: React.FC<TimelineNodeProps> = ({
             zIndex: 1,
             mb: 1,
             boxShadow: isPaid ? '0 2px 8px rgba(76, 175, 80, 0.3)' : undefined
-          }}
-        >
-          <IconComponent 
-            sx={{ 
-              fontSize: compact ? 18 : 24, 
-              color: colors.primary 
-            }} 
-          />
-        </Box>
+          }}>
+            <IconComponent sx={{ fontSize: compact ? 18 : 24, color: colors.primary }} />
+          </Box>
 
-        {/* Cuota Number */}
-        <Typography 
-          variant={compact ? 'caption' : 'body2'} 
-          fontWeight="bold" 
-          color={colors.primary}
-          sx={{ mb: 0.5 }}
-        >
-          #{subloan.paymentNumber}
-        </Typography>
-
-        {/* Date and Amount */}
-        {!compact && (
-          <>
-            <Typography 
-              variant="caption" 
-              color="text.secondary"
-              sx={{ mb: 0.5 }}
-            >
-              {formatDate(subloan.dueDate)}
-            </Typography>
-            <Typography
-              variant="caption"
-              fontWeight="bold"
-              color={colors.primary}
-            >
-              ${(subloan.totalAmount ?? 0).toLocaleString()}
-            </Typography>
-          </>
-        )}
-
-        {/* Status Indicator */}
-        <Chip
-          label={getDaysInfo()}
-          size="small"
-          sx={{
-            bgcolor: colors.primary,
-            color: 'white',
-            fontSize: '10px',
-            height: 16,
-            mt: 0.5,
-            '& .MuiChip-label': {
-              px: 1
-            }
-          }}
-        />
-        
-        {/* Payment Clickable Hint */}
-        {!isPaid && onPaymentClick && (
-          <Typography
-            className="payment-hint"
-            variant="caption"
-            sx={{
-              fontSize: '9px',
-              color: colors.primary,
-              opacity: 0,
-              transition: 'opacity 0.2s ease',
-              mt: 0.5,
-              fontWeight: 'bold'
-            }}
-          >
-            Clic para pagar
+          {/* Cuota Number */}
+          <Typography variant={compact ? 'caption' : 'body2'} fontWeight="bold" color={colors.primary} sx={{ mb: 0.5 }}>
+            #{subloan.paymentNumber}
           </Typography>
-        )}
 
-        {/* Reset Button for Paid SubLoans */}
-        {isPaid && onResetClick && (
-          <Button
+          {/* Date and Amount */}
+          {!compact && (
+            <>
+              <Typography variant="caption" color="text.secondary" sx={{ mb: 0.5 }}>
+                {formatDate(subloan.dueDate)}
+              </Typography>
+              <Typography variant="caption" fontWeight="bold" color={colors.primary}>
+                ${(subloan.totalAmount ?? 0).toLocaleString()}
+              </Typography>
+            </>
+          )}
+
+          {/* Status Indicator */}
+          <Chip
+            label={getDaysInfo()}
             size="small"
-            variant="outlined"
-            color="warning"
-            startIcon={resettingSubloanId === subloan.id ? <CircularProgress size={14} /> : <Refresh sx={{ fontSize: 14 }} />}
-            onClick={(e) => {
-              e.stopPropagation()
-              onResetClick(subloan)
-            }}
-            disabled={resettingSubloanId === subloan.id}
             sx={{
-              mt: 1,
-              minWidth: 'auto',
-              px: 1,
-              py: 0.5,
-              fontSize: '10px',
-              textTransform: 'none',
-              borderWidth: 1.5,
-              fontWeight: 600,
-              '&:hover': {
-                borderWidth: 1.5,
-                bgcolor: 'warning.light',
-                color: 'warning.dark'
+              bgcolor: colors.primary,
+              color: 'white',
+              fontSize: compact ? '9px' : '11px',
+              height: 'auto',
+              mt: 0.5,
+              maxWidth: 'none',
+              '& .MuiChip-label': {
+                px: compact ? 0.5 : 1,
+                py: 0.25,
+                whiteSpace: 'normal',
+                overflow: 'visible',
+                textAlign: 'center',
+                lineHeight: 1.3,
               }
             }}
-          >
-            {resettingSubloanId === subloan.id ? 'Reseteando...' : 'Resetear'}
+          />
+
+          {/* Reset Button - only if payment was today */}
+          {canReset && (
+            compact ? (
+              <IconButton
+                size="small"
+                color="warning"
+                onClick={(e) => { e.stopPropagation(); onResetClick(subloan) }}
+                disabled={resettingSubloanId === subloan.id}
+                sx={{ mt: 0.5, width: 24, height: 24 }}
+              >
+                {resettingSubloanId === subloan.id ? <CircularProgress size={12} /> : <Refresh sx={{ fontSize: 14 }} />}
+              </IconButton>
+            ) : (
+              <Button
+                size="small"
+                variant="outlined"
+                color="warning"
+                startIcon={resettingSubloanId === subloan.id ? <CircularProgress size={14} /> : <Refresh sx={{ fontSize: 14 }} />}
+                onClick={(e) => { e.stopPropagation(); onResetClick(subloan) }}
+                disabled={resettingSubloanId === subloan.id}
+                sx={{ mt: 1, minWidth: 'auto', px: 1, py: 0.5, fontSize: '10px', textTransform: 'none', borderWidth: 1.5, fontWeight: 600 }}
+              >
+                {resettingSubloanId === subloan.id ? 'Reseteando...' : 'Resetear'}
+              </Button>
+            )
+          )}
+        </Box>
+      </Tooltip>
+
+      {/* Edit Date Dialog */}
+      <Dialog
+        open={editDateOpen}
+        onClose={() => setEditDateOpen(false)}
+        maxWidth="xs"
+        fullWidth
+        PaperProps={{ sx: { borderRadius: 3, mx: 2 } }}
+      >
+        <DialogTitle sx={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 1,
+          pb: 1,
+          background: 'linear-gradient(135deg, #1976d2 0%, #42a5f5 100%)',
+          color: 'white',
+        }}>
+          <CalendarMonth sx={{ fontSize: 22 }} />
+          <Typography variant="subtitle1" component="span" fontWeight={600}>
+            Cambiar Vencimiento - Cuota #{subloan.paymentNumber}
+          </Typography>
+        </DialogTitle>
+        <DialogContent sx={{ pt: 3, pb: 1 }}>
+          {/* Text input DD/MM/YYYY */}
+          <TextField
+            label="Fecha (DD/MM/AAAA)"
+            value={dateInput}
+            onChange={(e) => handleDateInputChange(e.target.value)}
+            placeholder="10/04/2026"
+            fullWidth
+            size="small"
+            sx={{ mb: 2, mt: 1 }}
+            InputLabelProps={{ shrink: true }}
+            error={dateInput.length === 10 && !isDateValid}
+            helperText={dateInput.length === 10 && !isDateValid ? 'La fecha no puede ser anterior a hoy' : ''}
+          />
+
+          {/* Calendar */}
+          <Box sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2, p: 1.5 }}>
+            {/* Month Navigation */}
+            <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 1 }}>
+              <IconButton size="small" onClick={() => setCalendarMonth(prev => prev.minus({ months: 1 }))}>
+                <ChevronLeft />
+              </IconButton>
+              <Typography variant="subtitle2" fontWeight={600} sx={{ textTransform: 'capitalize' }}>
+                {calendarMonth.toFormat('MMMM yyyy', { locale: 'es' })}
+              </Typography>
+              <IconButton size="small" onClick={() => setCalendarMonth(prev => prev.plus({ months: 1 }))}>
+                <ChevronRight />
+              </IconButton>
+            </Stack>
+
+            {/* Weekday Headers */}
+            <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 0.5, mb: 0.5 }}>
+              {['L', 'M', 'M', 'J', 'V', 'S', 'D'].map((day, i) => (
+                <Typography key={i} variant="caption" align="center" fontWeight="bold" color="text.secondary">
+                  {day}
+                </Typography>
+              ))}
+            </Box>
+
+            {/* Calendar Grid */}
+            <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 0.5 }}>
+              {generateCalendarDays().map((day, i) => {
+                const todayDt = DateTime.now().setZone('America/Argentina/Buenos_Aires').startOf('day')
+                const isSelected = day.toISODate() === newDate
+                const isCurrentMonth = day.month === calendarMonth.month
+                const isTodayDate = day.equals(todayDt)
+                const isDisabled = day < todayDt
+
+                return (
+                  <Button
+                    key={i}
+                    onClick={() => !isDisabled && handleCalendarDateClick(day)}
+                    disabled={isDisabled}
+                    sx={{
+                      minWidth: 0,
+                      width: 36,
+                      height: 36,
+                      p: 0,
+                      fontSize: '0.8rem',
+                      borderRadius: 1,
+                      color: !isCurrentMonth ? 'text.disabled' : isDisabled ? 'text.disabled' : 'text.primary',
+                      bgcolor: isSelected ? '#1976d2' : isTodayDate ? 'primary.light' : 'transparent',
+                      '&:hover': {
+                        bgcolor: isSelected ? '#1565c0' : 'action.hover',
+                      },
+                      ...(isSelected && { color: 'white', fontWeight: 'bold' }),
+                      ...(isTodayDate && !isSelected && { border: '2px solid', borderColor: 'primary.main' }),
+                    }}
+                  >
+                    {day.day}
+                  </Button>
+                )
+              })}
+            </Box>
+          </Box>
+
+          {/* Selected date display */}
+          {newDate && isDateValid && (
+            <Typography variant="body2" sx={{ mt: 1.5, textAlign: 'center', color: '#1976d2', fontWeight: 600 }}>
+              {DateTime.fromISO(newDate).toFormat("EEEE dd 'de' MMMM yyyy", { locale: 'es' })}
+            </Typography>
+          )}
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button onClick={() => setEditDateOpen(false)} disabled={saving}>
+            Cancelar
           </Button>
-        )}
-      </Box>
-    </Tooltip>
+          <Button
+            variant="contained"
+            onClick={handleSaveDate}
+            disabled={saving || !newDate || !isDateValid}
+            startIcon={saving ? <CircularProgress size={16} /> : undefined}
+          >
+            {saving ? 'Guardando...' : 'Guardar'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+    </>
   )
 }
 
-export const LoanTimeline: React.FC<LoanTimelineProps> = ({ 
-  clientName, 
-  subLoans, 
+export const LoanTimeline: React.FC<LoanTimelineProps> = ({
+  clientName,
+  subLoans,
   compact = false,
   onPaymentClick,
   onResetClick,
-  resettingSubloanId
+  resettingSubloanId,
+  onDateUpdated
 }) => {
   const theme = useTheme()
   const isMobile = useMediaQuery(theme.breakpoints.down('md'))
 
-  // Helper function to determine urgency based on due date using Luxon
   const getUrgencyLevel = (subloan: SubLoanWithClientInfo): 'overdue' | 'today' | 'soon' | 'future' => {
-    // Use dueDate
     const dateToCheck = subloan.dueDate
     if (!dateToCheck) return 'future'
-
-    // Get today in Buenos Aires timezone using Luxon
     const today = DateTime.now().setZone('America/Argentina/Buenos_Aires').startOf('day')
-    
-    // Parse the date to check using Luxon
     const targetDate = DateTime.fromISO(dateToCheck).setZone('America/Argentina/Buenos_Aires').startOf('day')
-
-    // Calculate difference in days (only comparing the date part)
     const diffDays = targetDate.diff(today, 'days').days
-
     if (diffDays < 0) return 'overdue'
     if (diffDays === 0) return 'today'
     if (diffDays <= 2) return 'soon'
     return 'future'
   }
 
-  // Calculate progress stats
   const totalCuotas = subLoans.length
   const paidCuotas = subLoans.filter(s => s.status === 'PAID').length
   const pendingCuotas = totalCuotas - paidCuotas
   const progressPercentage = totalCuotas > 0 ? (paidCuotas / totalCuotas) * 100 : 0
 
-  // Calculate financial summary
   const totalAmount = subLoans.reduce((sum, s) => sum + (s.totalAmount || 0), 0)
   const paidAmount = subLoans.reduce((sum, s) => {
-    if (s.status === 'PAID') {
-      return sum + (s.totalAmount || 0)
-    }
-    if (s.status === 'PARTIAL') {
-      return sum + (s.paidAmount || 0)
-    }
+    if (s.status === 'PAID') return sum + (s.totalAmount || 0)
+    if (s.status === 'PARTIAL') return sum + (s.paidAmount || 0)
     return sum
   }, 0)
   const remainingAmount = totalAmount - paidAmount
 
-  // Format currency
   const formatCurrency = (amount: number) => {
-    // Formato genérico sin especificar país o moneda
-    return `$${new Intl.NumberFormat('es', {
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0
-    }).format(amount)}`
+    return `$${new Intl.NumberFormat('es', { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(amount)}`
   }
 
-  // Determine remaining amount color
   const getRemainingAmountColor = () => {
     const percentageRemaining = (remainingAmount / totalAmount) * 100
     if (percentageRemaining < 25) return 'success.main'
@@ -422,9 +562,7 @@ export const LoanTimeline: React.FC<LoanTimelineProps> = ({
     return 'error.main'
   }
 
-  // Sort subloans by payment number
   const sortedSubLoans = [...subLoans].sort((a, b) => (a.paymentNumber ?? 0) - (b.paymentNumber ?? 0))
-
   const isCompactMode = compact || isMobile
 
   return (
@@ -460,20 +598,8 @@ export const LoanTimeline: React.FC<LoanTimelineProps> = ({
         </Box>
 
         {/* Progress Bar */}
-        <Box sx={{ 
-          width: '100%',
-          height: 8,
-          bgcolor: '#e0e0e0',
-          borderRadius: 4,
-          overflow: 'hidden',
-          mb: 2
-        }}>
-          <Box sx={{
-            width: `${progressPercentage}%`,
-            height: '100%',
-            bgcolor: '#4caf50',
-            transition: 'width 0.5s ease'
-          }} />
+        <Box sx={{ width: '100%', height: 8, bgcolor: '#e0e0e0', borderRadius: 4, overflow: 'hidden', mb: 2 }}>
+          <Box sx={{ width: `${progressPercentage}%`, height: '100%', bgcolor: '#4caf50', transition: 'width 0.5s ease' }} />
         </Box>
       </Box>
 
@@ -483,22 +609,12 @@ export const LoanTimeline: React.FC<LoanTimelineProps> = ({
           display: 'flex',
           overflowX: 'auto',
           pb: 2,
-          gap: { xs: 1, sm: 2 },
-          justifyContent: sortedSubLoans.length <= 10 ? 'space-evenly' : 'flex-start',
-          '&::-webkit-scrollbar': {
-            height: 8
-          },
-          '&::-webkit-scrollbar-track': {
-            bgcolor: '#f1f1f1',
-            borderRadius: 3
-          },
-          '&::-webkit-scrollbar-thumb': {
-            bgcolor: '#c1c1c1',
-            borderRadius: 3,
-            '&:hover': {
-              bgcolor: '#a8a8a8'
-            }
-          }
+          pt: 0.5,
+          gap: { xs: 0, sm: 2 },
+          justifyContent: sortedSubLoans.length <= 8 ? 'space-evenly' : 'flex-start',
+          '&::-webkit-scrollbar': { height: 8 },
+          '&::-webkit-scrollbar-track': { bgcolor: '#f1f1f1', borderRadius: 3 },
+          '&::-webkit-scrollbar-thumb': { bgcolor: '#c1c1c1', borderRadius: 3, '&:hover': { bgcolor: '#a8a8a8' } }
         }}
       >
         {sortedSubLoans.map((subloan, index) => (
@@ -512,13 +628,14 @@ export const LoanTimeline: React.FC<LoanTimelineProps> = ({
             onPaymentClick={onPaymentClick}
             onResetClick={onResetClick}
             resettingSubloanId={resettingSubloanId}
+            onDateUpdated={onDateUpdated}
           />
         ))}
       </Box>
 
       {/* Legend */}
       {!compact && (
-        <Box sx={{ 
+        <Box sx={{
           mt: 3,
           p: 2,
           bgcolor: '#f9f9f9',

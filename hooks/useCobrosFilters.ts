@@ -1,277 +1,114 @@
-import { useCallback, useMemo } from 'react'
-import { useSubLoans } from '@/hooks/useSubLoans'
-import { useFiltersStore, type CobrosFilters } from '@/stores/filters'
-import type { SubLoanWithClientInfo } from '@/services/subloans-lookup.service'
-import { getUrgencyLevel, getSubloanUrgencyLevel, isSubloanSettled } from '@/lib/cobros/urgencyHelpers'
+import { useCallback, useEffect, useMemo, useState, useRef } from 'react'
+import { subLoansService } from '@/services/sub-loans.service'
+import type { CobrosClient, CobrosGlobalStats, CobrosResponse } from '@/services/sub-loans.service'
+
+export interface CobrosFilters {
+  urgency?: 'overdue' | 'today' | 'soon' | 'future' | 'all'
+  paymentStatus?: 'PENDING' | 'PARTIAL' | 'PAID' | 'OVERDUE'
+  clientId?: string
+}
 
 /**
- * THE CONDUCTOR - useCobrosFilters Hook
- * 
- * Business logic controller for cobros filtering:
- * - Filters subloans by status, client, amount, date
- * - Manages card visibility state
- * - Calculates filter statistics
- * - Provides urgency level classification
+ * Server-driven cobros filter hook.
+ * All filtering, grouping, and pagination happens on the backend.
  */
 export function useCobrosFilters() {
-  const { allSubLoansWithClient } = useSubLoans()
-  const { 
-    cobrosFilters, 
-    setCobrosFilters, 
-    clearCobrosFilters,
-    notifiedClients,
-    markClientAsNotified,
-    markClientAsPending
-  } = useFiltersStore()
-  
-  // Create reactive isClientNotified function
-  const isClientNotified = useCallback((clientId: string) => {
-    return notifiedClients.has(clientId)
-  }, [notifiedClients])
+  const [filters, setFilters] = useState<CobrosFilters>({})
+  const [clients, setClients] = useState<CobrosClient[]>([])
+  const [globalStats, setGlobalStats] = useState<CobrosGlobalStats>({ overdue: 0, today: 0, soon: 0, future: 0, paid: 0, total: 0 })
+  const [page, setPage] = useState(1)
+  const [limit, setLimit] = useState(25)
+  const [totalClients, setTotalClients] = useState(0)
+  const [totalPages, setTotalPages] = useState(0)
+  const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
+  const fetchInFlight = useRef(false)
 
-  // Filter subloans based on current filters
-  const filteredSubLoans = useMemo(() => {
-    let filtered = [...allSubLoansWithClient]
+  const fetchCobros = useCallback(async (currentFilters: CobrosFilters, currentPage: number, currentLimit: number) => {
+    if (fetchInFlight.current) return
+    fetchInFlight.current = true
+    setIsLoading(true)
+    setError(null)
 
-    // Status filter (urgency-based) - skip urgency filtering for NOTIFIED
-    if (cobrosFilters.status && cobrosFilters.status !== 'ALL' && cobrosFilters.status !== 'NOTIFIED') {
-      const statusMapping = {
-        'OVERDUE': 'overdue' as const,
-        'TODAY': 'today' as const,
-        'SOON': 'soon' as const,
-        'UPCOMING': 'future' as const
-      }
-      const mappedStatus = statusMapping[cobrosFilters.status as keyof typeof statusMapping]
-      if (mappedStatus) {
-        filtered = filtered.filter(subloan => getSubloanUrgencyLevel(subloan) === mappedStatus)
-      }
-    }
-
-    // Payment status filter
-    if (cobrosFilters.paymentStatus && cobrosFilters.paymentStatus !== 'ALL') {
-      filtered = filtered.filter(subloan => subloan.status === cobrosFilters.paymentStatus)
-    }
-
-    // Client filter by ID
-    if (cobrosFilters.clientId) {
-      filtered = filtered.filter(subloan => subloan.clientId === cobrosFilters.clientId)
-    }
-
-    return filtered
-  }, [allSubLoansWithClient, cobrosFilters])
-
-  // Group filtered subloans by client with summary stats and handle notification filtering
-  const filteredClientsSummary = useMemo(() => {
-    const clientsMap = new Map<string, SubLoanWithClientInfo[]>()
-    
-    // Group by client
-    filteredSubLoans.forEach(subloan => {
-      const clientKey = subloan.clientId || subloan.loanId || 'unknown'
-      if (!clientsMap.has(clientKey)) {
-        clientsMap.set(clientKey, [])
-      }
-      clientsMap.get(clientKey)!.push(subloan)
-    })
-
-    // KISS Solution: By default exclude notified clients (even when showing "ALL")
-    // Only show notified clients when explicitly filtering by "NOTIFIED"
-    if (cobrosFilters.status === 'NOTIFIED') {
-      // Show only notified clients
-      for (const [clientKey, subLoans] of clientsMap.entries()) {
-        if (!isClientNotified(clientKey)) {
-          clientsMap.delete(clientKey)
-        }
-      }
-    } else {
-      // For ALL other cases (including 'ALL' and undefined/null), exclude notified clients
-      for (const [clientKey, subLoans] of clientsMap.entries()) {
-        if (isClientNotified(clientKey)) {
-          clientsMap.delete(clientKey)
-        }
-      }
-    }
-
-    // Create summaries
-    return Array.from(clientsMap.entries()).map(([clientKey, subLoans]) => {
-      const firstSubloan = subLoans[0]
-      const clientName = firstSubloan.clientName || `Cliente #${firstSubloan.loanId}`
-      
-      // Calculate stats (using imported getUrgencyLevel which returns lowercase)
-      const pendingOrActiveSubLoans = subLoans.filter(s => !isSubloanSettled(s))
-      const overdueCount = pendingOrActiveSubLoans.filter(s => getSubloanUrgencyLevel(s) === 'overdue').length
-      const todayCount = pendingOrActiveSubLoans.filter(s => getSubloanUrgencyLevel(s) === 'today').length
-      const soonCount = pendingOrActiveSubLoans.filter(s => getSubloanUrgencyLevel(s) === 'soon').length
-      const paidCount = subLoans.filter(s => isSubloanSettled(s)).length
-
-      // Determine overall urgency level (worst case) - use lowercase for consistency
-      let urgencyLevel: 'overdue' | 'today' | 'soon' | 'future' = 'future'
-      if (overdueCount > 0) urgencyLevel = 'overdue'
-      else if (todayCount > 0) urgencyLevel = 'today'
-      else if (soonCount > 0) urgencyLevel = 'soon'
-      
-      return {
-        clientId: firstSubloan.clientId || clientKey,
-        clientName,
-        subLoans: subLoans.sort((a, b) => (a.paymentNumber ?? 0) - (b.paymentNumber ?? 0)),
-        urgencyLevel,
-        stats: {
-          total: subLoans.length,
-          overdue: overdueCount,
-          today: todayCount,
-          soon: soonCount,
-          paid: paidCount,
-          totalAmount: subLoans.reduce((sum, s) => sum + (s.totalAmount ?? 0), 0),
-          paidAmount: subLoans.reduce((sum, s) => sum + (s.paidAmount || 0), 0)
-        }
-      }
-    }).sort((a, b) => {
-      // Sort by urgency level first
-      const urgencyOrder = { overdue: 0, today: 1, soon: 2, future: 3 }
-      if (a.urgencyLevel !== b.urgencyLevel) {
-        return urgencyOrder[a.urgencyLevel] - urgencyOrder[b.urgencyLevel]
-      }
-      // Then by client name
-      return a.clientName.localeCompare(b.clientName)
-    })
-  }, [filteredSubLoans, cobrosFilters.status, notifiedClients, isClientNotified])
-
-  // Global statistics (for filter buttons - shows all available data)
-  const globalStats = useMemo(() => {
-    // For "Todos" button: count active/pending loans (not PAID or CANCELLED)
-    const activeSubLoans = allSubLoansWithClient.filter(s =>
-      !isSubloanSettled(s) &&
-      (!s.clientId || !isClientNotified(s.clientId))  // Exclude notified clients
-    );
-
-    return {
-      overdue: allSubLoansWithClient.filter(s => getSubloanUrgencyLevel(s) === 'overdue').length,
-      today: allSubLoansWithClient.filter(s => getSubloanUrgencyLevel(s) === 'today').length,
-      soon: allSubLoansWithClient.filter(s => getSubloanUrgencyLevel(s) === 'soon').length,
-      upcoming: allSubLoansWithClient.filter(s => getSubloanUrgencyLevel(s) === 'future').length,
-      paid: allSubLoansWithClient.filter(s => isSubloanSettled(s)).length,
-      totalClients: activeSubLoans.length  // Count active loans for "Todos" button
-    }
-  }, [allSubLoansWithClient, isClientNotified, notifiedClients])
-
-  // Filter statistics (for filtered results display)
-  const filterStats = useMemo(() => {
-    const stats = {
-      total: filteredClientsSummary.length, // Count clients, not subloans
-      totalAmount: filteredSubLoans.reduce((sum, s) => sum + (s.totalAmount ?? 0), 0),
-      byStatus: {
-        overdue: filteredSubLoans.filter(s => getSubloanUrgencyLevel(s) === 'overdue').length,
-        today: filteredSubLoans.filter(s => getSubloanUrgencyLevel(s) === 'today').length,
-        soon: filteredSubLoans.filter(s => getSubloanUrgencyLevel(s) === 'soon').length,
-        upcoming: filteredSubLoans.filter(s => getSubloanUrgencyLevel(s) === 'future').length,
-        paid: filteredSubLoans.filter(s => isSubloanSettled(s)).length
-      },
-      paymentStatus: {
-        all: filteredSubLoans.length,
-        pending: filteredSubLoans.filter(s => s.status === 'PENDING').length,
-        partial: filteredSubLoans.filter(s => s.status === 'PARTIAL').length,
-        paid: filteredSubLoans.filter(s => isSubloanSettled(s)).length
-      },
-      notifiedCount: notifiedClients.size
-    }
-    return stats
-  }, [filteredClientsSummary, filteredSubLoans, notifiedClients])
-
-  // Update a specific filter
-  const updateFilter = useCallback(<K extends keyof CobrosFilters>(
-    key: K, 
-    value: CobrosFilters[K]
-  ) => {
-    const newFilters = { ...cobrosFilters, [key]: value }
-    setCobrosFilters(newFilters)
-  }, [cobrosFilters, setCobrosFilters])
-
-  // Clear all filters
-  const clearAllFilters = useCallback(() => {
-    clearCobrosFilters()
-  }, [clearCobrosFilters])
-
-  // Check if any filters are active
-  const hasActiveFilters = useMemo(() => {
-    return Object.values(cobrosFilters).some(value => 
-      value !== undefined && value !== null && value !== ''
-    )
-  }, [cobrosFilters])
-
-  // Quick status filter buttons (use global stats for counts)
-  const statusFilterOptions = useMemo(() => [
-    { 
-      key: 'OVERDUE' as const, 
-      label: 'Vencidos', 
-      color: 'error' as const,
-      count: globalStats.overdue 
-    },
-    { 
-      key: 'TODAY' as const, 
-      label: 'Hoy', 
-      color: 'warning' as const,
-      count: globalStats.today 
-    },
-    { 
-      key: 'SOON' as const, 
-      label: 'Pronto', 
-      color: 'warning' as const,
-      customColor: '#ffc107' as const, // Custom yellow to match legend
-      count: globalStats.soon 
-    },
-    { 
-      key: 'NOTIFIED' as const, 
-      label: 'Notificados', 
-      color: 'success' as const,
-      count: notifiedClients.size 
-    },
-    {
-      key: 'ALL' as const,
-      label: 'Todos',
-      color: 'primary' as const,
-      count: globalStats.totalClients  // Count of ALL subloans
-    }
-  ] as const, [globalStats, notifiedClients])
-
-  const clientOptions = useMemo(() => {
-    const map = new Map<string, { id: string; fullName: string }>()
-    allSubLoansWithClient.forEach((subloan) => {
-      const clientId = subloan.clientId
-      if (!clientId || map.has(clientId)) return
-      map.set(clientId, {
-        id: clientId,
-        fullName: subloan.clientName || `Cliente #${clientId.slice(0, 8)}`
+    try {
+      const response: CobrosResponse = await subLoansService.getCobros({
+        ...currentFilters,
+        page: currentPage,
+        limit: currentLimit,
       })
-    })
-    return Array.from(map.values()).sort((a, b) => a.fullName.localeCompare(b.fullName))
-  }, [allSubLoansWithClient])
+
+      setClients(response.clients)
+      setGlobalStats(response.globalStats)
+      setTotalClients(response.meta.total)
+      setTotalPages(response.meta.totalPages)
+    } catch (err: any) {
+      setError(err?.response?.data?.message || 'Error al cargar cobros')
+      setClients([])
+    } finally {
+      setIsLoading(false)
+      fetchInFlight.current = false
+    }
+  }, [])
+
+  // Stable key to detect actual filter changes
+  const filtersKey = useMemo(() => JSON.stringify(filters), [filters])
+
+  // Fetch when filters or page change
+  useEffect(() => {
+    fetchCobros(filters, page, limit)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filtersKey, page, limit])
+
+  const updateFilter = useCallback(<K extends keyof CobrosFilters>(key: K, value: CobrosFilters[K]) => {
+    setFilters(prev => ({ ...prev, [key]: value }))
+    setPage(1) // Reset to page 1 on filter change
+  }, [])
+
+  const clearAllFilters = useCallback(() => {
+    setFilters({})
+    setPage(1)
+  }, [])
+
+  const hasActiveFilters = useMemo(() => {
+    return Object.values(filters).some(v => v !== undefined && v !== null && v !== '' && v !== 'all')
+  }, [filters])
+
+  const refresh = useCallback(() => {
+    fetchCobros(filters, page, limit)
+  }, [fetchCobros, filters, page, limit])
+
+  // Status filter options with global counts
+  const statusFilterOptions = useMemo(() => [
+    { key: 'overdue' as const, label: 'Vencidos', color: '#f44336', count: globalStats.overdue },
+    { key: 'today' as const, label: 'Hoy', color: '#ff9800', count: globalStats.today },
+    { key: 'soon' as const, label: 'Pronto', color: '#ffc107', count: globalStats.soon },
+    { key: 'all' as const, label: 'Todos', color: '#1976d2', count: globalStats.total - globalStats.paid },
+  ], [globalStats])
 
   return {
-    // Filtered data
-    filteredSubLoans,
-    filteredClientsSummary,
-    filterStats,
+    // Data
+    clients,
     globalStats,
-    
-    // Filter state
-    filters: cobrosFilters,
+    isLoading,
+    error,
+
+    // Pagination
+    page,
+    limit,
+    totalClients,
+    totalPages,
+    setPage,
+    setLimit,
+
+    // Filters
+    filters,
     hasActiveFilters,
-    
-    // Status filter options for buttons
     statusFilterOptions,
-    clientOptions,
-    
-    // Actions
     updateFilter,
     clearAllFilters,
-    setCobrosFilters,
-    
-    // Client notification status
-    markClientAsNotified,
-    markClientAsPending,
-    isClientNotified,
-    
-    // Utilities
-    getUrgencyLevel
+
+    // Actions
+    refresh,
   }
 }

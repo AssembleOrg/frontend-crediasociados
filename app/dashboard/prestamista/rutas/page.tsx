@@ -61,6 +61,8 @@ import { RouteExpenseModal } from '@/components/routes/RouteExpenseModal';
 import { RouteDatePicker } from '@/components/routes/RouteDatePicker';
 import { RouteItemDetailModal } from '@/components/routes/RouteItemDetailModal';
 import { CollectionRouteItem } from '@/services/collection-routes.service';
+import collectionRoutesService from '@/services/collection-routes.service';
+import RescheduleDateDialog from '@/components/loans/RescheduleDateDialog';
 import { paymentsService } from '@/services/payments.service';
 import { collectorWalletService } from '@/services/collector-wallet.service';
 import { DateTime } from 'luxon';
@@ -151,6 +153,7 @@ export default function RutasPage() {
   const [itemToReset, setItemToReset] = useState<CollectionRouteItem | null>(null);
   const [resettingSubloanId, setResettingSubloanId] = useState<string | null>(null);
   const [resetError, setResetError] = useState<string | null>(null);
+  const [rescheduleItem, setRescheduleItem] = useState<CollectionRouteItem | null>(null);
   
   // Drag & Drop State
   const [isReorderMode, setIsReorderMode] = useState(false);
@@ -261,6 +264,23 @@ export default function RutasPage() {
     fetchWalletBalance();
     // Refresh loans and subloans to update progress (e.g., "6 de 10" -> "9 de 10")
     fetchLoans();
+    fetchAllSubLoansWithClientInfo();
+  };
+
+  const handleReschedule = (item: CollectionRouteItem) => {
+    setRescheduleItem(item);
+  };
+
+  const handleRescheduleSave = async (isoDate: string) => {
+    if (!rescheduleItem) return;
+    await collectionRoutesService.rescheduleRouteItem(
+      rescheduleItem.id,
+      isoDate + 'T12:00:00.000Z',
+    );
+    setRescheduleItem(null);
+    setSuccessMessage('Cuota reprogramada y eliminada de la ruta');
+    // Refresh route data
+    fetchTodayRoute();
     fetchAllSubLoansWithClientInfo();
   };
 
@@ -470,7 +490,7 @@ export default function RutasPage() {
     : '';
 
   return (
-    <Box sx={{ p: { xs: 1, sm: 3 }, maxWidth: 1200, mx: 'auto', pb: { xs: 10, sm: 3 } }}>
+    <Box sx={{ p: { xs: 0.5, sm: 2, md: 3 }, maxWidth: 1200, mx: 'auto', pb: { xs: 10, sm: 3 } }}>
       {/* Header - Mobile Optimized */}
       <Box sx={{ mb: 2 }}>
         {/* Title and Date Picker Row */}
@@ -608,21 +628,20 @@ export default function RutasPage() {
         <Card
           elevation={0}
           sx={{
-            p: 2,
+            p: { xs: 1.5, sm: 2 },
             display: 'flex',
             alignItems: 'center',
-            gap: 2,
+            gap: { xs: 1.5, sm: 2 },
             borderRadius: 1.5,
             bgcolor: 'background.paper',
             border: '1px solid',
             borderColor: 'divider',
-            minHeight: { xs: 80, sm: 90 },
           }}
         >
           <Box
             sx={{
               color: 'primary.main',
-              display: 'flex',
+              display: { xs: 'none', sm: 'flex' },
               alignItems: 'center',
               justifyContent: 'center',
               width: 48,
@@ -883,6 +902,7 @@ export default function RutasPage() {
                 index={index}
                 onPayment={!isRouteClosed ? handleOpenPaymentModal : undefined}
                 onReset={!isRouteClosed ? handleResetPayments : undefined}
+                onReschedule={!isRouteClosed ? handleReschedule : undefined}
                 onCardClick={handleOpenDetailModal}
                 isActive={!isRouteClosed}
                 resettingSubloanId={resettingSubloanId}
@@ -972,6 +992,15 @@ export default function RutasPage() {
         onClose={handleCloseDetailModal}
         item={selectedDetailItem}
         onPayment={!isRouteClosed ? handlePaymentFromDetail : undefined}
+      />
+
+      {/* Reschedule Date Dialog */}
+      <RescheduleDateDialog
+        open={!!rescheduleItem}
+        onClose={() => setRescheduleItem(null)}
+        onSave={handleRescheduleSave}
+        title={`Reprogramar Cuota #${rescheduleItem?.subLoan?.paymentNumber || ''} - ${rescheduleItem?.clientName || ''}`}
+        currentDueDate={rescheduleItem?.subLoan?.dueDate}
       />
 
       {/* Reset Confirmation Modal */}

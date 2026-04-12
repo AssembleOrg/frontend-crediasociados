@@ -107,7 +107,19 @@ export function LoanSimulationModal({
                 ? (formData.paymentDay as 'MONDAY' | 'TUESDAY' | 'WEDNESDAY' | 'THURSDAY' | 'FRIDAY' | 'SATURDAY')
                 : undefined),
         totalPayments: parseInt(formData.totalPayments),
-        firstDueDate: formData.firstDueDate?.toISOString(),
+        // Always send firstDueDate: use user selection or calculate automatic date
+        // This prevents the backend from using its own default which may not match monthly frequency
+        firstDueDate: (() => {
+          if (formData.firstDueDate) return formData.firstDueDate.toISOString()
+          // Calculate automatic date same way as CreateLoanModal
+          const today = new Date()
+          if (formData.paymentFrequency === 'MONTHLY') {
+            const nextMonth = new Date(today)
+            nextMonth.setMonth(nextMonth.getMonth() + 1)
+            return nextMonth.toISOString()
+          }
+          return undefined
+        })(),
         description: formData.description || undefined,
         notes: undefined, // Optional field - backend will handle if needed
         loanTrack: undefined // Optional field - backend will auto-generate

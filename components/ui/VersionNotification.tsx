@@ -32,12 +32,10 @@ export function VersionNotification() {
     
     // Only show if we haven't reached the max count
     if (showCount < MAX_SHOW_COUNT) {
-      // Small delay to ensure smooth appearance after login
-      const timer = setTimeout(() => {
-        setOpen(true)
-      }, 800)
-      
-      return () => clearTimeout(timer)
+      const showTimer = setTimeout(() => setOpen(true), 800)
+      // Auto-dismiss after 5 seconds
+      const hideTimer = setTimeout(() => handleClose(), 6000)
+      return () => { clearTimeout(showTimer); clearTimeout(hideTimer) }
     }
   }, [isAuthenticated])
 
@@ -61,8 +59,9 @@ export function VersionNotification() {
           top: 80,
           right: 16,
           zIndex: 1400,
-          maxWidth: 420,
-          minWidth: 320,
+          maxWidth: { xs: 'calc(100vw - 32px)', sm: 420 },
+          minWidth: { xs: 'auto', sm: 320 },
+          left: { xs: 16, sm: 'auto' },
           background: 'linear-gradient(135deg, #667eea 0%, #4facfe 100%)',
           borderRadius: 3,
           boxShadow: '0 8px 24px rgba(102, 126, 234, 0.4)',

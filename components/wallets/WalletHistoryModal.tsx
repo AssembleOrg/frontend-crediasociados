@@ -18,6 +18,8 @@ import {
   CircularProgress,
   Alert,
   Chip,
+  Card,
+  CardContent,
   alpha,
   useTheme,
   useMediaQuery,
@@ -73,7 +75,7 @@ export default function WalletHistoryModal({ open, onClose }: WalletHistoryModal
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [page, setPage] = useState(0) // MUI TablePagination uses 0-based indexing
-  const [rowsPerPage, setRowsPerPage] = useState(20)
+  const [rowsPerPage, setRowsPerPage] = useState(25)
   const [total, setTotal] = useState(0)
   const [filterType, setFilterType] = useState<TransactionType>('ALL')
   const [startDate, setStartDate] = useState<string>('')
@@ -374,8 +376,8 @@ export default function WalletHistoryModal({ open, onClose }: WalletHistoryModal
 
         {/* Filters - Only enabled when manager is selected */}
         {selectedManagerId && (
-          <Box sx={{ mb: 3, display: 'flex', flexWrap: 'wrap', gap: 2, alignItems: 'center' }}>
-            <FormControl size="small" sx={{ minWidth: 200 }}>
+          <Box sx={{ mb: 3, display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, flexWrap: 'wrap', gap: 1.5, alignItems: { sm: 'center' } }}>
+            <FormControl size="small" sx={{ minWidth: { xs: '100%', sm: 200 } }}>
               <InputLabel>Tipo de Transacción</InputLabel>
               <Select
                 value={filterType}
@@ -405,9 +407,9 @@ export default function WalletHistoryModal({ open, onClose }: WalletHistoryModal
                 setPage(0) // Reset to first page when changing date
               }}
               InputLabelProps={{ shrink: true }}
-              sx={{ minWidth: 150 }}
+              sx={{ minWidth: { xs: '100%', sm: 150 }, flex: { xs: 1, sm: 'none' } }}
             />
-            
+
             <TextField
               label="Fecha Hasta"
               type="date"
@@ -415,10 +417,10 @@ export default function WalletHistoryModal({ open, onClose }: WalletHistoryModal
               value={endDate}
               onChange={(e) => {
                 setEndDate(e.target.value)
-                setPage(0) // Reset to first page when changing date
+                setPage(0)
               }}
               InputLabelProps={{ shrink: true }}
-              sx={{ minWidth: 150 }}
+              sx={{ minWidth: { xs: '100%', sm: 150 }, flex: { xs: 1, sm: 'none' } }}
             />
           </Box>
         )}
@@ -509,66 +511,96 @@ export default function WalletHistoryModal({ open, onClose }: WalletHistoryModal
           </Box>
         )}
 
-        {/* Transactions Table */}
+        {/* Transactions */}
         {selectedManagerId && !loading && !error && transactions.length > 0 && (
           <Box>
             <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 2 }}>
               Detalle de Transacciones
             </Typography>
-            <TableContainer 
-              component={Paper} 
-              elevation={0}
-              sx={{ 
-                border: `1px solid ${theme.palette.divider}`,
-                borderRadius: 2,
-                overflow: 'visible'
-              }}
-            >
-              <Table stickyHeader size={isMobile ? 'small' : 'medium'}>
-                <TableHead>
-                  <TableRow sx={{ bgcolor: alpha(theme.palette.primary.main, 0.05) }}>
-                    <TableCell sx={{ fontWeight: 600 }}>Fecha/Hora</TableCell>
-                    <TableCell sx={{ fontWeight: 600 }}>Tipo</TableCell>
-                    <TableCell sx={{ fontWeight: 600 }}>Descripción</TableCell>
-                    {!isMobile && (
-                      <TableCell sx={{ fontWeight: 600 }}>Pago</TableCell>
-                    )}
-                    {!isMobile && (
-                      <TableCell align="right" sx={{ fontWeight: 600 }}>Balance Antes</TableCell>
-                    )}
-                    <TableCell align="right" sx={{ fontWeight: 600 }}>Monto</TableCell>
-                    {!isMobile && (
-                      <TableCell align="right" sx={{ fontWeight: 600 }}>Balance Después</TableCell>
-                    )}
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {transactions.map((tx) => {
-                    const isPositive = isPositiveTransaction(tx.type)
-                    const hoverColor = tx.type === 'CASH_ADJUSTMENT' 
-                      ? alpha(theme.palette.info.main, 0.02)
-                      : tx.type === 'COLLECTION'
-                      ? alpha(theme.palette.success.main, 0.02)
-                      : tx.type === 'ROUTE_EXPENSE' || tx.type === 'LOAN_DISBURSEMENT'
-                      ? alpha(theme.palette.error.main, 0.02)
-                      : tx.type === 'PAYMENT_RESET'
-                      ? alpha(theme.palette.warning.main, 0.02)
-                      : alpha(theme.palette.warning.main, 0.02)
 
-                    return (
-                      <TableRow 
-                        key={tx.id}
-                        sx={{ 
-                          '&:hover': { 
-                            bgcolor: hoverColor
-                          },
-                          '&:last-child td': { border: 0 }
-                        }}
-                      >
+            {isMobile ? (
+              /* Mobile: Cards */
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                {transactions.map((tx) => (
+                  <Card
+                    key={tx.id}
+                    variant="outlined"
+                    sx={{
+                      borderLeft: 4,
+                      borderLeftColor: tx.type === 'COLLECTION' ? 'success.main'
+                        : tx.type === 'CASH_ADJUSTMENT' && tx.amount >= 0 ? 'info.main'
+                        : tx.type === 'PAYMENT_RESET' ? 'warning.main'
+                        : 'error.main',
+                    }}
+                  >
+                    <CardContent sx={{ px: 1.5, py: 1.25, '&:last-child': { pb: 1.25 } }}>
+                      <Chip
+                        icon={getTransactionIcon(tx.type)}
+                        label={getTransactionLabel(tx.type, tx.amount)}
+                        size="small"
+                        color={getTransactionColor(tx.type, tx.amount)}
+                        sx={{ fontWeight: 600, mb: 0.5 }}
+                      />
+                      <Typography variant="h6" fontWeight={700} color={getAmountColor(tx.type, tx.amount)} sx={{ fontSize: '1.25rem', mb: 0.5 }}>
+                        {getTransactionSign(tx.type, tx.amount)}{formatCurrency(Math.abs(tx.amount))}
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
+                        {tx.description}
+                      </Typography>
+                      {tx.paymentDescription && (
+                        <Chip
+                          label={tx.paymentDescription}
+                          size="small"
+                          sx={{
+                            mb: 0.5,
+                            fontSize: '0.7rem',
+                            height: 20,
+                            bgcolor: alpha(theme.palette.info.main, 0.1),
+                            color: theme.palette.info.main,
+                            fontWeight: 500
+                          }}
+                        />
+                      )}
+                      <Typography variant="caption" color="text.disabled" display="block" sx={{ mb: 0.5 }}>
+                        {formatDateTime(tx.createdAt)}
+                      </Typography>
+                      <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+                        <Typography variant="caption" color="text.disabled">
+                          {formatCurrency(tx.balanceBefore)}
+                        </Typography>
+                        <Typography variant="caption" color="text.disabled">→</Typography>
+                        <Typography variant="caption" fontWeight={600}>
+                          {formatCurrency(tx.balanceAfter)}
+                        </Typography>
+                      </Box>
+                    </CardContent>
+                  </Card>
+                ))}
+              </Box>
+            ) : (
+              /* Desktop: Table */
+              <TableContainer
+                component={Paper}
+                elevation={0}
+                sx={{ border: `1px solid ${theme.palette.divider}`, borderRadius: 2 }}
+              >
+                <Table size="medium">
+                  <TableHead>
+                    <TableRow sx={{ bgcolor: alpha(theme.palette.primary.main, 0.05) }}>
+                      <TableCell sx={{ fontWeight: 600 }}>Fecha/Hora</TableCell>
+                      <TableCell sx={{ fontWeight: 600 }}>Tipo</TableCell>
+                      <TableCell sx={{ fontWeight: 600 }}>Descripcion</TableCell>
+                      <TableCell sx={{ fontWeight: 600 }}>Pago</TableCell>
+                      <TableCell align="right" sx={{ fontWeight: 600 }}>Balance Antes</TableCell>
+                      <TableCell align="right" sx={{ fontWeight: 600 }}>Monto</TableCell>
+                      <TableCell align="right" sx={{ fontWeight: 600 }}>Balance Despues</TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {transactions.map((tx) => (
+                      <TableRow key={tx.id} hover>
                         <TableCell>
-                          <Typography variant="body2" color="text.secondary">
-                            {formatDateTime(tx.createdAt)}
-                          </Typography>
+                          <Typography variant="body2" color="text.secondary">{formatDateTime(tx.createdAt)}</Typography>
                         </TableCell>
                         <TableCell>
                           <Chip
@@ -580,93 +612,46 @@ export default function WalletHistoryModal({ open, onClose }: WalletHistoryModal
                           />
                         </TableCell>
                         <TableCell>
-                          <Typography variant="body2" fontWeight={500}>
-                            {tx.description}
-                          </Typography>
-                          {isMobile && (
-                            <>
-                              {tx.paymentDescription && (
-                                <Chip
-                                  label={tx.paymentDescription}
-                                  size="small"
-                                  sx={{
-                                    mt: 0.5,
-                                    fontSize: '0.7rem',
-                                    height: 20,
-                                    bgcolor: alpha(theme.palette.info.main, 0.1),
-                                    color: theme.palette.info.main,
-                                    fontWeight: 500
-                                  }}
-                                />
-                              )}
-                              <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
-                                Antes: {formatCurrency(tx.balanceBefore)}
-                              </Typography>
-                              <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
-                                Después: {formatCurrency(tx.balanceAfter)}
-                              </Typography>
-                            </>
+                          <Typography variant="body2" fontWeight={500}>{tx.description}</Typography>
+                        </TableCell>
+                        <TableCell>
+                          {tx.paymentDescription ? (
+                            <Chip
+                              label={tx.paymentDescription}
+                              size="small"
+                              sx={{
+                                fontSize: '0.75rem',
+                                height: 24,
+                                bgcolor: alpha(theme.palette.info.main, 0.1),
+                                color: theme.palette.info.main,
+                                fontWeight: 500,
+                                maxWidth: '100%',
+                                '& .MuiChip-label': { overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', px: 1 }
+                              }}
+                            />
+                          ) : (
+                            <Typography variant="body2" color="text.disabled" sx={{ fontStyle: 'italic' }}>-</Typography>
                           )}
                         </TableCell>
-                        {!isMobile && (
-                          <TableCell>
-                            {tx.paymentDescription ? (
-                              <Chip
-                                label={tx.paymentDescription}
-                                size="small"
-                                sx={{
-                                  fontSize: '0.75rem',
-                                  height: 24,
-                                  bgcolor: alpha(theme.palette.info.main, 0.1),
-                                  color: theme.palette.info.main,
-                                  fontWeight: 500,
-                                  maxWidth: '100%',
-                                  '& .MuiChip-label': {
-                                    overflow: 'hidden',
-                                    textOverflow: 'ellipsis',
-                                    whiteSpace: 'nowrap',
-                                    px: 1
-                                  }
-                                }}
-                              />
-                            ) : (
-                              <Typography variant="body2" color="text.disabled" sx={{ fontStyle: 'italic' }}>
-                                -
-                              </Typography>
-                            )}
-                          </TableCell>
-                        )}
-                        {!isMobile && (
-                          <TableCell align="right">
-                            <Typography variant="body2" color="text.secondary">
-                              {formatCurrency(tx.balanceBefore)}
-                            </Typography>
-                          </TableCell>
-                        )}
                         <TableCell align="right">
-                          <Typography 
-                            variant="body2" 
-                            fontWeight={600}
-                            color={getAmountColor(tx.type, tx.amount)}
-                          >
+                          <Typography variant="body2" color="text.secondary">{formatCurrency(tx.balanceBefore)}</Typography>
+                        </TableCell>
+                        <TableCell align="right">
+                          <Typography variant="body2" fontWeight={600} color={getAmountColor(tx.type, tx.amount)}>
                             {getTransactionSign(tx.type, tx.amount)}{formatCurrency(Math.abs(tx.amount))}
                           </Typography>
                         </TableCell>
-                        {!isMobile && (
-                          <TableCell align="right">
-                            <Typography variant="body2" fontWeight={600}>
-                              {formatCurrency(tx.balanceAfter)}
-                            </Typography>
-                          </TableCell>
-                        )}
+                        <TableCell align="right">
+                          <Typography variant="body2" fontWeight={600}>{formatCurrency(tx.balanceAfter)}</Typography>
+                        </TableCell>
                       </TableRow>
-                    )
-                  })}
-                </TableBody>
-              </Table>
-            </TableContainer>
+                    ))}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            )}
 
-            {/* Pagination - Always visible like in other views */}
+            {/* Pagination */}
             <TablePagination
               component="div"
               count={total}
@@ -674,16 +659,18 @@ export default function WalletHistoryModal({ open, onClose }: WalletHistoryModal
               onPageChange={handleChangePage}
               rowsPerPage={rowsPerPage}
               onRowsPerPageChange={handleChangeRowsPerPage}
-              labelRowsPerPage="Filas por página:"
+              labelRowsPerPage={isMobile ? "Por pag:" : "Filas por pagina:"}
               labelDisplayedRows={({ from, to, count }) =>
-                `${from}-${to} de ${count !== -1 ? count : `más de ${to}`}`
+                `${from}-${to} de ${count !== -1 ? count : `mas de ${to}`}`
               }
               sx={{
                 borderTop: 1,
                 borderColor: 'divider',
                 '& .MuiTablePagination-toolbar': {
                   flexDirection: { xs: 'column', sm: 'row' },
-                  gap: { xs: 1, sm: 0 }
+                  gap: { xs: 0.5, sm: 0 },
+                  minHeight: { xs: 'auto', sm: 52 },
+                  py: { xs: 1, sm: 0 },
                 },
                 '& .MuiTablePagination-spacer': {
                   display: { xs: 'none', sm: 'flex' }

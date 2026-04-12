@@ -58,37 +58,32 @@ export const useSubadminDashboardData = () => {
 
         
 
-        // Fetch enrichment data (charts) for each manager
+        // Single batch call instead of 2*N individual requests
         const enrichments: Record<string, any> = {}
+        const summaries = await managerService.getSubadminManagersSummary()
 
-        await Promise.all(
-          managers.map(async (manager) => {
-            try {
-              const [clientsData, loansData] = await Promise.all([
-                managerService.getManagerClientsChart(manager.id, {}),
-                managerService.getManagerLoansChart(manager.id, {})
-              ])
+        for (const summary of summaries) {
+          enrichments[summary.id] = {
+            totalClients: summary.totalClients,
+            totalLoans: summary.totalLoans,
+            totalAmount: summary.totalAmount,
+            clients: summary.clients,
+            loans: []
+          }
+        }
 
-              enrichments[manager.id] = {
-                totalClients: clientsData.length,
-                totalLoans: loansData.length,
-                totalAmount: loansData.reduce((sum, loan) => sum + (loan.amount || 0), 0),
-                clients: clientsData,
-                loans: loansData
-              }
-            } catch (error) {
-              
-              // Fallback to empty enrichment
-              enrichments[manager.id] = {
-                totalClients: 0,
-                totalLoans: 0,
-                totalAmount: 0,
-                clients: [],
-                loans: []
-              }
+        // Fill in any managers not returned by the summary
+        for (const manager of managers) {
+          if (!enrichments[manager.id]) {
+            enrichments[manager.id] = {
+              totalClients: 0,
+              totalLoans: 0,
+              totalAmount: 0,
+              clients: [],
+              loans: []
             }
-          })
-        )
+          }
+        }
 
         // Store enrichments in subadminStore
         subadminStore.setManagerEnrichments(enrichments)

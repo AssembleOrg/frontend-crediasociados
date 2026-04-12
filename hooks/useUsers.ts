@@ -35,16 +35,13 @@ export const useUsers = () => {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  // Refs to prevent race conditions and duplicate requests
-  const isInFlightRef = useRef(false)
   const abortControllerRef = useRef<AbortController | null>(null)
 
   const fetchUsers = useCallback(async (params?: PaginationParams): Promise<void> => {
     if (!authUser) return
 
     // Prevent DUPLICATE in-flight requests, but allow refresh after completion
-    if (isInFlightRef.current) return
-    isInFlightRef.current = true
+    // Deduplication handled at service level via requestDeduplicator
 
     setIsLoading(true)
     setError(null)
@@ -59,12 +56,15 @@ export const useUsers = () => {
       const filters = { ...usersStore.filters, ...params }
       let response
 
-      if (authUser.role === 'superadmin') {
+      if (authUser.role === 'prestamista') {
+        // MANAGER/PRESTAMISTA doesn't manage users - skip fetch entirely
+        // lock released
+        return
+      } else if (authUser.role === 'superadmin') {
         // Only SUPERADMIN can see ALL users
         response = await usersService.getUsers(filters)
       } else {
         // ADMIN and SUBADMIN see only users they created (hierarchical access)
-        // This enforces proper role-based security as documented in adminlogs.md
         response = await usersService.getCreatedUsers(authUser?.id || '', filters)
       }
 
@@ -93,7 +93,7 @@ export const useUsers = () => {
       }
     } finally {
       setIsLoading(false)
-      isInFlightRef.current = false
+      // lock released
     }
   }, [authUser])
 
@@ -282,23 +282,25 @@ export const useUsers = () => {
   }, [])
 
   useEffect(() => {
-    if (currentUser) {
-      // CRITICAL: Fetch complete user data if quotas are missing (after F5)
-      // This ensures currentUser in authStore always has complete data
-      const hasIncompleteData = 
-        currentUser.clientQuota === undefined || 
-        currentUser.usedClientQuota === undefined ||
-        currentUser.availableClientQuota === undefined;
-      
-      if (hasIncompleteData && currentUser.id) {
-        
-        getUserById(currentUser.id).then((completeUser) => {
-          if (completeUser) {
-            useAuthStore.getState().updateCurrentUser(completeUser);
-          }
-        });
-      }
-      
+    if (!currentUser) return
+
+    // Fetch complete user data if quotas are missing (after F5)
+    const hasIncompleteData =
+      currentUser.clientQuota === undefined ||
+      currentUser.usedClientQuota === undefined ||
+      currentUser.availableClientQuota === undefined;
+
+    if (hasIncompleteData && currentUser.id) {
+      getUserById(currentUser.id).then((completeUser) => {
+        if (completeUser) {
+          useAuthStore.getState().updateCurrentUser(completeUser);
+        }
+      });
+    }
+
+    // Only fetch if store is empty - prevents N duplicate calls
+    // when multiple components use useUsers() on the same page
+    if (usersStore.users.length === 0) {
       fetchUsers()
     }
 

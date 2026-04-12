@@ -48,7 +48,7 @@ export default function WalletTransactionsModal({ open, onClose }: WalletTransac
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [page, setPage] = useState(0) // MUI TablePagination uses 0-based indexing
-  const [rowsPerPage, setRowsPerPage] = useState(20)
+  const [rowsPerPage, setRowsPerPage] = useState(25)
   const [total, setTotal] = useState(0)
   const [filterType, setFilterType] = useState<TransactionType>('ALL')
   const [startDate, setStartDate] = useState<string>('')

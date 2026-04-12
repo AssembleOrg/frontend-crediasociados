@@ -26,7 +26,7 @@ class RequestDeduplicator {
   
   // Configuración por defecto
   private defaultTTL = 30000 // 30 segundos
-  private defaultDebounceMs = 100 // 100ms debounce
+  private defaultDebounceMs = 0 // No debounce - execute immediately
   
   // Stats para debugging
   private stats = {

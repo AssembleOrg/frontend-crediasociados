@@ -247,6 +247,18 @@ class CollectionRoutesService {
     const response = await api.get('/collection-routes/today/expenses');
     return response.data.data || response.data;
   }
+  /**
+   * Reschedule a route item: change subloan due date and remove from today's route
+   */
+  async rescheduleRouteItem(itemId: string, dueDate: string): Promise<{
+    message: string;
+    subLoanId: string;
+    newDueDate: string;
+    removedItemId: string;
+  }> {
+    const response = await api.post(`/collection-routes/items/${itemId}/reschedule`, { dueDate });
+    return response.data.data || response.data;
+  }
 }
 
 const collectionRoutesService = new CollectionRoutesService();

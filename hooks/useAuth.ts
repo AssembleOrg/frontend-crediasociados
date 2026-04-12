@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useEffect, useMemo } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/stores/auth';
 import { useUsersStore } from '@/stores/users';
@@ -14,7 +14,6 @@ import { useOperativaStore } from '@/stores/operativa';
 import { useWalletsStore } from '@/stores/wallets';
 import { authService } from '@/services/auth.service';
 import { usersService } from '@/services/users.service';
-import { setAuthToken } from '@/services/api';
 import { apiUserToUser } from '@/types/transforms';
 import { clearAllCaches, clearAllData } from '@/lib/cache-manager';
 import type { LoginDto, ApiError } from '@/types/auth';
@@ -33,12 +32,6 @@ export const useAuth = () => {
 
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (authStore.token) {
-      setAuthToken(authStore.token);
-    }
-  }, [authStore.token]);
 
   const login = useCallback(
     async (credentials: LoginDto): Promise<boolean> => {
@@ -115,10 +108,9 @@ export const useAuth = () => {
 
         const user = apiUserToUser(response.user);
 
-        // Set tokens first so API calls work
-        authStore.setTokens(response.token, response.refreshToken);
+        // Keep a local session marker (real tokens live in HttpOnly cookies)
+        authStore.setTokens(null, null);
         authStore.setAuthentication(true);
-        setAuthToken(response.token);
 
         // CRITICAL: Fetch complete user data with quotas
         // Login endpoint might not include clientQuota/usedClientQuota
@@ -149,17 +141,12 @@ export const useAuth = () => {
   );
 
   const refreshToken = useCallback(async (): Promise<boolean> => {
-    if (!authStore.refreshToken) return false;
-
     setIsLoading(true);
     setError(null);
 
     try {
-      const response = await authService.refresh({
-        refreshToken: authStore.refreshToken,
-      });
-
-      authStore.setTokens(response.token, response.refreshToken);
+      await authService.refresh();
+      authStore.setTokens(null, null);
 
       return true;
     } catch (err) {
@@ -178,7 +165,7 @@ export const useAuth = () => {
     setError(null);
 
     try {
-      await authService.logout(authStore.refreshToken || undefined);
+      await authService.logout();
     } catch (err) {
       
     } finally {
@@ -191,7 +178,7 @@ export const useAuth = () => {
       
       router.replace('/login');
     }
-  }, [authStore, router]);
+  }, [router]);
 
   const navigateToDashboard = useCallback(() => {
     // Get fresh state directly from store (not from closure)

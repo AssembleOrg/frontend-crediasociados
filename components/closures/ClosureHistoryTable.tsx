@@ -34,7 +34,7 @@ export const ClosureHistoryTable: React.FC<ClosureHistoryTableProps> = ({
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [page, setPage] = useState(0)
-  const [rowsPerPage, setRowsPerPage] = useState(10)
+  const [rowsPerPage, setRowsPerPage] = useState(25)
 
   const fetchClosures = async () => {
     setIsLoading(true)
@@ -137,7 +137,7 @@ export const ClosureHistoryTable: React.FC<ClosureHistoryTableProps> = ({
       </TableContainer>
 
       <TablePagination
-        rowsPerPageOptions={[5, 10, 25]}
+        rowsPerPageOptions={[25, 50, 100]}
         component="div"
         count={closures.length}
         rowsPerPage={rowsPerPage}
