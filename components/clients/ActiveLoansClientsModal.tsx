@@ -269,13 +269,13 @@ export default function ActiveLoansClientsModal({ open, onClose }: ActiveLoansCl
       onClose={onClose}
       maxWidth="lg"
       fullWidth
-      fullScreen={isMobile}
       PaperProps={{
         sx: {
-          borderRadius: isMobile ? 0 : 3,
-          maxHeight: isMobile ? '100vh' : '90vh',
-          m: { xs: 0, sm: 2 },
-          mt: { xs: 0, sm: 3 }
+          borderRadius: { xs: 2, sm: 3 },
+          maxHeight: { xs: 'calc(100dvh - 96px)', sm: '90vh' },
+          m: { xs: 1, sm: 2 },
+          mt: { xs: 'auto', sm: 2 },
+          width: { xs: '100%', sm: 'auto' },
         }
       }}
     >
@@ -329,18 +329,21 @@ export default function ActiveLoansClientsModal({ open, onClose }: ActiveLoansCl
                     variant="outlined"
                   />
                 )}
-                renderOption={(props, option) => (
-                  <Box component="li" {...props}>
-                    <Box>
-                      <Typography variant="body1" fontWeight={500}>
-                        {option.fullName}
-                      </Typography>
-                      <Typography variant="caption" color="text.secondary">
-                        {option.email}
-                      </Typography>
+                renderOption={(props, option) => {
+                  const { key, ...otherProps } = props
+                  return (
+                    <Box component="li" key={key} {...otherProps}>
+                      <Box>
+                        <Typography variant="body1" fontWeight={500}>
+                          {option.fullName}
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          {option.email}
+                        </Typography>
+                      </Box>
                     </Box>
-                  </Box>
-                )}
+                  )
+                }}
                 noOptionsText="No se encontraron managers"
               />
             </Box>

@@ -108,15 +108,16 @@ export const PaymentReceiptModal: React.FC<PaymentReceiptModalProps> = ({
       onClose={onClose}
       maxWidth="lg"
       fullWidth
-      fullScreen={isMobile}
       sx={{
         zIndex: 1400 // Higher than default Modal (1300) to appear above other modals
       }}
       PaperProps={{
         sx: {
-          borderRadius: isMobile ? 0 : 2,
-          maxHeight: isMobile ? '100vh' : '90vh',
-          m: { xs: 0, sm: 2 },
+          borderRadius: { xs: 2, sm: 3 },
+          maxHeight: { xs: 'calc(100dvh - 96px)', sm: '90vh' },
+          m: { xs: 1, sm: 2 },
+          mt: { xs: 'auto', sm: 2 },
+          width: { xs: '100%', sm: 'auto' },
           zIndex: 1400
         }
       }}

@@ -181,47 +181,45 @@ const ClientsEvolutionChart = memo(function ClientsEvolutionChart({ data, isLoad
         Clientes Nuevos por Semana
       </Typography>
 
-      <Box sx={{ flexGrow: 1, mt: 1 }}>
-        <ResponsiveContainer width="100%" height="100%">
-          <BarChart
-            data={weeklyData}
-            margin={{
-              top: 20,
-              right: 30,
-              left: 20,
-              bottom: 60,
-            }}
-            barCategoryGap="20%"
+      <ResponsiveContainer width="100%" height={300}>
+        <BarChart
+          data={weeklyData}
+          margin={{
+            top: 20,
+            right: 30,
+            left: 20,
+            bottom: 60,
+          }}
+          barCategoryGap="20%"
+        >
+          <CartesianGrid strokeDasharray="3 3" stroke="#e0e0e0" />
+          <XAxis
+            dataKey="week"
+            fontSize={11}
+            interval={0}
+            angle={-45}
+            textAnchor="end"
+            height={60}
+            tick={{ fill: '#666' }}
+          />
+          <YAxis
+            fontSize={11}
+            allowDecimals={false}
+            tick={{ fill: '#666' }}
+          />
+          <Tooltip content={<CustomTooltip />} />
+          <Bar
+            dataKey="clients"
+            fill="#3b82f6"
+            radius={[8, 8, 0, 0]}
+            maxBarSize={60}
           >
-            <CartesianGrid strokeDasharray="3 3" stroke="#e0e0e0" />
-            <XAxis
-              dataKey="week"
-              fontSize={11}
-              interval={0}
-              angle={-45}
-              textAnchor="end"
-              height={60}
-              tick={{ fill: '#666' }}
-            />
-            <YAxis
-              fontSize={11}
-              allowDecimals={false}
-              tick={{ fill: '#666' }}
-            />
-            <Tooltip content={<CustomTooltip />} />
-            <Bar
-              dataKey="clients"
-              fill="#3b82f6"
-              radius={[8, 8, 0, 0]}
-              maxBarSize={60}
-            >
-              {weeklyData.map((entry, index) => (
-                <Cell key={`cell-${index}`} fill="#10b981" />
-              ))}
-            </Bar>
-          </BarChart>
-        </ResponsiveContainer>
-      </Box>
+            {weeklyData.map((entry, index) => (
+              <Cell key={`cell-${index}`} fill="#10b981" />
+            ))}
+          </Bar>
+        </BarChart>
+      </ResponsiveContainer>
 
       {/* Summary - Compact */}
       <Box sx={{

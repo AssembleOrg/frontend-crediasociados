@@ -90,20 +90,21 @@ export default function ClientTimelineModal({
       onClose={onClose}
       maxWidth="lg"
       fullWidth
-      fullScreen={isMobile}
       PaperProps={{
         sx: {
           width: { sm: '90vw', md: '1400px' },
           maxWidth: 'none',
-          m: { xs: 0, sm: 3 },
-          borderRadius: { xs: 0, sm: 3 },
+          borderRadius: { xs: 2, sm: 3 },
+          maxHeight: { xs: 'calc(100dvh - 96px)', sm: '90vh' },
+          m: { xs: 1, sm: 3 },
+          mt: { xs: 'auto', sm: 2 },
         },
       }}
     >
       <DialogTitle sx={{ pt: 2.5, px: 3, pb: 2 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
           <Payment color="primary" />
-          <Typography variant="h6">Timeline de Cuotas</Typography>
+          <Typography variant="h6" component="div">Timeline de Cuotas</Typography>
         </Box>
       </DialogTitle>
       

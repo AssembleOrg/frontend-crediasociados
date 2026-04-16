@@ -119,7 +119,7 @@ export const PaymentHistoryModal: React.FC<PaymentHistoryModalProps> = ({
         pt: 3
       }}>
         <History />
-        <Typography variant="h6" sx={{ fontWeight: 600 }}>
+        <Typography variant="h6" component="div" sx={{ fontWeight: 600 }}>
           Historial de Pagos
         </Typography>
       </DialogTitle>

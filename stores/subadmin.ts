@@ -37,6 +37,10 @@ interface SubadminStore {
   dateRange: DateRange
   selectedManager: string | null
 
+  // Pending modal to open after navigation (not persisted)
+  pendingModal: string | null
+  setPendingModal: (modal: string | null) => void
+
   // Simple synchronous actions only (Layer 3 - "dumb" store)
   setManagerEnrichments: (data: Record<string, ManagerEnrichment>) => void
   setLastEnrichmentFetch: (date: Date) => void
@@ -94,7 +98,12 @@ export const useSubadminStore = create<SubadminStore>()(
       timeFilter: 'month',
       dateRange: getDateRangeForFilter('month'),
       selectedManager: null,
-
+      pendingModal: null,
+      setPendingModal: (modal) => {
+        set((state) => {
+          state.pendingModal = modal
+        })
+      },
       // Simple synchronous setters (Layer 3 pattern)
       setManagerEnrichments: (data) => {
         set((state) => {

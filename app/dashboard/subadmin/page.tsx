@@ -1,47 +1,17 @@
 'use client'
 
-import React, { useState, useMemo } from 'react'
+import React, { useState, useMemo, useEffect } from 'react'
 import dynamic from 'next/dynamic'
 import { Box, CircularProgress, Typography, Alert, Grid, Button, useMediaQuery, Dialog, DialogTitle, DialogContent, DialogActions, Card, CardContent, Chip } from '@mui/material'
 import { ExpandMore, ExpandLess, Calculate, PersonOff, AccountBalance, VerifiedUser, Warning, Block } from '@mui/icons-material'
 import PageHeader from '@/components/ui/PageHeader'
+import { useSubadminStore } from '@/stores/subadmin'
 import { useSubadminDashboardData } from '@/hooks/useSubadminDashboardData'
 import { useSubadminCharts } from '@/hooks/useSubadminCharts'
 import { ChartSkeleton, BarChartSkeleton } from '@/components/ui/ChartSkeleton'
 import { StandaloneLoanSimulator } from '@/components/loans/StandaloneLoanSimulator'
 import type { ManagerAnalytics } from '@/services/analytics.service'
 import { clientsService } from '@/services/clients.service'
-import { useEffect } from 'react'
-
-// Dynamic import for InactiveClientsModal
-const InactiveClientsModal = dynamic(
-  () => import('@/components/clients/InactiveClientsModal'),
-  { ssr: false }
-)
-
-// Dynamic import for ActiveLoansClientsModal
-const ActiveLoansClientsModal = dynamic(
-  () => import('@/components/clients/ActiveLoansClientsModal'),
-  { ssr: false }
-)
-
-// Dynamic import for UnverifiedClientsModal
-const UnverifiedClientsModal = dynamic(
-  () => import('@/components/clients/UnverifiedClientsModal'),
-  { ssr: false }
-)
-
-// Dynamic import for OverdueClientsModal
-const OverdueClientsModal = dynamic(
-  () => import('@/components/clients/OverdueClientsModal'),
-  { ssr: false }
-)
-
-// Dynamic import for BlacklistModal
-const BlacklistModal = dynamic(
-  () => import('@/components/clients/BlacklistModal'),
-  { ssr: false }
-)
 
 // Lazy load charts to reduce initial bundle size
 const ClientesPerAsociadoChart = dynamic(
@@ -68,7 +38,9 @@ const ManagerPerformanceChart = dynamic(
   }
 )
 
+
 export default function SubadminDashboard() {
+  const setPendingModal = useSubadminStore((s) => s.setPendingModal)
   const {
     detailedManagers,
     isLoading,
@@ -76,16 +48,10 @@ export default function SubadminDashboard() {
   } = useSubadminDashboardData()
 
   const chartData = useSubadminCharts()
-
   // Responsive logic for mobile
   const isMobile = useMediaQuery('(max-width:600px)')
   const [showAllCharts, setShowAllCharts] = useState(false)
   const [simulatorOpen, setSimulatorOpen] = useState(false)
-  const [inactiveClientsModalOpen, setInactiveClientsModalOpen] = useState(false)
-  const [activeLoansClientsModalOpen, setActiveLoansClientsModalOpen] = useState(false)
-  const [unverifiedClientsModalOpen, setUnverifiedClientsModalOpen] = useState(false)
-  const [overdueClientsModalOpen, setOverdueClientsModalOpen] = useState(false)
-  const [blacklistModalOpen, setBlacklistModalOpen] = useState(false)
   const [unverifiedClientsCount, setUnverifiedClientsCount] = useState<number | null>(null)
 
   // Fix hydration: use useMemo to calculate createdAt only on client
@@ -119,6 +85,7 @@ export default function SubadminDashboard() {
     loadUnverifiedCount()
   }, [])
 
+
   if (isLoading && detailedManagers.length === 0) {
     return (
       <Box sx={{ p: 3, display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 400 }}>
@@ -136,8 +103,8 @@ export default function SubadminDashboard() {
     return (
       <Box sx={{ p: 3 }}>
         <PageHeader
-          title="Dashboard de Cobrador"
-          subtitle="Gestión de cobradores"
+          title="Dashboard Subadmin"
+          subtitle="Gestión de cobradores y managers"
         />
         <Alert severity="error" sx={{ mt: 2 }}>
           {error}
@@ -149,8 +116,8 @@ export default function SubadminDashboard() {
   return (
     <Box sx={{ p: 3 }}>
       <PageHeader
-        title="Dashboard de Cobrador"
-        subtitle="Gestión de cobradores"
+        title="Dashboard Subadmin"
+        subtitle="Gestión de cobradores y managers"
       />
 
       {/* Action Buttons */}
@@ -183,7 +150,7 @@ export default function SubadminDashboard() {
             boxShadow: '0 12px 28px rgba(255, 215, 0, 0.3)',
           },
         }}
-        onClick={() => setUnverifiedClientsModalOpen(true)}
+        onClick={() => setPendingModal('unverified')}
       >
         <CardContent sx={{ p: 3 }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
@@ -240,7 +207,7 @@ export default function SubadminDashboard() {
             boxShadow: '0 12px 28px rgba(133, 34, 13, 0.3)',
           },
         }}
-        onClick={() => setInactiveClientsModalOpen(true)}
+        onClick={() => setPendingModal('inactive')}
       >
         <CardContent sx={{ p: 3 }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
@@ -282,7 +249,7 @@ export default function SubadminDashboard() {
             boxShadow: '0 12px 28px rgba(244, 67, 54, 0.3)',
           },
         }}
-        onClick={() => setOverdueClientsModalOpen(true)}
+        onClick={() => setPendingModal('overdue')}
       >
         <CardContent sx={{ p: 3 }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
@@ -324,7 +291,7 @@ export default function SubadminDashboard() {
             boxShadow: '0 12px 28px rgba(66, 66, 66, 0.3)',
           },
         }}
-        onClick={() => setBlacklistModalOpen(true)}
+        onClick={() => setPendingModal('blacklist')}
       >
         <CardContent sx={{ p: 3 }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
@@ -366,7 +333,7 @@ export default function SubadminDashboard() {
             boxShadow: '0 12px 28px rgba(25, 118, 210, 0.3)',
           },
         }}
-        onClick={() => setActiveLoansClientsModalOpen(true)}
+        onClick={() => setPendingModal('activeloans')}
       >
         <CardContent sx={{ p: 3 }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
@@ -501,43 +468,6 @@ export default function SubadminDashboard() {
         </DialogActions>
       </Dialog>
 
-      {/* Inactive Clients Modal */}
-      <InactiveClientsModal
-        open={inactiveClientsModalOpen}
-        onClose={() => setInactiveClientsModalOpen(false)}
-      />
-
-      {/* Active Loans Clients Modal */}
-      <ActiveLoansClientsModal
-        open={activeLoansClientsModalOpen}
-        onClose={() => setActiveLoansClientsModalOpen(false)}
-      />
-
-      {/* Blacklist Modal */}
-      <BlacklistModal
-        open={blacklistModalOpen}
-        onClose={() => setBlacklistModalOpen(false)}
-      />
-
-      {/* Overdue Clients Modal */}
-      <OverdueClientsModal
-        open={overdueClientsModalOpen}
-        onClose={() => setOverdueClientsModalOpen(false)}
-      />
-
-      {/* Unverified Clients Modal */}
-      <UnverifiedClientsModal
-        open={unverifiedClientsModalOpen}
-        onClose={() => {
-          setUnverifiedClientsModalOpen(false)
-          // Refresh count when modal closes
-          clientsService.getUnverifiedClients().then(data => {
-            setUnverifiedClientsCount(data.total || 0)
-          }).catch(() => {
-            setUnverifiedClientsCount(0)
-          })
-        }}
-      />
     </Box>
   )
 }

@@ -103,7 +103,7 @@ export default function ManagerCountPerSubadminChart({ data, isLoading = false }
         Cobradoress por Asociado
       </Typography>
 
-      <ResponsiveContainer width="100%" height="75%">
+      <ResponsiveContainer width="100%" height={300}>
         <BarChart
           data={sortedData}
           margin={{

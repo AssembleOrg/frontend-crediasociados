@@ -122,7 +122,7 @@ const ManagersPerSubadminChart = memo(function ManagersPerSubadminChart({ data, 
         Managers por Cobrador
       </Typography>
 
-      <ResponsiveContainer width="100%" height="75%">
+      <ResponsiveContainer width="100%" height={300}>
         <PieChart>
           <Pie
             data={data}

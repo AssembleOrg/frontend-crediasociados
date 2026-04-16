@@ -126,7 +126,7 @@ export const TransferToManagerModal: React.FC<TransferToManagerModalProps> = ({
         pt: 3
       }}>
         <SwapHoriz />
-        <Typography variant="h6" sx={{ fontWeight: 600 }}>
+        <Typography variant="h6" component="div" sx={{ fontWeight: 600 }}>
           Transferir a Manager
         </Typography>
       </DialogTitle>

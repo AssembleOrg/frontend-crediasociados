@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import {
   Box,
   Button,
@@ -13,8 +13,6 @@ import {
   Chip,
   Skeleton,
   Snackbar,
-  FormControlLabel,
-  Switch,
   Dialog,
   DialogTitle,
   DialogContent,
@@ -60,11 +58,13 @@ import { PaymentModal } from '@/components/loans/PaymentModal';
 import { RouteExpenseModal } from '@/components/routes/RouteExpenseModal';
 import { RouteDatePicker } from '@/components/routes/RouteDatePicker';
 import { RouteItemDetailModal } from '@/components/routes/RouteItemDetailModal';
+import { RouteItemBottomSheet } from '@/components/routes/RouteItemBottomSheet';
 import { CollectionRouteItem } from '@/services/collection-routes.service';
 import collectionRoutesService from '@/services/collection-routes.service';
 import RescheduleDateDialog from '@/components/loans/RescheduleDateDialog';
 import { paymentsService } from '@/services/payments.service';
 import { collectorWalletService } from '@/services/collector-wallet.service';
+import { subLoansService, type OverdueClientEntry } from '@/services/sub-loans.service';
 import { DateTime } from 'luxon';
 import { AccountBalanceWallet } from '@mui/icons-material';
 
@@ -74,6 +74,7 @@ import { AccountBalanceWallet } from '@mui/icons-material';
 interface SortableRouteItemProps {
   item: CollectionRouteItem;
   index: number;
+  overdueCount: number;
   onPayment?: (item: CollectionRouteItem) => void;
   onReset?: (item: CollectionRouteItem) => void;
   onCardClick?: (item: CollectionRouteItem) => void;
@@ -81,7 +82,7 @@ interface SortableRouteItemProps {
   isRouteClosed?: boolean;
 }
 
-function SortableRouteItem({ item, index, onPayment, onReset, onCardClick, resettingSubloanId, isRouteClosed }: SortableRouteItemProps) {
+function SortableRouteItem({ item, index, overdueCount, onPayment, onReset, onCardClick, resettingSubloanId, isRouteClosed }: SortableRouteItemProps) {
   const {
     listeners,
     setNodeRef,
@@ -110,6 +111,7 @@ function SortableRouteItem({ item, index, onPayment, onReset, onCardClick, reset
       <RouteItemCard
         item={item}
         index={index}
+        overdueCount={overdueCount}
         onPayment={onPayment}
         onReset={onReset}
         onCardClick={onCardClick}
@@ -146,8 +148,12 @@ export default function RutasPage() {
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
   const [expenseModalOpen, setExpenseModalOpen] = useState(false);
   const [detailModalOpen, setDetailModalOpen] = useState(false);
+  const [bottomSheetOpen, setBottomSheetOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState<CollectionRouteItem | null>(null);
   const [selectedDetailItem, setSelectedDetailItem] = useState<CollectionRouteItem | null>(null);
+  // Search & filter state (iOS filter bar)
+  const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'paid' | 'debt'>('pending');
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [resetConfirmModalOpen, setResetConfirmModalOpen] = useState(false);
   const [itemToReset, setItemToReset] = useState<CollectionRouteItem | null>(null);
@@ -160,13 +166,13 @@ export default function RutasPage() {
   const [reorderedItems, setReorderedItems] = useState<CollectionRouteItem[]>([]);
   const [isSavingOrder, setIsSavingOrder] = useState(false);
   
-  // Filter State - Show only pending by default
-  const [showOnlyPending, setShowOnlyPending] = useState(true);
-
   // Wallet Balance State
   const [walletBalance, setWalletBalance] = useState<number | null>(null);
   const [loadingWalletBalance, setLoadingWalletBalance] = useState(false);
   const [walletDayLabel, setWalletDayLabel] = useState<string>('');
+
+  // Overdue map: loanTrack → count of overdue installments (single fetch, no N+1)
+  const [overdueClients, setOverdueClients] = useState<OverdueClientEntry[]>([]);
 
   // Fetch route on mount and when pathname changes
   useEffect(() => {
@@ -193,6 +199,24 @@ export default function RutasPage() {
   useEffect(() => {
     fetchWalletBalance();
   }, []);
+
+  // Single fetch for overdue data — builds loanTrack → overdueCount map (no N+1)
+  useEffect(() => {
+    subLoansService.getOverdueClients()
+      .then((res) => setOverdueClients(res?.clients ?? []))
+      .catch(() => { /* graceful degradation — cards show 0 badge */ });
+  }, []);
+
+  // O(1) lookup per card: loanTrack → total overdue installment count
+  const overdueMap = useMemo<Record<string, number>>(() => {
+    const map: Record<string, number> = {};
+    for (const entry of overdueClients) {
+      for (const loan of entry.loans) {
+        map[loan.loanTrack] = (map[loan.loanTrack] ?? 0) + loan.overdueInstallments.length;
+      }
+    }
+    return map;
+  }, [overdueClients]);
 
   // Avoid hydration mismatches by computing "today" label only on client
   useEffect(() => {
@@ -244,11 +268,14 @@ export default function RutasPage() {
 
   const handleOpenDetailModal = (item: CollectionRouteItem) => {
     setSelectedDetailItem(item);
-    setDetailModalOpen(true);
+    // Use BottomSheet on mobile — the old Dialog stays as desktop fallback
+    setBottomSheetOpen(true);
+    setDetailModalOpen(false);
   };
 
   const handleCloseDetailModal = () => {
     setDetailModalOpen(false);
+    setBottomSheetOpen(false);
     setSelectedDetailItem(null);
   };
 
@@ -423,19 +450,41 @@ export default function RutasPage() {
   const isViewingToday = !selectedDate;
   const currentRoute = isViewingToday ? todayRoute : selectedRoute;
 
-  // Filter items based on toggle - Purely visual filter
-  // Also filter out items without subLoan (items with subLoanId: null)
+  // Filter items with the new iOS filter bar logic
   const getFilteredItems = (items: CollectionRouteItem[]) => {
-    // First, filter out items without subLoan
-    const itemsWithSubLoan = items.filter(item => item.subLoan != null);
-    
-    if (!showOnlyPending) return itemsWithSubLoan;
-    return itemsWithSubLoan.filter(item => item.subLoan?.status === 'PENDING');
+    let result = items.filter(item => item.subLoan != null);
+
+    // Search by client name
+    if (searchQuery.trim()) {
+      const q = searchQuery.trim().toLowerCase();
+      result = result.filter(item => item.clientName.toLowerCase().includes(q));
+    }
+
+    // Status filter
+    switch (statusFilter) {
+      case 'pending':
+        result = result.filter(item => item.subLoan?.status === 'PENDING' || item.subLoan?.status === 'PARTIAL' || item.subLoan?.status === 'OVERDUE');
+        break;
+      case 'paid':
+        result = result.filter(item => item.subLoan?.status === 'PAID');
+        break;
+      case 'debt':
+        // Items that are OVERDUE themselves
+        result = result.filter(item => item.subLoan?.status === 'OVERDUE');
+        break;
+      default:
+        break;
+    }
+
+    return result;
   };
 
+  // Keep showOnlyPending as a derived value for backward compat with reorder mode
+  const showOnlyPending = statusFilter === 'pending';
+
   const filteredItems = currentRoute?.items ? getFilteredItems(currentRoute.items) : [];
-  const filteredReorderedItems = showOnlyPending 
-    ? reorderedItems.filter(item => item.subLoan != null && item.subLoan?.status === 'PENDING')
+  const filteredReorderedItems = showOnlyPending
+    ? reorderedItems.filter(item => item.subLoan != null && (item.subLoan?.status === 'PENDING' || item.subLoan?.status === 'PARTIAL' || item.subLoan?.status === 'OVERDUE'))
     : reorderedItems.filter(item => item.subLoan != null);
 
   // No route for selected date
@@ -748,24 +797,22 @@ export default function RutasPage() {
               Clientes del Día ({showOnlyPending ? filteredItems.length : currentRoute?.items.length || 0})
             </Typography>
             
-            {/* Filter Toggle */}
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-              <FormControlLabel
-                control={
-                  <Switch
-                    checked={showOnlyPending}
-                    onChange={(e) => setShowOnlyPending(e.target.checked)}
+            {/* iOS filter chips */}
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flexWrap: 'wrap' }}>
+              {(['all', 'pending', 'paid', 'debt'] as const).map((f) => {
+                const labels = { all: 'Todos', pending: 'Pendientes', paid: 'Pagados', debt: 'Vencidos' };
+                return (
+                  <Chip
+                    key={f}
+                    label={labels[f]}
                     size="small"
-                    color="primary"
+                    onClick={() => setStatusFilter(f)}
+                    variant={statusFilter === f ? 'filled' : 'outlined'}
+                    color={statusFilter === f ? 'primary' : 'default'}
+                    sx={{ minHeight: 32, fontWeight: statusFilter === f ? 700 : 500 }}
                   />
-                }
-                label={
-                  <Typography variant="caption" sx={{ fontSize: { xs: '0.75rem', sm: '0.813rem' } }}>
-                    Solo Pendientes
-          </Typography>
-                }
-                sx={{ m: 0 }}
-              />
+                );
+              })}
             </Box>
           </Box>
 
@@ -827,6 +874,58 @@ export default function RutasPage() {
         </Box>
       )}
 
+      {/* iOS Search Bar */}
+      {currentRoute && currentRoute.items.length > 0 && (
+        <Box
+          sx={{
+            mb: 1.5,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 1,
+            px: 1,
+            py: 0.75,
+            bgcolor: 'background.paper',
+            borderRadius: 3,
+            border: '0.5px solid',
+            borderColor: 'divider',
+          }}
+        >
+          <Info sx={{ fontSize: 18, color: 'text.disabled', flexShrink: 0 }} />
+          <input
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Buscar cliente..."
+            style={{
+              border: 'none',
+              outline: 'none',
+              background: 'transparent',
+              flex: 1,
+              fontSize: '1rem',
+              fontFamily: 'inherit',
+              color: 'inherit',
+              minWidth: 0,
+            }}
+          />
+          {searchQuery && (
+            <Box
+              component="button"
+              onClick={() => setSearchQuery('')}
+              sx={{
+                border: 'none',
+                background: 'transparent',
+                cursor: 'pointer',
+                p: 0,
+                display: 'flex',
+                alignItems: 'center',
+                color: 'text.disabled',
+              }}
+            >
+              <CloseIcon sx={{ fontSize: 18 }} />
+            </Box>
+          )}
+        </Box>
+      )}
+
       {/* Route Items - Mobile Optimized with Skeleton Loading */}
       {isLoading ? (
         // Skeleton Loading State
@@ -881,6 +980,7 @@ export default function RutasPage() {
                     key={item.id}
                     item={item}
                     index={index}
+                    overdueCount={overdueMap[item.subLoan?.loan?.loanTrack ?? ''] ?? 0}
                     onPayment={!isRouteClosed ? handleOpenPaymentModal : undefined}
                     onReset={!isRouteClosed ? handleResetPayments : undefined}
                     onCardClick={handleOpenDetailModal}
@@ -900,6 +1000,7 @@ export default function RutasPage() {
                 key={item.id}
                 item={item}
                 index={index}
+                overdueCount={overdueMap[item.subLoan?.loan?.loanTrack ?? ''] ?? 0}
                 onPayment={!isRouteClosed ? handleOpenPaymentModal : undefined}
                 onReset={!isRouteClosed ? handleResetPayments : undefined}
                 onReschedule={!isRouteClosed ? handleReschedule : undefined}
@@ -986,7 +1087,19 @@ export default function RutasPage() {
         />
       )}
 
-      {/* Detail Modal */}
+      {/* Detail BottomSheet (iOS-style) — replaces old Dialog on all screen sizes */}
+      <RouteItemBottomSheet
+        open={bottomSheetOpen}
+        onClose={handleCloseDetailModal}
+        item={selectedDetailItem}
+        isRouteClosed={isRouteClosed}
+        onPayment={!isRouteClosed ? handlePaymentFromDetail : undefined}
+        onReschedule={!isRouteClosed ? (item) => { handleCloseDetailModal(); handleReschedule(item); } : undefined}
+        onReset={!isRouteClosed ? (item) => { handleCloseDetailModal(); handleResetPayments(item); } : undefined}
+        resettingSubloanId={resettingSubloanId}
+      />
+
+      {/* Legacy Detail Modal — kept for desktop fallback, normally not opened */}
       <RouteItemDetailModal
         open={detailModalOpen}
         onClose={handleCloseDetailModal}
@@ -1013,7 +1126,7 @@ export default function RutasPage() {
         <DialogTitle sx={{ pb: 2 }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
             <Warning color="warning" sx={{ fontSize: 28 }} />
-            <Typography variant="h6" fontWeight="bold">
+            <Typography variant="h6" component="div" fontWeight="bold">
               Confirmar Reseteo de Pagos
             </Typography>
           </Box>

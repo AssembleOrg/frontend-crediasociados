@@ -155,7 +155,7 @@ export const CreateTransaccionModal: React.FC<CreateTransaccionModalProps> = ({
       <DialogTitle sx={{ pt: 2.5, px: 3, pb: 2 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
           <Add color="primary" />
-          <Typography variant="h6">Registrar Transacción</Typography>
+          <Typography variant="h6" component="div">Registrar Transacción</Typography>
         </Box>
       </DialogTitle>
 

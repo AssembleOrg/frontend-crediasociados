@@ -168,11 +168,19 @@ export function LoanSimulationModal({
 
   if (success) {
     return (
-      <Dialog 
-        open={open} 
-        maxWidth="sm" 
+      <Dialog
+        open={open}
+        maxWidth="sm"
         fullWidth
-        fullScreen={isMobile}
+        PaperProps={{
+          sx: {
+            borderRadius: { xs: 2, sm: 3 },
+            maxHeight: { xs: 'calc(100dvh - 96px)', sm: '90vh' },
+            m: { xs: 1, sm: 2 },
+            mt: { xs: 'auto', sm: 2 },
+            width: { xs: '100%', sm: 'auto' },
+          }
+        }}
       >
         <DialogTitle sx={{ position: 'relative', textAlign: 'right', pb: 0 }}>
           <IconButton
@@ -237,12 +245,14 @@ export function LoanSimulationModal({
       onClose={onClose}
       maxWidth="lg"
       fullWidth
-      fullScreen={isMobile}
       PaperProps={{
-        sx: { 
-          minHeight: isMobile ? '100vh' : '80vh',
-          m: isMobile ? 0 : 2,
-          mt: isMobile ? 0 : 3
+        sx: {
+          borderRadius: { xs: 2, sm: 3 },
+          minHeight: { xs: 'auto', sm: '80vh' },
+          maxHeight: { xs: 'calc(100dvh - 96px)', sm: '90vh' },
+          m: { xs: 1, sm: 2 },
+          mt: { xs: 'auto', sm: 2 },
+          width: { xs: '100%', sm: 'auto' },
         }
       }}
     >

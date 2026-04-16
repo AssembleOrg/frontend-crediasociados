@@ -108,7 +108,7 @@ export default function AmountPerSubadminChart({ data, isLoading = false }: Amou
         Monto Gestionado por Sub-Admin
       </Typography>
 
-      <ResponsiveContainer width="100%" height="75%">
+      <ResponsiveContainer width="100%" height={300}>
         <BarChart
           data={sortedData}
           margin={{

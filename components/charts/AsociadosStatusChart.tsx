@@ -131,7 +131,7 @@ export default function AsociadosStatusChart({ data, isLoading = false }: Asocia
         Status de Asociados
       </Typography>
 
-      <ResponsiveContainer width="100%" height="75%">
+      <ResponsiveContainer width="100%" height={300}>
         <PieChart>
           <Pie
             data={data}

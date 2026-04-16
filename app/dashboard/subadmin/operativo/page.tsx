@@ -1127,7 +1127,7 @@ export default function OperativoSubadminPage() {
               <Warning sx={{ fontSize: 32, color: "white" }} />
             </Box>
             <Box>
-              <Typography variant="h5" fontWeight={700} color="error.main">
+              <Typography variant="h5" component="div" fontWeight={700} color="error.main">
                 Eliminar Cobrador
               </Typography>
               <Typography variant="caption" color="text.secondary">

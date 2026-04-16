@@ -1,16 +1,31 @@
 'use client'
 
 import { memo } from 'react'
-import { Box, Card, CardContent, Typography, Chip, Button, keyframes } from '@mui/material'
-import { AccessTime } from '@mui/icons-material'
+import {
+  Box,
+  Card,
+  CardActionArea,
+  CardContent,
+  Typography,
+  Chip,
+  keyframes,
+  alpha,
+} from '@mui/material'
+import { AccessTime, Warning } from '@mui/icons-material'
+
+import type { ClientSummary } from '@/lib/cobros/clientSummaryHelpers'
+import { getUrgencyColor } from '@/lib/cobros/urgencyHelpers'
+import { StatusChip } from '@/components/ui/StatusChip'
+import { iosColors } from '@/lib/theme'
 
 const pulse = keyframes`
   0% { transform: scale(1); }
-  50% { transform: scale(1.08); }
+  50% { transform: scale(1.06); }
   100% { transform: scale(1); }
 `
-import type { ClientSummary } from '@/lib/cobros/clientSummaryHelpers'
-import { getUrgencyColor } from '@/lib/cobros/urgencyHelpers'
+
+const fmt = (amount: number) =>
+  `$${new Intl.NumberFormat('es', { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(amount)}`;
 
 interface ClientSummaryCardProps {
   client: ClientSummary
@@ -19,109 +34,148 @@ interface ClientSummaryCardProps {
   onToggleNotification: () => void
 }
 
-const ClientSummaryCard = memo(function ClientSummaryCard({ 
-  client, 
-  isNotified, 
-  onViewDetails, 
-  onToggleNotification 
+const ClientSummaryCard = memo(function ClientSummaryCard({
+  client,
+  isNotified,
+  onViewDetails,
 }: ClientSummaryCardProps) {
-  const colors = getUrgencyColor(client.urgencyLevel)
+  const colors    = getUrgencyColor(client.urgencyLevel)
+  const isOverdue = client.urgencyLevel === 'overdue' || client.urgencyLevel === 'OVERDUE'
+  const isToday   = client.urgencyLevel === 'today'   || client.urgencyLevel === 'TODAY'
+  const isSoon    = client.urgencyLevel === 'soon'    || client.urgencyLevel === 'SOON'
+
+  const pendingAmount = client.stats.totalAmount - client.stats.paidAmount
+  const overdueCount  = client.stats.overdue ?? 0
+  const progressPct   = client.stats.total > 0
+    ? (client.stats.paid / client.stats.total) * 100
+    : 0
 
   return (
     <Card
-      variant="outlined"
+      elevation={0}
       sx={{
-        bgcolor: colors.bg,
-        borderLeft: `6px solid ${colors.border}`,
-        '&:hover': {
-          transform: 'scale(1.01)',
-          boxShadow: 3,
-        },
-        cursor: 'pointer',
-        transition: 'all 0.2s ease-in-out',
+        borderRadius: 2,
+        border:       `0.5px solid ${isOverdue ? iosColors.red : iosColors.gray4}`,
+        borderLeft:   `4px solid ${colors.border}`,
+        bgcolor:      isOverdue
+          ? alpha(iosColors.red, 0.03)
+          : isToday
+          ? alpha(iosColors.orange, 0.03)
+          : 'background.paper',
+        transition:   'box-shadow 0.2s ease',
+        '&:hover':    { boxShadow: '0 4px 16px rgba(0,0,0,0.1)' },
       }}
-      onClick={onViewDetails}
     >
-      <CardContent sx={{ px: { xs: 1.5, sm: 2 }, py: 1.5, '&:last-child': { pb: 1.5 } }}>
-        {/* Name + urgency chip */}
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 0.5 }}>
-          <Typography variant="subtitle2" fontWeight={600} color={colors.primary} noWrap sx={{ flex: 1, mr: 1 }}>
-            {client.clientName}
-            {isNotified && <Chip label="✓" size="small" sx={{ ml: 0.5, bgcolor: '#4caf50', color: 'white', height: 16, fontSize: '0.6rem' }} />}
-          </Typography>
-          {(() => {
-            const isSoon = client.urgencyLevel === 'soon' || client.urgencyLevel === 'SOON'
-            const label = client.urgencyLevel === 'overdue' || client.urgencyLevel === 'OVERDUE'
-              ? `${client.stats.overdue} vencidas`
-              : client.urgencyLevel === 'today' || client.urgencyLevel === 'TODAY'
-              ? `${client.stats.today} hoy`
-              : isSoon
-              ? `${client.stats.soon} pronto`
-              : 'Al dia'
-            return (
+      <CardActionArea onClick={onViewDetails} sx={{ '&:active': { opacity: 0.7 } }}>
+        <CardContent sx={{ px: { xs: 1.5, sm: 2 }, py: 1.5, '&:last-child': { pb: 1.5 } }}>
+
+          {/* ── Row 1: Name + urgency badge ── */}
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 0.75 }}>
+            <Box sx={{ flex: 1, minWidth: 0, mr: 1 }}>
+              <Typography
+                variant="body2"
+                fontWeight={700}
+                fontSize="0.9375rem"
+                noWrap
+                sx={{ color: 'text.primary' }}
+              >
+                {client.clientName}
+                {isNotified && (
+                  <Chip
+                    label="✓"
+                    size="small"
+                    sx={{ ml: 0.5, bgcolor: iosColors.green, color: 'white', height: 16, fontSize: '0.6rem' }}
+                  />
+                )}
+              </Typography>
+
+              {/* Overdue debt summary below name */}
+              {overdueCount > 0 && (
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.25 }}>
+                  <Warning sx={{ fontSize: 12, color: iosColors.red }} />
+                  <Typography variant="caption" sx={{ color: iosColors.red, fontWeight: 700 }}>
+                    {overdueCount} cuota{overdueCount > 1 ? 's' : ''} vencida{overdueCount > 1 ? 's' : ''}
+                  </Typography>
+                </Box>
+              )}
+            </Box>
+
+            {/* Urgency chip */}
+            {isOverdue ? (
               <Chip
-                icon={isSoon ? <AccessTime sx={{ fontSize: 14, color: 'inherit !important' }} /> : undefined}
-                label={label}
+                icon={<Warning sx={{ fontSize: 13, color: 'inherit !important' }} />}
+                label={`${overdueCount} vencidas`}
                 size="small"
                 sx={{
-                  bgcolor: isSoon ? '#ff6f00' : colors.primary,
-                  color: 'white',
+                  bgcolor:   iosColors.red,
+                  color:     'white',
                   fontWeight: 700,
-                  height: 24,
-                  fontSize: '0.72rem',
-                  ...(isSoon && {
-                    animation: `${pulse} 2s ease-in-out infinite`,
-                    boxShadow: '0 0 8px rgba(255, 111, 0, 0.4)',
-                  }),
+                  height:    26,
+                  fontSize:  '0.72rem',
+                  animation: `${pulse} 2s ease-in-out infinite`,
+                  boxShadow: `0 0 8px ${alpha(iosColors.red, 0.4)}`,
                 }}
               />
-            )
-          })()}
-        </Box>
-
-        {/* Progress + debt in one row */}
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 1 }}>
-          <Box sx={{ flex: 1 }}>
-            <Box sx={{ width: '100%', height: 6, bgcolor: '#e0e0e0', borderRadius: 3, overflow: 'hidden' }}>
-              <Box sx={{ width: `${(client.stats.paid / client.stats.total) * 100}%`, height: '100%', bgcolor: colors.primary }} />
-            </Box>
+            ) : isToday ? (
+              <Chip
+                label={`${client.stats.today} hoy`}
+                size="small"
+                sx={{ bgcolor: iosColors.orange, color: 'white', fontWeight: 700, height: 26, fontSize: '0.72rem' }}
+              />
+            ) : isSoon ? (
+              <Chip
+                icon={<AccessTime sx={{ fontSize: 13, color: 'inherit !important' }} />}
+                label={`${client.stats.soon} pronto`}
+                size="small"
+                sx={{
+                  bgcolor:   iosColors.yellow,
+                  color:     '#333',
+                  fontWeight: 700,
+                  height:    26,
+                  fontSize:  '0.72rem',
+                  animation: `${pulse} 2.5s ease-in-out infinite`,
+                }}
+              />
+            ) : (
+              <StatusChip status="PAID" size="small" />
+            )}
           </Box>
-          <Typography variant="caption" fontWeight={600} color={colors.primary} sx={{ whiteSpace: 'nowrap' }}>
-            {client.stats.paid}/{client.stats.total}
-          </Typography>
-          <Typography variant="caption" fontWeight={600} sx={{ whiteSpace: 'nowrap' }}>
-            ${(client.stats.totalAmount - client.stats.paidAmount).toLocaleString()}
-          </Typography>
-        </Box>
 
-        {/* Actions */}
-        <Box sx={{ display: 'flex', gap: 0.75, borderTop: '1px solid', borderColor: 'divider', pt: 1 }}>
-          <Button
-            variant="contained"
-            size="small"
-            sx={{ flex: 1, bgcolor: colors.primary, '&:hover': { bgcolor: colors.primary, opacity: 0.9 }, textTransform: 'none', fontSize: '0.8rem' }}
-            onClick={(e) => { e.stopPropagation(); onViewDetails() }}
-          >
-            Ver Timeline
-          </Button>
-          <Button
-            variant={isNotified ? "contained" : "outlined"}
-            size="small"
-            onClick={(e) => { e.stopPropagation(); onToggleNotification() }}
-            sx={{
-              textTransform: 'none',
-              fontSize: '0.8rem',
-              minWidth: 'auto',
-              px: 1.5,
-              ...(isNotified
-                ? { bgcolor: '#4caf50', color: 'white', '&:hover': { bgcolor: '#45a049' } }
-                : { borderColor: colors.primary, color: colors.primary })
-            }}
-          >
-            {isNotified ? '✓' : 'Notificar'}
-          </Button>
-        </Box>
-      </CardContent>
+          {/* ── Row 2: Progress bar + stats ── */}
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 0.75 }}>
+            {/* Progress track */}
+            <Box sx={{ flex: 1, height: 5, bgcolor: iosColors.gray5, borderRadius: 3, overflow: 'hidden' }}>
+              <Box
+                sx={{
+                  width:        `${progressPct}%`,
+                  height:       '100%',
+                  bgcolor:      isOverdue ? iosColors.red : isToday ? iosColors.orange : iosColors.green,
+                  borderRadius: 3,
+                  transition:   'width 0.3s ease',
+                }}
+              />
+            </Box>
+            <Typography variant="caption" fontWeight={700} color="text.secondary" sx={{ whiteSpace: 'nowrap' }}>
+              {client.stats.paid}/{client.stats.total}
+            </Typography>
+          </Box>
+
+          {/* ── Row 3: Pending amount ── */}
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <Typography variant="caption" color="text.secondary">
+              Pendiente total
+            </Typography>
+            <Typography
+              variant="body2"
+              fontWeight={700}
+              sx={{ color: isOverdue ? iosColors.red : 'text.primary', fontSize: '0.9375rem' }}
+            >
+              {fmt(pendingAmount)}
+            </Typography>
+          </Box>
+
+        </CardContent>
+      </CardActionArea>
     </Card>
   )
 })

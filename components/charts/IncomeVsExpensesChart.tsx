@@ -124,7 +124,7 @@ const IncomeVsExpensesChart = memo(function IncomeVsExpensesChart({
         Últimos {data.length} meses
       </Typography>
 
-      <ResponsiveContainer width="100%" height="65%">
+      <ResponsiveContainer width="100%" height={260}>
         <BarChart
           data={data}
           margin={{

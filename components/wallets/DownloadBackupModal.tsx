@@ -237,7 +237,7 @@ export function DownloadBackupModal({ open, onClose }: DownloadBackupModalProps)
       <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', pb: 2 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
           <CalendarMonth color="primary" />
-          <Typography variant="h6" fontWeight={600}>
+          <Typography variant="h6" component="div" fontWeight={600}>
             Descargar Copia de Seguridad
           </Typography>
         </Box>

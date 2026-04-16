@@ -1,31 +1,20 @@
 'use client'
 
-import { Box, Paper, List, ListItem, ListItemIcon, ListItemText } from '@mui/material'
-import { Dashboard, People, AccountBalance, Analytics, Route, Payment } from '@mui/icons-material'
+import { Box, Paper, List, ListItemButton, ListItemIcon, ListItemText, alpha } from '@mui/material'
+import {
+  Dashboard, People, AccountBalance, Analytics, Route, Payment,
+} from '@mui/icons-material'
 import { useRouter, usePathname } from 'next/navigation'
-import { QuickActions } from '@/components/dashboard/QuickActions'
 import DashboardDataProvider from '@/components/providers/DashboardDataProvider'
+import { iosColors } from '@/lib/theme'
 
 const prestamistaMenuItems = [
-  { label: 'Dashboard', icon: <Dashboard />, path: '/dashboard/prestamista' },
-  { label: 'Reportes', icon: <Analytics />, path: '/dashboard/prestamista/reportes' },
-  { label: 'Clientes', icon: <People />, path: '/dashboard/prestamista/clientes' },
-  { label: 'Préstamos', icon: <AccountBalance />, path: '/dashboard/prestamista/prestamos' },
-  { label: 'Ruta del Día', icon: <Route />, path: '/dashboard/prestamista/rutas' },
-  { label: 'Cobros', icon: <Payment />, path: '/dashboard/prestamista/cobros' },
-  // { label: 'Finanzas', icon: <AttachMoney />, path: '/dashboard/prestamista/finanzas' },
-  // { label: 'Operativa', icon: <Receipt />, path: '/dashboard/prestamista/operativo' },
-]
-
-const quickActions = [
-  { label: 'Dashboard', icon: <Dashboard />, path: '/dashboard/prestamista' },
-  { label: 'Reportes', icon: <Analytics />, path: '/dashboard/prestamista/reportes' },
-  { label: 'Clientes', icon: <People />, path: '/dashboard/prestamista/clientes' },
-  { label: 'Préstamos', icon: <AccountBalance />, path: '/dashboard/prestamista/prestamos' },
-  { label: 'Ruta', icon: <Route />, path: '/dashboard/prestamista/rutas' },
-  { label: 'Cobros', icon: <Payment />, path: '/dashboard/prestamista/cobros' },
-  // { label: 'Finanzas', icon: <AttachMoney />, path: '/dashboard/prestamista/finanzas' },
-  // { label: 'Operativa', icon: <Receipt />, path: '/dashboard/prestamista/operativo' },
+  { label: 'Dashboard',   icon: <Dashboard />,       path: '/dashboard/prestamista' },
+  { label: 'Reportes',    icon: <Analytics />,       path: '/dashboard/prestamista/reportes' },
+  { label: 'Clientes',    icon: <People />,          path: '/dashboard/prestamista/clientes' },
+  { label: 'Préstamos',   icon: <AccountBalance />,  path: '/dashboard/prestamista/prestamos' },
+  { label: 'Ruta del Día',icon: <Route />,           path: '/dashboard/prestamista/rutas' },
+  { label: 'Cobros',      icon: <Payment />,         path: '/dashboard/prestamista/cobros' },
 ]
 
 export default function PrestamistaLayout({
@@ -33,64 +22,65 @@ export default function PrestamistaLayout({
 }: {
   children: React.ReactNode
 }) {
-  const router = useRouter()
+  const router   = useRouter()
   const pathname = usePathname()
 
   return (
     <DashboardDataProvider>
       <Box sx={{
-        display: 'flex',
+        display:       'flex',
         flexDirection: { xs: 'column', md: 'row' },
-        gap: { xs: 0, md: 3 },
-        height: '100%'
+        gap:           { xs: 0, md: 3 },
+        minHeight:     0,
       }}>
-        {/* Sidebar - Solo Desktop */}
+        {/* ── Sidebar — Desktop only ──────────────────────────────── */}
         <Paper
           elevation={1}
           sx={{
-            width: 280,
-            p: 2,
-            height: 'fit-content',
+            width:    240,
+            p:        1.5,
+            height:   'fit-content',
             position: 'sticky',
-            top: 0,
-            display: { xs: 'none', md: 'block' }
+            top:      16,
+            display:  { xs: 'none', md: 'block' },
+            flexShrink: 0,
           }}
         >
-          <List>
-            {prestamistaMenuItems.map((item, index) => (
-              <ListItem
-                key={index}
-                onClick={() => router.push(item.path)}
-                sx={{
-                  cursor: 'pointer',
-                  borderRadius: 1,
-                  mb: 1,
-                  bgcolor: pathname === item.path ? 'primary.main' : 'transparent',
-                  color: pathname === item.path ? 'white' : 'inherit',
-                  '&:hover': {
-                    bgcolor: pathname === item.path ? 'primary.dark' : 'grey.100'
-                  }
-                }}
-              >
-                <ListItemIcon sx={{
-                  color: pathname === item.path ? 'white' : 'inherit'
-                }}>
-                  {item.icon}
-                </ListItemIcon>
-                <ListItemText primary={item.label} />
-              </ListItem>
-            ))}
+          <List disablePadding>
+            {prestamistaMenuItems.map((item) => {
+              const isActive = pathname === item.path
+              return (
+                <ListItemButton
+                  key={item.path}
+                  selected={isActive}
+                  onClick={() => router.push(item.path)}
+                  sx={{
+                    borderRadius: 2,
+                    mb: 0.5,
+                    minHeight: 44,
+                    color: isActive ? iosColors.blue : 'text.primary',
+                    bgcolor: isActive ? alpha(iosColors.blue, 0.1) : 'transparent',
+                    '&.Mui-selected': {
+                      bgcolor: alpha(iosColors.blue, 0.1),
+                      '&:hover': { bgcolor: alpha(iosColors.blue, 0.15) },
+                    },
+                  }}
+                >
+                  <ListItemIcon sx={{ color: 'inherit', minWidth: 40 }}>
+                    {item.icon}
+                  </ListItemIcon>
+                  <ListItemText
+                    primary={item.label}
+                    primaryTypographyProps={{ fontWeight: isActive ? 700 : 500, fontSize: '0.9375rem' }}
+                  />
+                </ListItemButton>
+              )
+            })}
           </List>
         </Paper>
 
-        {/* Content */}
-        <Box sx={{
-          flexGrow: 1,
-          minWidth: 0,
-        }}>
-          {/* QuickActions - Solo Mobile */}
-          <QuickActions actions={quickActions} />
-
+        {/* ── Main content ────────────────────────────────────────── */}
+        <Box sx={{ flexGrow: 1, minWidth: 0 }}>
           {children}
         </Box>
       </Box>

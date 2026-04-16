@@ -23,8 +23,6 @@ import {
   IconButton,
   Divider,
   Paper,
-  useTheme,
-  useMediaQuery,
 } from '@mui/material';
 import {
   AttachMoney,
@@ -64,8 +62,6 @@ export function RouteExpenseModal({
   isRouteClosed,
   onExpenseUpdated,
 }: RouteExpenseModalProps) {
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const [category, setCategory] = useState<ExpenseCategory>('COMBUSTIBLE');
   const [amount, setAmount] = useState('');
   const [description, setDescription] = useState('');
@@ -181,21 +177,20 @@ export function RouteExpenseModal({
       onClose={onClose}
       maxWidth="sm"
       fullWidth
-      fullScreen={isMobile}
-      sx={{
-        '& .MuiDialog-paper': {
-          m: { xs: 0, sm: 2 },
-          mt: { xs: 0, sm: 3 },
-          borderRadius: { xs: 0, sm: 2 },
-          maxHeight: { xs: 'calc(100% - 16px)', sm: 'calc(100% - 64px)' },
-          width: { xs: 'calc(100% - 16px)', sm: 'auto' },
+      PaperProps={{
+        sx: {
+          borderRadius: { xs: 2, sm: 3 },
+          maxHeight: { xs: 'calc(100dvh - 96px)', sm: '90vh' },
+          m: { xs: 1, sm: 2 },
+          mt: { xs: 'auto', sm: 2 },
+          width: { xs: '100%', sm: 'auto' },
         }
       }}
     >
       <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', px: { xs: 2, sm: 3 }, pt: 2.5 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
           <AttachMoney color="primary" />
-          <Typography variant="h6" sx={{ fontSize: { xs: '1.125rem', sm: '1.25rem' } }}>
+          <Typography variant="h6" component="div" sx={{ fontSize: { xs: '1.125rem', sm: '1.25rem' } }}>
             Gastos de la Ruta
           </Typography>
         </Box>

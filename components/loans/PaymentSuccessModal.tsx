@@ -80,14 +80,15 @@ export const PaymentSuccessModal: React.FC<PaymentSuccessModalProps> = ({
       onClose={onClose}
       maxWidth={hasFullData ? "lg" : "sm"}
       fullWidth
-      fullScreen={isMobile}
       disableEscapeKeyDown={false}
       PaperProps={{
         sx: {
-          borderRadius: isMobile ? 0 : 2,
+          borderRadius: { xs: 2, sm: 3 },
           boxShadow: 3,
-          maxHeight: isMobile ? '100vh' : '90vh',
-          m: isMobile ? 0 : 2,
+          maxHeight: { xs: 'calc(100dvh - 96px)', sm: '90vh' },
+          m: { xs: 1, sm: 2 },
+          mt: { xs: 'auto', sm: 2 },
+          width: { xs: '100%', sm: 'auto' },
           overflow: 'hidden',
           display: 'flex',
           flexDirection: 'column'
@@ -95,7 +96,7 @@ export const PaymentSuccessModal: React.FC<PaymentSuccessModalProps> = ({
       }}
       sx={{
         '& .MuiDialog-container': {
-          alignItems: isMobile ? 'flex-end' : 'center'
+          alignItems: { xs: 'flex-end', sm: 'center' }
         }
       }}
     >

@@ -20,7 +20,6 @@ import {
   Chip,
   alpha,
   useTheme,
-  useMediaQuery,
   Divider,
 } from '@mui/material'
 import { Close, AccountBalance } from '@mui/icons-material'
@@ -52,8 +51,7 @@ export default function ManagerLoansModal({
   managerName = 'Cobrador'
 }: ManagerLoansModalProps) {
   const theme = useTheme()
-  const isMobile = useMediaQuery(theme.breakpoints.down('sm'))
-  
+
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [managerDetail, setManagerDetail] = useState<{
@@ -176,13 +174,13 @@ export default function ManagerLoansModal({
       onClose={onClose}
       maxWidth="lg"
       fullWidth
-      fullScreen={isMobile}
       PaperProps={{
         sx: {
-          borderRadius: isMobile ? 0 : 3,
-          maxHeight: isMobile ? '100vh' : '90vh',
-          m: { xs: 0, sm: 2 },
-          mt: { xs: 0, sm: 3 }
+          borderRadius: { xs: 2, sm: 3 },
+          maxHeight: { xs: 'calc(100dvh - 96px)', sm: '90vh' },
+          m: { xs: 1, sm: 2 },
+          mt: { xs: 'auto', sm: 2 },
+          width: { xs: '100%', sm: 'auto' },
         }
       }}
     >

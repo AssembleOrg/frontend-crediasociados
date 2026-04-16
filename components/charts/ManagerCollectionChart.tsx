@@ -161,7 +161,7 @@ export default function ManagerCollectionChart({ managers, isLoading = false }: 
         Distribución por Tasa de Cobranza
       </Typography>
 
-      <ResponsiveContainer width="100%" height="75%">
+      <ResponsiveContainer width="100%" height={300}>
         <PieChart>
           <Pie
             data={categories}

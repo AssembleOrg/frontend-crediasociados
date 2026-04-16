@@ -53,7 +53,7 @@ export default function OverduePaymentsModal({
       <DialogTitle sx={{ pt: 2.5, px: 3, pb: 2 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
           <Warning color="error" />
-          <Typography variant="h6">Pagos Fuera de Término</Typography>
+          <Typography variant="h6" component="div">Pagos Fuera de Término</Typography>
         </Box>
       </DialogTitle>
       

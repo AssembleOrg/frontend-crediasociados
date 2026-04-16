@@ -116,7 +116,7 @@ const PortfolioEvolutionChart = memo(function PortfolioEvolutionChart({
         Últimos {data.length} días
       </Typography>
 
-      <ResponsiveContainer width="100%" height="80%">
+      <ResponsiveContainer width="100%" height={300}>
         <LineChart
           data={data}
           margin={{

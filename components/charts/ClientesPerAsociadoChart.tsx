@@ -150,7 +150,7 @@ const ClientesPerAsociadoChart = memo(function ClientesPerAsociadoChart({
 
       <ResponsiveContainer
         width='100%'
-        height='75%'
+        height={300}
       >
         <BarChart
           data={sortedData}

@@ -169,20 +169,21 @@ export default function LoanDetailsModal({
       onClose={onClose}
       maxWidth="xl"
       fullWidth
-      fullScreen={isMobile}
       PaperProps={{
         sx: {
           width: { sm: '95vw', md: '95vw' },
           maxWidth: '1800px',
-          m: { xs: 0, sm: 2 },
-          borderRadius: { xs: 0, sm: 3 },
+          borderRadius: { xs: 2, sm: 3 },
+          maxHeight: { xs: 'calc(100dvh - 96px)', sm: '90vh' },
+          m: { xs: 1, sm: 2 },
+          mt: { xs: 'auto', sm: 2 },
         },
       }}
     >
       <DialogTitle sx={{ pt: 2, px: { xs: 2, sm: 3 }, pb: 1.5 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
           <Payment color="primary" fontSize={isMobile ? 'small' : 'medium'} />
-          <Typography variant={isMobile ? 'subtitle1' : 'h6'} fontWeight={600}>Detalles del Prestamo</Typography>
+          <Typography variant={isMobile ? 'subtitle1' : 'h6'} component="div" fontWeight={600}>Detalles del Prestamo</Typography>
         </Box>
       </DialogTitle>
 
@@ -360,7 +361,7 @@ export default function LoanDetailsModal({
         <DialogTitle sx={{ pb: 2 }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
             <Warning color="warning" sx={{ fontSize: 28 }} />
-            <Typography variant="h6" fontWeight="bold">
+            <Typography variant="h6" component="div" fontWeight="bold">
               Confirmar Reseteo de Pagos
             </Typography>
           </Box>

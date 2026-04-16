@@ -122,47 +122,45 @@ const LoansEvolutionChart = memo(function LoansEvolutionChart({ data, isLoading 
         Préstamos Nuevos por Semana
       </Typography>
 
-      <Box sx={{ flexGrow: 1, mt: 1 }}>
-        <ResponsiveContainer width="100%" height="100%">
-          <BarChart
-            data={data}
-            margin={{
-              top: 20,
-              right: 30,
-              left: 20,
-              bottom: 60,
-            }}
-            barCategoryGap="20%"
+      <ResponsiveContainer width="100%" height={300}>
+        <BarChart
+          data={data}
+          margin={{
+            top: 20,
+            right: 30,
+            left: 20,
+            bottom: 60,
+          }}
+          barCategoryGap="20%"
+        >
+          <CartesianGrid strokeDasharray="3 3" stroke="#e0e0e0" />
+          <XAxis
+            dataKey="date"
+            fontSize={11}
+            interval={0}
+            angle={-45}
+            textAnchor="end"
+            height={60}
+            tick={{ fill: '#666' }}
+          />
+          <YAxis
+            fontSize={11}
+            allowDecimals={false}
+            tick={{ fill: '#666' }}
+          />
+          <Tooltip content={<CustomTooltip />} />
+          <Bar
+            dataKey="loans"
+            fill="#3b82f6"
+            radius={[8, 8, 0, 0]}
+            maxBarSize={60}
           >
-            <CartesianGrid strokeDasharray="3 3" stroke="#e0e0e0" />
-            <XAxis
-              dataKey="date"
-              fontSize={11}
-              interval={0}
-              angle={-45}
-              textAnchor="end"
-              height={60}
-              tick={{ fill: '#666' }}
-            />
-            <YAxis
-              fontSize={11}
-              allowDecimals={false}
-              tick={{ fill: '#666' }}
-            />
-            <Tooltip content={<CustomTooltip />} />
-            <Bar
-              dataKey="loans"
-              fill="#3b82f6"
-              radius={[8, 8, 0, 0]}
-              maxBarSize={60}
-            >
-              {data.map((entry, index) => (
-                <Cell key={`cell-${index}`} fill="#f59e0b" />
-              ))}
-            </Bar>
-          </BarChart>
-        </ResponsiveContainer>
-      </Box>
+            {data.map((entry, index) => (
+              <Cell key={`cell-${index}`} fill="#f59e0b" />
+            ))}
+          </Bar>
+        </BarChart>
+      </ResponsiveContainer>
 
       {/* Summary - Compact */}
       <Box sx={{

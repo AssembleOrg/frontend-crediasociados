@@ -196,7 +196,7 @@ export function ImprovedPieChart({
       </Typography>
 
       <Box sx={{ flexGrow: 1, position: 'relative' }}>
-        <ResponsiveContainer width="100%" height="100%">
+        <ResponsiveContainer width="100%" height={300}>
           <PieChart>
             <Pie
               data={data}
@@ -341,7 +341,7 @@ export function ImprovedBarChart({
       </Typography>
 
       <Box sx={{ flexGrow: 1, mt: 2 }}>
-        <ResponsiveContainer width="100%" height="100%">
+        <ResponsiveContainer width="100%" height={300}>
           <BarChart
             data={data}
             margin={{ top: 20, right: 30, left: 20, bottom: 5 }}

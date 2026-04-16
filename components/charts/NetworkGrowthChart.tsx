@@ -96,7 +96,7 @@ export default function NetworkGrowthChart({ data, isLoading = false }: NetworkG
         Crecimiento de la Red
       </Typography>
 
-      <ResponsiveContainer width="100%" height="75%">
+      <ResponsiveContainer width="100%" height={300}>
         <LineChart
           data={data}
           margin={{
