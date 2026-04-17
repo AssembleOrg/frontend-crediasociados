@@ -399,12 +399,6 @@ export function DownloadBackupModal({ open, onClose }: DownloadBackupModalProps)
           variant="contained"
           startIcon={downloading ? <CircularProgress size={16} color="inherit" /> : <Download />}
           disabled={!selectedRange || downloading}
-          sx={{
-            background: 'linear-gradient(135deg, #1976d2 0%, #42a5f5 100%)',
-            '&:hover': {
-              background: 'linear-gradient(135deg, #1565c0 0%, #1976d2 100%)',
-            },
-          }}
         >
           {downloading ? 'Descargando...' : 'Descargar PDF'}
         </Button>

@@ -18,12 +18,14 @@ import {
   alpha,
   useTheme,
   useMediaQuery,
+  SwipeableDrawer,
 } from '@mui/material'
 import {
   ChevronLeft,
   ChevronRight,
   Close,
   Calculate,
+  CalendarMonth,
 } from '@mui/icons-material'
 import { collectorWalletService } from '@/services/collector-wallet.service'
 import type { User } from '@/types/auth'
@@ -42,6 +44,7 @@ export function LiquidationModal({ open, onClose, manager }: LiquidationModalPro
   const [tempStart, setTempStart] = useState<Date | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [calendarOpen, setCalendarOpen] = useState(false)
   const [summary, setSummary] = useState<{
     totalAmount: number
     totalCollections: number
@@ -51,19 +54,16 @@ export function LiquidationModal({ open, onClose, manager }: LiquidationModalPro
   const [commissionPercentage, setCommissionPercentage] = useState<string>('')
   const [calculatedCommission, setCalculatedCommission] = useState<number | null>(null)
 
-  // Normalizar fecha (solo día, sin hora)
   const normalizeDate = (date: Date): Date => {
     const d = new Date(date)
     d.setHours(0, 0, 0, 0)
     return d
   }
 
-  // Comparar fechas (solo día)
   const isSameDay = (date1: Date, date2: Date): boolean => {
     return normalizeDate(date1).getTime() === normalizeDate(date2).getTime()
   }
 
-  // Formatear fecha a DD/MM/YYYY
   const formatDateToDDMMYYYY = (date: Date): string => {
     const day = String(date.getDate()).padStart(2, '0')
     const month = String(date.getMonth() + 1).padStart(2, '0')
@@ -71,56 +71,48 @@ export function LiquidationModal({ open, onClose, manager }: LiquidationModalPro
     return `${day}/${month}/${year}`
   }
 
+  const formatShortDate = (date: Date): string => {
+    const day = String(date.getDate()).padStart(2, '0')
+    const month = String(date.getMonth() + 1).padStart(2, '0')
+    return `${day}/${month}`
+  }
+
   const getDaysInMonth = (date: Date): Date[] => {
     const year = date.getFullYear()
     const month = date.getMonth()
-    
     const firstDay = new Date(year, month, 1)
     const lastDay = new Date(year, month + 1, 0)
-    
     const startDay = firstDay.getDay()
     const firstMonday = new Date(firstDay)
     firstMonday.setDate(firstDay.getDate() - (startDay === 0 ? 6 : startDay - 1))
-    
     const endDay = lastDay.getDay()
     const lastSunday = new Date(lastDay)
     lastSunday.setDate(lastDay.getDate() + (endDay === 0 ? 0 : 7 - endDay))
-    
     const days: Date[] = []
     const current = new Date(firstMonday)
-    
     while (current <= lastSunday) {
       days.push(new Date(current))
       current.setDate(current.getDate() + 1)
     }
-    
     return days
   }
 
   const loadSummary = async (start: Date, end: Date) => {
     if (!manager) return
-
     try {
       setLoading(true)
       setError(null)
       const startDate = formatDateToDDMMYYYY(start)
       const endDate = formatDateToDDMMYYYY(end)
-      
-      const data = await collectorWalletService.getCollectionsSummary(
-        manager.id,
-        startDate,
-        endDate
-      )
+      const data = await collectorWalletService.getCollectionsSummary(manager.id, startDate, endDate)
       setSummary({
         totalAmount: data.totalAmount,
         totalCollections: data.totalCollections,
         startDate: data.startDate,
         endDate: data.endDate,
       })
-      // Reset commission calculation when new summary is loaded
       setCalculatedCommission(null)
     } catch (err: any) {
-      // Error loading collections summary
       setError(err.response?.data?.message || 'Error al cargar el resumen de cobros')
       setSummary(null)
     } finally {
@@ -130,8 +122,6 @@ export function LiquidationModal({ open, onClose, manager }: LiquidationModalPro
 
   const handleDateClick = (date: Date) => {
     const normalizedDate = normalizeDate(date)
-    
-    // Si no hay fecha de inicio temporal, establecerla
     if (!tempStart) {
       setTempStart(normalizedDate)
       setSelectedRange(null)
@@ -139,17 +129,14 @@ export function LiquidationModal({ open, onClose, manager }: LiquidationModalPro
       setCalculatedCommission(null)
       return
     }
-    
-    // Si se hace clic en la misma fecha, seleccionar solo ese día
     if (isSameDay(normalizedDate, tempStart)) {
       const range = { start: normalizedDate, end: normalizedDate }
       setSelectedRange(range)
       setTempStart(null)
       loadSummary(range.start, range.end)
+      setCalendarOpen(false)
       return
     }
-    
-    // Si la nueva fecha es anterior a tempStart, reiniciar
     if (normalizedDate < tempStart) {
       setTempStart(normalizedDate)
       setSelectedRange(null)
@@ -157,57 +144,45 @@ export function LiquidationModal({ open, onClose, manager }: LiquidationModalPro
       setCalculatedCommission(null)
       return
     }
-    
-    // Establecer el rango final
     const range = { start: tempStart, end: normalizedDate }
     setSelectedRange(range)
     setTempStart(null)
     loadSummary(range.start, range.end)
+    setCalendarOpen(false)
   }
 
-  // Determinar si una fecha está en el rango seleccionado
   const isInRange = (date: Date): boolean => {
     const normalizedDate = normalizeDate(date)
-    
     if (selectedRange) {
-      const start = normalizeDate(selectedRange.start)
-      const end = normalizeDate(selectedRange.end)
-      return normalizedDate >= start && normalizedDate <= end
+      return normalizedDate >= normalizeDate(selectedRange.start) && normalizedDate <= normalizeDate(selectedRange.end)
     }
-    
-    if (tempStart) {
-      return isSameDay(normalizedDate, tempStart)
-    }
-    
+    if (tempStart) return isSameDay(normalizedDate, tempStart)
     return false
   }
 
-  // Determinar si una fecha es el inicio del rango
   const isRangeStart = (date: Date): boolean => {
-    if (selectedRange) {
-      return isSameDay(date, selectedRange.start)
-    }
-    if (tempStart) {
-      return isSameDay(date, tempStart)
-    }
+    if (selectedRange) return isSameDay(date, selectedRange.start)
+    if (tempStart) return isSameDay(date, tempStart)
     return false
   }
 
-  // Determinar si una fecha es el fin del rango
   const isRangeEnd = (date: Date): boolean => {
-    if (selectedRange) {
-      return isSameDay(date, selectedRange.end)
-    }
+    if (selectedRange) return isSameDay(date, selectedRange.end)
     return false
   }
 
-  // Determinar si una fecha está entre el inicio y el fin (pero no es inicio ni fin)
   const isInRangeMiddle = (date: Date): boolean => {
     if (!selectedRange) return false
     const normalizedDate = normalizeDate(date)
-    const start = normalizeDate(selectedRange.start)
-    const end = normalizeDate(selectedRange.end)
-    return normalizedDate > start && normalizedDate < end
+    return normalizedDate > normalizeDate(selectedRange.start) && normalizedDate < normalizeDate(selectedRange.end)
+  }
+
+  const formatCurrencyCompact = (amount: number) => {
+    const abs = Math.abs(amount)
+    const sign = amount < 0 ? '-' : ''
+    if (abs >= 1_000_000) return `${sign}$${(abs / 1_000_000).toFixed(1).replace('.0', '')}M`
+    if (abs >= 1_000) return `${sign}$${(abs / 1_000).toFixed(1).replace('.0', '')}k`
+    return `${sign}$${abs}`
   }
 
   const formatCurrency = (amount: number) => {
@@ -222,15 +197,12 @@ export function LiquidationModal({ open, onClose, manager }: LiquidationModalPro
       setError('Por favor ingresa un porcentaje')
       return
     }
-
     const percentage = parseFloat(commissionPercentage)
     if (isNaN(percentage) || percentage < 0 || percentage > 100) {
       setError('El porcentaje debe ser un número entre 0 y 100')
       return
     }
-
-    const commission = (summary.totalAmount * percentage) / 100
-    setCalculatedCommission(commission)
+    setCalculatedCommission((summary.totalAmount * percentage) / 100)
     setError(null)
   }
 
@@ -241,17 +213,107 @@ export function LiquidationModal({ open, onClose, manager }: LiquidationModalPro
     setCommissionPercentage('')
     setCalculatedCommission(null)
     setError(null)
+    setCalendarOpen(false)
     onClose()
   }
 
   const days = getDaysInMonth(currentMonth)
   const dayNames = ['L', 'M', 'X', 'J', 'V', 'S', 'D']
-  
-  // Agrupar días en semanas para el renderizado
   const weeks: Date[][] = []
   for (let i = 0; i < days.length; i += 7) {
     weeks.push(days.slice(i, i + 7))
   }
+
+  const calendarBlock = (
+    <Box>
+      {/* Month nav */}
+      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+        <IconButton onClick={() => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1))} size="small">
+          <ChevronLeft />
+        </IconButton>
+        <Typography variant="subtitle1" fontWeight={600} sx={{ textTransform: 'capitalize' }}>
+          {currentMonth.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' })}
+        </Typography>
+        <IconButton onClick={() => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1))} size="small">
+          <ChevronRight />
+        </IconButton>
+      </Box>
+
+      {/* Day names */}
+      <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 0.5, mb: 1 }}>
+        {dayNames.map((day) => (
+          <Box key={day} sx={{ textAlign: 'center', py: 0.5 }}>
+            <Typography variant="caption" fontWeight={600} color="text.secondary">{day}</Typography>
+          </Box>
+        ))}
+      </Box>
+
+      {/* Days */}
+      {weeks.map((week, weekIndex) => (
+        <Box key={weekIndex} sx={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 0.5, mb: 0.5 }}>
+          {week.map((date, dayIndex) => {
+            const isToday = date.toDateString() === new Date().toDateString()
+            const isOtherMonth = date.getMonth() !== currentMonth.getMonth()
+            const inRange = isInRange(date)
+            const isStart = isRangeStart(date)
+            const isEnd = isRangeEnd(date)
+            return (
+              <Box
+                key={dayIndex}
+                onClick={() => !isOtherMonth && handleDateClick(date)}
+                sx={{
+                  textAlign: 'center',
+                  py: 1,
+                  borderRadius: 1,
+                  position: 'relative',
+                  cursor: isOtherMonth ? 'default' : 'pointer',
+                  transition: 'all 0.2s',
+                  backgroundColor: inRange
+                    ? isStart || isEnd
+                      ? alpha(theme.palette.primary.main, 0.3)
+                      : alpha(theme.palette.primary.main, 0.15)
+                    : 'transparent',
+                  border: isStart || isEnd
+                    ? `2px solid ${theme.palette.primary.main}`
+                    : '2px solid transparent',
+                  '&:hover': {
+                    backgroundColor: isOtherMonth
+                      ? 'transparent'
+                      : inRange
+                        ? alpha(theme.palette.primary.main, 0.25)
+                        : alpha(theme.palette.action.hover, 0.5),
+                  },
+                }}
+              >
+                <Typography
+                  variant="body2"
+                  sx={{
+                    fontSize: '0.8rem',
+                    color: isOtherMonth ? 'text.disabled' : inRange ? 'primary.main' : isToday ? 'primary.main' : 'text.primary',
+                    fontWeight: (isStart || isEnd || isToday) ? 700 : 400,
+                  }}
+                >
+                  {date.getDate()}
+                </Typography>
+                {isToday && !inRange && (
+                  <Box sx={{ position: 'absolute', bottom: 2, left: '50%', transform: 'translateX(-50%)', width: 4, height: 4, borderRadius: '50%', bgcolor: 'primary.main' }} />
+                )}
+              </Box>
+            )
+          })}
+        </Box>
+      ))}
+
+      {selectedRange && (
+        <Box sx={{ mt: 2, p: 1.5, bgcolor: 'grey.100', borderRadius: 1 }}>
+          <Typography variant="caption" color="text.secondary" display="block">Rango seleccionado:</Typography>
+          <Typography variant="body2" fontWeight={600}>
+            {formatDateToDDMMYYYY(selectedRange.start)} - {formatDateToDDMMYYYY(selectedRange.end)}
+          </Typography>
+        </Box>
+      )}
+    </Box>
+  )
 
   return (
     <Dialog
@@ -261,212 +323,80 @@ export function LiquidationModal({ open, onClose, manager }: LiquidationModalPro
       fullWidth
       PaperProps={{
         sx: {
-          mt: { xs: 2, sm: 3 },
-          maxHeight: { xs: '95vh', sm: '90vh' },
+          borderRadius: { xs: 2, sm: 3 },
+          maxHeight: { xs: 'calc(100dvh - 96px)', sm: '90vh' },
+          m: { xs: 1, sm: 2 },
+          mt: { xs: 'auto', sm: 2 },
         },
       }}
     >
-      <DialogTitle
-        sx={{
-          pt: 2.5,
-          px: 3,
-          pb: 2,
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-        }}
-      >
-        <Typography variant="h6" component="div" fontWeight={600}>
-          Calcular Liquidación
-        </Typography>
+      <DialogTitle sx={{
+        pt: 2.5,
+        px: 3,
+        pb: 2,
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        borderBottom: '1px solid',
+        borderColor: 'divider',
+      }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+          <Calculate sx={{ fontSize: 24, color: 'primary.main' }} />
+          <Box>
+            <Typography variant="h6" component="div" fontWeight={600}>
+              Calcular Liquidación
+            </Typography>
+            {manager && (
+              <Typography variant="caption" color="text.secondary" display="block">
+                {manager.fullName}
+              </Typography>
+            )}
+          </Box>
+        </Box>
         <IconButton onClick={handleClose} size="small">
           <Close />
         </IconButton>
       </DialogTitle>
 
-      <DialogContent sx={{ px: 3 }}>
-        {manager && (
-          <Box sx={{ mb: 3 }}>
-            <Typography variant="body2" color="text.secondary">
-              Manager: <strong>{manager.fullName}</strong> ({manager.email})
-            </Typography>
-          </Box>
-        )}
-
+      <DialogContent sx={{ px: 3, pt: 2 }}>
         {error && (
           <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>
             {error}
           </Alert>
         )}
 
-        <Box sx={{ 
+        {/* Mobile: pill button to open calendar */}
+        {isMobile && (
+          <Button
+            variant="outlined"
+            size="small"
+            startIcon={<CalendarMonth sx={{ fontSize: 16 }} />}
+            onClick={() => setCalendarOpen(true)}
+            sx={{ borderRadius: '20px', textTransform: 'none', px: 2, mb: 2 }}
+          >
+            {selectedRange
+              ? `${formatShortDate(selectedRange.start)} – ${formatShortDate(selectedRange.end)}`
+              : 'Seleccionar período'}
+          </Button>
+        )}
+
+        <Box sx={{
           display: 'flex',
           flexDirection: { xs: 'column', md: 'row' },
           gap: 3,
           alignItems: { xs: 'stretch', md: 'start' }
         }}>
-          {/* Calendario */}
-          <Paper sx={{ 
+          {/* Desktop calendar column */}
+          <Paper sx={{
             p: { xs: 2, sm: 3 },
-            width: { xs: '100%', md: '380px' },
+            width: { md: '360px' },
             flexShrink: 0,
+            display: { xs: 'none', md: 'block' },
           }}>
-            <Box sx={{ 
-              display: 'flex', 
-              alignItems: 'center', 
-              justifyContent: 'space-between', 
-              mb: { xs: 2, sm: 3 },
-            }}>
-              <IconButton 
-                onClick={() => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1))} 
-                size="small"
-              >
-                <ChevronLeft />
-              </IconButton>
-              
-              <Typography 
-                variant="h6" 
-                fontWeight={600} 
-                sx={{ 
-                  textTransform: 'capitalize',
-                  fontSize: { xs: '1rem', sm: '1.25rem' },
-                }}
-              >
-                {currentMonth.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' })}
-              </Typography>
-              
-              <IconButton 
-                onClick={() => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1))} 
-                size="small"
-              >
-                <ChevronRight />
-              </IconButton>
-            </Box>
-
-            {/* Nombres de días */}
-            <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 0.5, mb: 1 }}>
-              {dayNames.map((day) => (
-                <Box key={day} sx={{ textAlign: 'center', py: 1 }}>
-                  <Typography variant="body2" fontWeight={600} color="text.secondary">
-                    {day}
-                  </Typography>
-                </Box>
-              ))}
-            </Box>
-
-            {/* Días del calendario */}
-            {weeks.map((week, weekIndex) => (
-              <Box
-                key={weekIndex}
-                sx={{
-                  display: 'grid',
-                  gridTemplateColumns: 'repeat(7, 1fr)',
-                  gap: 0.5,
-                  mb: 0.5,
-                }}
-              >
-                {week.map((date, dayIndex) => {
-                  const isToday = 
-                    date.getDate() === new Date().getDate() &&
-                    date.getMonth() === new Date().getMonth() &&
-                    date.getFullYear() === new Date().getFullYear()
-                  const isOtherMonth = date.getMonth() !== currentMonth.getMonth()
-                  const inRange = isInRange(date)
-                  const isStart = isRangeStart(date)
-                  const isEnd = isRangeEnd(date)
-                  const inMiddle = isInRangeMiddle(date)
-
-                  return (
-                    <Box
-                      key={dayIndex}
-                      onClick={() => !isOtherMonth && handleDateClick(date)}
-                      sx={{
-                        textAlign: 'center',
-                        py: { xs: 1, sm: 1.5 },
-                        px: { xs: 0.5, sm: 0 },
-                        borderRadius: 1,
-                        position: 'relative',
-                        cursor: isOtherMonth ? 'default' : 'pointer',
-                        transition: 'all 0.2s',
-                        backgroundColor: inRange
-                          ? isStart || isEnd
-                            ? alpha(theme.palette.primary.main, 0.3)
-                            : alpha(theme.palette.primary.main, 0.15)
-                          : 'transparent',
-                        border: isStart || isEnd
-                          ? `2px solid ${theme.palette.primary.main}`
-                          : '2px solid transparent',
-                        '&:hover': {
-                          backgroundColor: isOtherMonth
-                            ? 'transparent'
-                            : inRange
-                              ? alpha(theme.palette.primary.main, 0.25)
-                              : alpha(theme.palette.action.hover, 0.5),
-                        },
-                      }}
-                    >
-                      <Typography
-                        variant="body2"
-                        sx={{
-                          color: isOtherMonth
-                            ? 'text.disabled'
-                            : inRange
-                              ? 'primary.main'
-                              : isToday
-                                ? 'primary.main'
-                                : 'text.primary',
-                          fontWeight: (isStart || isEnd || isToday) ? 700 : 400,
-                        }}
-                      >
-                        {date.getDate()}
-                      </Typography>
-                      {isToday && !inRange && (
-                        <Box
-                          sx={{
-                            position: 'absolute',
-                            bottom: 2,
-                            left: '50%',
-                            transform: 'translateX(-50%)',
-                            width: 4,
-                            height: 4,
-                            borderRadius: '50%',
-                            bgcolor: 'primary.main',
-                          }}
-                        />
-                      )}
-                    </Box>
-                  )
-                })}
-              </Box>
-            ))}
-
-            {selectedRange && (
-              <Box sx={{ 
-                mt: 2, 
-                p: { xs: 1.5, sm: 2 }, 
-                bgcolor: 'grey.100', 
-                borderRadius: 1 
-              }}>
-                <Typography 
-                  variant="caption" 
-                  color="text.secondary" 
-                  display="block"
-                  sx={{ fontSize: { xs: '0.7rem', sm: '0.75rem' } }}
-                >
-                  Rango seleccionado:
-                </Typography>
-                <Typography 
-                  variant="body2" 
-                  fontWeight={600}
-                  sx={{ fontSize: { xs: '0.85rem', sm: '0.875rem' } }}
-                >
-                  {formatDateToDDMMYYYY(selectedRange.start)} - {formatDateToDDMMYYYY(selectedRange.end)}
-                </Typography>
-              </Box>
-            )}
+            {calendarBlock}
           </Paper>
 
-          {/* Resultados y cálculo */}
+          {/* Results */}
           <Box sx={{ flex: 1, minWidth: 0 }}>
             {loading && (
               <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
@@ -476,65 +406,26 @@ export function LiquidationModal({ open, onClose, manager }: LiquidationModalPro
 
             {!loading && summary && (
               <Paper sx={{ p: { xs: 2, sm: 3 }, mb: 3 }}>
-                <Typography 
-                  variant="h6" 
-                  fontWeight={600} 
-                  gutterBottom
-                  sx={{ fontSize: { xs: '1.1rem', sm: '1.25rem' } }}
-                >
+                <Typography variant="h6" fontWeight={600} gutterBottom>
                   Resumen de Cobros
                 </Typography>
                 <Divider sx={{ my: 2 }} />
-                
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                   <Box>
-                    <Typography 
-                      variant="body2" 
-                      color="text.secondary"
-                      sx={{ fontSize: { xs: '0.8rem', sm: '0.875rem' } }}
-                    >
-                      Período
-                    </Typography>
-                    <Typography 
-                      variant="body1" 
-                      fontWeight={600}
-                      sx={{ fontSize: { xs: '0.9rem', sm: '1rem' } }}
-                    >
+                    <Typography variant="body2" color="text.secondary">Período</Typography>
+                    <Typography variant="body1" fontWeight={600}>
                       {summary.startDate} - {summary.endDate}
                     </Typography>
                   </Box>
-
                   <Box>
-                    <Typography 
-                      variant="body2" 
-                      color="text.secondary"
-                      sx={{ fontSize: { xs: '0.8rem', sm: '0.875rem' } }}
-                    >
-                      Total Cobrado
-                    </Typography>
-                    <Typography 
-                      variant="h5" 
-                      fontWeight={600} 
-                      color="success.main"
-                      sx={{ fontSize: { xs: '1.5rem', sm: '1.75rem' } }}
-                    >
+                    <Typography variant="body2" color="text.secondary">Total Cobrado</Typography>
+                    <Typography variant="h5" fontWeight={600} color="success.main">
                       {formatCurrency(summary.totalAmount)}
                     </Typography>
                   </Box>
-
                   <Box>
-                    <Typography 
-                      variant="body2" 
-                      color="text.secondary"
-                      sx={{ fontSize: { xs: '0.8rem', sm: '0.875rem' } }}
-                    >
-                      Cantidad de Cobros
-                    </Typography>
-                    <Typography 
-                      variant="body1" 
-                      fontWeight={600}
-                      sx={{ fontSize: { xs: '0.9rem', sm: '1rem' } }}
-                    >
+                    <Typography variant="body2" color="text.secondary">Cantidad de Cobros</Typography>
+                    <Typography variant="body1" fontWeight={600}>
                       {summary.totalCollections}
                     </Typography>
                   </Box>
@@ -544,16 +435,10 @@ export function LiquidationModal({ open, onClose, manager }: LiquidationModalPro
 
             {summary && (
               <Paper sx={{ p: { xs: 2, sm: 3 } }}>
-                <Typography 
-                  variant="h6" 
-                  fontWeight={600} 
-                  gutterBottom
-                  sx={{ fontSize: { xs: '1.1rem', sm: '1.25rem' } }}
-                >
+                <Typography variant="h6" fontWeight={600} gutterBottom>
                   Calcular Comisión
                 </Typography>
                 <Divider sx={{ my: 2 }} />
-
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                   <TextField
                     label="Porcentaje de Comisión (%)"
@@ -566,9 +451,7 @@ export function LiquidationModal({ open, onClose, manager }: LiquidationModalPro
                     inputProps={{ min: 0, max: 100, step: 0.01 }}
                     helperText="Ingresa el porcentaje de comisión (ej: 5 para 5%)"
                     fullWidth
-                    size="medium"
                   />
-
                   <Button
                     variant="contained"
                     startIcon={<Calculate />}
@@ -576,56 +459,45 @@ export function LiquidationModal({ open, onClose, manager }: LiquidationModalPro
                     disabled={!commissionPercentage || loading}
                     fullWidth
                     size="large"
-                    sx={{ py: { xs: 1.5, sm: 1.75 } }}
                   >
                     Calcular Comisión
                   </Button>
 
                   {calculatedCommission !== null && (
-                    <Box sx={{ 
-                      mt: 2, 
-                      p: { xs: 2, sm: 2.5 }, 
-                      bgcolor: '#8B0000', // Color bordo
-                      borderRadius: 2,
-                      boxShadow: 2,
-                    }}>
-                      <Typography 
-                        variant="body2" 
-                        sx={{ 
-                          color: 'rgba(255, 255, 255, 0.9)',
-                          mb: 0.5,
-                          fontSize: { xs: '0.8rem', sm: '0.875rem' },
-                        }} 
-                        display="block"
-                      >
+                    <Paper
+                      elevation={0}
+                      sx={{
+                        mt: 1,
+                        p: 2.5,
+                        bgcolor: alpha(theme.palette.success.main, 0.08),
+                        border: `2px solid ${alpha(theme.palette.success.main, 0.3)}`,
+                        borderRadius: 2,
+                        borderLeft: 4,
+                        borderLeftColor: 'success.main',
+                      }}
+                    >
+                      <Typography variant="body2" color="text.secondary" display="block" gutterBottom>
                         Comisión Calculada ({commissionPercentage}%)
                       </Typography>
-                      <Typography 
-                        variant="h4" 
-                        fontWeight={600} 
-                        sx={{ 
-                          color: '#FFFFFF',
-                          fontSize: { xs: '1.75rem', sm: '2.125rem' },
-                        }}
-                      >
+                      <Typography variant="h4" fontWeight={700} color="success.main">
                         {formatCurrency(calculatedCommission)}
                       </Typography>
-                    </Box>
+                      <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 0.5 }}>
+                        {formatCurrencyCompact(calculatedCommission)} compacto
+                      </Typography>
+                    </Paper>
                   )}
                 </Box>
               </Paper>
             )}
 
-            {!loading && !summary && selectedRange && (
-              <Alert severity="info">
-                Selecciona un rango de fechas para ver el resumen de cobros
-              </Alert>
-            )}
-
-            {!selectedRange && (
-              <Alert severity="info">
-                Selecciona un rango de fechas en el calendario para comenzar
-              </Alert>
+            {!loading && !summary && !selectedRange && (
+              <Box sx={{ textAlign: 'center', py: 6, color: 'text.disabled' }}>
+                <CalendarMonth sx={{ fontSize: 48, mb: 1.5, opacity: 0.4 }} />
+                <Typography variant="body2" color="text.secondary">
+                  Seleccioná un período para ver el resumen
+                </Typography>
+              </Box>
             )}
           </Box>
         </Box>
@@ -634,7 +506,33 @@ export function LiquidationModal({ open, onClose, manager }: LiquidationModalPro
       <DialogActions sx={{ px: 3, pb: 2 }}>
         <Button onClick={handleClose}>Cerrar</Button>
       </DialogActions>
+
+      {/* Mobile: Calendar BottomSheet */}
+      {/* zIndex 1400 > Dialog (1300) para que se renderice encima */}
+      <SwipeableDrawer
+        anchor="bottom"
+        open={calendarOpen}
+        onOpen={() => setCalendarOpen(true)}
+        onClose={() => setCalendarOpen(false)}
+        sx={{ display: { xs: 'block', md: 'none' }, zIndex: 1400 }}
+        PaperProps={{
+          sx: {
+            borderRadius: '20px 20px 0 0',
+            maxHeight: '90vh',
+            overflowY: 'auto',
+          }
+        }}
+      >
+        <Box sx={{ p: 3, pb: 'calc(24px + env(safe-area-inset-bottom))' }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+            <Typography variant="subtitle1" fontWeight={600}>Seleccionar período</Typography>
+            <IconButton size="small" onClick={() => setCalendarOpen(false)}>
+              <Close fontSize="small" />
+            </IconButton>
+          </Box>
+          {calendarBlock}
+        </Box>
+      </SwipeableDrawer>
     </Dialog>
   )
 }
-

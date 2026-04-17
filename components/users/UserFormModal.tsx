@@ -285,34 +285,31 @@ export function UserFormModal({
           pb: 2,
           px: { xs: 2, sm: 3 },
           pt: { xs: 2, sm: 3 },
-          background: 'linear-gradient(135deg, #667eea 0%, #4facfe 100%)',
-          color: 'white',
-          borderRadius: { xs: 0, sm: '12px 12px 0 0' },
+          borderBottom: '1px solid',
+          borderColor: 'divider',
         }}
       >
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
           {/* Title Section */}
           <Box>
-            <Typography 
-              variant="h5" 
-              component="div" 
-              sx={{ 
-                fontWeight: 600, 
+            <Typography
+              variant="h5"
+              component="div"
+              sx={{
+                fontWeight: 600,
                 mb: 0.5,
                 fontSize: { xs: '1.25rem', sm: '1.5rem' }
               }}
             >
               {title}
             </Typography>
-            <Typography 
-              variant="body2" 
-              sx={{ 
-                opacity: 0.9,
-                fontSize: { xs: '0.875rem', sm: '0.875rem' }
-              }}
+            <Typography
+              variant="body2"
+              color="text.secondary"
+              sx={{ fontSize: { xs: '0.875rem', sm: '0.875rem' } }}
             >
-              {mode === 'create' 
-                ? `Completa los datos del nuevo ${RoleUtils.getRoleDisplayName(targetRole).toLowerCase()}` 
+              {mode === 'create'
+                ? `Completa los datos del nuevo ${RoleUtils.getRoleDisplayName(targetRole).toLowerCase()}`
                 : 'Modifica la información del usuario'}
             </Typography>
           </Box>
@@ -324,7 +321,7 @@ export function UserFormModal({
               elevation={0}
               sx={{
                 p: 2,
-                bgcolor: 'rgba(255, 255, 255, 0.95)',
+                bgcolor: 'action.hover',
                 borderRadius: 2,
                 width: '100%',
               }}
@@ -713,13 +710,6 @@ export function UserFormModal({
             sx={{
               order: { xs: 1, sm: 2 },
               py: { xs: 1.5, sm: 1 },
-              background: 'linear-gradient(135deg, #667eea 0%, #4facfe 100%)',
-              '&:hover': {
-                background: 'linear-gradient(135deg, #5a6fd8 0%, #3d8bfe 100%)',
-              },
-              '&:disabled': {
-                background: 'rgba(0, 0, 0, 0.12)',
-              },
             }}
           >
             {isLoading ? loadingText : submitText}

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import React, { useState, useEffect } from 'react'
 import {
   Box,
   Typography,
@@ -21,6 +21,12 @@ import {
   useTheme,
   Divider,
   useMediaQuery,
+  Button,
+  SwipeableDrawer,
+  List,
+  ListItem,
+  ListItemIcon,
+  ListItemText,
 } from '@mui/material'
 import {
   ChevronLeft,
@@ -35,19 +41,21 @@ import {
   AccountBalanceWallet,
   ViewList,
   ViewModule,
+  ExpandMore,
+  Assessment,
 } from '@mui/icons-material'
 import { collectorReportService, type CollectorPeriodReport } from '@/services/collector-report.service'
 import { collectorWalletService } from '@/services/collector-wallet.service'
 import { useCurrentUser } from '@/hooks/useCurrentUser'
 
 interface CollectorReportViewProps {
-  managerId?: string // Optional: if provided, fetch report for this manager (subadmin view)
+  managerId?: string
   title?: string
   subtitle?: string
 }
 
-export default function CollectorReportView({ 
-  managerId, 
+export default function CollectorReportView({
+  managerId,
   title = 'Reporte de Cobrador',
   subtitle = 'Selecciona un día o un rango de fechas para ver el reporte'
 }: CollectorReportViewProps) {
@@ -55,7 +63,7 @@ export default function CollectorReportView({
   const currentUser = useCurrentUser()
   const [currentMonth, setCurrentMonth] = useState(new Date())
   const [selectedRange, setSelectedRange] = useState<{ start: Date; end: Date } | null>(null)
-  const [tempStart, setTempStart] = useState<Date | null>(null) // Para mostrar el rango mientras se selecciona
+  const [tempStart, setTempStart] = useState<Date | null>(null)
   const [report, setReport] = useState<CollectorPeriodReport | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -75,14 +83,22 @@ export default function CollectorReportView({
   } | null>(null)
   const [loadingLastWithdrawal, setLoadingLastWithdrawal] = useState(false)
 
-  // Normalizar fecha (solo día, sin hora)
+  // Drawer states
+  const [calendarOpen, setCalendarOpen] = useState(false)
+  const [commissionDrawerOpen, setCommissionDrawerOpen] = useState(false)
+  const [financialSummaryDrawerOpen, setFinancialSummaryDrawerOpen] = useState(false)
+
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'))
+  const [txViewMode, setTxViewMode] = useState<'list' | 'cards'>(isMobile ? 'cards' : 'list')
+
+  // ─── Date helpers ──────────────────────────────────────────────────────────
+
   const normalizeDate = (date: Date): Date => {
     const d = new Date(date)
     d.setHours(0, 0, 0, 0)
     return d
   }
 
-  // Comparar fechas (solo día)
   const isSameDay = (date1: Date, date2: Date): boolean => {
     return normalizeDate(date1).getTime() === normalizeDate(date2).getTime()
   }
@@ -90,30 +106,23 @@ export default function CollectorReportView({
   const getDaysInMonth = (date: Date): Date[] => {
     const year = date.getFullYear()
     const month = date.getMonth()
-    
     const firstDay = new Date(year, month, 1)
     const lastDay = new Date(year, month + 1, 0)
-    
     const startDay = firstDay.getDay()
     const firstMonday = new Date(firstDay)
     firstMonday.setDate(firstDay.getDate() - (startDay === 0 ? 6 : startDay - 1))
-    
     const endDay = lastDay.getDay()
     const lastSunday = new Date(lastDay)
     lastSunday.setDate(lastDay.getDate() + (endDay === 0 ? 0 : 7 - endDay))
-    
     const days: Date[] = []
     const current = new Date(firstMonday)
-    
     while (current <= lastSunday) {
       days.push(new Date(current))
       current.setDate(current.getDate() + 1)
     }
-    
     return days
   }
 
-  // Formatear fecha a YYYY-MM-DD sin depender de zona horaria
   const formatDateToString = (date: Date): string => {
     const year = date.getFullYear()
     const month = String(date.getMonth() + 1).padStart(2, '0')
@@ -121,138 +130,117 @@ export default function CollectorReportView({
     return `${year}-${month}-${day}`
   }
 
+  const formatShortDate = (date: Date): string => {
+    return date.toLocaleDateString('es-AR', { day: '2-digit', month: 'short' })
+  }
+
+  // ─── Data loading ──────────────────────────────────────────────────────────
+
   const loadReport = async (start: Date, end: Date) => {
     try {
       setLoading(true)
       setError(null)
-      const startDate = normalizeDate(start)
-      const endDate = normalizeDate(end)
-      // No establecer horas para evitar problemas de zona horaria
-      // El backend manejará el rango correctamente
-      
-      const startStr = formatDateToString(startDate)
-      const endStr = formatDateToString(endDate)
+      const startStr = formatDateToString(normalizeDate(start))
+      const endStr = formatDateToString(normalizeDate(end))
       const data = await collectorReportService.getPeriodReport(startStr, endStr, managerId)
       setReport(data)
     } catch (err: any) {
-      // Error loading report
       setError(err.response?.data?.message || 'Error al cargar el reporte')
     } finally {
       setLoading(false)
     }
   }
 
-  // Load last withdrawal when managerId changes
   useEffect(() => {
     const loadLastWithdrawal = async () => {
-      // Determine which managerId to use
       const targetManagerId = managerId || currentUser?.id
-      
       if (!targetManagerId) {
         setLastWithdrawal(null)
         return
       }
-
       setLoadingLastWithdrawal(true)
       try {
         const withdrawal = await collectorWalletService.getLastWithdrawal(targetManagerId)
         setLastWithdrawal(withdrawal)
-      } catch (err: any) {
-        // Error loading last withdrawal - silently fail
+      } catch {
         setLastWithdrawal(null)
       } finally {
         setLoadingLastWithdrawal(false)
       }
     }
-
     loadLastWithdrawal()
   }, [managerId, currentUser?.id])
 
+  // ─── Calendar interaction ──────────────────────────────────────────────────
+
   const handleDateClick = (date: Date) => {
     const normalizedDate = normalizeDate(date)
-    
-    // Si no hay fecha de inicio temporal, establecerla
     if (!tempStart) {
       setTempStart(normalizedDate)
-      setSelectedRange(null) // Limpiar selección anterior
+      setSelectedRange(null)
       return
     }
-    
-    // Si se hace clic en la misma fecha, seleccionar solo ese día
     if (isSameDay(normalizedDate, tempStart)) {
       const range = { start: normalizedDate, end: normalizedDate }
       setSelectedRange(range)
       setTempStart(null)
       loadReport(range.start, range.end)
+      setCalendarOpen(false)
       return
     }
-    
-    // Si la nueva fecha es anterior a tempStart, reiniciar
     if (normalizedDate < tempStart) {
       setTempStart(normalizedDate)
       setSelectedRange(null)
       return
     }
-    
-    // Establecer el rango final
     const range = { start: tempStart, end: normalizedDate }
     setSelectedRange(range)
     setTempStart(null)
     loadReport(range.start, range.end)
+    setCalendarOpen(false)
   }
 
-  // Determinar si una fecha está en el rango seleccionado
   const isInRange = (date: Date): boolean => {
     const normalizedDate = normalizeDate(date)
-    
-    // Si hay un rango seleccionado
     if (selectedRange) {
-      const start = normalizeDate(selectedRange.start)
-      const end = normalizeDate(selectedRange.end)
-      return normalizedDate >= start && normalizedDate <= end
+      return normalizedDate >= normalizeDate(selectedRange.start) && normalizedDate <= normalizeDate(selectedRange.end)
     }
-    
-    // Si hay una fecha temporal de inicio
-    if (tempStart) {
-      return isSameDay(normalizedDate, tempStart)
-    }
-    
+    if (tempStart) return isSameDay(normalizedDate, tempStart)
     return false
   }
 
-  // Determinar si una fecha es el inicio del rango
   const isRangeStart = (date: Date): boolean => {
-    if (selectedRange) {
-      return isSameDay(date, selectedRange.start)
-    }
-    if (tempStart) {
-      return isSameDay(date, tempStart)
-    }
+    if (selectedRange) return isSameDay(date, selectedRange.start)
+    if (tempStart) return isSameDay(date, tempStart)
     return false
   }
 
-  // Determinar si una fecha es el fin del rango
   const isRangeEnd = (date: Date): boolean => {
-    if (selectedRange) {
-      return isSameDay(date, selectedRange.end)
-    }
+    if (selectedRange) return isSameDay(date, selectedRange.end)
     return false
   }
 
-  // Determinar si una fecha está entre el inicio y el fin (pero no es inicio ni fin)
   const isInRangeMiddle = (date: Date): boolean => {
     if (!selectedRange) return false
     const normalizedDate = normalizeDate(date)
-    const start = normalizeDate(selectedRange.start)
-    const end = normalizeDate(selectedRange.end)
-    return normalizedDate > start && normalizedDate < end
+    return normalizedDate > normalizeDate(selectedRange.start) && normalizedDate < normalizeDate(selectedRange.end)
   }
+
+  // ─── Formatters ────────────────────────────────────────────────────────────
 
   const formatCurrency = (amount: number) => {
     return `$${new Intl.NumberFormat('es-AR', {
       minimumFractionDigits: 0,
       maximumFractionDigits: 0
     }).format(amount)}`
+  }
+
+  const formatCurrencyCompact = (amount: number) => {
+    const abs = Math.abs(amount)
+    const sign = amount < 0 ? '-' : ''
+    if (abs >= 1_000_000) return `${sign}$${(abs / 1_000_000).toFixed(1).replace('.0', '')}M`
+    if (abs >= 1_000) return `${sign}$${(abs / 1_000).toFixed(1).replace('.0', '')}k`
+    return `${sign}$${abs}`
   }
 
   const formatDate = (dateString: string) => {
@@ -262,326 +250,297 @@ export default function CollectorReportView({
     })
   }
 
-  // Helper functions para determinar el estilo según el tipo de transacción
+  // ─── Transaction helpers ───────────────────────────────────────────────────
+
   const getTransactionLabel = (type: string, amount?: number): string => {
     switch (type) {
-      case 'COLLECTION':
-        return 'Cobro'
-      case 'WITHDRAWAL':
-        return 'Retiro'
-      case 'ROUTE_EXPENSE':
-        return 'Gasto de Ruta'
-      case 'LOAN_DISBURSEMENT':
-        return 'Desembolso'
-      case 'CASH_ADJUSTMENT':
-        // Si el monto es negativo, agregar el símbolo "-"
-        if (amount !== undefined && amount < 0) {
-          return '- Ajuste de Caja'
-        }
-        return 'Ajuste de Caja'
-      default:
-        return 'Transacción'
+      case 'COLLECTION': return 'Cobro'
+      case 'WITHDRAWAL': return 'Retiro'
+      case 'ROUTE_EXPENSE': return 'Gasto de Ruta'
+      case 'LOAN_DISBURSEMENT': return 'Desembolso'
+      case 'CASH_ADJUSTMENT': return amount !== undefined && amount < 0 ? '- Ajuste de Caja' : 'Ajuste de Caja'
+      default: return 'Transacción'
     }
   }
 
   const getTransactionColor = (type: string, amount?: number): 'success' | 'warning' | 'error' | 'info' | 'default' => {
     switch (type) {
-      case 'COLLECTION':
-        return 'success'
-      case 'WITHDRAWAL':
-        return 'warning'
-      case 'ROUTE_EXPENSE':
-        return 'error'
-      case 'LOAN_DISBURSEMENT':
-        return 'error'
-      case 'CASH_ADJUSTMENT':
-        // Si el monto es negativo, mostrar en rojo
-        if (amount !== undefined && amount < 0) {
-          return 'error'
-        }
-        return 'info'
-      default:
-        return 'default'
+      case 'COLLECTION': return 'success'
+      case 'WITHDRAWAL': return 'warning'
+      case 'ROUTE_EXPENSE': return 'error'
+      case 'LOAN_DISBURSEMENT': return 'error'
+      case 'CASH_ADJUSTMENT': return amount !== undefined && amount < 0 ? 'error' : 'info'
+      default: return 'default'
     }
   }
 
   const getTransactionIcon = (type: string) => {
     switch (type) {
-      case 'COLLECTION':
-        return <TrendingUp />
-      case 'WITHDRAWAL':
-        return <TrendingDown />
-      case 'ROUTE_EXPENSE':
-        return <Receipt />
-      case 'LOAN_DISBURSEMENT':
-        return <AccountBalance />
-      case 'CASH_ADJUSTMENT':
-        return <SwapHoriz />
-      default:
-        return <AttachMoney />
+      case 'COLLECTION': return <TrendingUp />
+      case 'WITHDRAWAL': return <TrendingDown />
+      case 'ROUTE_EXPENSE': return <Receipt />
+      case 'LOAN_DISBURSEMENT': return <AccountBalance />
+      case 'CASH_ADJUSTMENT': return <SwapHoriz />
+      default: return <AttachMoney />
     }
   }
 
   const getTransactionSign = (type: string, amount: number): string => {
-    // Para CASH_ADJUSTMENT, verificar si el monto es negativo
-    if (type === 'CASH_ADJUSTMENT') {
-      return amount < 0 ? '' : '+'
-    }
-    // COLLECTION siempre es positivo
-    if (type === 'COLLECTION') {
-      return '+'
-    }
-    // WITHDRAWAL, ROUTE_EXPENSE, LOAN_DISBURSEMENT son negativos (egresos)
+    if (type === 'CASH_ADJUSTMENT') return amount < 0 ? '' : '+'
+    if (type === 'COLLECTION') return '+'
     return '-'
   }
 
   const getAmountColor = (type: string, amount: number): string => {
-    // Para CASH_ADJUSTMENT, si es negativo mostrar en rojo
-    if (type === 'CASH_ADJUSTMENT') {
-      return amount < 0 ? 'error.main' : 'info.main'
-    }
-    if (type === 'COLLECTION') {
-      return 'success.main'
-    }
-    // WITHDRAWAL, ROUTE_EXPENSE, LOAN_DISBURSEMENT son negativos
+    if (type === 'CASH_ADJUSTMENT') return amount < 0 ? 'error.main' : 'info.main'
+    if (type === 'COLLECTION') return 'success.main'
     return 'error.main'
   }
 
+  // ─── Calendar grid ─────────────────────────────────────────────────────────
+
   const days = getDaysInMonth(currentMonth)
   const dayNames = ['L', 'M', 'X', 'J', 'V', 'S', 'D']
-  
-  // Agrupar días en semanas para el renderizado
   const weeks: Date[][] = []
   for (let i = 0; i < days.length; i += 7) {
     weeks.push(days.slice(i, i + 7))
   }
 
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'))
-  const [txViewMode, setTxViewMode] = useState<'list' | 'cards'>(isMobile ? 'cards' : 'list')
+  // ─── Calendar block (shared between drawer and desktop column) ─────────────
+
+  const calendarBlock = (
+    <Box>
+      {/* Month navigation */}
+      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+        <IconButton onClick={() => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1))} size="small">
+          <ChevronLeft />
+        </IconButton>
+        <Typography variant="subtitle1" fontWeight={600} sx={{ textTransform: 'capitalize' }}>
+          {currentMonth.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' })}
+        </Typography>
+        <IconButton onClick={() => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1))} size="small">
+          <ChevronRight />
+        </IconButton>
+      </Box>
+
+      {/* Day names */}
+      <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 0.5, mb: 1 }}>
+        {dayNames.map((day) => (
+          <Box key={day} sx={{ textAlign: 'center', py: 0.5 }}>
+            <Typography variant="caption" fontWeight={600} color="text.secondary">{day}</Typography>
+          </Box>
+        ))}
+      </Box>
+
+      {/* Day cells */}
+      {weeks.map((week, weekIndex) => (
+        <Box key={weekIndex} sx={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 0.5, mb: 0.5 }}>
+          {week.map((date, dayIndex) => {
+            const isToday =
+              date.getDate() === new Date().getDate() &&
+              date.getMonth() === new Date().getMonth() &&
+              date.getFullYear() === new Date().getFullYear()
+            const isOtherMonth = date.getMonth() !== currentMonth.getMonth()
+            const inRange = isInRange(date)
+            const isStart = isRangeStart(date)
+            const isEnd = isRangeEnd(date)
+
+            return (
+              <Box
+                key={dayIndex}
+                onClick={() => !isOtherMonth && handleDateClick(date)}
+                sx={{
+                  textAlign: 'center',
+                  py: 1.5,
+                  borderRadius: 1,
+                  position: 'relative',
+                  cursor: isOtherMonth ? 'default' : 'pointer',
+                  transition: 'all 0.2s',
+                  backgroundColor: inRange
+                    ? isStart || isEnd
+                      ? alpha(theme.palette.primary.main, 0.3)
+                      : alpha(theme.palette.primary.main, 0.15)
+                    : 'transparent',
+                  border: isStart || isEnd
+                    ? `2px solid ${theme.palette.primary.main}`
+                    : '2px solid transparent',
+                  '&:hover': {
+                    backgroundColor: isOtherMonth
+                      ? 'transparent'
+                      : inRange
+                        ? alpha(theme.palette.primary.main, 0.25)
+                        : alpha(theme.palette.action.hover, 0.5),
+                  },
+                }}
+              >
+                <Typography
+                  variant="body2"
+                  sx={{
+                    color: isOtherMonth ? 'text.disabled' : inRange ? 'primary.main' : isToday ? 'primary.main' : 'text.primary',
+                    fontWeight: (isStart || isEnd || isToday) ? 700 : 400,
+                  }}
+                >
+                  {date.getDate()}
+                </Typography>
+                {isToday && !inRange && (
+                  <Box sx={{
+                    position: 'absolute', bottom: 2, left: '50%', transform: 'translateX(-50%)',
+                    width: 4, height: 4, borderRadius: '50%', backgroundColor: 'primary.main',
+                  }} />
+                )}
+              </Box>
+            )
+          })}
+        </Box>
+      ))}
+
+      {/* Selection indicator */}
+      {tempStart && (
+        <Box sx={{ mt: 2, p: 1.5, bgcolor: alpha(theme.palette.info.main, 0.1), borderRadius: 1 }}>
+          <Typography variant="caption" color="info.main" fontWeight={500}>
+            Selecciona la fecha de fin para completar el rango
+          </Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+            Inicio: {tempStart.toLocaleDateString('es-AR', { day: '2-digit', month: 'long', year: 'numeric' })}
+          </Typography>
+        </Box>
+      )}
+
+      {selectedRange && (
+        <Box sx={{ mt: 2, p: 1.5, bgcolor: alpha(theme.palette.success.main, 0.1), borderRadius: 1 }}>
+          <Typography variant="caption" color="success.main" fontWeight={500}>Rango seleccionado</Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+            {isSameDay(selectedRange.start, selectedRange.end)
+              ? selectedRange.start.toLocaleDateString('es-AR', { day: '2-digit', month: 'long', year: 'numeric' })
+              : `${selectedRange.start.toLocaleDateString('es-AR', { day: '2-digit', month: 'long', year: 'numeric' })} - ${selectedRange.end.toLocaleDateString('es-AR', { day: '2-digit', month: 'long', year: 'numeric' })}`
+            }
+          </Typography>
+        </Box>
+      )}
+
+      {/* Último Retiro */}
+      <Divider sx={{ my: 2 }} />
+      {loadingLastWithdrawal ? (
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', py: 2 }}>
+          <CircularProgress size={20} />
+        </Box>
+      ) : lastWithdrawal ? (
+        <Box sx={{
+          p: 1.5,
+          bgcolor: alpha(theme.palette.warning.main, 0.08),
+          border: `1px solid ${alpha(theme.palette.warning.main, 0.2)}`,
+          borderRadius: 1,
+        }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+            <AccountBalanceWallet sx={{ fontSize: 18, color: 'warning.main' }} />
+            <Typography variant="caption" color="warning.main" fontWeight={600}>Último Retiro</Typography>
+          </Box>
+          {lastWithdrawal.createdAt && (
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
+              Fecha: {new Date(lastWithdrawal.createdAt).toLocaleDateString('es-AR', {
+                day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit'
+              })}
+            </Typography>
+          )}
+          {lastWithdrawal.amount !== undefined && lastWithdrawal.amount !== null && (
+            <Typography variant="body2" color="text.secondary">
+              Monto: <strong>${lastWithdrawal.amount.toLocaleString('es-AR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</strong>
+            </Typography>
+          )}
+        </Box>
+      ) : (
+        <Box sx={{ p: 1.5, bgcolor: alpha(theme.palette.text.disabled, 0.05), borderRadius: 1 }}>
+          <Typography variant="caption" color="text.secondary">No hay retiros registrados</Typography>
+        </Box>
+      )}
+    </Box>
+  )
+
+  // ─── Computed report values ────────────────────────────────────────────────
+
+  const cobrado = report ? (report.cobrado ?? report.summary?.cobrado ?? report.collections?.amounts?.totalCollected ?? 0) : 0
+  const prestado = report ? (report.prestado ?? report.summary?.prestado ?? report.loans?.totalAmount ?? 0) : 0
+  const gastado = report ? (report.gastado ?? report.summary?.gastado ?? report.expenses?.total ?? 0) : 0
+  const retirado = report ? (report.retirado ?? report.summary?.retirado ?? report.collectorWallet?.totalWithdrawals ?? 0) : 0
+  // ajusteCaja: campo no tipado en CollectorPeriodReport, acceso seguro via cast
+  const reportAny = report as any
+  const ajusteCaja = report ? (reportAny.ajusteCaja ?? reportAny.summary?.ajusteCaja ?? reportAny.collectorWallet?.totalCashAdjustments ?? 0) : 0
+  const baseNeto = report ? (report.neto ?? reportAny.summary?.neto ?? report.collectorWallet?.netAmount ?? 0) : 0
+  const netoConAjuste = baseNeto
+  const netoSinAjuste = baseNeto - ajusteCaja
+
+  // ─── Render ────────────────────────────────────────────────────────────────
 
   return (
-    <Box sx={{ 
-      maxWidth: 1600, 
-      mx: 'auto', 
-      px: { xs: 1, sm: 2, md: 3 },
-      width: '100%',
-      overflow: 'hidden'
-    }}>
-      <Typography variant="h4" fontWeight={600} gutterBottom sx={{ fontSize: { xs: '1.5rem', sm: '2rem' } }}>
+    <Box sx={{ maxWidth: 1600, mx: 'auto', width: '100%' }}>
+      <Typography variant="h5" fontWeight={600} gutterBottom sx={{ fontSize: { xs: '1.25rem', sm: '1.75rem' } }}>
         {title}
       </Typography>
-      <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+      <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
         {subtitle}
       </Typography>
 
-      <Box sx={{ 
-        display: 'grid', 
-        gridTemplateColumns: { xs: '1fr', md: '380px 1fr' }, 
+      {/* Pill selector de fechas — solo mobile */}
+      <Button
+        variant="outlined"
+        size="small"
+        startIcon={<CalendarMonth sx={{ fontSize: 16 }} />}
+        endIcon={<ExpandMore sx={{ fontSize: 16 }} />}
+        onClick={() => setCalendarOpen(true)}
+        sx={{
+          borderRadius: '20px',
+          textTransform: 'none',
+          px: 2,
+          mb: 2,
+          display: { xs: 'flex', md: 'none' },
+        }}
+      >
+        {selectedRange
+          ? `${formatShortDate(selectedRange.start)} – ${formatShortDate(selectedRange.end)}`
+          : 'Seleccionar período'}
+      </Button>
+
+      {/* BottomSheet calendario — mobile */}
+      <SwipeableDrawer
+        anchor="bottom"
+        open={calendarOpen}
+        onOpen={() => setCalendarOpen(true)}
+        onClose={() => setCalendarOpen(false)}
+        sx={{ display: { xs: 'block', md: 'none' } }}
+        PaperProps={{ sx: { borderRadius: '20px 20px 0 0', maxHeight: '90vh', overflowY: 'auto' } }}
+      >
+        <Box sx={{ p: 3, pb: 'calc(24px + env(safe-area-inset-bottom))' }}>
+          <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 2 }}>Seleccionar período</Typography>
+          {calendarBlock}
+        </Box>
+      </SwipeableDrawer>
+
+      {/* Layout: columna calendario (desktop) + contenido */}
+      <Box sx={{
+        display: 'grid',
+        gridTemplateColumns: { xs: '1fr', md: '380px 1fr' },
         gap: { xs: 2, md: 3 },
         alignItems: 'start',
         width: '100%',
-        overflow: 'hidden'
       }}>
-        {/* Calendario */}
-        <Paper sx={{ 
-          p: { xs: 2, sm: 3 }, 
-          position: { xs: 'static', md: 'sticky' }, 
-          top: { md: 24 },
-          width: '100%',
-          maxWidth: { xs: '100%', md: '380px' },
-          overflow: 'hidden'
+
+        {/* Columna calendario — solo desktop */}
+        <Paper sx={{
+          p: { xs: 2, sm: 3 },
+          position: 'sticky',
+          top: 24,
+          display: { xs: 'none', md: 'block' },
+          bgcolor: '#FFFFFF',
         }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3 }}>
-            <IconButton onClick={() => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1))} size="small">
-              <ChevronLeft />
-            </IconButton>
-            
-            <Typography variant="h6" fontWeight={600} sx={{ textTransform: 'capitalize' }}>
-              {currentMonth.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' })}
-            </Typography>
-            
-            <IconButton onClick={() => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1))} size="small">
-              <ChevronRight />
-            </IconButton>
-          </Box>
-
-          {/* Nombres de días */}
-          <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 0.5, mb: 1 }}>
-            {dayNames.map((day) => (
-              <Box key={day} sx={{ textAlign: 'center', py: 1 }}>
-                <Typography variant="body2" fontWeight={600} color="text.secondary">
-                  {day}
-                </Typography>
-              </Box>
-            ))}
-          </Box>
-
-          {/* Días del calendario */}
-          {weeks.map((week, weekIndex) => (
-            <Box
-              key={weekIndex}
-              sx={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(7, 1fr)',
-                gap: 0.5,
-                mb: 0.5,
-              }}
-            >
-              {week.map((date, dayIndex) => {
-                const isToday = 
-                  date.getDate() === new Date().getDate() &&
-                  date.getMonth() === new Date().getMonth() &&
-                  date.getFullYear() === new Date().getFullYear()
-                const isOtherMonth = date.getMonth() !== currentMonth.getMonth()
-                const inRange = isInRange(date)
-                const isStart = isRangeStart(date)
-                const isEnd = isRangeEnd(date)
-                const inMiddle = isInRangeMiddle(date)
-
-                return (
-                  <Box
-                    key={dayIndex}
-                    onClick={() => !isOtherMonth && handleDateClick(date)}
-                    sx={{
-                      textAlign: 'center',
-                      py: 1.5,
-                      borderRadius: 1,
-                      position: 'relative',
-                      cursor: isOtherMonth ? 'default' : 'pointer',
-                      transition: 'all 0.2s',
-                      backgroundColor: inRange
-                        ? isStart || isEnd
-                          ? alpha(theme.palette.primary.main, 0.3)
-                          : alpha(theme.palette.primary.main, 0.15)
-                        : 'transparent',
-                      border: isStart || isEnd
-                        ? `2px solid ${theme.palette.primary.main}`
-                        : '2px solid transparent',
-                      '&:hover': {
-                        backgroundColor: isOtherMonth
-                          ? 'transparent'
-                          : inRange
-                            ? alpha(theme.palette.primary.main, 0.25)
-                            : alpha(theme.palette.action.hover, 0.5),
-                      },
-                    }}
-                  >
-                    <Typography
-                      variant="body2"
-                      sx={{
-                        color: isOtherMonth
-                          ? 'text.disabled'
-                          : inRange
-                            ? 'primary.main'
-                            : isToday
-                              ? 'primary.main'
-                              : 'text.primary',
-                        fontWeight: (isStart || isEnd || isToday) ? 700 : 400,
-                      }}
-                    >
-                      {date.getDate()}
-                    </Typography>
-                    {isToday && !inRange && (
-                      <Box
-                        sx={{
-                          position: 'absolute',
-                          bottom: 2,
-                          left: '50%',
-                          transform: 'translateX(-50%)',
-                          width: 4,
-                          height: 4,
-                          borderRadius: '50%',
-                          backgroundColor: 'primary.main',
-                        }}
-                      />
-                    )}
-                  </Box>
-                )
-              })}
-            </Box>
-          ))}
-          
-          {/* Indicador de selección */}
-          {tempStart && (
-            <Box sx={{ mt: 2, p: 1.5, bgcolor: alpha(theme.palette.info.main, 0.1), borderRadius: 1 }}>
-              <Typography variant="caption" color="info.main" fontWeight={500}>
-                Selecciona la fecha de fin para completar el rango
-              </Typography>
-              <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-                Inicio: {tempStart.toLocaleDateString('es-AR', { day: '2-digit', month: 'long', year: 'numeric' })}
-              </Typography>
-            </Box>
-          )}
-          
-          {selectedRange && (
-            <Box sx={{ mt: 2, p: 1.5, bgcolor: alpha(theme.palette.success.main, 0.1), borderRadius: 1 }}>
-              <Typography variant="caption" color="success.main" fontWeight={500}>
-                Rango seleccionado
-              </Typography>
-              <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-                {isSameDay(selectedRange.start, selectedRange.end)
-                  ? selectedRange.start.toLocaleDateString('es-AR', { day: '2-digit', month: 'long', year: 'numeric' })
-                  : `${selectedRange.start.toLocaleDateString('es-AR', { day: '2-digit', month: 'long', year: 'numeric' })} - ${selectedRange.end.toLocaleDateString('es-AR', { day: '2-digit', month: 'long', year: 'numeric' })}`
-                }
-              </Typography>
-            </Box>
-          )}
-
-          {/* Último Retiro */}
-          <Divider sx={{ my: 2 }} />
-          {loadingLastWithdrawal ? (
-            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', py: 2 }}>
-              <CircularProgress size={20} />
-            </Box>
-          ) : lastWithdrawal ? (
-            <Box sx={{ 
-              mt: 2, 
-              p: 1.5, 
-              bgcolor: alpha(theme.palette.warning.main, 0.08), 
-              border: `1px solid ${alpha(theme.palette.warning.main, 0.2)}`,
-              borderRadius: 1 
-            }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-                <AccountBalanceWallet sx={{ fontSize: 18, color: 'warning.main' }} />
-                <Typography variant="caption" color="warning.main" fontWeight={600}>
-                  Último Retiro
-                </Typography>
-              </Box>
-              {lastWithdrawal.createdAt && (
-                <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
-                  Fecha: {new Date(lastWithdrawal.createdAt).toLocaleDateString('es-AR', { 
-                    day: '2-digit', 
-                    month: 'long', 
-                    year: 'numeric',
-                    hour: '2-digit',
-                    minute: '2-digit'
-                  })}
-                </Typography>
-              )}
-              {lastWithdrawal.amount !== undefined && lastWithdrawal.amount !== null && (
-                <Typography variant="body2" color="text.secondary">
-                  Monto: <strong>${lastWithdrawal.amount.toLocaleString('es-AR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</strong>
-                </Typography>
-              )}
-            </Box>
-          ) : (
-            <Box sx={{ 
-              mt: 2, 
-              p: 1.5, 
-              bgcolor: alpha(theme.palette.text.disabled, 0.05), 
-              borderRadius: 1 
-            }}>
-              <Typography variant="caption" color="text.secondary">
-                No hay retiros registrados
-              </Typography>
-            </Box>
-          )}
+          {calendarBlock}
         </Paper>
 
-        {/* Reporte */}
-        <Box sx={{ width: '100%', overflow: 'hidden', minWidth: 0 }}>
+        {/* Columna de contenido */}
+        <Box sx={{ width: '100%', minWidth: 0 }}>
+
+          {/* Estado vacío */}
           {!selectedRange && !loading && (
-            <Paper sx={{ p: 6, textAlign: 'center' }}>
+            <Paper sx={{ p: 6, textAlign: 'center', bgcolor: '#FFFFFF' }}>
               <CalendarMonth sx={{ fontSize: 64, color: 'text.disabled', mb: 2 }} />
               <Typography variant="h6" color="text.secondary" gutterBottom>
                 Selecciona un día o rango de fechas
@@ -595,538 +554,232 @@ export default function CollectorReportView({
           {loading && (
             <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', py: 8 }}>
               <CircularProgress size={48} sx={{ mb: 2 }} />
-              <Typography variant="body2" color="text.secondary">
-                Cargando reporte...
-              </Typography>
+              <Typography variant="body2" color="text.secondary">Cargando reporte...</Typography>
             </Box>
           )}
 
-          {error && (
-            <Alert severity="error" sx={{ mb: 2 }}>
-              {error}
-            </Alert>
-          )}
+          {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
 
           {report && selectedRange && !loading && (
             <Box>
-              {/* Header - Información del Cobrador */}
-              <Paper sx={{ 
-                p: { xs: 2, sm: 3 }, 
-                mb: 3, 
-                background: 'linear-gradient(135deg, #667eea 0%, #4facfe 100%)', 
-                color: 'white',
-                borderRadius: 2
-              }}>
-                <Typography variant="h5" fontWeight={600} gutterBottom sx={{ fontSize: { xs: '1.25rem', sm: '1.5rem' } }}>
+
+              {/* ── Header cobrador ── */}
+              <Paper sx={{ p: { xs: 2, sm: 3 }, mb: 2, bgcolor: '#FFFFFF', borderLeft: 4, borderLeftColor: 'primary.main' }}>
+                <Typography variant="h6" fontWeight={600} gutterBottom>
                   {report.collector?.fullName || 'Cobrador'}
                 </Typography>
-                <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(3, 1fr)' }, gap: { xs: 1.5, sm: 2 }, mt: 2 }}>
+                <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr 1fr', sm: 'repeat(3, 1fr)' }, gap: 1 }}>
                   <Box>
-                    <Typography variant="caption" sx={{ opacity: 0.8, fontSize: { xs: '0.7rem', sm: '0.75rem' } }}>Usuario</Typography>
-                    <Typography variant="body2" fontWeight={500} sx={{ fontSize: { xs: '0.85rem', sm: '0.875rem' }, wordBreak: 'break-word' }}>{report.collector?.userId}</Typography>
-                  </Box>
-                  <Box>
-                    <Typography variant="caption" sx={{ opacity: 0.8, fontSize: { xs: '0.7rem', sm: '0.75rem' } }}>Rol</Typography>
-                    <Typography variant="body2" fontWeight={500} sx={{ fontSize: { xs: '0.85rem', sm: '0.875rem' } }}>{report.collector?.role}</Typography>
+                    <Typography variant="caption" color="text.secondary">Usuario</Typography>
+                    <Typography variant="body2" fontWeight={500} sx={{ wordBreak: 'break-word' }}>{report.collector?.userId}</Typography>
                   </Box>
                   <Box>
-                    <Typography variant="caption" sx={{ opacity: 0.8, fontSize: { xs: '0.7rem', sm: '0.75rem' } }}>% Comisión</Typography>
-                    <Typography variant="body2" fontWeight={500} sx={{ fontSize: { xs: '0.85rem', sm: '0.875rem' } }}>{report.collector?.commissionPercentage}%</Typography>
+                    <Typography variant="caption" color="text.secondary">Rol</Typography>
+                    <Typography variant="body2" fontWeight={500}>{report.collector?.role}</Typography>
+                  </Box>
+                  <Box>
+                    <Typography variant="caption" color="text.secondary">% Comisión</Typography>
+                    <Typography variant="body2" fontWeight={500}>{report.collector?.commissionPercentage}%</Typography>
                   </Box>
                 </Box>
-                <Box sx={{ mt: 2, pt: 2, borderTop: '1px solid rgba(255,255,255,0.2)' }}>
-                  <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)' }, gap: 1 }}>
-                    <Box>
-                      <Typography variant="caption" sx={{ opacity: 0.8 }}>Fecha Inicio</Typography>
-                      <Typography variant="body2" fontWeight={500}>
-                        {new Date(report.period.startDate).toLocaleDateString('es-AR', { 
-                          weekday: 'short', 
-                          day: '2-digit', 
-                          month: 'short', 
-                          year: 'numeric' 
-                        })}
-                      </Typography>
-                    </Box>
-                    <Box>
-                      <Typography variant="caption" sx={{ opacity: 0.8 }}>Fecha Fin</Typography>
-                      <Typography variant="body2" fontWeight={500}>
-                        {new Date(report.period.endDate).toLocaleDateString('es-AR', { 
-                          weekday: 'short', 
-                          day: '2-digit', 
-                          month: 'short', 
-                          year: 'numeric' 
-                        })}
-                      </Typography>
-                    </Box>
+                <Divider sx={{ my: 1.5 }} />
+                <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr 1fr' }, gap: 1 }}>
+                  <Box>
+                    <Typography variant="caption" color="text.secondary">Desde</Typography>
+                    <Typography variant="body2" fontWeight={500}>
+                      {new Date(report.period.startDate).toLocaleDateString('es-AR', { day: '2-digit', month: 'short', year: 'numeric' })}
+                    </Typography>
+                  </Box>
+                  <Box>
+                    <Typography variant="caption" color="text.secondary">Hasta</Typography>
+                    <Typography variant="body2" fontWeight={500}>
+                      {new Date(report.period.endDate).toLocaleDateString('es-AR', { day: '2-digit', month: 'short', year: 'numeric' })}
+                    </Typography>
                   </Box>
                 </Box>
               </Paper>
 
-              {/* Summary Cards */}
-              <Box sx={{ 
-                display: 'grid', 
-                gridTemplateColumns: { 
-                  xs: '1fr', 
-                  sm: 'repeat(2, 1fr)', 
-                  md: 'repeat(3, 1fr)',
-                  lg: 'repeat(6, 1fr)' 
-                }, 
-                gap: { xs: 1.5, sm: 2 }, 
-                mb: 3 
-              }}>
-                <Card>
-                  <CardContent sx={{ p: { xs: 1.5, sm: 2 }, minHeight: { md: 120 } }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-                      <TrendingUp sx={{ color: 'success.main', fontSize: { xs: 18, sm: 24 } }} />
-                      <Typography variant="caption" color="text.secondary" sx={{ fontSize: { xs: '0.7rem', sm: '0.75rem' } }}>
-                        Cobrado
-                      </Typography>
-                    </Box>
-                    <Typography 
-                      variant="h5" 
-                      fontWeight={700} 
-                      color="success.main" 
-                      sx={{ 
-                        fontSize: { xs: '1.1rem', sm: '1.3rem', md: '1.1rem', lg: '1.5rem' },
-                        lineHeight: 1.2,
-                        wordBreak: 'break-word',
-                        overflowWrap: 'break-word'
-                      }}
-                    >
-                      {formatCurrency(report.cobrado ?? report.summary?.cobrado ?? report.collections?.amounts?.totalCollected ?? 0)}
-                    </Typography>
-                    <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5, fontSize: { xs: '0.65rem', sm: '0.7rem' } }}>
-                      de {formatCurrency(report.collections?.amounts?.totalDue ?? 0)} esperado
-                    </Typography>
-                  </CardContent>
-                </Card>
+              {/* ── Resumen grouped list ── */}
+              <Paper sx={{ mb: 2, bgcolor: '#FFFFFF', overflow: 'hidden' }}>
+                <List disablePadding>
+                  {[
+                    { icon: <TrendingUp sx={{ fontSize: 20 }} />, label: 'Cobrado', value: cobrado, color: 'success.main' },
+                    { icon: <AttachMoney sx={{ fontSize: 20 }} />, label: 'Prestado', value: prestado, color: 'info.main' },
+                    { icon: <Receipt sx={{ fontSize: 20 }} />, label: 'Gastado', value: gastado, color: 'error.main' },
+                    { icon: <TrendingDown sx={{ fontSize: 20 }} />, label: 'Retirado', value: retirado, color: 'warning.main' },
+                    { icon: <SwapHoriz sx={{ fontSize: 20 }} />, label: 'Ajuste de Caja', value: ajusteCaja, color: 'info.main' },
+                    { icon: <AttachMoney sx={{ fontSize: 20 }} />, label: 'Neto (con ajuste)', value: netoConAjuste, color: 'primary.main' },
+                    { icon: <AttachMoney sx={{ fontSize: 20 }} />, label: 'Neto (sin ajuste)', value: netoSinAjuste, color: 'text.primary' },
+                  ].map((item, i, arr) => (
+                    <React.Fragment key={item.label}>
+                      <ListItem sx={{ py: 1.25, px: 2 }}>
+                        <ListItemIcon sx={{ minWidth: 36 }}>
+                          <Box sx={{ color: item.color, display: 'flex' }}>{item.icon}</Box>
+                        </ListItemIcon>
+                        <ListItemText
+                          primary={item.label}
+                          primaryTypographyProps={{ variant: 'body2', color: 'text.secondary' }}
+                        />
+                        <Typography variant="body1" fontWeight={700} color={item.color}>
+                          {formatCurrencyCompact(item.value)}
+                        </Typography>
+                      </ListItem>
+                      {i < arr.length - 1 && <Divider component="li" />}
+                    </React.Fragment>
+                  ))}
+                </List>
+              </Paper>
 
-                <Card>
-                  <CardContent sx={{ p: { xs: 1.5, sm: 2 }, minHeight: { md: 120 } }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-                      <AttachMoney sx={{ color: 'info.main', fontSize: { xs: 18, sm: 24 } }} />
-                      <Typography variant="caption" color="text.secondary" sx={{ fontSize: { xs: '0.7rem', sm: '0.75rem' } }}>
-                        Prestado
-                      </Typography>
-                    </Box>
-                    <Typography 
-                      variant="h5" 
-                      fontWeight={700} 
-                      color="info.main" 
-                      sx={{ 
-                        fontSize: { xs: '1.1rem', sm: '1.3rem', md: '1.1rem', lg: '1.5rem' },
-                        lineHeight: 1.2,
-                        wordBreak: 'break-word',
-                        overflowWrap: 'break-word'
-                      }}
-                    >
-                      {formatCurrency(report.prestado ?? report.summary?.prestado ?? report.loans?.totalAmount ?? 0)}
-                    </Typography>
-                    <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5, fontSize: { xs: '0.65rem', sm: '0.7rem' } }}>
-                      del período
-                    </Typography>
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardContent sx={{ p: { xs: 1.5, sm: 2 }, minHeight: { md: 120 } }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-                      <Receipt sx={{ color: 'error.main', fontSize: { xs: 18, sm: 24 } }} />
-                      <Typography variant="caption" color="text.secondary" sx={{ fontSize: { xs: '0.7rem', sm: '0.75rem' } }}>
-                        Gastado
-                      </Typography>
-                    </Box>
-                    <Typography 
-                      variant="h5" 
-                      fontWeight={700} 
-                      color="error.main" 
-                      sx={{ 
-                        fontSize: { xs: '1.1rem', sm: '1.3rem', md: '1.1rem', lg: '1.5rem' },
-                        lineHeight: 1.2,
-                        wordBreak: 'break-word',
-                        overflowWrap: 'break-word'
-                      }}
-                    >
-                      {formatCurrency(report.gastado ?? report.summary?.gastado ?? report.expenses?.total ?? 0)}
-                    </Typography>
-                    <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5, fontSize: { xs: '0.65rem', sm: '0.7rem' } }}>
-                      del período
-                    </Typography>
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardContent sx={{ p: { xs: 1.5, sm: 2 }, minHeight: { md: 120 } }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-                      <TrendingDown sx={{ color: 'warning.main', fontSize: { xs: 18, sm: 24 } }} />
-                      <Typography variant="caption" color="text.secondary" sx={{ fontSize: { xs: '0.7rem', sm: '0.75rem' } }}>
-                        Retirado
-                      </Typography>
-                    </Box>
-                    <Typography 
-                      variant="h5" 
-                      fontWeight={700} 
-                      color="warning.main" 
-                      sx={{ 
-                        fontSize: { xs: '1.1rem', sm: '1.3rem', md: '1.1rem', lg: '1.5rem' },
-                        lineHeight: 1.2,
-                        wordBreak: 'break-word',
-                        overflowWrap: 'break-word'
-                      }}
-                    >
-                      {formatCurrency(report.retirado ?? report.summary?.retirado ?? report.collectorWallet?.totalWithdrawals ?? 0)}
-                    </Typography>
-                    <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5, fontSize: { xs: '0.65rem', sm: '0.7rem' } }}>
-                      de la wallet
-                    </Typography>
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardContent sx={{ p: { xs: 1.5, sm: 2 }, minHeight: { md: 120 } }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-                      <SwapHoriz sx={{ color: 'info.main', fontSize: { xs: 18, sm: 24 } }} />
-                      <Typography variant="caption" color="text.secondary" sx={{ fontSize: { xs: '0.7rem', sm: '0.75rem' } }}>
-                        Ajuste de Caja
-                      </Typography>
-                    </Box>
-                    <Typography 
-                      variant="h5" 
-                      fontWeight={700} 
-                      color="info.main" 
-                      sx={{ 
-                        fontSize: { xs: '1.1rem', sm: '1.3rem', md: '1.1rem', lg: '1.5rem' },
-                        lineHeight: 1.2,
-                        wordBreak: 'break-word',
-                        overflowWrap: 'break-word'
-                      }}
-                    >
-                      {formatCurrency(report.ajusteCaja ?? report.summary?.ajusteCaja ?? report.collectorWallet?.totalCashAdjustments ?? 0)}
-                    </Typography>
-                    <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5, fontSize: { xs: '0.65rem', sm: '0.7rem' } }}>
-                      del período
-                    </Typography>
-                  </CardContent>
-                </Card>
-
-                <Card sx={{ background: 'linear-gradient(135deg, #667eea 0%, #4facfe 100%)', color: 'white' }}>
-                  <CardContent sx={{ p: { xs: 1.5, sm: 2 }, minHeight: { md: 120 } }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
-                      <AttachMoney sx={{ fontSize: { xs: 18, sm: 24 } }} />
-                      <Typography variant="caption" sx={{ opacity: 0.9, fontSize: { xs: '0.7rem', sm: '0.75rem' } }}>
-                        Neto
-                      </Typography>
-                    </Box>
-                    {(() => {
-                      // Calcular el neto base (sin restar ajuste de caja)
-                      const baseNeto = report.neto ?? report.summary?.neto ?? report.collectorWallet?.netAmount ?? 0
-                      
-                      // Calcular el total de cash adjustments
-                      const totalCashAdjustments = report.ajusteCaja ?? report.summary?.ajusteCaja ?? report.collectorWallet?.totalCashAdjustments ?? 0
-                      
-                      // Neto con ajuste de caja = neto base
-                      const netoConAjuste = baseNeto
-                      
-                      // Neto sin ajuste de caja = neto - ajuste de caja
-                      const netoSinAjuste = baseNeto - totalCashAdjustments
-                      
-                      return (
-                        <Box>
-                          <Box sx={{ mb: 1.5 }}>
-                            <Typography variant="caption" sx={{ opacity: 0.8, fontSize: { xs: '0.65rem', sm: '0.7rem' } }}>
-                              Con ajuste de caja
-                            </Typography>
-                            <Typography 
-                              variant="h5" 
-                              fontWeight={700} 
-                              sx={{ 
-                                fontSize: { xs: '1.1rem', sm: '1.3rem', md: '1.1rem', lg: '1.25rem' },
-                                lineHeight: 1.2,
-                                wordBreak: 'break-word',
-                                overflowWrap: 'break-word'
-                              }}
-                            >
-                              {formatCurrency(netoConAjuste)}
-                            </Typography>
-                          </Box>
-                          <Box>
-                            <Typography variant="caption" sx={{ opacity: 0.8, fontSize: { xs: '0.65rem', sm: '0.7rem' } }}>
-                              Sin ajuste de caja
-                            </Typography>
-                            <Typography 
-                              variant="h5" 
-                              fontWeight={700} 
-                              sx={{ 
-                                fontSize: { xs: '1.1rem', sm: '1.3rem', md: '1.1rem', lg: '1.25rem' },
-                                lineHeight: 1.2,
-                                wordBreak: 'break-word',
-                                overflowWrap: 'break-word'
-                              }}
-                            >
-                              {formatCurrency(netoSinAjuste)}
-                            </Typography>
-                          </Box>
-                        </Box>
-                      )
-                    })()}
-                  </CardContent>
-                </Card>
-              </Box>
-
-              {/* Collection Stats - Cantidades */}
-              <Paper sx={{ p: { xs: 2, sm: 3 }, mb: 3, overflow: 'hidden' }}>
-                <Typography variant="h6" fontWeight={600} sx={{ mb: 3, fontSize: { xs: '1rem', sm: '1.25rem' } }}>
-                  Estadísticas de Cobros - Cantidades
+              {/* ── Estadísticas de Cobros ── */}
+              <Paper sx={{ p: { xs: 2, sm: 3 }, mb: 2, bgcolor: '#FFFFFF' }}>
+                <Typography variant="subtitle2" fontWeight={600} sx={{ mb: 1.5 }}>
+                  Estadísticas de Cobros
                 </Typography>
-                <Box sx={{ 
-                  display: 'grid', 
-                  gridTemplateColumns: { xs: 'repeat(2, 1fr)', sm: 'repeat(5, 1fr)' }, 
-                  gap: { xs: 1, sm: 2 },
-                  overflowX: 'auto'
-                }}>
-                  <Box sx={{ textAlign: 'center', p: { xs: 1.5, sm: 2 }, borderRadius: 2, bgcolor: alpha(theme.palette.info.main, 0.1) }}>
-                    <Typography variant="h3" color="info.main" fontWeight={600} sx={{ fontSize: { xs: '1.75rem', sm: '2.5rem' } }}>
-                      {report.collections?.totalDue || 0}
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary" sx={{ mt: 1, fontSize: { xs: '0.7rem', sm: '0.875rem' } }}>
-                      Total a Cobrar
-                    </Typography>
-                  </Box>
-                  <Box sx={{ textAlign: 'center', p: { xs: 1.5, sm: 2 }, borderRadius: 2, bgcolor: alpha(theme.palette.success.main, 0.1) }}>
-                    <Typography variant="h3" color="success.main" fontWeight={600} sx={{ fontSize: { xs: '1.75rem', sm: '2.5rem' } }}>
-                      {report.collections?.collected?.full || 0}
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary" sx={{ mt: 1, fontSize: { xs: '0.7rem', sm: '0.875rem' } }}>
-                      Cobros Completos
-                    </Typography>
-                  </Box>
-                  <Box sx={{ textAlign: 'center', p: { xs: 1.5, sm: 2 }, borderRadius: 2, bgcolor: alpha(theme.palette.warning.main, 0.1) }}>
-                    <Typography variant="h3" color="warning.main" fontWeight={600} sx={{ fontSize: { xs: '1.75rem', sm: '2.5rem' } }}>
-                      {report.collections?.collected?.partial || 0}
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary" sx={{ mt: 1, fontSize: { xs: '0.7rem', sm: '0.875rem' } }}>
-                      Cobros Parciales
-                    </Typography>
-                  </Box>
-                  <Box sx={{ textAlign: 'center', p: { xs: 1.5, sm: 2 }, borderRadius: 2, bgcolor: alpha(theme.palette.success.main, 0.15) }}>
-                    <Typography variant="h3" color="success.dark" fontWeight={600} sx={{ fontSize: { xs: '1.75rem', sm: '2.5rem' } }}>
-                      {report.collections?.collected?.total || 0}
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary" sx={{ mt: 1, fontSize: { xs: '0.7rem', sm: '0.875rem' } }}>
-                      Total Cobrado
-                    </Typography>
-                  </Box>
-                  <Box sx={{ textAlign: 'center', p: { xs: 1.5, sm: 2 }, borderRadius: 2, bgcolor: alpha(theme.palette.error.main, 0.1) }}>
-                    <Typography variant="h3" color="error.main" fontWeight={600} sx={{ fontSize: { xs: '1.75rem', sm: '2.5rem' } }}>
-                      {report.collections?.failed || 0}
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary" sx={{ mt: 1, fontSize: { xs: '0.7rem', sm: '0.875rem' } }}>
-                      No Cobrados
-                    </Typography>
-                  </Box>
+
+                {/* Grid 3x2 compacto — cantidades y porcentajes */}
+                <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 1, mb: 1.5 }}>
+                  {[
+                    { label: 'A Cobrar', value: report.collections?.totalDue || 0, color: 'info.main', isCount: true },
+                    { label: 'Completos', value: report.collections?.collected?.full || 0, color: 'success.main', isCount: true },
+                    { label: 'Parciales', value: report.collections?.collected?.partial || 0, color: 'warning.main', isCount: true },
+                    { label: 'Total Cobrado', value: report.collections?.collected?.total || 0, color: 'success.dark', isCount: true },
+                    { label: 'No Cobrados', value: report.collections?.failed || 0, color: 'error.main', isCount: true },
+                    {
+                      label: 'Eficiencia',
+                      value: report.collections?.totalDue && report.collections?.collected?.total
+                        ? ((report.collections.collected.total / report.collections.totalDue) * 100)
+                        : 0,
+                      color: 'primary.main',
+                      isPercent: true,
+                    },
+                  ].map((stat) => (
+                    <Box key={stat.label} sx={{ textAlign: 'center', p: 1, borderRadius: 1, bgcolor: alpha(theme.palette.grey[500], 0.06) }}>
+                      <Typography variant="h6" fontWeight={700} color={stat.color} sx={{ fontSize: { xs: '1.1rem', sm: '1.25rem' }, lineHeight: 1.2 }}>
+                        {'isPercent' in stat && stat.isPercent
+                          ? `${(stat.value as number).toFixed(1)}%`
+                          : stat.value}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.65rem' }}>
+                        {stat.label}
+                      </Typography>
+                    </Box>
+                  ))}
+                </Box>
+
+                <Divider sx={{ my: 1.5 }} />
+
+                {/* 3 montos */}
+                <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 1 }}>
+                  {[
+                    { label: 'Monto a Cobrar', value: report.collections?.amounts?.totalDue || 0, color: 'info.main' },
+                    { label: 'Monto Cobrado', value: report.collections?.amounts?.totalCollected || 0, color: 'success.main' },
+                    { label: 'Pendiente', value: (report.collections?.amounts?.totalDue || 0) - (report.collections?.amounts?.totalCollected || 0), color: 'error.main' },
+                  ].map((monto) => (
+                    <Box key={monto.label} sx={{ textAlign: 'center', p: 1, borderRadius: 1, bgcolor: alpha(theme.palette.grey[500], 0.06) }}>
+                      <Typography variant="body2" fontWeight={700} color={monto.color} sx={{ fontSize: { xs: '0.85rem', sm: '0.9rem' } }}>
+                        {formatCurrencyCompact(monto.value)}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.65rem' }}>
+                        {monto.label}
+                      </Typography>
+                    </Box>
+                  ))}
                 </Box>
               </Paper>
 
-              {/* Collection Stats - Porcentajes */}
-              <Paper sx={{ p: { xs: 2, sm: 3 }, mb: 3, overflow: 'hidden' }}>
-                <Typography variant="h6" fontWeight={600} sx={{ mb: 3, fontSize: { xs: '1rem', sm: '1.25rem' } }}>
-                  Estadísticas de Cobros - Porcentajes
-                </Typography>
-                <Box sx={{ 
-                  display: 'grid', 
-                  gridTemplateColumns: { xs: 'repeat(2, 1fr)', sm: 'repeat(4, 1fr)' }, 
-                  gap: { xs: 1, sm: 2 }
-                }}>
-                  <Box sx={{ textAlign: 'center', p: 2, borderRadius: 2, bgcolor: alpha(theme.palette.success.main, 0.1) }}>
-                    <Typography variant="h3" color="success.main" fontWeight={600}>
-                      {report.collections?.percentages?.full?.toFixed(2) || 0}%
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-                      % Completos
-                    </Typography>
-                  </Box>
-                  <Box sx={{ textAlign: 'center', p: 2, borderRadius: 2, bgcolor: alpha(theme.palette.warning.main, 0.1) }}>
-                    <Typography variant="h3" color="warning.main" fontWeight={600}>
-                      {report.collections?.percentages?.partial?.toFixed(2) || 0}%
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-                      % Parciales
-                    </Typography>
-                  </Box>
-                  <Box sx={{ textAlign: 'center', p: 2, borderRadius: 2, bgcolor: alpha(theme.palette.error.main, 0.1) }}>
-                    <Typography variant="h3" color="error.main" fontWeight={600}>
-                      {report.collections?.percentages?.failed?.toFixed(2) || 0}%
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-                      % No Cobrados
-                    </Typography>
-                  </Box>
-                  <Box sx={{ textAlign: 'center', p: 2, borderRadius: 2, bgcolor: alpha(theme.palette.primary.main, 0.1) }}>
-                    <Typography variant="h3" color="primary.main" fontWeight={600}>
-                      {report.collections?.totalDue && report.collections?.collected?.total 
-                        ? ((report.collections.collected.total / report.collections.totalDue) * 100).toFixed(2)
-                        : 0}%
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-                      Eficiencia Total
-                    </Typography>
-                  </Box>
-                </Box>
+              {/* ── Comisión — fila cliqueable ── */}
+              <Paper sx={{ mb: 2, bgcolor: '#FFFFFF', overflow: 'hidden' }}>
+                <ListItem
+                  component="div"
+                  onClick={() => setCommissionDrawerOpen(true)}
+                  sx={{ py: 1.5, px: 2, cursor: 'pointer', '&:hover': { bgcolor: 'action.hover' } }}
+                >
+                  <ListItemIcon sx={{ minWidth: 36 }}>
+                    <AccountBalance sx={{ fontSize: 20, color: 'primary.main' }} />
+                  </ListItemIcon>
+                  <ListItemText
+                    primary="Comisión del Cobrador"
+                    secondary={`${report.commission?.percentage ?? 0}% — ${formatCurrencyCompact(report.commission?.commissionAmount ?? 0)}`}
+                    primaryTypographyProps={{ variant: 'body2', fontWeight: 600 }}
+                    secondaryTypographyProps={{ variant: 'caption' }}
+                  />
+                  <ChevronRight sx={{ color: 'text.disabled' }} />
+                </ListItem>
               </Paper>
 
-              {/* Collection Stats - Montos */}
-              <Paper sx={{ p: { xs: 2, sm: 3 }, mb: 3 }}>
-                <Typography variant="h6" fontWeight={600} sx={{ mb: 3, fontSize: { xs: '1rem', sm: '1.25rem' } }}>
-                  Montos de Cobros
-                </Typography>
-                <Box sx={{ 
-                  display: 'grid', 
-                  gridTemplateColumns: { xs: '1fr', sm: 'repeat(3, 1fr)' }, 
-                  gap: { xs: 1.5, sm: 2 }
-                }}>
-                  <Box sx={{ textAlign: 'center', p: { xs: 1.5, sm: 2 }, borderRadius: 2, bgcolor: alpha(theme.palette.info.main, 0.1), minWidth: 0 }}>
-                    <Typography variant="h4" color="info.main" fontWeight={600} sx={{ fontSize: { xs: '1.25rem', sm: '2rem' }, wordBreak: 'break-word' }}>
-                      {formatCurrency(report.collections?.amounts?.totalDue || 0)}
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary" sx={{ mt: 1, fontSize: { xs: '0.7rem', sm: '0.875rem' } }}>
-                      Monto Total a Cobrar
-                    </Typography>
-                  </Box>
-                  <Box sx={{ textAlign: 'center', p: { xs: 1.5, sm: 2 }, borderRadius: 2, bgcolor: alpha(theme.palette.success.main, 0.1), minWidth: 0 }}>
-                    <Typography variant="h4" color="success.main" fontWeight={600} sx={{ fontSize: { xs: '1.25rem', sm: '2rem' }, wordBreak: 'break-word' }}>
-                      {formatCurrency(report.collections?.amounts?.totalCollected || 0)}
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary" sx={{ mt: 1, fontSize: { xs: '0.7rem', sm: '0.875rem' } }}>
-                      Monto Total Cobrado
-                    </Typography>
-                  </Box>
-                  <Box sx={{ textAlign: 'center', p: { xs: 1.5, sm: 2 }, borderRadius: 2, bgcolor: alpha(theme.palette.error.main, 0.1), minWidth: 0 }}>
-                    <Typography variant="h4" color="error.main" fontWeight={600} sx={{ fontSize: { xs: '1.25rem', sm: '2rem' }, wordBreak: 'break-word' }}>
-                      {formatCurrency((report.collections?.amounts?.totalDue || 0) - (report.collections?.amounts?.totalCollected || 0))}
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary" sx={{ mt: 1, fontSize: { xs: '0.7rem', sm: '0.875rem' } }}>
-                      Pendiente de Cobrar
-                    </Typography>
-                  </Box>
-                </Box>
+              {/* ── Resumen Financiero — fila cliqueable ── */}
+              <Paper sx={{ mb: 2, bgcolor: '#FFFFFF', overflow: 'hidden' }}>
+                <ListItem
+                  component="div"
+                  onClick={() => setFinancialSummaryDrawerOpen(true)}
+                  sx={{ py: 1.5, px: 2, cursor: 'pointer', '&:hover': { bgcolor: 'action.hover' } }}
+                >
+                  <ListItemIcon sx={{ minWidth: 36 }}>
+                    <Assessment sx={{ fontSize: 20, color: 'primary.main' }} />
+                  </ListItemIcon>
+                  <ListItemText
+                    primary="Resumen Financiero Completo"
+                    secondary="Ver desglose detallado"
+                    primaryTypographyProps={{ variant: 'body2', fontWeight: 600 }}
+                    secondaryTypographyProps={{ variant: 'caption' }}
+                  />
+                  <ChevronRight sx={{ color: 'text.disabled' }} />
+                </ListItem>
               </Paper>
 
-              {/* Comisión */}
-              <Paper sx={{ p: { xs: 2, sm: 3 }, mb: 3, background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)', color: 'white' }}>
-                <Typography variant="h6" fontWeight={600} sx={{ mb: 3, fontSize: { xs: '1rem', sm: '1.25rem' } }}>
-                  Comisión del Cobrador
-                </Typography>
-                <Box sx={{ 
-                  display: 'grid', 
-                  gridTemplateColumns: { xs: '1fr', sm: 'repeat(3, 1fr)' }, 
-                  gap: { xs: 1.5, sm: 2 }
-                }}>
-                  <Box sx={{ textAlign: 'center', p: { xs: 1.5, sm: 2 }, borderRadius: 2, bgcolor: 'rgba(255,255,255,0.2)', minWidth: 0 }}>
-                    <Typography variant="h4" fontWeight={600} sx={{ fontSize: { xs: '1.25rem', sm: '2rem' }, wordBreak: 'break-word' }}>
-                      {report.commission?.percentage || 0}%
-                    </Typography>
-                    <Typography variant="body2" sx={{ mt: 1, opacity: 0.9, fontSize: { xs: '0.7rem', sm: '0.875rem' } }}>
-                      Porcentaje de Comisión
-                    </Typography>
-                  </Box>
-                  <Box sx={{ textAlign: 'center', p: { xs: 1.5, sm: 2 }, borderRadius: 2, bgcolor: 'rgba(255,255,255,0.2)', minWidth: 0 }}>
-                    <Typography variant="h4" fontWeight={600} sx={{ fontSize: { xs: '1.25rem', sm: '2rem' }, wordBreak: 'break-word' }}>
-                      {formatCurrency(report.commission?.baseAmount || 0)}
-                    </Typography>
-                    <Typography variant="body2" sx={{ mt: 1, opacity: 0.9, fontSize: { xs: '0.7rem', sm: '0.875rem' } }}>
-                      Monto Base
-                    </Typography>
-                  </Box>
-                  <Box sx={{ textAlign: 'center', p: { xs: 1.5, sm: 2 }, borderRadius: 2, bgcolor: 'rgba(255,255,255,0.3)', minWidth: 0 }}>
-                    <Typography variant="h4" fontWeight={600} sx={{ fontSize: { xs: '1.25rem', sm: '2rem' }, wordBreak: 'break-word' }}>
-                      {formatCurrency(report.commission?.commissionAmount || 0)}
-                    </Typography>
-                    <Typography variant="body2" sx={{ mt: 1, opacity: 0.9, fontSize: { xs: '0.7rem', sm: '0.875rem' } }}>
-                      Comisión Total
-                    </Typography>
-                  </Box>
-                </Box>
-              </Paper>
-
-              {/* Gastos Detallados */}
-              <Paper sx={{ p: { xs: 2, sm: 3 }, mb: 3 }}>
-                <Typography variant="h6" fontWeight={600} sx={{ mb: 3, fontSize: { xs: '1rem', sm: '1.25rem' } }}>
+              {/* ── Gastos del Período ── */}
+              <Paper sx={{ p: { xs: 2, sm: 3 }, mb: 2, bgcolor: '#FFFFFF' }}>
+                <Typography variant="subtitle2" fontWeight={600} sx={{ mb: 1.5 }}>
                   Gastos del Período
                 </Typography>
-                
-                {/* Total de gastos */}
-                <Box sx={{ mb: 3, p: 2, borderRadius: 2, bgcolor: alpha(theme.palette.error.main, 0.1), textAlign: 'center' }}>
-                  <Typography variant="h4" color="error.main" fontWeight={600}>
+
+                <Box sx={{ mb: 2, p: 1.5, borderRadius: 1, bgcolor: alpha(theme.palette.error.main, 0.08), textAlign: 'center' }}>
+                  <Typography variant="h5" color="error.main" fontWeight={700}>
                     {formatCurrency(report.expenses?.total || 0)}
                   </Typography>
-                  <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-                    Total de Gastos
-                  </Typography>
+                  <Typography variant="caption" color="text.secondary">Total de Gastos</Typography>
                 </Box>
 
-                {/* Gastos por categoría */}
                 {report.expenses?.byCategory && Object.keys(report.expenses.byCategory).length > 0 && (
                   <>
-                    <Typography variant="subtitle2" fontWeight={600} sx={{ mb: 2 }}>
-                      Desglose por Categoría
+                    <Typography variant="caption" fontWeight={600} color="text.secondary" sx={{ display: 'block', mb: 1 }}>
+                      Por categoría
                     </Typography>
-                    <Box sx={{ 
-                      display: 'grid', 
-                      gridTemplateColumns: { xs: '1fr 1fr', sm: 'repeat(4, 1fr)' }, 
-                      gap: 2,
-                      mb: 3 
-                    }}>
+                    <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr 1fr', sm: 'repeat(4, 1fr)' }, gap: 1, mb: 2 }}>
                       {report.expenses.byCategory.COMBUSTIBLE !== undefined && (
-                        <Box sx={{ p: 2, borderRadius: 1, bgcolor: alpha(theme.palette.warning.main, 0.1), textAlign: 'center' }}>
-                          <Typography variant="h6" color="warning.main" fontWeight={600}>
-                            {formatCurrency(report.expenses.byCategory.COMBUSTIBLE)}
-                          </Typography>
-                          <Typography variant="caption" color="text.secondary">
-                            Combustible
-                          </Typography>
+                        <Box sx={{ p: 1.5, borderRadius: 1, bgcolor: alpha(theme.palette.warning.main, 0.08), textAlign: 'center' }}>
+                          <Typography variant="body2" color="warning.main" fontWeight={600}>{formatCurrency(report.expenses.byCategory.COMBUSTIBLE)}</Typography>
+                          <Typography variant="caption" color="text.secondary">Combustible</Typography>
                         </Box>
                       )}
                       {report.expenses.byCategory.CONSUMO !== undefined && (
-                        <Box sx={{ p: 2, borderRadius: 1, bgcolor: alpha(theme.palette.info.main, 0.1), textAlign: 'center' }}>
-                          <Typography variant="h6" color="info.main" fontWeight={600}>
-                            {formatCurrency(report.expenses.byCategory.CONSUMO)}
-                          </Typography>
-                          <Typography variant="caption" color="text.secondary">
-                            Consumo
-                          </Typography>
+                        <Box sx={{ p: 1.5, borderRadius: 1, bgcolor: alpha(theme.palette.info.main, 0.08), textAlign: 'center' }}>
+                          <Typography variant="body2" color="info.main" fontWeight={600}>{formatCurrency(report.expenses.byCategory.CONSUMO)}</Typography>
+                          <Typography variant="caption" color="text.secondary">Consumo</Typography>
                         </Box>
                       )}
                       {report.expenses.byCategory.REPARACIONES !== undefined && (
-                        <Box sx={{ p: 2, borderRadius: 1, bgcolor: alpha(theme.palette.error.main, 0.1), textAlign: 'center' }}>
-                          <Typography variant="h6" color="error.main" fontWeight={600}>
-                            {formatCurrency(report.expenses.byCategory.REPARACIONES)}
-                          </Typography>
-                          <Typography variant="caption" color="text.secondary">
-                            Reparaciones
-                          </Typography>
+                        <Box sx={{ p: 1.5, borderRadius: 1, bgcolor: alpha(theme.palette.error.main, 0.08), textAlign: 'center' }}>
+                          <Typography variant="body2" color="error.main" fontWeight={600}>{formatCurrency(report.expenses.byCategory.REPARACIONES)}</Typography>
+                          <Typography variant="caption" color="text.secondary">Reparaciones</Typography>
                         </Box>
                       )}
                       {report.expenses.byCategory.OTROS !== undefined && (
-                        <Box sx={{ p: 2, borderRadius: 1, bgcolor: alpha(theme.palette.grey[500], 0.1), textAlign: 'center' }}>
-                          <Typography variant="h6" color="text.primary" fontWeight={600}>
-                            {formatCurrency(report.expenses.byCategory.OTROS)}
-                          </Typography>
-                          <Typography variant="caption" color="text.secondary">
-                            Otros
-                          </Typography>
+                        <Box sx={{ p: 1.5, borderRadius: 1, bgcolor: alpha(theme.palette.grey[500], 0.08), textAlign: 'center' }}>
+                          <Typography variant="body2" color="text.primary" fontWeight={600}>{formatCurrency(report.expenses.byCategory.OTROS)}</Typography>
+                          <Typography variant="caption" color="text.secondary">Otros</Typography>
                         </Box>
                       )}
                     </Box>
                   </>
                 )}
 
-                {/* Detalle de gastos */}
                 {report.expenses?.detail && report.expenses.detail.length > 0 && (
                   <>
-                    <Typography variant="subtitle2" fontWeight={600} sx={{ mb: 2 }}>
-                      Detalle de Gastos
+                    <Typography variant="caption" fontWeight={600} color="text.secondary" sx={{ display: 'block', mb: 1 }}>
+                      Detalle
                     </Typography>
-                    <TableContainer sx={{ overflowX: 'auto', maxWidth: '100%' }}>
+                    <TableContainer sx={{ overflowX: 'auto' }}>
                       <Table size="small" sx={{ minWidth: 400 }}>
                         <TableHead>
                           <TableRow>
@@ -1138,22 +791,12 @@ export default function CollectorReportView({
                         </TableHead>
                         <TableBody>
                           {report.expenses.detail.map((expense, index) => (
-                            <TableRow key={index} sx={{ '&:hover': { bgcolor: alpha(theme.palette.primary.light, 0.05) } }}>
-                              <TableCell>
-                                <Typography variant="caption">
-                                  {formatDate(expense.date)}
-                                </Typography>
-                              </TableCell>
-                              <TableCell>
-                                <Chip label={expense.category} size="small" color="default" />
-                              </TableCell>
-                              <TableCell>
-                                <Typography variant="body2">{expense.description}</Typography>
-                              </TableCell>
+                            <TableRow key={index} hover>
+                              <TableCell><Typography variant="caption">{formatDate(expense.date)}</Typography></TableCell>
+                              <TableCell><Chip label={expense.category} size="small" /></TableCell>
+                              <TableCell><Typography variant="body2">{expense.description}</Typography></TableCell>
                               <TableCell align="right">
-                                <Typography variant="body2" fontWeight={600} color="error.main">
-                                  {formatCurrency(expense.amount)}
-                                </Typography>
+                                <Typography variant="body2" fontWeight={600} color="error.main">{formatCurrency(expense.amount)}</Typography>
                               </TableCell>
                             </TableRow>
                           ))}
@@ -1170,103 +813,10 @@ export default function CollectorReportView({
                 )}
               </Paper>
 
-              {/* Resumen Financiero Completo (Summary) */}
-              <Paper sx={{ p: { xs: 2, sm: 3 }, mb: 3, background: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)', color: 'white' }}>
-                <Typography variant="h6" fontWeight={600} sx={{ mb: 3, fontSize: { xs: '1rem', sm: '1.25rem' } }}>
-                  Resumen Financiero Completo
-                </Typography>
-                
-                {/* Primera fila: Ingresos y Egresos */}
-                <Box sx={{ 
-                  display: 'grid', 
-                  gridTemplateColumns: { xs: '1fr', sm: 'repeat(3, 1fr)' }, 
-                  gap: 2,
-                  mb: 2
-                }}>
-                  <Box sx={{ p: 2.5, borderRadius: 2, bgcolor: 'rgba(255,255,255,0.2)', border: '1px solid rgba(255,255,255,0.3)' }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-                      <TrendingUp sx={{ fontSize: 20 }} />
-                      <Typography variant="caption" sx={{ opacity: 0.9, fontWeight: 500 }}>
-                        Total Cobros
-                      </Typography>
-                    </Box>
-                    <Typography variant="h5" fontWeight={700}>
-                      {formatCurrency(report.summary?.totalCollections || 0)}
-                    </Typography>
-                  </Box>
-                  <Box sx={{ p: 2.5, borderRadius: 2, bgcolor: 'rgba(255,255,255,0.2)', border: '1px solid rgba(255,255,255,0.3)' }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-                      <TrendingDown sx={{ fontSize: 20 }} />
-                      <Typography variant="caption" sx={{ opacity: 0.9, fontWeight: 500 }}>
-                        Total Retiros
-                      </Typography>
-                    </Box>
-                    <Typography variant="h5" fontWeight={700}>
-                      {formatCurrency(report.summary?.totalWithdrawals || 0)}
-                    </Typography>
-                  </Box>
-                  <Box sx={{ p: 2.5, borderRadius: 2, bgcolor: 'rgba(255,255,255,0.2)', border: '1px solid rgba(255,255,255,0.3)' }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-                      <Receipt sx={{ fontSize: 20 }} />
-                      <Typography variant="caption" sx={{ opacity: 0.9, fontWeight: 500 }}>
-                        Total Gastos
-                      </Typography>
-                    </Box>
-                    <Typography variant="h5" fontWeight={700}>
-                      {formatCurrency(report.summary?.totalExpenses || 0)}
-                    </Typography>
-                  </Box>
-                </Box>
-
-                {/* Divider visual */}
-                <Divider sx={{ my: 3, borderColor: 'rgba(255,255,255,0.3)' }} />
-
-                {/* Segunda fila: Cálculos Netos */}
-                <Box sx={{ 
-                  display: 'grid', 
-                  gridTemplateColumns: { xs: '1fr', sm: 'repeat(3, 1fr)' }, 
-                  gap: { xs: 1.5, sm: 2 }
-                }}>
-                  <Box sx={{ p: { xs: 1.5, sm: 2.5 }, borderRadius: 2, bgcolor: 'rgba(255,255,255,0.25)', border: '1px solid rgba(255,255,255,0.4)', minWidth: 0 }}>
-                    <Typography variant="caption" sx={{ opacity: 0.9, fontWeight: 500, mb: 1, display: 'block', fontSize: { xs: '0.65rem', sm: '0.75rem' } }}>
-                      Neto Antes de Comisión
-                    </Typography>
-                    <Typography variant="h6" fontWeight={700} sx={{ fontSize: { xs: '1rem', sm: '1.25rem' }, wordBreak: 'break-word' }}>
-                      {formatCurrency(report.summary?.netBeforeCommission || 0)}
-                    </Typography>
-                    <Typography variant="caption" sx={{ opacity: 0.8, mt: 0.5, display: 'block', fontSize: { xs: '0.6rem', sm: '0.7rem' } }}>
-                      Cobros - Retiros - Gastos
-                    </Typography>
-                  </Box>
-                  <Box sx={{ p: { xs: 1.5, sm: 2.5 }, borderRadius: 2, bgcolor: 'rgba(255,255,255,0.25)', border: '1px solid rgba(255,255,255,0.4)', minWidth: 0 }}>
-                    <Typography variant="caption" sx={{ opacity: 0.9, fontWeight: 500, mb: 1, display: 'block', fontSize: { xs: '0.65rem', sm: '0.75rem' } }}>
-                      Comisión
-                    </Typography>
-                    <Typography variant="h6" fontWeight={700} sx={{ fontSize: { xs: '1rem', sm: '1.25rem' }, wordBreak: 'break-word' }}>
-                      {formatCurrency(report.summary?.commission || 0)}
-                    </Typography>
-                    <Typography variant="caption" sx={{ opacity: 0.8, mt: 0.5, display: 'block', fontSize: { xs: '0.6rem', sm: '0.7rem' }, wordBreak: 'break-word' }}>
-                      {report.commission?.percentage || 0}% sobre {formatCurrency(report.commission?.baseAmount || 0)}
-                    </Typography>
-                  </Box>
-                  <Box sx={{ p: { xs: 1.5, sm: 2.5 }, borderRadius: 2, bgcolor: 'rgba(255,255,255,0.35)', border: '2px solid rgba(255,255,255,0.5)', minWidth: 0 }}>
-                    <Typography variant="caption" sx={{ opacity: 0.9, fontWeight: 600, mb: 1, display: 'block', fontSize: { xs: '0.65rem', sm: '0.75rem' } }}>
-                      Neto Final
-                    </Typography>
-                    <Typography variant="h4" fontWeight={700} sx={{ fontSize: { xs: '1.25rem', sm: '2rem' }, wordBreak: 'break-word' }}>
-                      {formatCurrency(report.summary?.netAfterCommission || 0)}
-                    </Typography>
-                    <Typography variant="caption" sx={{ opacity: 0.9, mt: 0.5, display: 'block', fontSize: { xs: '0.6rem', sm: '0.7rem' }, fontWeight: 500 }}>
-                      Después de Comisión
-                    </Typography>
-                  </Box>
-                </Box>
-              </Paper>
-
-              {/* Transactions */}
-              <Paper sx={{ p: { xs: 1, sm: 3 }, mb: 3 }}>
+              {/* ── Transacciones Wallet ── */}
+              <Paper sx={{ p: { xs: 1.5, sm: 3 }, mb: 2, bgcolor: '#FFFFFF' }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
-                  <Typography variant="h6" fontWeight={600} sx={{ fontSize: { xs: '1.1rem', sm: '1.25rem' } }}>
+                  <Typography variant="subtitle2" fontWeight={600}>
                     Transacciones de la Wallet
                   </Typography>
                   {report.collectorWallet?.transactions && report.collectorWallet.transactions.length > 0 && (
@@ -1302,8 +852,7 @@ export default function CollectorReportView({
 
                 {report.collectorWallet?.transactions && report.collectorWallet.transactions.length > 0 ? (
                   txViewMode === 'list' ? (
-                    /* LIST VIEW */
-                    <TableContainer sx={{ overflowX: 'auto', maxWidth: '100%' }}>
+                    <TableContainer sx={{ overflowX: 'auto' }}>
                       <Table sx={{ minWidth: 600 }}>
                         <TableHead>
                           <TableRow>
@@ -1318,11 +867,7 @@ export default function CollectorReportView({
                         <TableBody>
                           {report.collectorWallet.transactions.map((tx) => (
                             <TableRow key={tx.id} hover>
-                              <TableCell>
-                                <Typography variant="body2">
-                                  {formatDate(tx.createdAt)}
-                                </Typography>
-                              </TableCell>
+                              <TableCell><Typography variant="body2">{formatDate(tx.createdAt)}</Typography></TableCell>
                               <TableCell>
                                 <Chip
                                   icon={getTransactionIcon(tx.type)}
@@ -1332,27 +877,11 @@ export default function CollectorReportView({
                                   sx={{ fontWeight: 600 }}
                                 />
                               </TableCell>
-                              <TableCell>
-                                <Typography variant="body2">
-                                  {tx.description}
-                                </Typography>
-                              </TableCell>
+                              <TableCell><Typography variant="body2">{tx.description}</Typography></TableCell>
+                              <TableCell align="right"><Typography variant="body2" color="text.secondary">{formatCurrency(tx.balanceBefore)}</Typography></TableCell>
+                              <TableCell align="right"><Typography variant="body2" fontWeight={600}>{formatCurrency(tx.balanceAfter)}</Typography></TableCell>
                               <TableCell align="right">
-                                <Typography variant="body2" color="text.secondary">
-                                  {formatCurrency(tx.balanceBefore)}
-                                </Typography>
-                              </TableCell>
-                              <TableCell align="right">
-                                <Typography variant="body2" fontWeight={600}>
-                                  {formatCurrency(tx.balanceAfter)}
-                                </Typography>
-                              </TableCell>
-                              <TableCell align="right">
-                                <Typography
-                                  variant="body1"
-                                  fontWeight={600}
-                                  color={getAmountColor(tx.type, tx.amount)}
-                                >
+                                <Typography variant="body1" fontWeight={600} color={getAmountColor(tx.type, tx.amount)}>
                                   {getTransactionSign(tx.type, tx.amount)}{formatCurrency(Math.abs(tx.amount))}
                                 </Typography>
                               </TableCell>
@@ -1362,7 +891,6 @@ export default function CollectorReportView({
                       </Table>
                     </TableContainer>
                   ) : (
-                    /* CARDS VIEW */
                     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
                       {report.collectorWallet.transactions.map((tx) => (
                         <Card
@@ -1375,8 +903,7 @@ export default function CollectorReportView({
                               : 'error.main',
                           }}
                         >
-                          <CardContent sx={{ px: { xs: 1.5, sm: 2 }, py: { xs: 1.25, sm: 1.5 }, '&:last-child': { pb: { xs: 1.25, sm: 1.5 } } }}>
-                            {/* Row 1: Type chip */}
+                          <CardContent sx={{ px: 2, py: 1.5, '&:last-child': { pb: 1.5 } }}>
                             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 0.5 }}>
                               <Chip
                                 icon={getTransactionIcon(tx.type)}
@@ -1386,32 +913,15 @@ export default function CollectorReportView({
                                 sx={{ fontWeight: 600 }}
                               />
                             </Box>
-                            {/* Row 2: Amount */}
-                            <Typography
-                              variant="h6"
-                              fontWeight={700}
-                              color={getAmountColor(tx.type, tx.amount)}
-                              sx={{ fontSize: '1.25rem', mb: 0.5 }}
-                            >
+                            <Typography variant="h6" fontWeight={700} color={getAmountColor(tx.type, tx.amount)} sx={{ fontSize: '1.1rem', mb: 0.5 }}>
                               {getTransactionSign(tx.type, tx.amount)}{formatCurrency(Math.abs(tx.amount))}
                             </Typography>
-                            {/* Row 2: Description */}
-                            <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                              {tx.description}
-                            </Typography>
-                            {/* Row 3: Date */}
-                            <Typography variant="caption" color="text.disabled" sx={{ mb: 0.5, display: 'block' }}>
-                              {formatDate(tx.createdAt)}
-                            </Typography>
-                            {/* Row 4: Balances */}
+                            <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>{tx.description}</Typography>
+                            <Typography variant="caption" color="text.disabled" sx={{ display: 'block', mb: 0.5 }}>{formatDate(tx.createdAt)}</Typography>
                             <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
-                              <Typography variant="caption" color="text.disabled">
-                                {formatCurrency(tx.balanceBefore)}
-                              </Typography>
+                              <Typography variant="caption" color="text.disabled">{formatCurrency(tx.balanceBefore)}</Typography>
                               <Typography variant="caption" color="text.disabled">→</Typography>
-                              <Typography variant="caption" fontWeight={600}>
-                                {formatCurrency(tx.balanceAfter)}
-                              </Typography>
+                              <Typography variant="caption" fontWeight={600}>{formatCurrency(tx.balanceAfter)}</Typography>
                             </Box>
                           </CardContent>
                         </Card>
@@ -1424,12 +934,105 @@ export default function CollectorReportView({
                   </Typography>
                 )}
               </Paper>
+
             </Box>
           )}
         </Box>
       </Box>
+
+      {/* ── BottomSheet Comisión ── */}
+      <SwipeableDrawer
+        anchor="bottom"
+        open={commissionDrawerOpen}
+        onOpen={() => setCommissionDrawerOpen(true)}
+        onClose={() => setCommissionDrawerOpen(false)}
+        PaperProps={{ sx: { borderRadius: '20px 20px 0 0', maxHeight: '90vh', overflowY: 'auto' } }}
+      >
+        <Box sx={{ p: 3, pb: 'calc(24px + env(safe-area-inset-bottom))' }}>
+          <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 2 }}>Comisión del Cobrador</Typography>
+          {report && (
+            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(3, 1fr)' }, gap: 2 }}>
+              <Box sx={{ textAlign: 'center', p: 2, borderRadius: 2, bgcolor: alpha(theme.palette.primary.main, 0.08) }}>
+                <Typography variant="h4" color="primary.main" fontWeight={700}>
+                  {report.commission?.percentage || 0}%
+                </Typography>
+                <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>Porcentaje</Typography>
+              </Box>
+              <Box sx={{ textAlign: 'center', p: 2, borderRadius: 2, bgcolor: alpha(theme.palette.primary.main, 0.08) }}>
+                <Typography variant="h5" color="primary.main" fontWeight={700} sx={{ wordBreak: 'break-word' }}>
+                  {formatCurrency(report.commission?.baseAmount || 0)}
+                </Typography>
+                <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>Monto Base</Typography>
+              </Box>
+              <Box sx={{ textAlign: 'center', p: 2, borderRadius: 2, bgcolor: alpha(theme.palette.success.main, 0.08) }}>
+                <Typography variant="h5" color="success.main" fontWeight={700} sx={{ wordBreak: 'break-word' }}>
+                  {formatCurrency(report.commission?.commissionAmount || 0)}
+                </Typography>
+                <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>Comisión Total</Typography>
+              </Box>
+            </Box>
+          )}
+        </Box>
+      </SwipeableDrawer>
+
+      {/* ── BottomSheet Resumen Financiero ── */}
+      <SwipeableDrawer
+        anchor="bottom"
+        open={financialSummaryDrawerOpen}
+        onOpen={() => setFinancialSummaryDrawerOpen(true)}
+        onClose={() => setFinancialSummaryDrawerOpen(false)}
+        PaperProps={{ sx: { borderRadius: '20px 20px 0 0', maxHeight: '90vh', overflowY: 'auto' } }}
+      >
+        <Box sx={{ p: 3, pb: 'calc(24px + env(safe-area-inset-bottom))' }}>
+          <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 2 }}>Resumen Financiero Completo</Typography>
+          {report && (
+            <>
+              <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(3, 1fr)' }, gap: 2, mb: 2 }}>
+                <Box sx={{ p: 2, borderRadius: 2, bgcolor: alpha(theme.palette.success.main, 0.08) }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
+                    <TrendingUp sx={{ fontSize: 18, color: 'success.main' }} />
+                    <Typography variant="caption" color="text.secondary">Total Cobros</Typography>
+                  </Box>
+                  <Typography variant="h6" color="success.main" fontWeight={700}>{formatCurrency(report.summary?.totalCollections || 0)}</Typography>
+                </Box>
+                <Box sx={{ p: 2, borderRadius: 2, bgcolor: alpha(theme.palette.warning.main, 0.08) }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
+                    <TrendingDown sx={{ fontSize: 18, color: 'warning.main' }} />
+                    <Typography variant="caption" color="text.secondary">Total Retiros</Typography>
+                  </Box>
+                  <Typography variant="h6" color="warning.main" fontWeight={700}>{formatCurrency(report.summary?.totalWithdrawals || 0)}</Typography>
+                </Box>
+                <Box sx={{ p: 2, borderRadius: 2, bgcolor: alpha(theme.palette.error.main, 0.08) }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
+                    <Receipt sx={{ fontSize: 18, color: 'error.main' }} />
+                    <Typography variant="caption" color="text.secondary">Total Gastos</Typography>
+                  </Box>
+                  <Typography variant="h6" color="error.main" fontWeight={700}>{formatCurrency(report.summary?.totalExpenses || 0)}</Typography>
+                </Box>
+              </Box>
+              <Divider sx={{ my: 2 }} />
+              <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(3, 1fr)' }, gap: 2 }}>
+                <Box sx={{ p: 2, borderRadius: 2, bgcolor: alpha(theme.palette.grey[500], 0.06) }}>
+                  <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>Neto Antes de Comisión</Typography>
+                  <Typography variant="h6" fontWeight={700} sx={{ wordBreak: 'break-word' }}>{formatCurrency(report.summary?.netBeforeCommission || 0)}</Typography>
+                  <Typography variant="caption" color="text.disabled">Cobros − Retiros − Gastos</Typography>
+                </Box>
+                <Box sx={{ p: 2, borderRadius: 2, bgcolor: alpha(theme.palette.grey[500], 0.06) }}>
+                  <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>Comisión</Typography>
+                  <Typography variant="h6" fontWeight={700} sx={{ wordBreak: 'break-word' }}>{formatCurrency(report.summary?.commission || 0)}</Typography>
+                  <Typography variant="caption" color="text.disabled">{report.commission?.percentage || 0}% s/ {formatCurrency(report.commission?.baseAmount || 0)}</Typography>
+                </Box>
+                <Box sx={{ p: 2, borderRadius: 2, bgcolor: alpha(theme.palette.primary.main, 0.08), border: `1px solid ${alpha(theme.palette.primary.main, 0.2)}` }}>
+                  <Typography variant="caption" color="primary.main" fontWeight={600} sx={{ display: 'block', mb: 0.5 }}>Neto Final</Typography>
+                  <Typography variant="h5" color="primary.main" fontWeight={700} sx={{ wordBreak: 'break-word' }}>{formatCurrency(report.summary?.netAfterCommission || 0)}</Typography>
+                  <Typography variant="caption" color="text.disabled">Después de Comisión</Typography>
+                </Box>
+              </Box>
+            </>
+          )}
+        </Box>
+      </SwipeableDrawer>
+
     </Box>
   )
 }
-
-

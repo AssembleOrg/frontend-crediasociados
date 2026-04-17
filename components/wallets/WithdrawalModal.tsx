@@ -1,7 +1,6 @@
 'use client'
 
 import { useState } from 'react'
-import { red } from '@mui/material/colors'
 import {
   Dialog,
   DialogTitle,
@@ -94,12 +93,12 @@ export const WithdrawalModal: React.FC<WithdrawalModalProps> = ({
         display: 'flex',
         alignItems: 'center',
         gap: 1.5,
-        background: `linear-gradient(135deg, ${red[500]} 0%, ${red[700]} 100%)`,
-        color: 'white',
+        borderBottom: '1px solid',
+        borderColor: 'divider',
         p: 2.5,
         pt: 3
       }}>
-        <TrendingDown sx={{ fontSize: 24 }} />
+        <TrendingDown sx={{ fontSize: 24, color: 'error.main' }} />
         <Typography variant="h6" component="div" sx={{ fontWeight: 600 }}>
           Realizar Retiro
         </Typography>

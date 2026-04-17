@@ -297,36 +297,28 @@ export default function WalletHistoryModal({ open, onClose }: WalletHistoryModal
         }
       }}
     >
-      <DialogTitle sx={{ 
+      <DialogTitle sx={{
         pb: 2,
         pt: 2,
         px: 3,
-        display: 'flex', 
-        alignItems: 'center', 
+        display: 'flex',
+        alignItems: 'center',
         justifyContent: 'space-between',
-        background: 'linear-gradient(135deg, #1976d2 0%, #1565c0 100%)',
-        color: 'white'
+        borderBottom: '1px solid',
+        borderColor: 'divider',
       }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-          <History sx={{ fontSize: 28 }} />
+          <History sx={{ fontSize: 24, color: 'primary.main' }} />
           <Box>
             <Typography variant="h6" component="div" fontWeight={600}>
               Historial de Wallet de Cobros
             </Typography>
-            <Typography variant="caption" component="div" sx={{ opacity: 0.9, display: 'block', mt: 0.5 }}>
+            <Typography variant="caption" component="div" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
               Todos los movimientos de la wallet de cobros
             </Typography>
           </Box>
         </Box>
-        <IconButton
-          onClick={onClose}
-          sx={{ 
-            color: 'white',
-            '&:hover': {
-              bgcolor: 'rgba(255,255,255,0.1)'
-            }
-          }}
-        >
+        <IconButton onClick={onClose} size="small">
           <Close />
         </IconButton>
       </DialogTitle>

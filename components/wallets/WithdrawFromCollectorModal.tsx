@@ -99,13 +99,13 @@ export function WithdrawFromCollectorModal({
           display: 'flex',
           alignItems: 'center',
           gap: 1.5,
-          background: `linear-gradient(135deg, #f44336 0%, #d32f2f 100%)`,
-          color: 'white',
+          borderBottom: '1px solid',
+          borderColor: 'divider',
           p: 2.5,
           pt: 3,
         }}
       >
-        <TrendingDown sx={{ fontSize: 24 }} />
+        <TrendingDown sx={{ fontSize: 24, color: 'error.main' }} />
         <Typography variant="h6" component="div" sx={{ fontWeight: 600 }}>
           Retirar de Wallet de Cobros
         </Typography>

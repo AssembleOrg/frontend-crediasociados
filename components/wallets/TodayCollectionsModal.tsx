@@ -134,39 +134,31 @@ export default function TodayCollectionsModal({ open, onClose, data }: TodayColl
         }
       }}
     >
-      <DialogTitle sx={{ 
-        pb: 2, 
+      <DialogTitle sx={{
+        pb: 2,
         pt: 2,
         px: 3,
-        display: 'flex', 
-        alignItems: 'center', 
+        display: 'flex',
+        alignItems: 'center',
         justifyContent: 'space-between',
-        background: 'linear-gradient(135deg, #4caf50 0%, #388e3c 100%)',
-        color: 'white'
+        borderBottom: '1px solid',
+        borderColor: 'divider',
       }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-          <TrendingUp sx={{ fontSize: 28 }} />
+          <TrendingUp sx={{ fontSize: 28, color: 'success.main' }} />
           <Box>
             <Typography variant="h6" component="div" fontWeight={600}>
               Cobros Realizados Hoy
             </Typography>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.5 }}>
-              <CalendarToday sx={{ fontSize: 14, opacity: 0.9 }} />
-              <Typography variant="caption" sx={{ opacity: 0.9, textTransform: 'capitalize' }}>
+              <CalendarToday sx={{ fontSize: 14, color: 'text.disabled' }} />
+              <Typography variant="caption" color="text.secondary" sx={{ textTransform: 'capitalize' }}>
                 {formatDate(data.date)}
               </Typography>
             </Box>
           </Box>
         </Box>
-        <IconButton
-          onClick={onClose}
-          sx={{ 
-            color: 'white',
-            '&:hover': {
-              bgcolor: 'rgba(255,255,255,0.1)'
-            }
-          }}
-        >
+        <IconButton onClick={onClose} size="small">
           <Close />
         </IconButton>
       </DialogTitle>

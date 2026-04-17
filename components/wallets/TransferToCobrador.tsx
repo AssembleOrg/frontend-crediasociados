@@ -119,12 +119,12 @@ export const TransferToCobrador: React.FC<TransferToCobradoProps> = ({
         display: 'flex',
         alignItems: 'center',
         gap: 1.5,
-        background: `linear-gradient(135deg, #2196f3 0%, #1976d2 100%)`,
-        color: 'white',
+        borderBottom: '1px solid',
+        borderColor: 'divider',
         p: 2.5,
         pt: 3
       }}>
-        <SwapHoriz sx={{ fontSize: 24 }} />
+        <SwapHoriz sx={{ fontSize: 24, color: 'primary.main' }} />
         <Typography variant="h6" component="div" sx={{ fontWeight: 600 }}>
           {selectedCobrador ? `Transferir a ${selectedCobrador.fullName}` : 'Transferir a Cobrador'}
         </Typography>

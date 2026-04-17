@@ -676,36 +676,28 @@ export default function SafeModal({
         }
       }}
     >
-      <DialogTitle sx={{ 
+      <DialogTitle sx={{
         pb: 2,
         pt: 3,
         px: 3,
-        display: 'flex', 
-        alignItems: 'center', 
+        display: 'flex',
+        alignItems: 'center',
         justifyContent: 'space-between',
-        background: 'linear-gradient(135deg, #8B4513 0%, #A0522D 100%)',
-        color: 'white'
+        borderBottom: '1px solid',
+        borderColor: 'divider',
       }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-          <AccountBalance sx={{ fontSize: 28 }} />
+          <AccountBalance sx={{ fontSize: 28, color: 'primary.main' }} />
           <Box>
             <Typography variant="h6" component="div" fontWeight={600}>
-              Caja Fuerte - {managerName}
+              Caja Fuerte — {managerName}
             </Typography>
-            <Typography variant="caption" component="div" sx={{ opacity: 0.9, display: 'block', mt: 0.5 }}>
+            <Typography variant="caption" component="div" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
               Gestión de fondos y gastos
             </Typography>
           </Box>
         </Box>
-        <IconButton
-          onClick={handleClose}
-          sx={{ 
-            color: 'white',
-            '&:hover': {
-              bgcolor: 'rgba(255,255,255,0.1)'
-            }
-          }}
-        >
+        <IconButton onClick={handleClose} size="small">
           <Close />
         </IconButton>
       </DialogTitle>
