@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useRef } from 'react';
 import {
   Typography,
   Box,
@@ -104,6 +104,28 @@ export default function ManagersPage() {
     handleMenuClose();
   };
 
+  const handleDirectEdit = (managerId: string) => {
+    setSelectedManagerId(managerId);
+    setIsEditModalOpen(true);
+  };
+
+  const pointerDownPos = useRef<{x: number, y: number} | null>(null);
+  const dragThreshold = 8;
+
+  const handleCardPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    pointerDownPos.current = { x: e.clientX, y: e.clientY };
+  };
+
+  const handleCardPointerUp = (e: React.PointerEvent<HTMLDivElement>, managerId: string) => {
+    if (!pointerDownPos.current) return;
+    const dx = Math.abs(e.clientX - pointerDownPos.current.x);
+    const dy = Math.abs(e.clientY - pointerDownPos.current.y);
+    if (dx < dragThreshold && dy < dragThreshold) {
+      handleDirectEdit(managerId);
+    }
+    pointerDownPos.current = null;
+  };
+
   const handleChangePasswordSubmit = async (userId: string, newPassword: string): Promise<boolean> => {
     setChangePasswordLoading(true);
     setChangePasswordError(null);
@@ -164,7 +186,7 @@ export default function ManagersPage() {
   }, [currentSubadmin]);
 
   return (
-    <Box>
+    <Box sx={{ bgcolor: isMobile ? '#F2F2F7' : 'transparent', minHeight: isMobile ? '100vh' : 'auto', p: isMobile ? 2 : 0 }}>
       <Box
         sx={{
           mb: 4,
@@ -255,13 +277,13 @@ export default function ManagersPage() {
 
       {/* Mobile: Cards */}
       {isMobile ? (
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5, bgcolor: '#F2F2F7', p: { xs: 2, sm: 0 }, mb: -3, mx: -3, mb: 0, px: 2 }}>
           {isLoading ? (
-            <Paper sx={{ p: 4, textAlign: 'center' }}>
+            <Paper sx={{ p: 4, textAlign: 'center', mt: 3 }}>
               <Typography color="text.secondary">Cargando...</Typography>
             </Paper>
           ) : filteredManagers.length === 0 ? (
-            <Paper sx={{ p: 4, textAlign: 'center' }}>
+            <Paper sx={{ p: 4, textAlign: 'center', mt: 3 }}>
               <Typography variant='body2' color='text.secondary'>
                 {managers.length === 0
                   ? 'No hay cobradores registrados todavia'
@@ -272,10 +294,22 @@ export default function ManagersPage() {
             filteredManagers.map((manager) => {
               const quotaPct = calculateQuotaPercentage(manager.usedClientQuota ?? 0, manager.clientQuota ?? 0);
               const available = (manager.clientQuota ?? 0) - (manager.usedClientQuota ?? 0);
+
               return (
-                <Card key={manager.id} variant="outlined">
+                <Card
+                  key={manager.id}
+                  variant="outlined"
+                  onPointerDown={handleCardPointerDown}
+                  onPointerUp={(e) => handleCardPointerUp(e, manager.id)}
+                  sx={{
+                    cursor: 'pointer',
+                    userSelect: 'none',
+                    transition: 'background-color 0.2s',
+                    '&:active': { bgcolor: 'action.hover' },
+                  }}
+                >
                   <CardContent sx={{ px: 2, py: 1.5, '&:last-child': { pb: 1.5 } }}>
-                    {/* Row 1: Name + Actions */}
+                    {/* Row 1: Name + Menu */}
                     <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 0.5 }}>
                       <Box sx={{ flex: 1, minWidth: 0 }}>
                         <Typography variant="subtitle2" fontWeight={600} noWrap>
@@ -284,8 +318,18 @@ export default function ManagersPage() {
                         <Typography variant="caption" color="text.secondary" display="block" noWrap>
                           {manager.email}
                         </Typography>
+                        <Typography variant="caption" color="text.disabled" sx={{ mt: 0.5, display: 'block' }}>
+                          Toca para editar
+                        </Typography>
                       </Box>
-                      <IconButton size="small" onClick={(e) => handleMenuOpen(e, manager.id)}>
+                      <IconButton
+                        size="small"
+                        onPointerDown={(e) => e.stopPropagation()}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleMenuOpen(e, manager.id);
+                        }}
+                      >
                         <MoreVert />
                       </IconButton>
                     </Box>

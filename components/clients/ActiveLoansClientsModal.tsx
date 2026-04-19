@@ -18,18 +18,24 @@ import {
   TableRow,
   Paper,
   CircularProgress,
-  Alert,
   Chip,
   alpha,
   useTheme,
   useMediaQuery,
   Divider,
+  List,
+  ListItem,
+  ListItemIcon,
+  ListItemText,
+  Card,
+  CardContent,
 } from '@mui/material'
-import { 
-  Close, 
-  AccountBalance, 
+import {
+  Close,
+  AccountBalance,
   Search,
-  PictureAsPdf
+  PictureAsPdf,
+  TrendingUp,
 } from '@mui/icons-material'
 import { Button } from '@mui/material'
 import { PDFDownloadLink } from '@react-pdf/renderer'
@@ -213,6 +219,16 @@ export default function ActiveLoansClientsModal({ open, onClose }: ActiveLoansCl
     }).format(amount)
   }
 
+  const formatCurrencyCompact = (amount: number) => {
+    const abs = Math.abs(amount);
+    const sign = amount < 0 ? '-' : '';
+    if (abs >= 1_000_000)
+      return `${sign}$${(abs / 1_000_000).toFixed(1).replace('.0', '')}M`;
+    if (abs >= 1_000)
+      return `${sign}$${(abs / 1_000).toFixed(1).replace('.0', '')}k`;
+    return `${sign}$${abs}`;
+  }
+
   const getStatusColor = (status: string) => {
     switch (status.toUpperCase()) {
       case 'ACTIVE':
@@ -279,31 +295,23 @@ export default function ActiveLoansClientsModal({ open, onClose }: ActiveLoansCl
         }
       }}
     >
-      <DialogTitle sx={{ 
-        pb: 2, 
-        pt: 2,
+      <DialogTitle sx={{
+        pb: 2,
+        pt: 3,
         px: 3,
-        display: 'flex', 
-        alignItems: 'center', 
+        display: 'flex',
+        alignItems: 'center',
         justifyContent: 'space-between',
-        background: 'linear-gradient(135deg, #1976d2 0%, #42a5f5 100%)',
-        color: 'white'
+        borderBottom: '1px solid',
+        borderColor: 'divider',
       }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-          <AccountBalance sx={{ fontSize: 28 }} />
+          <AccountBalance sx={{ fontSize: 24, color: 'primary.main' }} />
           <Typography variant="h6" fontWeight={600}>
             Clientes con Préstamos Activos
           </Typography>
         </Box>
-        <IconButton
-          onClick={onClose}
-          sx={{ 
-            color: 'white',
-            '&:hover': {
-              bgcolor: 'rgba(255,255,255,0.1)'
-            }
-          }}
-        >
+        <IconButton onClick={onClose} size="small">
           <Close />
         </IconButton>
       </DialogTitle>
@@ -366,27 +374,42 @@ export default function ActiveLoansClientsModal({ open, onClose }: ActiveLoansCl
           </>
         )}
 
-        {/* Summary Cards */}
+        {/* Summary - Grouped List */}
         {managerIdToUse && !loading && !error && managerDetail && managerDetail.loans.length > 0 && (
-          <Box sx={{ mb: 3, display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)' }, gap: 2 }}>
-            <Paper elevation={1} sx={{ p: 2, bgcolor: alpha('#1976d2', 0.05) }}>
-              <Typography variant="caption" color="text.secondary" gutterBottom>
-                Total de Préstamos Activos
-              </Typography>
-              <Typography variant="h5" fontWeight={600} color="primary">
-                {searchQuery ? filteredLoans.length : managerDetail.totalLoans}
-                {searchQuery && ` de ${managerDetail.totalLoans}`}
-              </Typography>
-            </Paper>
-            <Paper elevation={1} sx={{ p: 2, bgcolor: alpha('#1976d2', 0.05) }}>
-              <Typography variant="caption" color="text.secondary" gutterBottom>
-                Dinero en Calle
-              </Typography>
-              <Typography variant="h5" fontWeight={600} color="primary">
-                {formatCurrency(managerDetail.dineroEnCalle)}
-              </Typography>
-            </Paper>
-          </Box>
+          <Paper sx={{ mb: 3, bgcolor: '#FFFFFF', overflow: 'hidden' }}>
+            <List disablePadding>
+              <ListItem sx={{ py: 1.25, px: 2 }}>
+                <ListItemIcon sx={{ minWidth: 36 }}>
+                  <Box sx={{ color: 'primary.main', display: 'flex' }}>
+                    <AccountBalance sx={{ fontSize: 20 }} />
+                  </Box>
+                </ListItemIcon>
+                <ListItemText
+                  primary='Préstamos Activos'
+                  primaryTypographyProps={{ variant: 'body2', color: 'text.secondary' }}
+                />
+                <Typography variant='body1' fontWeight={700} color='primary.main'>
+                  {searchQuery ? filteredLoans.length : managerDetail.totalLoans}
+                  {searchQuery && ` de ${managerDetail.totalLoans}`}
+                </Typography>
+              </ListItem>
+              <Divider component='li' />
+              <ListItem sx={{ py: 1.25, px: 2 }}>
+                <ListItemIcon sx={{ minWidth: 36 }}>
+                  <Box sx={{ color: 'success.main', display: 'flex' }}>
+                    <TrendingUp sx={{ fontSize: 20 }} />
+                  </Box>
+                </ListItemIcon>
+                <ListItemText
+                  primary='Dinero en Calle'
+                  primaryTypographyProps={{ variant: 'body2', color: 'text.secondary' }}
+                />
+                <Typography variant='body1' fontWeight={700} color='success.main'>
+                  {formatCurrencyCompact(managerDetail.dineroEnCalle)}
+                </Typography>
+              </ListItem>
+            </List>
+          </Paper>
         )}
 
         {/* Search Input */}
@@ -480,14 +503,9 @@ export default function ActiveLoansClientsModal({ open, onClose }: ActiveLoansCl
                   {({ loading: pdfLoading }) => (
                     <Button
                       variant="contained"
+                      color="primary"
                       startIcon={<PictureAsPdf />}
                       disabled={pdfLoading}
-                      sx={{
-                        background: 'linear-gradient(135deg, #1976d2 0%, #42a5f5 100%)',
-                        '&:hover': {
-                          background: 'linear-gradient(135deg, #1565c0 0%, #1976d2 100%)',
-                        },
-                      }}
                     >
                       {pdfLoading ? 'Generando PDF...' : 'Descargar PDF'}
                     </Button>
@@ -501,7 +519,111 @@ export default function ActiveLoansClientsModal({ open, onClose }: ActiveLoansCl
                   No se encontraron préstamos que coincidan con "{searchQuery}"
                 </Typography>
               </Paper>
+            ) : isMobile ? (
+              /* Mobile: Cards */
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+                {filteredLoans.map((loan) => {
+                  const intereses = loan.amount - (loan.originalAmount || 0)
+                  return (
+                    <Card
+                      key={loan.id}
+                      elevation={0}
+                      sx={{
+                        border: `1px solid ${theme.palette.divider}`,
+                        borderRadius: 2,
+                        borderLeft: 3,
+                        borderLeftColor: 'primary.main',
+                      }}
+                    >
+                      <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
+                        {/* Header */}
+                        <Box
+                          sx={{
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'flex-start',
+                            mb: 1.5,
+                          }}
+                        >
+                          <Typography variant="body2" fontWeight={600}>
+                            {loan.client.fullName}
+                          </Typography>
+                          <Typography variant="caption" color="text.secondary">
+                            {formatDate(loan.createdAt)}
+                          </Typography>
+                        </Box>
+                        {/* Grid 2x2 */}
+                        <Box
+                          sx={{
+                            display: 'grid',
+                            gridTemplateColumns: '1fr 1fr',
+                            gap: 1,
+                          }}
+                        >
+                          <Box>
+                            <Typography
+                              variant="caption"
+                              color="text.secondary"
+                              display="block"
+                            >
+                              Monto Original
+                            </Typography>
+                            <Typography variant="body2" fontWeight={500}>
+                              {formatCurrencyCompact(loan.originalAmount || 0)}
+                            </Typography>
+                          </Box>
+                          <Box>
+                            <Typography
+                              variant="caption"
+                              color="text.secondary"
+                              display="block"
+                            >
+                              Intereses
+                            </Typography>
+                            <Typography variant="body2" fontWeight={500}>
+                              {formatCurrencyCompact(intereses)}
+                            </Typography>
+                          </Box>
+                          <Box>
+                            <Typography
+                              variant="caption"
+                              color="text.secondary"
+                              display="block"
+                            >
+                              Pagado
+                            </Typography>
+                            <Typography
+                              variant="body2"
+                              fontWeight={600}
+                              color="success.main"
+                            >
+                              {formatCurrencyCompact(loan.stats.totalPaid)}
+                            </Typography>
+                          </Box>
+                          <Box>
+                            <Typography
+                              variant="caption"
+                              color="text.secondary"
+                              display="block"
+                            >
+                              Faltante
+                            </Typography>
+                            <Typography
+                              variant="body2"
+                              fontWeight={700}
+                              color="warning.main"
+                            >
+                              {formatCurrencyCompact(loan.stats.totalPending)}
+                            </Typography>
+                          </Box>
+                        </Box>
+                      </CardContent>
+                    </Card>
+                  )
+                })}
+              </Box>
             ) : (
+              /* Desktop: Table */
               <TableContainer component={Paper} elevation={0} sx={{ border: `1px solid ${theme.palette.divider}`, borderRadius: 1 }}>
                 <Table>
                   <TableHead>

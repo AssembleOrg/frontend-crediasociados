@@ -238,7 +238,7 @@ export default function CollectorReportView({
   const formatCurrencyCompact = (amount: number) => {
     const abs = Math.abs(amount)
     const sign = amount < 0 ? '-' : ''
-    if (abs >= 1_000_000) return `${sign}$${(abs / 1_000_000).toFixed(1).replace('.0', '')}M`
+    if (abs >= 1_000_000) return `${sign}$${(abs / 1_000_000).toFixed(2).replace(/\.?0+$/, '')}M`
     if (abs >= 1_000) return `${sign}$${(abs / 1_000).toFixed(1).replace('.0', '')}k`
     return `${sign}$${abs}`
   }
@@ -993,28 +993,28 @@ export default function CollectorReportView({
                     <TrendingUp sx={{ fontSize: 18, color: 'success.main' }} />
                     <Typography variant="caption" color="text.secondary">Total Cobros</Typography>
                   </Box>
-                  <Typography variant="h6" color="success.main" fontWeight={700}>{formatCurrency(report.summary?.totalCollections || 0)}</Typography>
+                  <Typography variant="h6" color="success.main" fontWeight={700}>{formatCurrency(report.summary?.cobrado || 0)}</Typography>
                 </Box>
                 <Box sx={{ p: 2, borderRadius: 2, bgcolor: alpha(theme.palette.warning.main, 0.08) }}>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
                     <TrendingDown sx={{ fontSize: 18, color: 'warning.main' }} />
                     <Typography variant="caption" color="text.secondary">Total Retiros</Typography>
                   </Box>
-                  <Typography variant="h6" color="warning.main" fontWeight={700}>{formatCurrency(report.summary?.totalWithdrawals || 0)}</Typography>
+                  <Typography variant="h6" color="warning.main" fontWeight={700}>{formatCurrency(report.summary?.retirado || 0)}</Typography>
                 </Box>
                 <Box sx={{ p: 2, borderRadius: 2, bgcolor: alpha(theme.palette.error.main, 0.08) }}>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
                     <Receipt sx={{ fontSize: 18, color: 'error.main' }} />
                     <Typography variant="caption" color="text.secondary">Total Gastos</Typography>
                   </Box>
-                  <Typography variant="h6" color="error.main" fontWeight={700}>{formatCurrency(report.summary?.totalExpenses || 0)}</Typography>
+                  <Typography variant="h6" color="error.main" fontWeight={700}>{formatCurrency(report.summary?.gastado || 0)}</Typography>
                 </Box>
               </Box>
               <Divider sx={{ my: 2 }} />
               <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(3, 1fr)' }, gap: 2 }}>
                 <Box sx={{ p: 2, borderRadius: 2, bgcolor: alpha(theme.palette.grey[500], 0.06) }}>
                   <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>Neto Antes de Comisión</Typography>
-                  <Typography variant="h6" fontWeight={700} sx={{ wordBreak: 'break-word' }}>{formatCurrency(report.summary?.netBeforeCommission || 0)}</Typography>
+                  <Typography variant="h6" fontWeight={700} sx={{ wordBreak: 'break-word' }}>{formatCurrency(report.summary?.neto || 0)}</Typography>
                   <Typography variant="caption" color="text.disabled">Cobros − Retiros − Gastos</Typography>
                 </Box>
                 <Box sx={{ p: 2, borderRadius: 2, bgcolor: alpha(theme.palette.grey[500], 0.06) }}>
@@ -1024,7 +1024,7 @@ export default function CollectorReportView({
                 </Box>
                 <Box sx={{ p: 2, borderRadius: 2, bgcolor: alpha(theme.palette.primary.main, 0.08), border: `1px solid ${alpha(theme.palette.primary.main, 0.2)}` }}>
                   <Typography variant="caption" color="primary.main" fontWeight={600} sx={{ display: 'block', mb: 0.5 }}>Neto Final</Typography>
-                  <Typography variant="h5" color="primary.main" fontWeight={700} sx={{ wordBreak: 'break-word' }}>{formatCurrency(report.summary?.netAfterCommission || 0)}</Typography>
+                  <Typography variant="h5" color="primary.main" fontWeight={700} sx={{ wordBreak: 'break-word' }}>{formatCurrency((report.summary?.neto || 0) - (report.summary?.commission || 0))}</Typography>
                   <Typography variant="caption" color="text.disabled">Después de Comisión</Typography>
                 </Box>
               </Box>

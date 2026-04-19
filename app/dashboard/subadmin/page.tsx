@@ -2,8 +2,8 @@
 
 import React, { useState, useMemo, useEffect } from 'react'
 import dynamic from 'next/dynamic'
-import { Box, CircularProgress, Typography, Alert, Grid, Button, useMediaQuery, Dialog, DialogTitle, DialogContent, DialogActions, Card, CardContent, Chip } from '@mui/material'
-import { ExpandMore, ExpandLess, Calculate, PersonOff, AccountBalance, VerifiedUser, Warning, Block } from '@mui/icons-material'
+import { Box, CircularProgress, Typography, Alert, Grid, Button, useMediaQuery, Dialog, DialogTitle, DialogContent, Paper, List, ListItem, ListItemIcon, ListItemText, Divider, IconButton } from '@mui/material'
+import { ExpandMore, ExpandLess, Calculate, PersonOff, AccountBalance, VerifiedUser, Warning, Block, ChevronRight, Close } from '@mui/icons-material'
 import PageHeader from '@/components/ui/PageHeader'
 import { useSubadminStore } from '@/stores/subadmin'
 import { useSubadminDashboardData } from '@/hooks/useSubadminDashboardData'
@@ -113,254 +113,115 @@ export default function SubadminDashboard() {
     )
   }
 
+  const hasUnverified = unverifiedClientsCount !== null && unverifiedClientsCount > 0
+
+  const actionItems = [
+    {
+      icon: (
+        <Box sx={{ position: 'relative', display: 'inline-flex' }}>
+          <VerifiedUser sx={{ fontSize: 20 }} />
+          {hasUnverified && (
+            <Box
+              sx={{
+                position: 'absolute',
+                top: -4,
+                right: -4,
+                minWidth: 16,
+                height: 16,
+                borderRadius: '50%',
+                bgcolor: 'error.main',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                px: 0.5,
+              }}
+            >
+              <Typography sx={{ fontSize: '0.6rem', fontWeight: 700, color: 'white', lineHeight: 1 }}>
+                {unverifiedClientsCount! > 99 ? '99+' : unverifiedClientsCount}
+              </Typography>
+            </Box>
+          )}
+        </Box>
+      ),
+      label: 'Clientes No Verificados',
+      color: 'warning.main' as const,
+      onClick: () => setPendingModal('unverified'),
+    },
+    {
+      icon: <PersonOff sx={{ fontSize: 20 }} />,
+      label: 'Clientes Inactivos',
+      color: 'text.disabled' as const,
+      onClick: () => setPendingModal('inactive'),
+    },
+    {
+      icon: <Warning sx={{ fontSize: 20 }} />,
+      label: 'Clientes con Cuotas Vencidas',
+      color: 'error.main' as const,
+      onClick: () => setPendingModal('overdue'),
+    },
+    {
+      icon: <Block sx={{ fontSize: 20 }} />,
+      label: 'Lista Negra',
+      color: 'text.secondary' as const,
+      onClick: () => setPendingModal('blacklist'),
+    },
+    {
+      icon: <AccountBalance sx={{ fontSize: 20 }} />,
+      label: 'Clientes con Préstamos Activos',
+      color: 'primary.main' as const,
+      onClick: () => setPendingModal('activeloans'),
+    },
+  ]
+
   return (
-    <Box sx={{ p: 3 }}>
+    <Box sx={{ p: 3, bgcolor: '#F2F2F7', minHeight: '100vh' }}>
       <PageHeader
         title="Dashboard Subadmin"
         subtitle="Gestión de cobradores y managers"
       />
 
-      {/* Action Buttons */}
-      <Box sx={{ mb: 3, display: 'flex', gap: 2, flexWrap: 'wrap' }}>
+      {/* Simulator Button */}
+      <Box sx={{ mb: 3 }}>
         <Button
           variant="contained"
+          color="primary"
           startIcon={<Calculate />}
           onClick={() => setSimulatorOpen(true)}
-          sx={{
-            background: 'linear-gradient(135deg, #667eea 0%, #4facfe 100%)',
-            '&:hover': {
-              background: 'linear-gradient(135deg, #5a6fd8 0%, #3d8bfe 100%)',
-            },
-          }}
         >
           Abrir Simulador de Préstamos
         </Button>
       </Box>
 
-      {/* Unverified Clients Card */}
-      <Card
-        sx={{
-          mb: 3,
-          cursor: 'pointer',
-          transition: 'all 0.2s',
-          background: 'linear-gradient(135deg, #FFD700 0%, #FFA500 100%)',
-          color: 'white',
-          '&:hover': {
-            transform: 'translateY(-4px)',
-            boxShadow: '0 12px 28px rgba(255, 215, 0, 0.3)',
-          },
-        }}
-        onClick={() => setPendingModal('unverified')}
-      >
-        <CardContent sx={{ p: 3 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-            <Box
-              sx={{
-                width: 64,
-                height: 64,
-                borderRadius: 2,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                bgcolor: 'rgba(255,255,255,0.2)',
-              }}
-            >
-              <VerifiedUser sx={{ fontSize: 32 }} />
-            </Box>
-            <Box sx={{ flex: 1 }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 0.5 }}>
-                <Typography variant="h6" fontWeight={600}>
-                  Clientes No Verificados
-                </Typography>
-                {unverifiedClientsCount !== null && unverifiedClientsCount > 0 && (
-                  <Chip
-                    label={unverifiedClientsCount}
-                    size="small"
-                    sx={{
-                      bgcolor: 'error.main',
-                      color: 'white',
-                      fontWeight: 700,
-                      minWidth: 32,
-                      height: 24
-                    }}
-                  />
-                )}
-              </Box>
-              <Typography variant="body2" sx={{ opacity: 0.9 }}>
-                Verifica los clientes pendientes de tus managers
-              </Typography>
-            </Box>
-          </Box>
-        </CardContent>
-      </Card>
-
-      {/* Inactive Clients Card */}
-      <Card
-        sx={{
-          mb: 3,
-          cursor: 'pointer',
-          transition: 'all 0.2s',
-          background: 'linear-gradient(135deg, #85220D 0%, #A03015 100%)',
-          color: 'white',
-          '&:hover': {
-            transform: 'translateY(-4px)',
-            boxShadow: '0 12px 28px rgba(133, 34, 13, 0.3)',
-          },
-        }}
-        onClick={() => setPendingModal('inactive')}
-      >
-        <CardContent sx={{ p: 3 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-            <Box
-              sx={{
-                width: 64,
-                height: 64,
-                borderRadius: 2,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                bgcolor: 'rgba(255,255,255,0.2)',
-              }}
-            >
-              <PersonOff sx={{ fontSize: 32 }} />
-            </Box>
-            <Box sx={{ flex: 1 }}>
-              <Typography variant="h6" fontWeight={600} gutterBottom>
-                Clientes Inactivos
-              </Typography>
-              <Typography variant="body2" sx={{ opacity: 0.9 }}>
-                Consulta los clientes sin préstamos activos de tus managers
-              </Typography>
-            </Box>
-          </Box>
-        </CardContent>
-      </Card>
-
-      {/* Overdue Clients Card */}
-      <Card
-        sx={{
-          mb: 3,
-          cursor: 'pointer',
-          transition: 'all 0.2s',
-          background: 'linear-gradient(135deg, #d32f2f 0%, #f44336 100%)',
-          color: 'white',
-          '&:hover': {
-            transform: 'translateY(-4px)',
-            boxShadow: '0 12px 28px rgba(244, 67, 54, 0.3)',
-          },
-        }}
-        onClick={() => setPendingModal('overdue')}
-      >
-        <CardContent sx={{ p: 3 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-            <Box
-              sx={{
-                width: 64,
-                height: 64,
-                borderRadius: 2,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                bgcolor: 'rgba(255,255,255,0.2)',
-              }}
-            >
-              <Warning sx={{ fontSize: 32 }} />
-            </Box>
-            <Box sx={{ flex: 1 }}>
-              <Typography variant="h6" fontWeight={600} gutterBottom>
-                Clientes con Cuotas Vencidas
-              </Typography>
-              <Typography variant="body2" sx={{ opacity: 0.9 }}>
-                Consulta los clientes con cuotas vencidas de tus managers
-              </Typography>
-            </Box>
-          </Box>
-        </CardContent>
-      </Card>
-
-      {/* Blacklist Card */}
-      <Card
-        sx={{
-          mb: 3,
-          cursor: 'pointer',
-          transition: 'all 0.2s',
-          background: 'linear-gradient(135deg, #424242 0%, #616161 100%)',
-          color: 'white',
-          '&:hover': {
-            transform: 'translateY(-4px)',
-            boxShadow: '0 12px 28px rgba(66, 66, 66, 0.3)',
-          },
-        }}
-        onClick={() => setPendingModal('blacklist')}
-      >
-        <CardContent sx={{ p: 3 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-            <Box
-              sx={{
-                width: 64,
-                height: 64,
-                borderRadius: 2,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                bgcolor: 'rgba(255,255,255,0.2)',
-              }}
-            >
-              <Block sx={{ fontSize: 32 }} />
-            </Box>
-            <Box sx={{ flex: 1 }}>
-              <Typography variant="h6" fontWeight={600} gutterBottom>
-                Lista Negra
-              </Typography>
-              <Typography variant="body2" sx={{ opacity: 0.9 }}>
-                Gestiona clientes baneados del sistema
-              </Typography>
-            </Box>
-          </Box>
-        </CardContent>
-      </Card>
-
-      {/* Active Loans Clients Card */}
-      <Card
-        sx={{
-          mb: 3,
-          cursor: 'pointer',
-          transition: 'all 0.2s',
-          background: 'linear-gradient(135deg, #1976d2 0%, #42a5f5 100%)',
-          color: 'white',
-          '&:hover': {
-            transform: 'translateY(-4px)',
-            boxShadow: '0 12px 28px rgba(25, 118, 210, 0.3)',
-          },
-        }}
-        onClick={() => setPendingModal('activeloans')}
-      >
-        <CardContent sx={{ p: 3 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-            <Box
-              sx={{
-                width: 64,
-                height: 64,
-                borderRadius: 2,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                bgcolor: 'rgba(255,255,255,0.2)',
-              }}
-            >
-              <AccountBalance sx={{ fontSize: 32 }} />
-            </Box>
-            <Box sx={{ flex: 1 }}>
-              <Typography variant="h6" fontWeight={600} gutterBottom>
-                Clientes con Préstamos Activos
-              </Typography>
-              <Typography variant="body2" sx={{ opacity: 0.9 }}>
-                Consulta los clientes con préstamos activos de tus managers
-              </Typography>
-            </Box>
-          </Box>
-        </CardContent>
-      </Card>
+      {/* Quick Actions - Grouped List */}
+      <Paper sx={{ mb: 4, bgcolor: '#FFFFFF', overflow: 'hidden' }}>
+        <List disablePadding>
+          {actionItems.map((item, index, array) => (
+            <React.Fragment key={item.label}>
+              <ListItem
+                component='div'
+                onClick={item.onClick}
+                sx={{
+                  py: 1.5,
+                  px: 2,
+                  cursor: 'pointer',
+                  '&:hover': { bgcolor: 'action.hover' },
+                  transition: 'background-color 0.2s',
+                }}
+              >
+                <ListItemIcon sx={{ minWidth: 36 }}>
+                  <Box sx={{ color: item.color, display: 'flex' }}>{item.icon}</Box>
+                </ListItemIcon>
+                <ListItemText
+                  primary={item.label}
+                  primaryTypographyProps={{ variant: 'body2', fontWeight: 600 }}
+                />
+                <ChevronRight sx={{ color: 'text.disabled', fontSize: 20 }} />
+              </ListItem>
+              {index < array.length - 1 && <Divider component='li' />}
+            </React.Fragment>
+          ))}
+        </List>
+      </Paper>
 
       <Grid container spacing={4}>
         {/* Mobile: ClientesPerAsociado first (always visible) */}
@@ -434,38 +295,39 @@ export default function SubadminDashboard() {
         fullWidth
         PaperProps={{
           sx: {
-            borderRadius: 3,
-            boxShadow: '0 20px 40px rgba(0,0,0,0.1)',
+            borderRadius: { xs: 2, sm: 3 },
+            maxHeight: { xs: 'calc(100dvh - 96px)', sm: '90vh' },
+            m: { xs: 1, sm: 2 },
+            mt: { xs: 'auto', sm: 2 },
+            width: { xs: '100%', sm: 'auto' },
           }
         }}
       >
         <DialogTitle sx={{
-          pb: 1,
-          background: 'linear-gradient(135deg, #667eea 0%, #4facfe 100%)',
-          color: 'white',
-          borderRadius: '12px 12px 0 0'
+          pb: 2,
+          pt: 3,
+          px: 3,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          borderBottom: '1px solid',
+          borderColor: 'divider',
         }}>
-          Simulador de Préstamos
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+            <Calculate sx={{ fontSize: 24, color: 'primary.main' }} />
+            <Box>
+              <Typography variant="h6" fontWeight={600}>Simulador de Préstamos</Typography>
+            </Box>
+          </Box>
+          <IconButton onClick={() => setSimulatorOpen(false)} size="small">
+            <Close />
+          </IconButton>
         </DialogTitle>
-        <DialogContent sx={{ p: 0 }}>
-          <Box sx={{ p: 3 }}>
+        <DialogContent sx={{ p: 0, overflowY: 'auto' }}>
+          <Box sx={{ p: 3, pb: 'calc(24px + env(safe-area-inset-bottom))' }}>
             <StandaloneLoanSimulator />
           </Box>
         </DialogContent>
-        <DialogActions sx={{ p: 3, gap: 2 }}>
-          <Button
-            onClick={() => setSimulatorOpen(false)}
-            variant="outlined"
-            size="large"
-            sx={{
-              borderRadius: 2,
-              px: 4,
-              py: 1.5
-            }}
-          >
-            Cerrar
-          </Button>
-        </DialogActions>
       </Dialog>
 
     </Box>

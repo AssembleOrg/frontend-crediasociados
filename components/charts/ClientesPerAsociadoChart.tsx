@@ -1,7 +1,7 @@
 'use client';
 
 import React, { memo } from 'react';
-import { Paper, Typography, Box } from '@mui/material';
+import { Paper, Typography, Box, useTheme, useMediaQuery } from '@mui/material';
 import {
   BarChart,
   Bar,
@@ -75,8 +75,10 @@ const ClientesPerAsociadoChart = memo(function ClientesPerAsociadoChart({
   data,
   isLoading = false,
 }: ClientesPerAsociadoChartProps) {
-  const chartHeight = { xs: 450, sm: 420, md: 520, lg: 580 };
-  const containerHeight = { xs: 350, sm: 320, md: 420, lg: 480 };
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const chartHeight = { xs: 380, sm: 420, md: 520, lg: 580 };
+  const containerHeight = { xs: 280, sm: 320, md: 420, lg: 480 };
 
   if (isLoading) {
     return (
@@ -150,25 +152,25 @@ const ClientesPerAsociadoChart = memo(function ClientesPerAsociadoChart({
 
       <ResponsiveContainer
         width='100%'
-        height={300}
+        height={isMobile ? 260 : 300}
       >
         <BarChart
           data={sortedData}
           margin={{
             top: 5,
-            right: 30,
-            left: 20,
-            bottom: 60,
+            right: isMobile ? 10 : 30,
+            left: isMobile ? 5 : 20,
+            bottom: isMobile ? 20 : 60,
           }}
         >
           <CartesianGrid strokeDasharray='3 3' />
           <XAxis
             dataKey='name'
-            angle={-45}
-            textAnchor='end'
-            height={60}
-            tickFormatter={formatXAxis}
-            fontSize={11}
+            angle={isMobile ? 0 : -45}
+            textAnchor={isMobile ? 'middle' : 'end'}
+            height={isMobile ? 30 : 60}
+            tickFormatter={isMobile ? (v: string) => v.length > 8 ? `${v.substring(0, 8)}…` : v : formatXAxis}
+            fontSize={isMobile ? 10 : 11}
           />
           <YAxis
             tickFormatter={formatYAxis}

@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useMemo, memo } from 'react'
-import { Paper, Typography, Box } from '@mui/material'
+import { Paper, Typography, Box, useTheme, useMediaQuery } from '@mui/material'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts'
 
 interface ClientsEvolutionData {
@@ -97,6 +97,8 @@ const groupDataByWeeks = (dailyData: ClientsEvolutionData[]): WeeklyData[] => {
 }
 
 const ClientsEvolutionChart = memo(function ClientsEvolutionChart({ data, isLoading = false }: ClientsEvolutionChartProps) {
+  const theme = useTheme()
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'))
   // Group daily data into weekly data
   const weeklyData = useMemo(() => groupDataByWeeks(data), [data])
 
@@ -169,7 +171,7 @@ const ClientsEvolutionChart = memo(function ClientsEvolutionChart({ data, isLoad
       elevation={0}
       sx={{
         p: 3,
-        height: { xs: 400, sm: 450 },
+        height: { xs: 360, sm: 450 },
         border: '1px solid',
         borderColor: 'divider',
         borderRadius: 2,
@@ -181,25 +183,25 @@ const ClientsEvolutionChart = memo(function ClientsEvolutionChart({ data, isLoad
         Clientes Nuevos por Semana
       </Typography>
 
-      <ResponsiveContainer width="100%" height={300}>
+      <ResponsiveContainer width="100%" height={isMobile ? 200 : 300}>
         <BarChart
           data={weeklyData}
           margin={{
-            top: 20,
-            right: 30,
-            left: 20,
-            bottom: 60,
+            top: isMobile ? 10 : 20,
+            right: isMobile ? 10 : 30,
+            left: isMobile ? 5 : 20,
+            bottom: isMobile ? 20 : 60,
           }}
           barCategoryGap="20%"
         >
           <CartesianGrid strokeDasharray="3 3" stroke="#e0e0e0" />
           <XAxis
             dataKey="week"
-            fontSize={11}
+            fontSize={isMobile ? 10 : 11}
             interval={0}
-            angle={-45}
-            textAnchor="end"
-            height={60}
+            angle={isMobile ? 0 : -45}
+            textAnchor={isMobile ? 'middle' : 'end'}
+            height={isMobile ? 30 : 60}
             tick={{ fill: '#666' }}
           />
           <YAxis
@@ -223,8 +225,8 @@ const ClientsEvolutionChart = memo(function ClientsEvolutionChart({ data, isLoad
 
       {/* Summary - Compact */}
       <Box sx={{
-        mt: 2,
-        pt: 2,
+        mt: isMobile ? 1 : 2,
+        pt: isMobile ? 1 : 2,
         borderTop: '1px solid',
         borderColor: 'divider',
         display: 'flex',
