@@ -171,7 +171,12 @@ export function LoansFilterPanel({ variant: _variant = 'expanded', onClose }: Lo
               onInputChange={handleClientInputChange}
               onChange={handleClientChange}
               loading={isSearchingClients}
-              filterOptions={(x) => x} // Disable client-side filtering, we use server-side
+              filterOptions={(x) => x}
+              noOptionsText={
+                clientSearchQuery.length < 2
+                  ? 'Escribí al menos 2 caracteres para buscar'
+                  : 'No se encontraron clientes'
+              }
               renderInput={(params) => (
                 <TextField
                   {...params}

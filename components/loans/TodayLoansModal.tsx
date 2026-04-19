@@ -1,12 +1,13 @@
 'use client'
 
-import { 
-  Dialog, 
-  DialogContent, 
-  DialogTitle, 
-  IconButton, 
-  Box, 
-  Typography, 
+import React from 'react'
+import {
+  Dialog,
+  DialogContent,
+  DialogTitle,
+  IconButton,
+  Box,
+  Typography,
   Divider,
   Table,
   TableBody,
@@ -15,12 +16,16 @@ import {
   TableHead,
   TableRow,
   Paper,
+  List,
+  ListItem,
+  ListItemIcon,
+  ListItemText,
   Chip,
   alpha,
   useTheme,
   useMediaQuery
 } from '@mui/material'
-import { Close, TrendingUp, CalendarToday } from '@mui/icons-material'
+import { Close, TrendingUp, CalendarToday, AccountBalance, Percent } from '@mui/icons-material'
 
 interface TodayLoansModalProps {
   open: boolean
@@ -78,93 +83,59 @@ export default function TodayLoansModal({ open, onClose, data }: TodayLoansModal
         }
       }}
     >
-      <DialogTitle sx={{ 
-        pb: 2, 
-        pt: 2,
-        px: 3,
-        display: 'flex', 
-        alignItems: 'center', 
-        justifyContent: 'space-between',
-        background: 'linear-gradient(135deg, #2196f3 0%, #1976d2 100%)',
-        color: 'white'
+      <DialogTitle sx={{
+        pb: 2, pt: 3, px: 3,
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        borderBottom: '1px solid', borderColor: 'divider',
       }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-          <TrendingUp sx={{ fontSize: 28 }} />
+          <TrendingUp sx={{ fontSize: 24, color: 'primary.main' }} />
           <Box>
             <Typography variant="h6" fontWeight={600}>
               Préstamos Otorgados Hoy
             </Typography>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.5 }}>
-              <CalendarToday sx={{ fontSize: 14, opacity: 0.9 }} />
-              <Typography variant="caption" sx={{ opacity: 0.9, textTransform: 'capitalize' }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+              <CalendarToday sx={{ fontSize: 13, color: 'text.disabled' }} />
+              <Typography variant="caption" color="text.secondary" sx={{ textTransform: 'capitalize' }}>
                 {formatDate(data.date)}
               </Typography>
             </Box>
           </Box>
         </Box>
-        <IconButton
-          onClick={onClose}
-          sx={{ 
-            color: 'white',
-            '&:hover': {
-              bgcolor: 'rgba(255,255,255,0.1)'
-            }
-          }}
-        >
+        <IconButton onClick={onClose} size="small">
           <Close />
         </IconButton>
       </DialogTitle>
 
       <DialogContent sx={{ p: { xs: 2, sm: 3 }, bgcolor: 'background.default' }}>
-        {/* Summary Cards */}
-        <Box sx={{ 
-          display: 'grid', 
-          gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)' }, 
-          gap: 2,
-          mb: 3,
-          mt: 3
-        }}>
-          <Paper 
-            elevation={0} 
-            sx={{ 
-              p: 2.5, 
-              bgcolor: alpha(theme.palette.primary.main, 0.08),
-              border: `1px solid ${alpha(theme.palette.primary.main, 0.2)}`,
-              borderRadius: 2
-            }}
-          >
-            <Typography variant="caption" color="text.secondary" fontWeight={500}>
-              Total Prestado
-            </Typography>
-            <Typography variant="h4" fontWeight={700} color="primary.main" sx={{ mt: 0.5 }}>
-              {formatCurrency(totalPrestado)}
-            </Typography>
-          </Paper>
+        {/* Resumen */}
+        <Paper sx={{ mb: 3, mt: 2, bgcolor: '#FFFFFF', overflow: 'hidden' }}>
+          <List disablePadding>
+            {[
+              { icon: <AccountBalance sx={{ fontSize: 20 }} />, label: 'Total Prestado', value: formatCurrency(totalPrestado), color: 'primary.main' },
+              { icon: <TrendingUp sx={{ fontSize: 20 }} />, label: 'Total a Devolver', value: formatCurrency(totalADevolver), color: 'success.main' },
+              { icon: <Percent sx={{ fontSize: 20 }} />, label: 'Interés Total', value: formatCurrency(totalIntereses), color: 'warning.main' },
+            ].map((item, i, arr) => (
+              <React.Fragment key={item.label}>
+                <ListItem sx={{ py: 1.25, px: 2 }}>
+                  <ListItemIcon sx={{ minWidth: 36 }}>
+                    <Box sx={{ color: item.color, display: 'flex' }}>{item.icon}</Box>
+                  </ListItemIcon>
+                  <ListItemText
+                    primary={item.label}
+                    primaryTypographyProps={{ variant: 'body2', color: 'text.secondary' }}
+                  />
+                  <Typography variant="body1" fontWeight={700} color={item.color}>
+                    {item.value}
+                  </Typography>
+                </ListItem>
+                {i < arr.length - 1 && <Divider component="li" />}
+              </React.Fragment>
+            ))}
+          </List>
+        </Paper>
 
-          <Paper 
-            elevation={0} 
-            sx={{ 
-              p: 2.5, 
-              bgcolor: alpha(theme.palette.success.main, 0.08),
-              border: `1px solid ${alpha(theme.palette.success.main, 0.2)}`,
-              borderRadius: 2
-            }}
-          >
-            <Typography variant="caption" color="text.secondary" fontWeight={500}>
-              Cantidad de Préstamos
-            </Typography>
-            <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 1, mt: 0.5 }}>
-              <Typography variant="h4" fontWeight={700} color="success.main">
-                {data.total}
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                {data.total === 1 ? 'préstamo' : 'préstamos'}
-              </Typography>
-            </Box>
-          </Paper>
-        </Box>
-
-        <Divider sx={{ mb: 3 }} />
+        <Divider sx={{ mb: 2 }} />
 
         {/* Loans Table */}
         {data.loans.length > 0 ? (
@@ -257,17 +228,6 @@ export default function TodayLoansModal({ open, onClose, data }: TodayLoansModal
               </Table>
             </TableContainer>
 
-            {/* Mobile Interest Summary */}
-            {isMobile && (
-              <Box sx={{ mt: 2, p: 2, bgcolor: alpha(theme.palette.warning.main, 0.08), borderRadius: 2 }}>
-                <Typography variant="caption" color="text.secondary" fontWeight={500}>
-                  Interés Total Generado
-                </Typography>
-                <Typography variant="h6" fontWeight={600} color="warning.main" sx={{ mt: 0.5 }}>
-                  {formatCurrency(totalIntereses)}
-                </Typography>
-              </Box>
-            )}
           </Box>
         ) : (
           <Box sx={{ textAlign: 'center', py: 6 }}>

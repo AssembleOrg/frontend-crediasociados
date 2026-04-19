@@ -539,7 +539,7 @@ export default function RutasPage() {
     : '';
 
   return (
-    <Box sx={{ p: { xs: 0.5, sm: 2, md: 3 }, maxWidth: 1200, mx: 'auto', pb: { xs: 10, sm: 3 } }}>
+    <Box sx={{ p: { xs: 0.5, sm: 2, md: 3 }, maxWidth: 1200, mx: 'auto', pb: { xs: 10, sm: 3 }, bgcolor: '#F2F2F7', minHeight: '100dvh' }}>
       {/* Header - Mobile Optimized */}
       <Box sx={{ mb: 2 }}>
         {/* Title and Date Picker Row */}

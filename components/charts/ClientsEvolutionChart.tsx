@@ -107,8 +107,8 @@ const ClientsEvolutionChart = memo(function ClientsEvolutionChart({ data, isLoad
       <Paper
         elevation={0}
         sx={{
-          p: 3,
-          height: { xs: 400, sm: 450 },
+          p: { xs: 2, sm: 3 },
+          minHeight: 200,
           border: '1px solid',
           borderColor: 'divider',
           borderRadius: 2,
@@ -137,8 +137,8 @@ const ClientsEvolutionChart = memo(function ClientsEvolutionChart({ data, isLoad
       <Paper
         elevation={0}
         sx={{
-          p: 3,
-          height: { xs: 400, sm: 450 },
+          p: { xs: 2, sm: 3 },
+          minHeight: 200,
           border: '1px solid',
           borderColor: 'divider',
           borderRadius: 2,
@@ -170,8 +170,7 @@ const ClientsEvolutionChart = memo(function ClientsEvolutionChart({ data, isLoad
     <Paper
       elevation={0}
       sx={{
-        p: 3,
-        height: { xs: 360, sm: 450 },
+        p: { xs: 2, sm: 3 },
         border: '1px solid',
         borderColor: 'divider',
         borderRadius: 2,
@@ -183,14 +182,14 @@ const ClientsEvolutionChart = memo(function ClientsEvolutionChart({ data, isLoad
         Clientes Nuevos por Semana
       </Typography>
 
-      <ResponsiveContainer width="100%" height={isMobile ? 200 : 300}>
+      <ResponsiveContainer width="100%" height={isMobile ? 180 : 280}>
         <BarChart
           data={weeklyData}
           margin={{
-            top: isMobile ? 10 : 20,
-            right: isMobile ? 10 : 30,
-            left: isMobile ? 5 : 20,
-            bottom: isMobile ? 20 : 60,
+            top: isMobile ? 8 : 20,
+            right: isMobile ? 8 : 30,
+            left: isMobile ? 0 : 20,
+            bottom: isMobile ? 16 : 60,
           }}
           barCategoryGap="20%"
         >
@@ -223,40 +222,30 @@ const ClientsEvolutionChart = memo(function ClientsEvolutionChart({ data, isLoad
         </BarChart>
       </ResponsiveContainer>
 
-      {/* Summary - Compact */}
+      {/* Summary */}
       <Box sx={{
-        mt: isMobile ? 1 : 2,
-        pt: isMobile ? 1 : 2,
+        mt: 1.5,
+        pt: 1.5,
         borderTop: '1px solid',
         borderColor: 'divider',
-        display: 'flex',
-        justifyContent: 'space-around',
-        textAlign: 'center',
+        display: 'grid',
+        gridTemplateColumns: 'repeat(3, 1fr)',
+        gap: 1,
       }}>
-        <Box>
-          <Typography variant="caption" color="text.secondary" display="block">
-            Total Período
-          </Typography>
-          <Typography variant="h6" color="primary.main" fontSize="1.125rem">
-            {totalClients}
-          </Typography>
-        </Box>
-        <Box>
-          <Typography variant="caption" color="text.secondary" display="block">
-            Mejor Semana
-          </Typography>
-          <Typography variant="h6" color="success.main" fontSize="1.125rem">
-            {maxWeek}
-          </Typography>
-        </Box>
-        <Box>
-          <Typography variant="caption" color="text.secondary" display="block">
-            Promedio
-          </Typography>
-          <Typography variant="h6" color="info.main" fontSize="1.125rem">
-            {avgPerWeek}
-          </Typography>
-        </Box>
+        {[
+          { label: 'Total Período', value: totalClients, color: 'primary.main' },
+          { label: 'Mejor Semana', value: maxWeek, color: 'success.main' },
+          { label: 'Promedio', value: avgPerWeek, color: 'info.main' },
+        ].map((stat) => (
+          <Box key={stat.label} sx={{ textAlign: 'center', p: 1, borderRadius: 1, bgcolor: 'grey.50' }}>
+            <Typography variant="h6" fontWeight={700} color={stat.color} sx={{ fontSize: { xs: '1rem', sm: '1.125rem' }, lineHeight: 1.2 }}>
+              {stat.value}
+            </Typography>
+            <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.65rem' }}>
+              {stat.label}
+            </Typography>
+          </Box>
+        ))}
       </Box>
     </Paper>
   )

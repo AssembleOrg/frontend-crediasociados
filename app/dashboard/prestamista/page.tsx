@@ -2,8 +2,8 @@
 
 import React, { useState } from 'react'
 import dynamic from 'next/dynamic'
-import { Box, Grid, CircularProgress, Typography, Button, useMediaQuery, Dialog, DialogTitle, DialogContent, DialogActions, Card, CardContent } from '@mui/material'
-import { ExpandMore, ExpandLess, Calculate, PersonOff, AccountBalance } from '@mui/icons-material'
+import { Box, Grid, CircularProgress, Typography, Button, useMediaQuery, Dialog, DialogTitle, DialogContent, DialogActions, Paper, List, ListItem, ListItemIcon, ListItemText, Divider } from '@mui/material'
+import { ExpandMore, ExpandLess, Calculate, PersonOff, AccountBalance, ChevronRight, Close } from '@mui/icons-material'
 import PageHeader from '@/components/ui/PageHeader'
 import { ManagerDashboardCards } from '@/components/dashboard/ManagerDashboardCards'
 import { NetoAjusteCajaCard } from '@/components/dashboard/NetoAjusteCajaCard'
@@ -87,21 +87,11 @@ export default function PrestamistaDashboard() {
   }
 
   return (
-    <Box sx={{ p: 3 }}>
+    <Box sx={{ p: { xs: 2, sm: 3 } }}>
       <PageHeader
         title="Dashboard Prestamista"
         subtitle="Gestión de clientes y préstamos de tu cartera"
       />
-
-      {/* Wallet Balance Section */}
-      {/* <Box sx={{ mb: 4 }}>
-        <WalletBalanceCard
-          wallet={wallet}
-          isLoading={walletIsLoading}
-          onRefresh={refetchWallet}
-          showDetails={true}
-        />
-      </Box> */}
 
       {/* Manager Dashboard Cards */}
       <ManagerDashboardCards />
@@ -111,106 +101,61 @@ export default function PrestamistaDashboard() {
         <NetoAjusteCajaCard />
       </Box>
 
-      {/* Inactive Clients Card */}
-      <Card
-        sx={{
-          mb: 3,
-          cursor: 'pointer',
-          transition: 'all 0.2s',
-          background: 'linear-gradient(135deg, #85220D 0%, #A03015 100%)',
-          color: 'white',
-          '&:hover': {
-            transform: 'translateY(-4px)',
-            boxShadow: '0 12px 28px rgba(133, 34, 13, 0.3)',
-          },
-        }}
-        onClick={() => setInactiveClientsModalOpen(true)}
-      >
-        <CardContent sx={{ p: 3 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-            <Box
-              sx={{
-                width: 64,
-                height: 64,
-                borderRadius: 2,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                bgcolor: 'rgba(255,255,255,0.2)',
-              }}
-            >
-              <PersonOff sx={{ fontSize: 32 }} />
-            </Box>
-            <Box sx={{ flex: 1 }}>
-              <Typography variant="h6" fontWeight={600} gutterBottom>
-                Clientes Inactivos
-              </Typography>
-              <Typography variant="body2" sx={{ opacity: 0.9 }}>
-                Consulta tus clientes sin préstamos activos
-              </Typography>
-            </Box>
-          </Box>
-        </CardContent>
-      </Card>
-
-      {/* Active Loans Clients Card */}
-      <Card
-        sx={{
-          mb: 3,
-          cursor: 'pointer',
-          transition: 'all 0.2s',
-          background: 'linear-gradient(135deg, #1976d2 0%, #42a5f5 100%)',
-          color: 'white',
-          '&:hover': {
-            transform: 'translateY(-4px)',
-            boxShadow: '0 12px 28px rgba(25, 118, 210, 0.3)',
-          },
-        }}
-        onClick={() => setActiveLoansClientsModalOpen(true)}
-      >
-        <CardContent sx={{ p: 3 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-            <Box
-              sx={{
-                width: 64,
-                height: 64,
-                borderRadius: 2,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                bgcolor: 'rgba(255,255,255,0.2)',
-              }}
-            >
-              <AccountBalance sx={{ fontSize: 32 }} />
-            </Box>
-            <Box sx={{ flex: 1 }}>
-              <Typography variant="h6" fontWeight={600} gutterBottom>
-                Clientes con Préstamos Activos
-              </Typography>
-              <Typography variant="body2" sx={{ opacity: 0.9 }}>
-                Consulta tus clientes con préstamos activos
-              </Typography>
-            </Box>
-          </Box>
-        </CardContent>
-      </Card>
-
-      {/* Simulator Button */}
-      <Box sx={{ mb: 3, display: 'flex', gap: 2 }}>
-        <Button
-          variant="contained"
-          startIcon={<Calculate />}
-          onClick={() => setSimulatorOpen(true)}
-          sx={{
-            background: 'linear-gradient(135deg, #667eea 0%, #4facfe 100%)',
-            '&:hover': {
-              background: 'linear-gradient(135deg, #5a6fd8 0%, #3d8bfe 100%)',
-            },
-          }}
-        >
-          Abrir Simulador de Préstamos
-        </Button>
-      </Box>
+      {/* Acciones rápidas */}
+      <Paper sx={{ mb: 3, bgcolor: '#FFFFFF', overflow: 'hidden' }}>
+        <List disablePadding>
+          <ListItem
+            component="div"
+            onClick={() => setInactiveClientsModalOpen(true)}
+            sx={{ py: 1.5, px: 2, cursor: 'pointer', '&:hover': { bgcolor: 'action.hover' } }}
+          >
+            <ListItemIcon sx={{ minWidth: 36 }}>
+              <PersonOff sx={{ fontSize: 20, color: 'error.main' }} />
+            </ListItemIcon>
+            <ListItemText
+              primary="Clientes Inactivos"
+              secondary="Sin préstamos activos"
+              primaryTypographyProps={{ variant: 'body2', fontWeight: 600 }}
+              secondaryTypographyProps={{ variant: 'caption' }}
+            />
+            <ChevronRight sx={{ color: 'text.disabled' }} />
+          </ListItem>
+          <Divider component="li" />
+          <ListItem
+            component="div"
+            onClick={() => setActiveLoansClientsModalOpen(true)}
+            sx={{ py: 1.5, px: 2, cursor: 'pointer', '&:hover': { bgcolor: 'action.hover' } }}
+          >
+            <ListItemIcon sx={{ minWidth: 36 }}>
+              <AccountBalance sx={{ fontSize: 20, color: 'primary.main' }} />
+            </ListItemIcon>
+            <ListItemText
+              primary="Clientes con Préstamos Activos"
+              secondary="Consulta tu cartera activa"
+              primaryTypographyProps={{ variant: 'body2', fontWeight: 600 }}
+              secondaryTypographyProps={{ variant: 'caption' }}
+            />
+            <ChevronRight sx={{ color: 'text.disabled' }} />
+          </ListItem>
+          <Divider component="li" />
+          <ListItem
+            component="div"
+            onClick={() => setSimulatorOpen(true)}
+            sx={{ py: 1.5, px: 2, cursor: 'pointer', '&:hover': { bgcolor: 'action.hover' } }}
+          >
+            <ListItemIcon sx={{ minWidth: 36 }}>
+              <Calculate sx={{ fontSize: 20, color: 'primary.main' }} />
+            </ListItemIcon>
+            <ListItemText
+              primary="Simulador de Préstamos"
+              secondary="Calculá cuotas e intereses"
+              primaryTypographyProps={{ variant: 'body2', fontWeight: 600 }}
+              secondaryTypographyProps={{ variant: 'caption' }}
+            />
+            <ChevronRight sx={{ color: 'text.disabled' }} />
+          </ListItem>
+        </List>
+      </Paper>
 
       <Grid container spacing={4}>
         {/* Mobile: PaymentsDistribution first (always visible) */}
@@ -282,38 +227,30 @@ export default function PrestamistaDashboard() {
         fullWidth
         PaperProps={{
           sx: {
-            borderRadius: 3,
-            boxShadow: '0 20px 40px rgba(0,0,0,0.1)',
+            borderRadius: { xs: 2, sm: 3 },
+            maxHeight: { xs: 'calc(100dvh - 96px)', sm: '90vh' },
+            m: { xs: 1, sm: 2 },
+            mt: { xs: 'auto', sm: 2 },
+            width: { xs: '100%', sm: 'auto' },
           }
         }}
       >
         <DialogTitle sx={{
-          pb: 1,
-          background: 'linear-gradient(135deg, #667eea 0%, #4facfe 100%)',
-          color: 'white',
-          borderRadius: '12px 12px 0 0'
+          pb: 2, pt: 3, px: 3,
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          borderBottom: '1px solid', borderColor: 'divider',
         }}>
-          Simulador de Préstamos
-        </DialogTitle>
-        <DialogContent sx={{ p: 0 }}>
-          <Box sx={{ p: 3 }}>
-            <StandaloneLoanSimulator />
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+            <Calculate sx={{ fontSize: 24, color: 'primary.main' }} />
+            <Typography variant="h6" fontWeight={600}>Simulador de Préstamos</Typography>
           </Box>
-        </DialogContent>
-        <DialogActions sx={{ p: 3, gap: 2 }}>
-          <Button
-            onClick={() => setSimulatorOpen(false)}
-            variant="outlined"
-            size="large"
-            sx={{
-              borderRadius: 2,
-              px: 4,
-              py: 1.5
-            }}
-          >
+          <Button onClick={() => setSimulatorOpen(false)} size="small" variant="outlined">
             Cerrar
           </Button>
-        </DialogActions>
+        </DialogTitle>
+        <DialogContent sx={{ p: { xs: 2, sm: 3 } }}>
+          <StandaloneLoanSimulator />
+        </DialogContent>
       </Dialog>
 
       {/* Inactive Clients Modal */}

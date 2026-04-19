@@ -28,6 +28,7 @@ export interface CollectionRouteItem {
     dueDate: string;
     outstandingBalance?: number; // Optional - may not always be present
     loan: {
+      id: string;
       loanTrack: string;
       amount: number;
       currency: string;

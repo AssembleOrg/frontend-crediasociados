@@ -119,17 +119,14 @@ export default function RescheduleDateDialog({
       }}
     >
       <DialogTitle sx={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: 1,
-        pb: 1,
-        background: 'linear-gradient(135deg, #1976d2 0%, #42a5f5 100%)',
-        color: 'white',
+        pb: 2, pt: 3, px: 3,
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        borderBottom: '1px solid', borderColor: 'divider',
       }}>
-        <CalendarMonth sx={{ fontSize: 22 }} />
-        <Typography variant="subtitle1" component="span" fontWeight={600}>
-          {title}
-        </Typography>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+          <CalendarMonth sx={{ fontSize: 22, color: 'primary.main' }} />
+          <Typography variant="h6" fontWeight={600}>{title}</Typography>
+        </Box>
       </DialogTitle>
       <DialogContent sx={{ pt: 3, pb: 1 }}>
         <TextField

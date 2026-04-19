@@ -1,7 +1,7 @@
 'use client'
 
 import React, { memo } from 'react'
-import { Paper, Typography, Box } from '@mui/material'
+import { Paper, Typography, Box, useTheme, useMediaQuery } from '@mui/material'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts'
 
 interface LoansEvolutionData {
@@ -41,13 +41,16 @@ const CustomTooltip = ({ active, payload, label }: TooltipProps) => {
 }
 
 const LoansEvolutionChart = memo(function LoansEvolutionChart({ data, isLoading = false }: LoansEvolutionChartProps) {
+  const theme = useTheme()
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'))
+
   if (isLoading) {
     return (
       <Paper
         elevation={0}
         sx={{
-          p: 3,
-          height: { xs: 400, sm: 450 },
+          p: { xs: 2, sm: 3 },
+          minHeight: 200,
           border: '1px solid',
           borderColor: 'divider',
           borderRadius: 2,
@@ -76,8 +79,8 @@ const LoansEvolutionChart = memo(function LoansEvolutionChart({ data, isLoading 
       <Paper
         elevation={0}
         sx={{
-          p: 3,
-          height: { xs: 400, sm: 450 },
+          p: { xs: 2, sm: 3 },
+          minHeight: 200,
           border: '1px solid',
           borderColor: 'divider',
           borderRadius: 2,
@@ -109,8 +112,7 @@ const LoansEvolutionChart = memo(function LoansEvolutionChart({ data, isLoading 
     <Paper
       elevation={0}
       sx={{
-        p: 3,
-        height: { xs: 400, sm: 450 },
+        p: { xs: 2, sm: 3 },
         border: '1px solid',
         borderColor: 'divider',
         borderRadius: 2,
@@ -122,25 +124,25 @@ const LoansEvolutionChart = memo(function LoansEvolutionChart({ data, isLoading 
         Préstamos Nuevos por Semana
       </Typography>
 
-      <ResponsiveContainer width="100%" height={300}>
+      <ResponsiveContainer width="100%" height={isMobile ? 180 : 280}>
         <BarChart
           data={data}
           margin={{
-            top: 20,
-            right: 30,
-            left: 20,
-            bottom: 60,
+            top: isMobile ? 8 : 20,
+            right: isMobile ? 8 : 30,
+            left: isMobile ? 0 : 20,
+            bottom: isMobile ? 16 : 60,
           }}
           barCategoryGap="20%"
         >
           <CartesianGrid strokeDasharray="3 3" stroke="#e0e0e0" />
           <XAxis
             dataKey="date"
-            fontSize={11}
+            fontSize={isMobile ? 10 : 11}
             interval={0}
-            angle={-45}
-            textAnchor="end"
-            height={60}
+            angle={isMobile ? 0 : -45}
+            textAnchor={isMobile ? 'middle' : 'end'}
+            height={isMobile ? 30 : 60}
             tick={{ fill: '#666' }}
           />
           <YAxis
@@ -162,40 +164,30 @@ const LoansEvolutionChart = memo(function LoansEvolutionChart({ data, isLoading 
         </BarChart>
       </ResponsiveContainer>
 
-      {/* Summary - Compact */}
+      {/* Summary */}
       <Box sx={{
-        mt: 2,
-        pt: 2,
-        borderColor: 'divider',
+        mt: 1.5,
+        pt: 1.5,
         borderTop: '1px solid',
-        display: 'flex',
-        justifyContent: 'space-around',
-        textAlign: 'center',
+        borderColor: 'divider',
+        display: 'grid',
+        gridTemplateColumns: 'repeat(3, 1fr)',
+        gap: 1,
       }}>
-        <Box>
-          <Typography variant="caption" color="text.secondary" display="block">
-            Total Período
-          </Typography>
-          <Typography variant="h6" color="secondary.main" fontSize="1.125rem">
-            {totalLoans}
-          </Typography>
-        </Box>
-        <Box>
-          <Typography variant="caption" color="text.secondary" display="block">
-            Mejor Semana
-          </Typography>
-          <Typography variant="h6" color="success.main" fontSize="1.125rem">
-            {maxWeek}
-          </Typography>
-        </Box>
-        <Box>
-          <Typography variant="caption" color="text.secondary" display="block">
-            Promedio
-          </Typography>
-          <Typography variant="h6" color="info.main" fontSize="1.125rem">
-            {avgPerWeek}
-          </Typography>
-        </Box>
+        {[
+          { label: 'Total Período', value: totalLoans, color: 'secondary.main' },
+          { label: 'Mejor Semana', value: maxWeek, color: 'success.main' },
+          { label: 'Promedio', value: avgPerWeek, color: 'info.main' },
+        ].map((stat) => (
+          <Box key={stat.label} sx={{ textAlign: 'center', p: 1, borderRadius: 1, bgcolor: 'grey.50' }}>
+            <Typography variant="h6" fontWeight={700} color={stat.color} sx={{ fontSize: { xs: '1rem', sm: '1.125rem' }, lineHeight: 1.2 }}>
+              {stat.value}
+            </Typography>
+            <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.65rem' }}>
+              {stat.label}
+            </Typography>
+          </Box>
+        ))}
       </Box>
     </Paper>
   )

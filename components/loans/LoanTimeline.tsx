@@ -398,7 +398,8 @@ const TimelineNode: React.FC<TimelineNodeProps> = ({
         onClose={() => setEditDateOpen(false)}
         maxWidth="xs"
         fullWidth
-        PaperProps={{ sx: { borderRadius: 3, mx: 2 } }}
+        sx={{ zIndex: 1500 }}
+        PaperProps={{ sx: { borderRadius: 3, mx: { xs: 1, sm: 2 } } }}
       >
         <DialogTitle sx={{
           display: 'flex',
@@ -413,7 +414,7 @@ const TimelineNode: React.FC<TimelineNodeProps> = ({
             Cambiar Vencimiento - Cuota #{subloan.paymentNumber}
           </Typography>
         </DialogTitle>
-        <DialogContent sx={{ pt: 3, pb: 1 }}>
+        <DialogContent sx={{ pt: 3, pb: 1, px: { xs: 1.5, sm: 3 } }}>
           {/* Text input DD/MM/YYYY */}
           <TextField
             label="Fecha (DD/MM/AAAA)"
@@ -468,10 +469,10 @@ const TimelineNode: React.FC<TimelineNodeProps> = ({
                     disabled={isDisabled}
                     sx={{
                       minWidth: 0,
-                      width: 36,
-                      height: 36,
+                      width: { xs: 28, sm: 36 },
+                      height: { xs: 28, sm: 36 },
                       p: 0,
-                      fontSize: '0.8rem',
+                      fontSize: { xs: '0.7rem', sm: '0.8rem' },
                       borderRadius: 1,
                       color: !isCurrentMonth ? 'text.disabled' : isDisabled ? 'text.disabled' : 'text.primary',
                       bgcolor: isSelected ? '#1976d2' : isTodayDate ? 'primary.light' : 'transparent',

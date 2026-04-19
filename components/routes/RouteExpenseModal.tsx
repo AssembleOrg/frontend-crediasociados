@@ -201,27 +201,23 @@ export function RouteExpenseModal({
 
       <DialogContent dividers sx={{ px: { xs: 2, sm: 3 } }}>
         {/* Total Summary */}
-        <Paper
-          elevation={0}
-          sx={{
-            p: { xs: 1.5, sm: 2 },
-            mb: 2,
-            bgcolor: 'error.lighter',
-            border: '1px solid',
-            borderColor: 'error.light',
-            borderRadius: 1,
-          }}
-        >
-          <Typography variant="caption" color="text.secondary" display="block" gutterBottom>
-            Total de Gastos
-          </Typography>
-          <Typography variant="h6" fontWeight="bold" color="error.main" sx={{ fontSize: { xs: '1.25rem', sm: '1.5rem' } }}>
-            {formatCurrency(totalExpenses)}
-          </Typography>
-          <Typography variant="caption" color="text.secondary">
-            {expenses.length} gasto{expenses.length !== 1 ? 's' : ''} registrado{expenses.length !== 1 ? 's' : ''}
-          </Typography>
-        </Paper>
+        <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1.5, mb: 2, mt: 1 }}>
+          <Paper elevation={0} sx={{ p: 2, bgcolor: '#FFFFFF', borderRadius: 2, border: '1px solid', borderColor: 'divider' }}>
+            <Typography variant="caption" color="text.secondary" display="block">Total Gastos</Typography>
+            <Typography variant="h6" fontWeight={700} color="error.main" sx={{ mt: 0.5, fontSize: { xs: '1.1rem', sm: '1.25rem' } }}>
+              {formatCurrency(totalExpenses)}
+            </Typography>
+          </Paper>
+          <Paper elevation={0} sx={{ p: 2, bgcolor: '#FFFFFF', borderRadius: 2, border: '1px solid', borderColor: 'divider' }}>
+            <Typography variant="caption" color="text.secondary" display="block">Cantidad</Typography>
+            <Typography variant="h6" fontWeight={700} color="text.primary" sx={{ mt: 0.5, fontSize: { xs: '1.1rem', sm: '1.25rem' } }}>
+              {expenses.length}
+              <Typography component="span" variant="body2" fontWeight={400} color="text.secondary" sx={{ ml: 0.5 }}>
+                {expenses.length === 1 ? 'gasto' : 'gastos'}
+              </Typography>
+            </Typography>
+          </Paper>
+        </Box>
 
         {/* Expense Form */}
         {!isRouteClosed && (

@@ -1,12 +1,13 @@
 'use client'
 
-import { 
-  Dialog, 
-  DialogContent, 
-  DialogTitle, 
-  IconButton, 
-  Box, 
-  Typography, 
+import React from 'react'
+import {
+  Dialog,
+  DialogContent,
+  DialogTitle,
+  IconButton,
+  Box,
+  Typography,
   Divider,
   Table,
   TableBody,
@@ -102,92 +103,51 @@ export default function TodayExpensesModal({ open, onClose, data }: TodayExpense
         }
       }}
     >
-      <DialogTitle sx={{ 
-        pb: 2, 
-        pt: 2,
-        px: 3,
-        display: 'flex', 
-        alignItems: 'center', 
-        justifyContent: 'space-between',
-        background: 'linear-gradient(135deg, #ff9800 0%, #f57c00 100%)',
-        color: 'white'
+      <DialogTitle sx={{
+        pb: 2, pt: 3, px: 3,
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        borderBottom: '1px solid', borderColor: 'divider',
       }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-          <Receipt sx={{ fontSize: 28 }} />
+          <Receipt sx={{ fontSize: 24, color: 'warning.main' }} />
           <Box>
             <Typography variant="h6" fontWeight={600}>
               Gastos Realizados Hoy
             </Typography>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.5 }}>
-              <CalendarToday sx={{ fontSize: 14, opacity: 0.9 }} />
-              <Typography variant="caption" sx={{ opacity: 0.9, textTransform: 'capitalize' }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+              <CalendarToday sx={{ fontSize: 13, color: 'text.disabled' }} />
+              <Typography variant="caption" color="text.secondary" sx={{ textTransform: 'capitalize' }}>
                 {formatDate(data.date)}
               </Typography>
             </Box>
           </Box>
         </Box>
-        <IconButton
-          onClick={onClose}
-          sx={{ 
-            color: 'white',
-            '&:hover': {
-              bgcolor: 'rgba(255,255,255,0.1)'
-            }
-          }}
-        >
+        <IconButton onClick={onClose} size="small">
           <Close />
         </IconButton>
       </DialogTitle>
 
       <DialogContent sx={{ p: { xs: 2, sm: 3 }, bgcolor: 'background.default' }}>
-        {/* Summary Cards */}
-        <Box sx={{ 
-          display: 'grid', 
-          gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)' }, 
-          gap: 2,
-          mb: 3 
-        }}>
-          <Paper 
-            elevation={0} 
-            sx={{ 
-              p: 2.5, 
-              bgcolor: alpha(theme.palette.warning.main, 0.08),
-              border: `1px solid ${alpha(theme.palette.warning.main, 0.2)}`,
-              borderRadius: 2
-            }}
-          >
-            <Typography variant="caption" color="text.secondary" fontWeight={500}>
-              Total Gastado
-            </Typography>
-            <Typography variant="h4" fontWeight={700} color="warning.main" sx={{ mt: 0.5 }}>
+        {/* Resumen */}
+        <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1.5, mb: 3, mt: 2 }}>
+          <Paper elevation={0} sx={{ p: 2, bgcolor: '#FFFFFF', borderRadius: 2, border: '1px solid', borderColor: 'divider' }}>
+            <Typography variant="caption" color="text.secondary" display="block">Total Gastado</Typography>
+            <Typography variant="h6" fontWeight={700} color="warning.main" sx={{ mt: 0.5, fontSize: { xs: '1.1rem', sm: '1.25rem' } }}>
               {formatCurrency(data.totalAmount)}
             </Typography>
           </Paper>
-
-          <Paper 
-            elevation={0} 
-            sx={{ 
-              p: 2.5, 
-              bgcolor: alpha(theme.palette.info.main, 0.08),
-              border: `1px solid ${alpha(theme.palette.info.main, 0.2)}`,
-              borderRadius: 2
-            }}
-          >
-            <Typography variant="caption" color="text.secondary" fontWeight={500}>
-              Cantidad de Gastos
-            </Typography>
-            <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 1, mt: 0.5 }}>
-              <Typography variant="h4" fontWeight={700} color="info.main">
-                {data.total}
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
+          <Paper elevation={0} sx={{ p: 2, bgcolor: '#FFFFFF', borderRadius: 2, border: '1px solid', borderColor: 'divider' }}>
+            <Typography variant="caption" color="text.secondary" display="block">Cantidad</Typography>
+            <Typography variant="h6" fontWeight={700} color="text.primary" sx={{ mt: 0.5, fontSize: { xs: '1.1rem', sm: '1.25rem' } }}>
+              {data.total}
+              <Typography component="span" variant="body2" fontWeight={400} color="text.secondary" sx={{ ml: 0.5 }}>
                 {data.total === 1 ? 'gasto' : 'gastos'}
               </Typography>
-            </Box>
+            </Typography>
           </Paper>
         </Box>
 
-        <Divider sx={{ mb: 3 }} />
+        <Divider sx={{ mb: 2 }} />
 
         {/* Expenses Table */}
         {data.expenses.length > 0 ? (

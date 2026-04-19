@@ -10,6 +10,7 @@ import {
   Alert,
   Stack,
   Skeleton,
+  Collapse,
 } from '@mui/material';
 import {
   Phone,
@@ -19,14 +20,21 @@ import {
   EditCalendar,
   Refresh,
   Warning,
-  Notes,
   CheckCircle,
+  ChevronRight,
+  ExpandMore,
+  CheckCircleOutline,
+  RadioButtonUnchecked,
+  ErrorOutline,
+  Schedule,
 } from '@mui/icons-material';
 import { CollectionRouteItem } from '@/services/collection-routes.service';
 import { StatusChip } from '@/components/ui/StatusChip';
 import { iosColors } from '@/lib/theme';
 import { useBottomSheet } from '@/hooks/useBottomSheet';
 import { subLoansService } from '@/services/sub-loans.service';
+import { paymentsService } from '@/services/payments.service';
+import { loansService } from '@/services/loans.service';
 import { DateTime } from 'luxon';
 
 const fmt = (amount: number) =>
@@ -52,6 +60,16 @@ interface OverdueSubLoan {
   paidAmount: number;
   dueDate: string;
   status: string;
+}
+
+interface LoanSubLoan {
+  id: string;
+  paymentNumber: number;
+  totalAmount: number;
+  paidAmount: number;
+  dueDate: string;
+  status: string;
+  amount: number;
 }
 
 interface RouteItemBottomSheetProps {
@@ -87,6 +105,19 @@ export function RouteItemBottomSheet({
   const [overdueSubLoans, setOverdueSubLoans] = useState<OverdueSubLoan[]>([]);
   const [loadingOverdue, setLoadingOverdue] = useState(false);
   const fetchedLoanId = useRef<string | null>(null);
+
+  // Historial de pagos — lazy, solo se carga al expandir
+  const [historialOpen, setHistorialOpen] = useState(false);
+  const [historialPayments, setHistorialPayments] = useState<Array<{ id: string; amount: number; paymentDate: string; description?: string }>>([]);
+  const [loadingHistorial, setLoadingHistorial] = useState(false);
+  const fetchedHistorialId = useRef<string | null>(null);
+
+  // Todas las cuotas del préstamo — lazy, colapsable
+  const [allSubLoansOpen, setAllSubLoansOpen] = useState(false);
+  const [allSubLoans, setAllSubLoans] = useState<LoanSubLoan[]>([]);
+  const [loadingAllSubLoans, setLoadingAllSubLoans] = useState(false);
+  const fetchedAllSubLoansLoanId = useRef<string | null>(null);
+
 
   // Fetch overdue subloans when sheet opens for a new item
   useEffect(() => {
@@ -135,8 +166,61 @@ export function RouteItemBottomSheet({
     if (!open) {
       fetchedLoanId.current = null;
       setOverdueSubLoans([]);
+      setHistorialOpen(false);
+      setHistorialPayments([]);
+      fetchedHistorialId.current = null;
+      setAllSubLoansOpen(false);
+      setAllSubLoans([]);
+      fetchedAllSubLoansLoanId.current = null;
     }
   }, [open]);
+
+  const handleToggleHistorial = () => {
+    const subLoanId = item?.subLoan?.id;
+    if (!subLoanId) return;
+
+    if (historialOpen) {
+      setHistorialOpen(false);
+      return;
+    }
+
+    setHistorialOpen(true);
+    if (fetchedHistorialId.current === subLoanId) return;
+
+    setLoadingHistorial(true);
+    paymentsService
+      .getPaymentHistory(subLoanId)
+      .then((res) => {
+        setHistorialPayments(res.payments ?? []);
+        fetchedHistorialId.current = subLoanId;
+      })
+      .catch(() => setHistorialPayments([]))
+      .finally(() => setLoadingHistorial(false));
+  };
+
+  const handleToggleAllSubLoans = () => {
+    const loanId = item?.subLoan?.loan?.id;
+    if (!loanId) return;
+
+    if (allSubLoansOpen) {
+      setAllSubLoansOpen(false);
+      return;
+    }
+
+    setAllSubLoansOpen(true);
+    if (fetchedAllSubLoansLoanId.current === loanId) return;
+
+    setLoadingAllSubLoans(true);
+    loansService
+      .getLoanById(loanId)
+      .then((loan) => {
+        const subs = (loan as unknown as { subLoans?: LoanSubLoan[] }).subLoans ?? [];
+        setAllSubLoans(subs);
+        fetchedAllSubLoansLoanId.current = loanId;
+      })
+      .catch(() => setAllSubLoans([]))
+      .finally(() => setLoadingAllSubLoans(false));
+  };
 
   if (!item?.subLoan) return null;
 
@@ -300,6 +384,105 @@ export function RouteItemBottomSheet({
           )}
         </Box>
 
+        {/* Todas las cuotas del préstamo — lazy expandible */}
+        <Box
+          sx={{
+            bgcolor:      iosColors.systemBackground,
+            borderRadius: 2,
+            border:       `0.5px solid ${iosColors.gray4}`,
+            overflow:     'hidden',
+            mb:           2,
+          }}
+        >
+          <Box
+            onClick={handleToggleAllSubLoans}
+            sx={{
+              px: 2, py: 1.5,
+              display: 'flex', alignItems: 'center', gap: 1.5,
+              cursor: 'pointer', minHeight: 44,
+              '&:active': { bgcolor: iosColors.gray6 },
+            }}
+          >
+            <Typography variant="body2" fontWeight={600} sx={{ flex: 1 }}>
+              Cuotas del préstamo
+            </Typography>
+            {allSubLoansOpen
+              ? <ExpandMore sx={{ fontSize: 20, color: iosColors.gray1 }} />
+              : <ChevronRight sx={{ fontSize: 20, color: iosColors.gray1 }} />
+            }
+          </Box>
+          <Collapse in={allSubLoansOpen}>
+            <Divider />
+            {loadingAllSubLoans ? (
+              <Box sx={{ px: 2, py: 1.5 }}>
+                {[1, 2, 3].map((i) => (
+                  <Box key={i} sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 1.5 }}>
+                    <Skeleton variant="circular" width={20} height={20} />
+                    <Skeleton variant="text" width="30%" height={18} />
+                    <Box sx={{ flex: 1 }} />
+                    <Skeleton variant="text" width="20%" height={18} />
+                    <Skeleton variant="text" width="25%" height={14} sx={{ ml: 1 }} />
+                  </Box>
+                ))}
+              </Box>
+            ) : allSubLoans.length === 0 ? (
+              <Box sx={{ px: 2, py: 1.5 }}>
+                <Typography variant="caption" color="text.secondary">Sin cuotas disponibles</Typography>
+              </Box>
+            ) : (
+              allSubLoans.map((sl, i) => {
+                const isCurrent = sl.id === subLoan.id;
+                const isSlPaid = sl.status === 'PAID';
+                const isSlOverdue = sl.status === 'OVERDUE';
+                const isSlPartial = sl.status === 'PARTIAL';
+                const slColor = isSlPaid
+                  ? iosColors.green
+                  : isSlOverdue
+                  ? iosColors.red
+                  : isSlPartial
+                  ? iosColors.orange
+                  : 'text.secondary';
+                const SlIcon = isSlPaid
+                  ? CheckCircleOutline
+                  : isSlOverdue
+                  ? ErrorOutline
+                  : isSlPartial
+                  ? Schedule
+                  : RadioButtonUnchecked;
+
+                return (
+                  <Box key={sl.id}>
+                    <Box
+                      sx={{
+                        px: 2, py: 1.25,
+                        display: 'flex', alignItems: 'center', gap: 1.5,
+                        bgcolor: isCurrent ? `${iosColors.blue}10` : 'transparent',
+                        borderLeft: isCurrent ? `3px solid ${iosColors.blue}` : '3px solid transparent',
+                      }}
+                    >
+                      <SlIcon sx={{ fontSize: 18, color: slColor, flexShrink: 0 }} />
+                      <Typography
+                        variant="body2"
+                        fontWeight={isCurrent ? 700 : 400}
+                        sx={{ minWidth: 70, color: isCurrent ? 'primary.main' : 'text.primary' }}
+                      >
+                        Cuota #{sl.paymentNumber}
+                      </Typography>
+                      <Typography variant="body2" fontWeight={isCurrent ? 700 : 400} sx={{ flex: 1, color: slColor }}>
+                        {fmt(sl.totalAmount)}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary" sx={{ flexShrink: 0 }}>
+                        {fmtDateShort(sl.dueDate)}
+                      </Typography>
+                    </Box>
+                    {i < allSubLoans.length - 1 && <Divider />}
+                  </Box>
+                );
+              })
+            )}
+          </Collapse>
+        </Box>
+
         {/* Overdue prior installments */}
         {loadingOverdue && (
           <>
@@ -373,29 +556,73 @@ export function RouteItemBottomSheet({
           </>
         )}
 
-        {/* Loan notes */}
-        {subLoan.loan.notes && (
-          <>
-            <Typography variant="overline" color="text.secondary" sx={{ mb: 1, display: 'block' }}>
-              Notas del préstamo
-            </Typography>
+        {/* Historial de pagos — lazy expandible */}
+        {subLoan.paidAmount > 0 && (
+          <Box
+            sx={{
+              bgcolor: iosColors.systemBackground,
+              borderRadius: 2,
+              border: `0.5px solid ${iosColors.gray4}`,
+              overflow: 'hidden',
+              mb: 2,
+            }}
+          >
             <Box
+              onClick={handleToggleHistorial}
               sx={{
-                bgcolor:      '#FFFDE7',
-                borderRadius: 2,
-                border:       '0.5px solid #FFF9C4',
-                p:            2,
-                mb:           2,
-                display:      'flex',
-                gap:          1,
+                px: 2, py: 1.5,
+                display: 'flex', alignItems: 'center', gap: 1.5,
+                cursor: 'pointer', minHeight: 44,
+                '&:active': { bgcolor: iosColors.gray6 },
               }}
             >
-              <Notes sx={{ fontSize: 18, color: '#F57F17', mt: 0.1, flexShrink: 0 }} />
-              <Typography variant="body2" color="text.secondary" sx={{ whiteSpace: 'pre-wrap' }}>
-                {subLoan.loan.notes}
+              <Typography variant="body2" fontWeight={600} sx={{ flex: 1 }}>
+                Historial de pagos
               </Typography>
+              {historialOpen
+                ? <ExpandMore sx={{ fontSize: 20, color: iosColors.gray1 }} />
+                : <ChevronRight sx={{ fontSize: 20, color: iosColors.gray1 }} />
+              }
             </Box>
-          </>
+            <Collapse in={historialOpen}>
+              <Divider />
+              {loadingHistorial ? (
+                <Box sx={{ px: 2, py: 1.5 }}>
+                  {[1, 2].map((i) => (
+                    <Box key={i} sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                      <Skeleton variant="text" width="45%" height={18} />
+                      <Skeleton variant="text" width="25%" height={18} />
+                    </Box>
+                  ))}
+                </Box>
+              ) : historialPayments.length === 0 ? (
+                <Box sx={{ px: 2, py: 1.5 }}>
+                  <Typography variant="caption" color="text.secondary">Sin pagos registrados</Typography>
+                </Box>
+              ) : (
+                historialPayments.map((p, i) => (
+                  <Box key={p.id}>
+                    <Box sx={{ px: 2, py: 1.25, display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                      <Box sx={{ flex: 1 }}>
+                        <Typography variant="body2" fontWeight={600} color="success.main">
+                          {fmt(p.amount)}
+                        </Typography>
+                        {p.description && (
+                          <Typography variant="caption" color="text.secondary" noWrap>
+                            {p.description}
+                          </Typography>
+                        )}
+                      </Box>
+                      <Typography variant="caption" color="text.secondary">
+                        {fmtDateShort(p.paymentDate)}
+                      </Typography>
+                    </Box>
+                    {i < historialPayments.length - 1 && <Divider />}
+                  </Box>
+                ))
+              )}
+            </Collapse>
+          </Box>
         )}
 
         {/* Collected today — confirmation */}

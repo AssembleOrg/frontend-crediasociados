@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useRef, useCallback, useEffect } from 'react'
-import { Card, CardContent, Typography, Box, CircularProgress } from '@mui/material'
+import { Paper, Typography, Box, CircularProgress } from '@mui/material'
 import { TrendingUp, DateRange } from '@mui/icons-material'
 import { collectorWalletService } from '@/services/collector-wallet.service'
 import { useCurrentUser } from '@/hooks/useCurrentUser'
@@ -93,73 +93,50 @@ export function NetoAjusteCajaCard() {
   }
 
   const isNegative = (data?.balance ?? 0) < 0
-
-  // Colores más naturales
-  const getBackground = () => {
-    if (!data) return '#546e7a' // gris azulado neutro
-    if (isNegative) return '#c62828' // rojo
-    return '#1565c0' // azul
-  }
-
+  const valueColor = !data ? 'text.secondary' : isNegative ? 'error.main' : 'success.main'
   const isDisabled = isLoading || inCooldown
 
   return (
-    <Card
+    <Paper
       onClick={handleCalculate}
       sx={{
-        borderRadius: 3,
-        bgcolor: getBackground(),
-        color: 'white',
+        bgcolor: '#FFFFFF',
+        overflow: 'hidden',
         cursor: isDisabled ? 'not-allowed' : 'pointer',
-        opacity: inCooldown && !isLoading ? 0.7 : 1,
+        opacity: inCooldown && !isLoading ? 0.6 : 1,
         transition: 'all 0.2s',
-        boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
-        '&:hover': isDisabled ? {} : {
-          transform: 'translateY(-2px)',
-          boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
-        },
+        '&:hover': isDisabled ? {} : { bgcolor: 'action.hover' },
       }}
     >
-      <CardContent sx={{ p: 3 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
-          <Typography variant="body2" sx={{ fontWeight: 500, opacity: 0.9 }}>
-            Neto con Ajuste de Caja
-          </Typography>
-          <Box sx={{
-            width: 48,
-            height: 48,
-            borderRadius: 2,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            bgcolor: 'rgba(255,255,255,0.2)',
-          }}>
-            {isLoading ? (
-              <CircularProgress size={24} sx={{ color: 'white' }} />
-            ) : (
-              <TrendingUp sx={{ fontSize: 28 }} />
-            )}
-          </Box>
+      <Box sx={{ py: 1.5, px: 2, display: 'flex', alignItems: 'center' }}>
+        <Box sx={{ color: valueColor, display: 'flex', mr: 1.5 }}>
+          {isLoading
+            ? <CircularProgress size={20} color="inherit" />
+            : <TrendingUp sx={{ fontSize: 20 }} />
+          }
         </Box>
-
-        {error ? (
-          <Typography variant="body2" sx={{ color: '#ffcdd2' }}>{error}</Typography>
-        ) : data ? (
-          <>
-            <Typography variant="h4" sx={{ fontWeight: 700, mb: 0.5 }}>
-              {isNegative && '-'}${Math.abs(data.balance).toLocaleString('es-AR')}
-            </Typography>
-            <Typography variant="body2" sx={{ opacity: 0.9, display: 'flex', alignItems: 'center', gap: 0.5 }}>
-              <DateRange sx={{ fontSize: 16 }} />
+        <Box sx={{ flex: 1 }}>
+          <Typography variant="body2" color="text.secondary">Neto con Ajuste de Caja</Typography>
+          {data && (
+            <Typography variant="caption" color="text.disabled" sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+              <DateRange sx={{ fontSize: 13 }} />
               {formatDate(data.startDate)} - {formatDate(data.endDate)}
             </Typography>
-          </>
+          )}
+        </Box>
+        {error ? (
+          <Typography variant="caption" color="error.main">{error}</Typography>
         ) : (
-          <Typography variant="h4" sx={{ fontWeight: 700, opacity: 0.6 }}>
-            {isLoading ? 'Calculando...' : 'Toca para calcular'}
+          <Typography variant="body1" fontWeight={700} color={valueColor}>
+            {isLoading
+              ? '...'
+              : data
+                ? `${isNegative ? '-' : ''}$${Math.abs(data.balance).toLocaleString('es-AR')}`
+                : 'Calcular'
+            }
           </Typography>
         )}
-      </CardContent>
-    </Card>
+      </Box>
+    </Paper>
   )
 }

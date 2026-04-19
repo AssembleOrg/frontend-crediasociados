@@ -386,6 +386,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
           onClose={sheetClose}
           onOpen={sheetOpen}
           disableSwipeToOpen
+          sx={{ zIndex: 1400 }}
           PaperProps={{
             sx: {
               borderRadius:  '20px 20px 0 0',
@@ -411,6 +412,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
           maxWidth="md"
           fullWidth
           scroll="paper"
+          sx={{ zIndex: 1400 }}
           PaperProps={{
             sx: {
               borderRadius: { xs: 0, sm: 3 },

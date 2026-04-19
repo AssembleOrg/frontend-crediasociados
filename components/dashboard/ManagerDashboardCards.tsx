@@ -1,8 +1,8 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import dynamic from 'next/dynamic'
-import { Card, CardContent, Typography, Box, Skeleton, Stack, Alert } from '@mui/material'
+import { Typography, Box, Skeleton, Alert, Paper, List, ListItem, ListItemIcon, ListItemText, Divider } from '@mui/material'
 import { TrendingUp, TrendingDown, Receipt, AccountBalance, AccountBalanceWallet } from '@mui/icons-material'
 import { dailySummaryService, type DailySummaryResponse } from '@/services/daily-summary.service'
 import { loansService } from '@/services/loans.service'
@@ -26,82 +26,12 @@ const TodayExpensesModal = dynamic(
   { ssr: false }
 )
 
-interface StatCardProps {
-  title: string
-  value: number
-  subtitle: string
-  icon: React.ReactNode
-  color: string
-  isLoading: boolean
-  onClick?: () => void
-  clickable?: boolean
-}
-
-function StatCard({ title, value, subtitle, icon, color, isLoading, onClick, clickable = false }: StatCardProps) {
-  const isNegative = value < 0
-  const displayValue = Math.abs(value)
-
-  return (
-    <Card
-      onClick={clickable ? onClick : undefined}
-      sx={{
-        height: '100%',
-        borderRadius: 3,
-        boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
-        transition: 'transform 0.2s, box-shadow 0.2s',
-        cursor: clickable ? 'pointer' : 'default',
-        '&:hover': {
-          transform: clickable ? 'translateY(-4px)' : 'translateY(-2px)',
-          boxShadow: clickable ? '0 12px 28px rgba(0,0,0,0.15)' : '0 8px 24px rgba(0,0,0,0.12)',
-        },
-      }}
-    >
-      <CardContent sx={{ p: 3 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
-          <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 500 }}>
-            {title}
-          </Typography>
-          <Box
-            sx={{
-              width: 48,
-              height: 48,
-              borderRadius: 2,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              bgcolor: `${color}15`,
-              color: color,
-            }}
-          >
-            {icon}
-          </Box>
-        </Box>
-
-        {isLoading ? (
-          <>
-            <Skeleton variant="text" width="60%" height={40} sx={{ mb: 1 }} />
-            <Skeleton variant="text" width="40%" height={24} />
-          </>
-        ) : (
-          <>
-            <Typography
-              variant="h4"
-              sx={{
-                fontWeight: 700,
-                mb: 0.5,
-                color: 'text.primary',
-              }}
-            >
-              {isNegative && '-'}${displayValue.toLocaleString('es-AR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
-              {subtitle}
-            </Typography>
-          </>
-        )}
-      </CardContent>
-    </Card>
-  )
+const formatCurrencyCompact = (amount: number) => {
+  const abs = Math.abs(amount)
+  const sign = amount < 0 ? '-' : ''
+  if (abs >= 1_000_000) return `${sign}$${(abs / 1_000_000).toFixed(1).replace('.0', '')}M`
+  if (abs >= 1_000) return `${sign}$${(abs / 1_000).toFixed(1).replace('.0', '')}k`
+  return `${sign}$${abs}`
 }
 
 export function ManagerDashboardCards() {
@@ -272,91 +202,100 @@ export function ManagerDashboardCards() {
 
   if (error) {
     return (
-      <Box sx={{ mb: 4 }}>
+      <Box sx={{ mb: 3 }}>
         <Alert severity="error">{error}</Alert>
       </Box>
     )
   }
 
+  const neto = dailySummary?.neto !== undefined
+    ? dailySummary.neto - (dailySummary?.ajusteCaja || 0)
+    : (dailySummary?.summary?.netBalance || 0) - (dailySummary?.ajusteCaja || 0)
+
+  const items = [
+    {
+      icon: <TrendingUp sx={{ fontSize: 20 }} />,
+      label: 'Cobrado Hoy',
+      value: dailySummary?.cobrado || dailySummary?.collected?.total || 0,
+      subtitle: `${dailySummary?.collected?.count || 0} cobros`,
+      color: 'success.main',
+      onClick: handleOpenTodayCollections,
+    },
+    {
+      icon: <AccountBalance sx={{ fontSize: 20 }} />,
+      label: 'Prestado Hoy',
+      value: dailySummary?.prestado || dailySummary?.loaned?.total || 0,
+      subtitle: `${dailySummary?.loaned?.count || 0} préstamos`,
+      color: 'primary.main',
+      onClick: handleOpenTodayLoans,
+    },
+    {
+      icon: <Receipt sx={{ fontSize: 20 }} />,
+      label: 'Gastos Hoy',
+      value: dailySummary?.gastado || dailySummary?.expenses?.total || 0,
+      subtitle: `${dailySummary?.expenses?.count || 0} gastos`,
+      color: 'warning.main',
+      onClick: handleOpenTodayExpenses,
+    },
+    {
+      icon: <AccountBalanceWallet sx={{ fontSize: 20 }} />,
+      label: 'Retirado Hoy',
+      value: dailySummary?.retirado || 0,
+      subtitle: 'retiros del día',
+      color: 'text.secondary',
+      onClick: undefined,
+    },
+    {
+      icon: <TrendingDown sx={{ fontSize: 20 }} />,
+      label: 'Balance Neto',
+      value: neto,
+      subtitle: 'del día',
+      color: neto >= 0 ? 'success.main' : 'error.main',
+      onClick: undefined,
+    },
+  ]
+
   return (
-    <Box sx={{ mb: 4 }}>
-      <Typography variant="h6" fontWeight={600} sx={{ mb: 2 }}>
+    <Box sx={{ mb: 3 }}>
+      <Typography variant="h6" fontWeight={600} sx={{ mb: 1.5 }}>
         Resumen de Hoy
       </Typography>
-      <Stack
-        direction={{ xs: 'column', sm: 'row' }}
-        spacing={3}
-        sx={{
-          display: 'grid',
-          gridTemplateColumns: {
-            xs: '1fr',
-            sm: 'repeat(2, 1fr)',
-            lg: 'repeat(3, 1fr)',
-          },
-          gap: 3,
-        }}
-      >
-        <StatCard
-          title="Cobrado Hoy"
-          value={dailySummary?.cobrado || dailySummary?.collected?.total || 0}
-          subtitle={`${dailySummary?.collected?.count || 0} cobros realizados`}
-          icon={<TrendingUp sx={{ fontSize: 28 }} />}
-          color="#4caf50"
-          isLoading={isLoading}
-          clickable={true}
-          onClick={handleOpenTodayCollections}
-        />
-
-        <StatCard
-          title="Prestado Hoy"
-          value={dailySummary?.prestado || dailySummary?.loaned?.total || 0}
-          subtitle={`${dailySummary?.loaned?.count || 0} préstamos otorgados`}
-          icon={<AccountBalance sx={{ fontSize: 28 }} />}
-          color="#2196f3"
-          isLoading={isLoading}
-          clickable={true}
-          onClick={handleOpenTodayLoans}
-        />
-
-        <StatCard
-          title="Gastos Hoy"
-          value={dailySummary?.gastado || dailySummary?.expenses?.total || 0}
-          subtitle={`${dailySummary?.expenses?.count || 0} gastos registrados`}
-          icon={<Receipt sx={{ fontSize: 28 }} />}
-          color="#ff9800"
-          isLoading={isLoading}
-          clickable={true}
-          onClick={handleOpenTodayExpenses}
-        />
-
-        <StatCard
-          title="Retirado Hoy"
-          value={dailySummary?.retirado || 0}
-          subtitle="retiros del día"
-          icon={<AccountBalanceWallet sx={{ fontSize: 28 }} />}
-          color="#9c27b0"
-          isLoading={isLoading}
-        />
-
-        <StatCard
-          title="Balance Neto"
-          value={
-            (dailySummary?.neto !== undefined 
-              ? dailySummary.neto - (dailySummary?.ajusteCaja || 0)
-              : (dailySummary?.summary?.netBalance || 0) - (dailySummary?.ajusteCaja || 0)
-            )
-          }
-          subtitle="del día"
-          icon={<TrendingDown sx={{ fontSize: 28 }} />}
-          color={
-            (dailySummary?.neto !== undefined 
-              ? dailySummary.neto - (dailySummary?.ajusteCaja || 0)
-              : (dailySummary?.summary?.netBalance || 0) - (dailySummary?.ajusteCaja || 0)
-            ) >= 0 ? "#4caf50" : "#f44336"
-          }
-          isLoading={isLoading}
-        />
-      </Stack>
+      <Paper sx={{ bgcolor: '#FFFFFF', overflow: 'hidden' }}>
+        <List disablePadding>
+          {items.map((item, i) => (
+            <React.Fragment key={item.label}>
+              <ListItem
+                component="div"
+                onClick={item.onClick}
+                sx={{
+                  py: 1.25,
+                  px: 2,
+                  cursor: item.onClick ? 'pointer' : 'default',
+                  '&:hover': item.onClick ? { bgcolor: 'action.hover' } : {},
+                }}
+              >
+                <ListItemIcon sx={{ minWidth: 36 }}>
+                  <Box sx={{ color: item.color, display: 'flex' }}>{item.icon}</Box>
+                </ListItemIcon>
+                <ListItemText
+                  primary={item.label}
+                  secondary={isLoading ? undefined : item.subtitle}
+                  primaryTypographyProps={{ variant: 'body2', color: 'text.secondary' }}
+                  secondaryTypographyProps={{ variant: 'caption' }}
+                />
+                {isLoading ? (
+                  <Skeleton variant="text" width={60} height={24} />
+                ) : (
+                  <Typography variant="body1" fontWeight={700} color={item.color}>
+                    {formatCurrencyCompact(item.value)}
+                  </Typography>
+                )}
+              </ListItem>
+              {i < items.length - 1 && <Divider component="li" />}
+            </React.Fragment>
+          ))}
+        </List>
+      </Paper>
 
       {/* Today Loans Modal */}
       <TodayLoansModal

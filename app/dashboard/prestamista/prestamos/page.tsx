@@ -11,8 +11,6 @@ import { LoansTable } from '@/components/loans/LoansTable'
 import { ExportButtons } from '@/components/export/ExportButtons'
 import { LoansFilterPanel } from '@/components/filters/LoansFilterPanel'
 import { useLoansFilters } from '@/hooks/useLoansFilters'
-import { ManagerDashboardCards } from '@/components/dashboard/ManagerDashboardCards'
-
 // New reusable components
 import PageHeader from '@/components/ui/PageHeader'
 import LoanDetailsModal from '@/components/loans/modals/LoanDetailsModal'
@@ -111,9 +109,6 @@ export default function PrestamosAnalyticsPage() {
           <CircularProgress />
         </Box>
       )}
-
-      {/* Tu Cartera Stats - Manager Dashboard Cards */}
-      {!isLoading && !filtersLoading && <ManagerDashboardCards />}
 
       {/* Filter Panel */}
       {!isLoading && (

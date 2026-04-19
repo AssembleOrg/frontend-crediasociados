@@ -359,21 +359,6 @@ export default function ActiveLoansClientsModal({ open, onClose }: ActiveLoansCl
           </>
         )}
 
-        {/* Manager Info - Only for Manager */}
-        {isManager && currentUser && (
-          <>
-            <Box sx={{ mb: 3, p: 2, bgcolor: alpha('#1976d2', 0.1), borderRadius: 2 }}>
-              <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 1 }}>
-                Tus Clientes con Préstamos Activos
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                {currentUser.fullName} ({currentUser.email})
-              </Typography>
-            </Box>
-            <Divider sx={{ mb: 3 }} />
-          </>
-        )}
-
         {/* Summary - Grouped List */}
         {managerIdToUse && !loading && !error && managerDetail && managerDetail.loans.length > 0 && (
           <Paper sx={{ mb: 3, bgcolor: '#FFFFFF', overflow: 'hidden' }}>
