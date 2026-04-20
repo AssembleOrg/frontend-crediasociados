@@ -23,6 +23,9 @@ import {
   CircularProgress,
   Button,
   Divider,
+  Paper,
+  alpha,
+  useTheme,
 } from '@mui/material'
 import {
   Payment,
@@ -115,6 +118,7 @@ export function PaymentForm({
   onRegister,
   onCancel,
 }: PaymentFormProps) {
+  const theme = useTheme()
   const canRegister = currentSubloan && paymentAmount && parseFloat(paymentAmount) > 0
 
   // "Próximo pago" state — only relevant when paymentPreview.isPartial
@@ -126,7 +130,7 @@ export function PaymentForm({
   return (
     <>
       {/* ── Scrollable body ── */}
-      <Box sx={{ flex: 1, overflowY: 'auto', p: { xs: 2, sm: 3 } }}>
+      <Box sx={{ flex: 1, overflowY: 'auto', p: { xs: 2, sm: 3 }, bgcolor: '#F2F2F7' }}>
         <Box sx={{ mb: 3 }}>
           <Typography variant="h6" gutterBottom>
             Cliente: {clientName}
@@ -160,28 +164,21 @@ export function PaymentForm({
         {/* Cuota details */}
         {currentSubloan && (
           <>
-            <Box
-              sx={{
-                p: { xs: 2, sm: 2.5 },
-                background: 'linear-gradient(135deg, #667eea15 0%, #764ba215 100%)',
-                borderRadius: 2,
-                border: '2px solid',
-                borderColor: 'primary.main',
-                mb: 3,
-              }}
-            >
-              <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 2, fontSize: { xs: '1rem', sm: '1.1rem' } }}>
-                Cuota #{currentSubloan.paymentNumber ?? '?'}
-              </Typography>
-              <Box sx={{ display: 'grid', gridTemplateColumns: { xs: 'repeat(2, 1fr)', sm: 'repeat(4, 1fr)' }, gap: { xs: 1.5, sm: 2 } }}>
-                <StatBox label="Monto Total"     value={formatCurrencyDisplay(currentSubloan.totalAmount ?? 0)} />
-                <StatBox label="Monto Pagado"    value={formatCurrencyDisplay(currentSubloan.paidAmount || 0)} color="success.main" />
-                <StatBox label="Saldo Pendiente" value={formatCurrencyDisplay((currentSubloan.totalAmount ?? 0) - (currentSubloan.paidAmount || 0))} color="error.main" />
-                {currentSubloan.outstandingBalance !== undefined && (
-                  <StatBox label="Saldo a finalizar" value={formatCurrencyDisplay(currentSubloan.outstandingBalance ?? 0)} color="warning.main" borderColor="warning.main" />
-                )}
+            <Paper elevation={0} sx={{ bgcolor: '#FFFFFF', borderLeft: 4, borderLeftColor: 'primary.main', mb: 3, overflow: 'hidden' }}>
+              <Box sx={{ p: { xs: 2, sm: 2.5 } }}>
+                <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1.5 }}>
+                  Cuota #{currentSubloan.paymentNumber ?? '?'}
+                </Typography>
+                <Box sx={{ display: 'grid', gridTemplateColumns: { xs: 'repeat(2, 1fr)', sm: 'repeat(4, 1fr)' }, gap: 1 }}>
+                  <StatBox label="Monto Total"     value={formatCurrencyDisplay(currentSubloan.totalAmount ?? 0)} theme={theme} />
+                  <StatBox label="Monto Pagado"    value={formatCurrencyDisplay(currentSubloan.paidAmount || 0)} color="success.main" theme={theme} />
+                  <StatBox label="Saldo Pendiente" value={formatCurrencyDisplay((currentSubloan.totalAmount ?? 0) - (currentSubloan.paidAmount || 0))} color="error.main" theme={theme} />
+                  {currentSubloan.outstandingBalance !== undefined && (
+                    <StatBox label="Saldo a finalizar" value={formatCurrencyDisplay(currentSubloan.outstandingBalance ?? 0)} color="warning.main" theme={theme} />
+                  )}
+                </Box>
               </Box>
-            </Box>
+            </Paper>
 
             {/* Adjust installment */}
             <Box
@@ -392,6 +389,7 @@ export function PaymentForm({
         <Button
           onClick={onRegister}
           variant="contained"
+          color="primary"
           disabled={!canRegister || isRegistering}
           startIcon={isRegistering ? <CircularProgress size={20} color="inherit" /> : <Payment />}
           fullWidth
@@ -399,8 +397,6 @@ export function PaymentForm({
             borderRadius: 2,
             py: { xs: 1.25, sm: 1.5 },
             order: { xs: 1, sm: 2 },
-            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-            '&:hover': { background: 'linear-gradient(135deg, #5a6fd8 0%, #6a4292 100%)' },
           }}
         >
           {isRegistering ? 'Registrando...' : 'Registrar Pago'}
@@ -416,27 +412,26 @@ function StatBox({
   label,
   value,
   color,
-  borderColor,
+  theme,
 }: {
   label: string
   value: string
   color?: string
-  borderColor?: string
+  theme: ReturnType<typeof useTheme>
 }) {
   return (
     <Box
       sx={{
         textAlign: 'center',
-        p: { xs: 1.5, sm: 2 },
-        bgcolor: 'white',
-        borderRadius: 2,
-        ...(borderColor && { border: '1px solid', borderColor }),
+        p: { xs: 1, sm: 2 },
+        bgcolor: alpha(theme.palette.grey[500], 0.06),
+        borderRadius: 1,
       }}
     >
       <Typography variant="caption" color="text.secondary" sx={{ fontSize: { xs: '0.7rem', sm: '0.75rem' } }}>
         {label}
       </Typography>
-      <Typography variant="h6" fontWeight="bold" color={color} sx={{ fontSize: { xs: '1rem', sm: '1.25rem' } }}>
+      <Typography variant="h6" fontWeight="bold" color={color} sx={{ fontSize: { xs: '1rem', sm: '1.25rem' }, lineHeight: 1.2 }}>
         {value}
       </Typography>
     </Box>

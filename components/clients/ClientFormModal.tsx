@@ -234,18 +234,20 @@ export function ClientFormModal({
   const selectedCountry = LATIN_AMERICAN_COUNTRIES.find(c => c.code === formData.countryCode)
 
   return (
-    <Dialog 
-      open={open} 
-      onClose={() => {}} // Prevent closing on outside click
+    <Dialog
+      open={open}
+      onClose={handleClose}
       maxWidth="md"
       fullWidth
       PaperProps={{
         sx: {
-          borderRadius: { xs: 2, sm: 3 },
-          maxHeight: { xs: 'calc(100dvh - 96px)', sm: '90vh' },
-          m: { xs: 1, sm: 2 },
+          borderRadius: { xs: '16px 16px 0 0', sm: 3 },
+          maxHeight: { xs: '92dvh', sm: '90vh' },
+          m: { xs: 0, sm: 2 },
           mt: { xs: 'auto', sm: 2 },
           width: { xs: '100%', sm: 'auto' },
+          display: 'flex',
+          flexDirection: 'column',
         }
       }}
     >
@@ -281,8 +283,8 @@ export function ClientFormModal({
         </Box>
       </DialogTitle>
 
-      <form onSubmit={handleSubmit}>
-        <DialogContent sx={{ p: 0 }}>
+      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', minHeight: 0, flex: 1 }}>
+        <DialogContent sx={{ p: 0, flex: 1, overflowY: 'auto' }}>
           {error && (
             <Alert severity="error" sx={{ m: 3, mb: 0 }}>
               {error}
@@ -600,7 +602,7 @@ export function ClientFormModal({
 
         <Divider />
 
-        <DialogActions sx={{ p: 3, gap: 2 }}>
+        <DialogActions sx={{ p: { xs: 2, sm: 3 }, gap: 2, flexShrink: 0 }}>
           <Button
             onClick={handleClose}
             disabled={isLoading}

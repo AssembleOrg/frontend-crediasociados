@@ -23,8 +23,9 @@ import {
   DialogContent,
   Divider,
   Alert,
+  IconButton,
 } from '@mui/material'
-import { Payment, Warning } from '@mui/icons-material'
+import { Payment, Warning, Close } from '@mui/icons-material'
 import { formatAmount, unformatAmount, numberToFormattedAmount } from '@/lib/formatters'
 import { generatePaymentPDF, type PaymentReceiptData } from '@/utils/pdf/paymentReceipt'
 import { useOperativa } from '@/hooks/useOperativa'
@@ -352,27 +353,33 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
   const header = (
     <Box
       sx={{
-        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-        color: 'white',
-        p: { xs: 2, sm: 3 },
-        pt: { xs: 2.5, sm: 3.5 },
+        pb: 2,
+        pt: 3,
+        px: 3,
         display: 'flex',
         alignItems: 'center',
-        gap: 2,
+        justifyContent: 'space-between',
+        borderBottom: '1px solid',
+        borderColor: 'divider',
         flexShrink: 0,
       }}
     >
-      <Payment sx={{ fontSize: { xs: '1.5rem', sm: '2rem' } }} />
-      <Box>
-        <Typography variant="h6" sx={{ fontWeight: 600, fontSize: { xs: '1.1rem', sm: '1.25rem' } }}>
-          Registrar Pago
-        </Typography>
-        {mode === 'selector' && (
-          <Typography variant="caption" sx={{ opacity: 0.9 }}>
-            Selecciona la cuota a pagar
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+        <Payment sx={{ fontSize: 24, color: 'primary.main' }} />
+        <Box>
+          <Typography variant="h6" fontWeight={600}>
+            Registrar Pago
           </Typography>
-        )}
+          {mode === 'selector' && (
+            <Typography variant="caption" color="text.secondary">
+              Seleccioná la cuota a pagar
+            </Typography>
+          )}
+        </Box>
       </Box>
+      <IconButton onClick={onClose} size="small">
+        <Close />
+      </IconButton>
     </Box>
   )
 
@@ -436,13 +443,16 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
         onClose={() => setMultiPaymentConfirmOpen(false)}
         maxWidth="sm"
         fullWidth
-        PaperProps={{ sx: { borderRadius: 2 } }}
+        PaperProps={{ sx: { borderRadius: { xs: 2, sm: 3 }, m: { xs: 1, sm: 2 }, mt: { xs: 'auto', sm: 2 } } }}
       >
-        <DialogTitle sx={{ pb: 2 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-            <Warning color="warning" sx={{ fontSize: 28 }} />
-            <Typography variant="h6" component="div" fontWeight="bold">Confirmar Pago de Múltiples Cuotas</Typography>
+        <DialogTitle sx={{ pb: 2, pt: 3, px: 3, display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid', borderColor: 'divider' }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+            <Warning sx={{ fontSize: 24, color: 'warning.main' }} />
+            <Typography variant="h6" fontWeight={600}>Confirmar Pago de Múltiples Cuotas</Typography>
           </Box>
+          <IconButton onClick={() => setMultiPaymentConfirmOpen(false)} size="small">
+            <Close />
+          </IconButton>
         </DialogTitle>
         <DialogContent>
           {currentSubloan && (

@@ -10,14 +10,12 @@ import {
   Alert,
   Chip,
   CircularProgress,
-  Tabs,
-  Tab,
   InputBase,
   Divider,
   alpha,
   Snackbar,
 } from '@mui/material'
-import { Payment, Clear, Search, Warning, CheckCircle } from '@mui/icons-material'
+import { Payment, Clear, Search, Warning, CheckCircle, InfoOutlined } from '@mui/icons-material'
 
 import type { SubLoanWithClientInfo } from '@/services/subloans-lookup.service'
 import type { CobrosClient, OverdueClientEntry } from '@/services/sub-loans.service'
@@ -253,9 +251,10 @@ function MorososTab() {
 
 export default function CobrosPage() {
   const {
-    clients,
+    displayedClients,
     globalStats,
     isLoading,
+    isSearchLoading,
     error,
     page,
     limit,
@@ -267,14 +266,13 @@ export default function CobrosPage() {
     statusFilterOptions,
     updateFilter,
     clearAllFilters,
+    nameSearch,
+    setNameSearch,
     refresh,
   } = useCobrosFilters()
 
   // Tabs: 0 = cobros, 1 = morosos
   const [activeTab, setActiveTab] = useState(0)
-
-  // Client-side name search (applied on top of server filter)
-  const [nameSearch, setNameSearch] = useState('')
 
   // Modal states
   const [selectedClientData, setSelectedClientData]     = useState<CobrosClient | null>(null)
@@ -303,43 +301,73 @@ export default function CobrosPage() {
 
   const currentClientSummary = selectedClientData ? toClientSummary(selectedClientData) : null
 
-  // Client-side name filter on top of server results
-  const displayedClients = useMemo(() => {
-    if (!nameSearch.trim()) return clients
-    const q = nameSearch.toLowerCase()
-    return clients.filter((c) => c.client.fullName.toLowerCase().includes(q))
-  }, [clients, nameSearch])
-
   return (
     <Box sx={{ p: { xs: 1, sm: 2, md: 3 }, minHeight: '100vh' }}>
 
-      {/* ── Tabs ── */}
-      <Tabs
-        value={activeTab}
-        onChange={(_, v) => setActiveTab(v)}
+      {/* ── Tabs (iOS segmented control) ── */}
+      <Box
         sx={{
-          mb:           2,
-          minHeight:    44,
-          '& .MuiTab-root': { minHeight: 44, fontWeight: 600, fontSize: '0.9375rem' },
-          '& .MuiTabs-indicator': { height: 3, borderRadius: 2 },
+          display: 'flex',
+          bgcolor: '#f2f2f7',
+          borderRadius: '12px',
+          p: '4px',
+          mb: 2,
+          gap: '4px',
         }}
       >
-        <Tab label="Cobros" />
-        <Tab
-          label={
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
-              Morosos
-              {globalStats.overdue > 0 && (
-                <Chip
-                  label={globalStats.overdue}
-                  size="small"
-                  sx={{ bgcolor: iosColors.red, color: 'white', height: 18, fontSize: '0.65rem', fontWeight: 700 }}
-                />
-              )}
-            </Box>
-          }
-        />
-      </Tabs>
+        {[
+          { label: 'Cobros', index: 0 },
+          { label: 'Morosos', index: 1 },
+        ].map(({ label, index }) => (
+          <Box
+            key={index}
+            onClick={() => setActiveTab(index)}
+            sx={{
+              flex: 1,
+              position: 'relative',
+              textAlign: 'center',
+              py: '7px',
+              px: 1,
+              borderRadius: '10px',
+              bgcolor: activeTab === index ? 'white' : 'transparent',
+              boxShadow: activeTab === index ? '0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.08)' : 'none',
+              fontWeight: 600,
+              fontSize: '0.9375rem',
+              color: activeTab === index ? 'text.primary' : 'text.secondary',
+              cursor: 'pointer',
+              userSelect: 'none',
+              transition: 'all 0.2s ease',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 0.75,
+            }}
+          >
+            {label}
+            {index === 1 && globalStats.overdue > 0 && (
+              <Box
+                component="span"
+                sx={{
+                  bgcolor: iosColors.red,
+                  color: 'white',
+                  borderRadius: '9px',
+                  minWidth: 18,
+                  height: 18,
+                  fontSize: '0.65rem',
+                  fontWeight: 700,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  px: '5px',
+                  lineHeight: 1,
+                }}
+              >
+                {globalStats.overdue}
+              </Box>
+            )}
+          </Box>
+        ))}
+      </Box>
 
       {/* ── TAB 0: Cobros ── */}
       {activeTab === 0 && (
@@ -379,34 +407,59 @@ export default function CobrosPage() {
           </Box>
 
           {/* Name search */}
-          <Box
-            sx={{
-              display:      'flex',
-              alignItems:   'center',
-              gap:          1,
-              px:           1.5,
-              py:           0.75,
-              mb:           1.5,
-              bgcolor:      'background.paper',
-              borderRadius: 3,
-              border:       `0.5px solid ${iosColors.gray4}`,
-            }}
-          >
-            <Search sx={{ fontSize: 18, color: 'text.disabled' }} />
-            <InputBase
-              value={nameSearch}
-              onChange={(e) => setNameSearch(e.target.value)}
-              placeholder="Buscar cliente..."
-              fullWidth
-              sx={{ fontSize: '0.9375rem' }}
-            />
-            {nameSearch && (
+          <Box sx={{ mb: 1.5, position: 'relative' }}>
+            <Box
+              sx={{
+                display:      'flex',
+                alignItems:   'center',
+                gap:          1,
+                px:           1.5,
+                py:           0.75,
+                bgcolor:      'background.paper',
+                borderRadius: nameSearch.trim().length === 1 ? '12px 12px 0 0' : 3,
+                border:       `0.5px solid ${nameSearch.trim().length === 1 ? iosColors.gray3 : iosColors.gray4}`,
+                borderBottom: nameSearch.trim().length === 1 ? 'none' : undefined,
+              }}
+            >
+              {isSearchLoading
+                ? <CircularProgress size={14} sx={{ flexShrink: 0 }} />
+                : <Search sx={{ fontSize: 18, color: 'text.disabled', flexShrink: 0 }} />
+              }
+              <InputBase
+                value={nameSearch}
+                onChange={(e) => setNameSearch(e.target.value)}
+                placeholder="Buscar cliente..."
+                fullWidth
+                sx={{ fontSize: '0.9375rem' }}
+              />
+              {nameSearch && (
+                <Box
+                  component="button"
+                  onClick={() => setNameSearch('')}
+                  sx={{ border: 'none', background: 'transparent', cursor: 'pointer', color: 'text.disabled', display: 'flex', alignItems: 'center' }}
+                >
+                  <Clear sx={{ fontSize: 16 }} />
+                </Box>
+              )}
+            </Box>
+            {nameSearch.trim().length === 1 && (
               <Box
-                component="button"
-                onClick={() => setNameSearch('')}
-                sx={{ border: 'none', background: 'transparent', cursor: 'pointer', color: 'text.disabled', display: 'flex', alignItems: 'center' }}
+                sx={{
+                  border:       `0.5px solid ${iosColors.gray3}`,
+                  borderTop:    'none',
+                  borderRadius: '0 0 12px 12px',
+                  bgcolor:      'background.paper',
+                  px:           1.5,
+                  py:           1,
+                  display:      'flex',
+                  alignItems:   'center',
+                  gap:          0.75,
+                }}
               >
-                <Clear sx={{ fontSize: 16 }} />
+                <InfoOutlined sx={{ fontSize: 13, color: 'text.disabled' }} />
+                <Typography variant="caption" color="text.disabled">
+                  Escribí al menos 2 letras para buscar en todos los clientes
+                </Typography>
               </Box>
             )}
           </Box>

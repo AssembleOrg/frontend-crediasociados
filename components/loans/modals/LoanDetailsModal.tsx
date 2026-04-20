@@ -12,8 +12,10 @@ import {
   Alert,
   useTheme,
   useMediaQuery,
+  IconButton,
+  Paper,
 } from '@mui/material'
-import { Payment, Refresh, Warning } from '@mui/icons-material'
+import { Payment, Refresh, Warning, Close } from '@mui/icons-material'
 import LoanTimeline from '@/components/loans/LoanTimeline'
 import { PaymentModal } from '@/components/loans/PaymentModal'
 import { 
@@ -180,11 +182,17 @@ export default function LoanDetailsModal({
         },
       }}
     >
-      <DialogTitle sx={{ pt: 2, px: { xs: 2, sm: 3 }, pb: 1.5 }}>
+      <DialogTitle sx={{ pb: 2, pt: 3, px: 3, display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid', borderColor: 'divider' }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-          <Payment color="primary" fontSize={isMobile ? 'small' : 'medium'} />
-          <Typography variant={isMobile ? 'subtitle1' : 'h6'} component="div" fontWeight={600}>Detalles del Prestamo</Typography>
+          <Payment sx={{ fontSize: 24, color: 'primary.main' }} />
+          <Box>
+            <Typography variant="h6" fontWeight={600}>Detalles del Préstamo</Typography>
+            <Typography variant="caption" color="text.secondary">{clientName} · {loan.loanTrack}</Typography>
+          </Box>
         </Box>
+        <IconButton onClick={onClose} size="small">
+          <Close />
+        </IconButton>
       </DialogTitle>
 
       <DialogContent sx={{ p: { xs: 1.5, sm: 3 }, overflow: 'auto' }}>
@@ -197,45 +205,28 @@ export default function LoanDetailsModal({
         ) : (
           <Box>
             {/* Loan Summary Header */}
-            <Box sx={{ mb: { xs: 2, sm: 4 }, p: { xs: 1.5, sm: 3 }, bgcolor: '#f9f9f9', borderRadius: 2 }}>
-              <Typography variant={isMobile ? 'subtitle1' : 'h5'} fontWeight="bold" gutterBottom>
-                {clientName}
-              </Typography>
-              <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 1 }}>
-                {loan.loanTrack}
-              </Typography>
+            <Paper elevation={0} sx={{ mb: { xs: 2, sm: 3 }, bgcolor: '#FFFFFF', overflow: 'hidden' }}>
+              <Box sx={{ p: { xs: 1.5, sm: 3 } }}>
 
               {/* Remaining Summary - Highlighted */}
               {remainingPayments > 0 && (
-                <Box sx={{ 
-                  mt: 2, 
-                  mb: 3, 
-                  p: 2, 
-                  bgcolor: 'primary.main', 
-                  color: 'white',
-                  borderRadius: 2,
-                  textAlign: 'center'
-                }}>
-                  <Typography variant="h6" fontWeight="bold">
-                    Resta pagar ${remainingAmount.toLocaleString()} en {remainingPayments} {remainingPayments === 1 ? 'cuota' : 'cuotas'}
-                  </Typography>
-                </Box>
+                <Paper elevation={0} sx={{ mt: 2, mb: 3, bgcolor: '#FFFFFF', borderLeft: 4, borderLeftColor: 'primary.main', overflow: 'hidden' }}>
+                  <Box sx={{ p: 2 }}>
+                    <Typography variant="body1" fontWeight={700} color="primary.main">
+                      Resta pagar ${remainingAmount.toLocaleString()} en {remainingPayments} {remainingPayments === 1 ? 'cuota' : 'cuotas'}
+                    </Typography>
+                  </Box>
+                </Paper>
               )}
 
               {remainingPayments === 0 && (
-                <Box sx={{ 
-                  mt: 2, 
-                  mb: 3, 
-                  p: 2, 
-                  bgcolor: 'success.main', 
-                  color: 'white',
-                  borderRadius: 2,
-                  textAlign: 'center'
-                }}>
-                  <Typography variant="h6" fontWeight="bold">
-                    ✓ Préstamo completado - Total pagado: ${totalPaid.toLocaleString()}
-                  </Typography>
-                </Box>
+                <Paper elevation={0} sx={{ mt: 2, mb: 3, bgcolor: '#FFFFFF', borderLeft: 4, borderLeftColor: 'success.main', overflow: 'hidden' }}>
+                  <Box sx={{ p: 2 }}>
+                    <Typography variant="body1" fontWeight={700} color="success.main">
+                      ✓ Préstamo completado · Total pagado: ${totalPaid.toLocaleString()}
+                    </Typography>
+                  </Box>
+                </Paper>
               )}
 
               <Box
@@ -283,7 +274,8 @@ export default function LoanDetailsModal({
                   </Typography>
                 </Box>
               </Box>
-            </Box>
+              </Box>
+            </Paper>
 
             {/* Error Alerts */}
             {paymentError && (
