@@ -375,9 +375,12 @@ export function RouteItemBottomSheet({
           <InfoCell label="Cuota #" value={`#${subLoan.paymentNumber}`} />
           <InfoCell label="Vencimiento" value={fmtDate(subLoan.dueDate)} />
           <InfoCell label="Total cuota" value={fmt(subLoan.totalAmount)} />
-          <InfoCell label="Ya pagado" value={fmt(subLoan.paidAmount)} color={iosColors.green} />
+          <InfoCell label="Ya pagado" value={fmt(subLoan.paidAmount)} color={subLoan.paidAmount > 0 ? iosColors.green : undefined} />
           {!isPaid && (
             <InfoCell label="Pendiente" value={fmt(pendingAmount)} color={iosColors.red} />
+          )}
+          {subLoan.status === 'PARTIAL' && subLoan.paidAmount > 0 && (
+            <InfoCell label="Resta pagar" value={fmt(pendingAmount)} color={iosColors.orange} />
           )}
           {item.amountCollected > 0 && (
             <InfoCell label="Cobrado hoy" value={fmt(item.amountCollected)} color={iosColors.green} />

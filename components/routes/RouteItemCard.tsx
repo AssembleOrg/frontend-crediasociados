@@ -74,6 +74,7 @@ export function RouteItemCard({
   const pendingAmount = item.subLoan.totalAmount - item.subLoan.paidAmount;
   const isPaid = item.subLoan.status === 'PAID';
   const isOverdue = item.subLoan.status === 'OVERDUE';
+  const isPartial = item.subLoan.status === 'PARTIAL';
   const hasDebt = overdueCount > 0;
   const isResetting = resettingSubloanId === item.subLoanId;
 
@@ -144,56 +145,52 @@ export function RouteItemCard({
               '&:last-child': { pb: { xs: 1.5, sm: 1.75 } },
             }}
           >
-            {/* ── Row 1: index + name + amount + status ── */}
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'nowrap' }}>
-              {/* Order badge */}
+            {/* ── Row 1a: index + name ── */}
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.25 }}>
               <Typography
                 variant="caption"
                 sx={{
-                  fontWeight:      700,
-                  color:           iosColors.gray1,
-                  minWidth:        24,
-                  flexShrink:      0,
-                  fontSize:        '0.75rem',
+                  fontWeight: 700,
+                  color:      iosColors.gray1,
+                  minWidth:   24,
+                  flexShrink: 0,
+                  fontSize:   '0.75rem',
                 }}
               >
                 #{index + 1}
               </Typography>
+              <Typography
+                variant="body2"
+                sx={{
+                  fontWeight:   700,
+                  fontSize:     { xs: '0.9375rem', sm: '1rem' },
+                  overflow:     'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace:   'nowrap',
+                  color:        'text.primary',
+                  flex:         1,
+                  minWidth:     0,
+                }}
+              >
+                {item.clientName}
+              </Typography>
+            </Box>
 
-              {/* Client name */}
-              <Box sx={{ flex: '1 1 auto', minWidth: 0 }}>
-                <Typography
-                  variant="body2"
-                  sx={{
-                    fontWeight:    700,
-                    fontSize:      { xs: '0.9375rem', sm: '1rem' },
-                    overflow:      'hidden',
-                    textOverflow:  'ellipsis',
-                    whiteSpace:    'nowrap',
-                    color:         'text.primary',
-                  }}
-                >
-                  {item.clientName}
-                </Typography>
-              </Box>
-
-              {/* Pending amount */}
+            {/* ── Row 1b: amount + status ── */}
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, ml: '32px', mb: 0.25 }}>
               {!isPaid && (
                 <Typography
                   variant="body2"
                   sx={{
-                    fontWeight:  700,
-                    fontSize:    { xs: '0.9375rem', sm: '1rem' },
-                    color:       iosColors.red,
-                    flexShrink:  0,
-                    whiteSpace:  'nowrap',
+                    fontWeight: 700,
+                    fontSize:   { xs: '0.875rem', sm: '1rem' },
+                    color:      iosColors.red,
+                    whiteSpace: 'nowrap',
                   }}
                 >
                   {formatCurrency(pendingAmount)}
                 </Typography>
               )}
-
-              {/* Status chip */}
               <StatusChip status={item.subLoan.status} size="small" sx={{ flexShrink: 0 }} />
             </Box>
 
@@ -202,8 +199,9 @@ export function RouteItemCard({
               sx={{
                 display:    'flex',
                 alignItems: 'center',
-                gap:        1,
-                mt:         0.5,
+                gap:        0.75,
+                mt:         0.25,
+                ml:         '32px',
                 flexWrap:   'wrap',
               }}
             >
@@ -228,6 +226,16 @@ export function RouteItemCard({
                       {overdueCount} adeudada{overdueCount > 1 ? 's' : ''}
                     </Typography>
                   </Box>
+                </>
+              )}
+
+              {/* Partial balance indicator */}
+              {isPartial && item.subLoan.paidAmount > 0 && (
+                <>
+                  <Typography variant="caption" color="text.secondary">·</Typography>
+                  <Typography variant="caption" sx={{ color: iosColors.orange, fontWeight: 600 }}>
+                    Abonado {formatCurrency(item.subLoan.paidAmount)} · Resta {formatCurrency(pendingAmount)}
+                  </Typography>
                 </>
               )}
 

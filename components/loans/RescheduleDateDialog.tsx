@@ -128,7 +128,12 @@ export default function RescheduleDateDialog({
           <Typography variant="h6" fontWeight={600}>{title}</Typography>
         </Box>
       </DialogTitle>
-      <DialogContent sx={{ pt: 3, pb: 1 }}>
+      <DialogContent sx={{
+        pt: 3,
+        pb: 'calc(16px + env(safe-area-inset-bottom))',
+        px: { xs: 1.5, sm: 3 },
+        overflowY: 'auto',
+      }}>
         <TextField
           label="Fecha (DD/MM/AAAA)"
           value={dateInput}
@@ -177,10 +182,10 @@ export default function RescheduleDateDialog({
                   disabled={isDisabled}
                   sx={{
                     minWidth: 0,
-                    width: 36,
-                    height: 36,
+                    width: { xs: 28, sm: 36 },
+                    height: { xs: 28, sm: 36 },
                     p: 0,
-                    fontSize: '0.8rem',
+                    fontSize: { xs: '0.7rem', sm: '0.8rem' },
                     borderRadius: 1,
                     color: !isCurrentMonth ? 'text.disabled' : isDisabled ? 'text.disabled' : 'text.primary',
                     bgcolor: isSelected ? '#1976d2' : isTodayDate ? 'primary.light' : 'transparent',

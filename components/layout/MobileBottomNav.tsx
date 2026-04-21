@@ -21,8 +21,8 @@ import {
   People,
   AccountBalance,
   MoreHoriz,
+  Calculate,
   Analytics,
-  AttachMoney,
   EventNote,
   Close,
   VerifiedUser,
@@ -35,6 +35,7 @@ import { iosColors } from '@/lib/theme'
 import { useBottomSheet } from '@/hooks/useBottomSheet'
 import { useAuth } from '@/hooks/useAuth'
 import { useSubadminStore } from '@/stores/subadmin'
+import { useManagerStore } from '@/stores/manager'
 
 // ─── Nav items per role ───────────────────────────────────────────────────────
 
@@ -53,9 +54,9 @@ const MANAGER_PRIMARY: NavItem[] = [
   { label: 'Préstamos',  icon: <AccountBalance sx={{ fontSize: 24 }} />, path: '/dashboard/prestamista/prestamos' },
 ]
 const MANAGER_MORE: NavItem[] = [
-  { label: 'Reportes',   icon: <Analytics />,   path: '/dashboard/prestamista/reportes' },
-  { label: 'Finanzas',   icon: <AttachMoney />, path: '/dashboard/prestamista/finanzas' },
-  { label: 'Cierre Día', icon: <EventNote />,   path: '/dashboard/prestamista/cierre-dia' },
+  { label: 'Simulador',      icon: <Calculate />,        path: '/dashboard/prestamista?modal=simulador' },
+  { label: 'Inactivos',      icon: <PersonOff />,        path: '/dashboard/prestamista?modal=inactive' },
+  { label: 'Prést. Activos', icon: <AccountBalance />,   path: '/dashboard/prestamista?modal=activeloans' },
 ]
 
 const SUBADMIN_PRIMARY: NavItem[] = [
@@ -68,7 +69,8 @@ const SUBADMIN_MORE: NavItem[] = [
   { label: 'No Verificados', icon: <VerifiedUser />, path: '/dashboard/subadmin?modal=unverified' },
   { label: 'Inactivos',      icon: <PersonOff />,    path: '/dashboard/subadmin?modal=inactive' },
   { label: 'Vencidos',       icon: <Warning />,      path: '/dashboard/subadmin?modal=overdue' },
-  { label: 'Lista Negra',    icon: <Block />,         path: '/dashboard/subadmin?modal=blacklist' },
+  // commented by july
+  // { label: 'Lista Negra',    icon: <Block />,         path: '/dashboard/subadmin?modal=blacklist' },
   { label: 'Prést. Activos', icon: <AccountBalance />, path: '/dashboard/subadmin?modal=activeloans' },
 ]
 
@@ -223,7 +225,8 @@ export function MobileBottomNav({ badges = {} }: MobileBottomNavProps) {
   const router   = useRouter()
   const pathname = usePathname()
   const { user }  = useAuth()
-  const setPendingModal = useSubadminStore((s) => s.setPendingModal)
+  const setSubadminPendingModal = useSubadminStore((s) => s.setPendingModal)
+  const setManagerPendingModal  = useManagerStore((s) => s.setPendingModal)
 
   const { primary, more } = getNavItems(user?.role)
   const [moreOpen, setMoreOpen] = useState(false)
@@ -236,7 +239,11 @@ export function MobileBottomNav({ badges = {} }: MobileBottomNavProps) {
     const [basePath, query] = path.split('?')
     const modal = query ? new URLSearchParams(query).get('modal') : null
     if (modal) {
-      setPendingModal(modal)
+      if (user?.role === 'subadmin') {
+        setSubadminPendingModal(modal)
+      } else {
+        setManagerPendingModal(modal)
+      }
       router.push(basePath)
     } else {
       router.push(path)

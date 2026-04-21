@@ -159,12 +159,13 @@ export default function SubadminDashboard() {
       color: 'error.main' as const,
       onClick: () => setPendingModal('overdue'),
     },
-    {
-      icon: <Block sx={{ fontSize: 20 }} />,
-      label: 'Lista Negra',
-      color: 'text.secondary' as const,
-      onClick: () => setPendingModal('blacklist'),
-    },
+    // commented by july
+    // {
+    //   icon: <Block sx={{ fontSize: 20 }} />,
+    //   label: 'Lista Negra',
+    //   color: 'text.secondary' as const,
+    //   onClick: () => setPendingModal('blacklist'),
+    // },
     {
       icon: <AccountBalance sx={{ fontSize: 20 }} />,
       label: 'Clientes con Préstamos Activos',

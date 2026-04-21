@@ -30,6 +30,7 @@ import { formatAmount, unformatAmount, numberToFormattedAmount } from '@/lib/for
 import { generatePaymentPDF, type PaymentReceiptData } from '@/utils/pdf/paymentReceipt'
 import { useOperativa } from '@/hooks/useOperativa'
 import { paymentsService } from '@/services/payments.service'
+import { subLoansService } from '@/services/sub-loans.service'
 import { PaymentErrorModal } from './PaymentErrorModal'
 import { PaymentSuccessModal } from './PaymentSuccessModal'
 import { PaymentForm } from './PaymentForm'
@@ -75,6 +76,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
     status: 'PARTIAL' | 'PAID'
     isPartial: boolean
   } | null>(null)
+  const [nextDueDate, setNextDueDate]               = useState<string>('')
 
   // ── Feedback state ─────────────────────────────────────────────────────────
   const [errorModalOpen, setErrorModalOpen]                 = useState(false)
@@ -223,6 +225,14 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
         const remaining = Math.max(0, ((currentSubloan.totalAmount ?? 0) - (currentSubloan.paidAmount || 0)) - amountValue)
         const newStatus = remaining === 0 ? 'PAID' : 'PARTIAL'
 
+        if (newStatus === 'PARTIAL' && nextDueDate) {
+          try {
+            await subLoansService.updateDueDate(currentSubloan.id ?? '', nextDueDate)
+          } catch {
+            // Date update is best-effort — payment is already registered
+          }
+        }
+
         let receiptDataToShow: PaymentReceiptData | null = null
         if (paymentResult.loan && paymentResult.loanSummary && paymentResult.subLoans) {
           receiptDataToShow = {
@@ -344,6 +354,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
     onAdjustedAmountChange: setAdjustedAmount,
     onRegister: handleRegisterPayment,
     onCancel:   onClose,
+    onNextDueDateChange: setNextDueDate,
   }
 
   // Guard: no subloan in single mode → render nothing

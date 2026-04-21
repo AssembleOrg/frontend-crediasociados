@@ -96,17 +96,18 @@ export default function LoanDetailsModal({
       return { canPay: false, reason: 'Esta cuota ya está pagada' }
     }
 
-    // Buscar si hay cuotas anteriores sin pagar
+    // Buscar si hay cuotas anteriores sin ningún pago (PARTIAL ya tiene saldo abonado, se permite continuar)
     const currentPaymentNumber = subloan.paymentNumber ?? 0
-    const previousUnpaid = sortedSubLoans.find(s => 
-      (s.paymentNumber ?? 0) < currentPaymentNumber && 
-      s.status !== 'PAID'
+    const previousUnpaid = sortedSubLoans.find(s =>
+      (s.paymentNumber ?? 0) < currentPaymentNumber &&
+      s.status !== 'PAID' &&
+      s.status !== 'PARTIAL'
     )
 
     if (previousUnpaid) {
-      return { 
-        canPay: false, 
-        reason: `No se puede pagar la cuota #${currentPaymentNumber} sin pagar primero la cuota #${previousUnpaid.paymentNumber}` 
+      return {
+        canPay: false,
+        reason: `La cuota #${previousUnpaid.paymentNumber} está pendiente de pago. Saldá esa cuota primero.`
       }
     }
 
@@ -347,62 +348,84 @@ export default function LoanDetailsModal({
       <Dialog
         open={resetConfirmModalOpen}
         onClose={handleCancelReset}
-        maxWidth="sm"
+        maxWidth="xs"
         fullWidth
+        PaperProps={{
+          sx: {
+            borderRadius: { xs: 2, sm: 3 },
+            m: { xs: 1, sm: 2 },
+            mt: { xs: 'auto', sm: 2 },
+            width: { xs: '100%', sm: 'auto' }
+          }
+        }}
+        sx={{ '& .MuiDialog-container': { alignItems: { xs: 'flex-end', sm: 'center' } } }}
       >
-        <DialogTitle sx={{ pb: 2 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-            <Warning color="warning" sx={{ fontSize: 28 }} />
-            <Typography variant="h6" component="div" fontWeight="bold">
-              Confirmar Reseteo de Pagos
+        <DialogTitle
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 1.5,
+            pb: 1.5,
+            pt: 2,
+            px: 2,
+            borderBottom: 1,
+            borderColor: 'divider',
+            bgcolor: 'background.paper'
+          }}
+        >
+          <Warning sx={{ color: 'warning.main', fontSize: 22, flexShrink: 0 }} />
+          <Box sx={{ minWidth: 0 }}>
+            <Typography variant="subtitle1" fontWeight={700} lineHeight={1.2}>
+              Resetear cuota #{subloanToReset?.paymentNumber}
+            </Typography>
+            <Typography variant="caption" color="text.secondary">
+              Esta acción no se puede deshacer
             </Typography>
           </Box>
         </DialogTitle>
-        <DialogContent>
-          <Typography variant="body1" gutterBottom sx={{ mb: 2 }}>
-            ¿Está seguro de resetear todos los pagos de la cuota #{subloanToReset?.paymentNumber}?
-          </Typography>
-          
-          <Alert severity="warning" sx={{ mb: 2 }}>
-            <Typography variant="body2" fontWeight="bold" gutterBottom>
-              Esta acción eliminará:
-            </Typography>
-            <Typography variant="body2" component="ul" sx={{ pl: 2, mb: 0 }}>
-              <li>Todos los pagos registrados de esta cuota</li>
-              <li>Los efectos en las wallets (se revertirán los créditos)</li>
-              <li>Los registros de la ruta del día (si aplica)</li>
-            </Typography>
-          </Alert>
 
-          <Alert severity="info" sx={{ mb: 2 }}>
-            <Typography variant="body2">
-              <strong>Importante:</strong> Solo se puede resetear si el último pago fue realizado en las últimas 24 horas.
+        <DialogContent sx={{ px: 2, pt: 2, pb: 1 }}>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+            {[
+              'Todos los pagos registrados de esta cuota',
+              'Los efectos en las wallets (créditos revertidos)',
+              'Los registros de ruta del día, si aplica',
+            ].map((item) => (
+              <Box
+                key={item}
+                sx={{ pl: 1.5, py: 0.5, borderLeft: '3px solid', borderColor: 'warning.main' }}
+              >
+                <Typography variant="body2" color="text.secondary">{item}</Typography>
+              </Box>
+            ))}
+            <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5 }}>
+              Solo disponible si el último pago fue en las últimas 24 horas.
             </Typography>
-          </Alert>
-
-          <Alert severity="error">
-            <Typography variant="body2" fontWeight="bold">
-              ⚠️ Esta acción no se puede deshacer.
-            </Typography>
-          </Alert>
+          </Box>
         </DialogContent>
-        <DialogActions sx={{ p: 3, pt: 2 }}>
-          <Button 
-            onClick={handleCancelReset}
-            variant="outlined"
-            sx={{ minWidth: 120 }}
-          >
+
+        <DialogActions
+          sx={{
+            px: 2,
+            pt: 1,
+            pb: 'calc(16px + env(safe-area-inset-bottom))',
+            gap: 1,
+            borderTop: 1,
+            borderColor: 'divider'
+          }}
+        >
+          <Button onClick={handleCancelReset} variant="outlined" fullWidth>
             Cancelar
           </Button>
           <Button
             onClick={handleConfirmReset}
             variant="contained"
             color="warning"
+            fullWidth
             startIcon={<Refresh />}
             disabled={resettingSubloanId === subloanToReset?.id}
-            sx={{ minWidth: 120 }}
           >
-            {resettingSubloanId === subloanToReset?.id ? 'Reseteando...' : 'Resetear Pagos'}
+            {resettingSubloanId === subloanToReset?.id ? 'Reseteando...' : 'Resetear'}
           </Button>
         </DialogActions>
       </Dialog>

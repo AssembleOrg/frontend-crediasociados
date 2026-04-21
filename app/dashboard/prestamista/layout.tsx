@@ -1,5 +1,7 @@
 'use client'
 
+import { useState, useEffect } from 'react'
+import dynamic from 'next/dynamic'
 import { Box, Paper, List, ListItemButton, ListItemIcon, ListItemText, alpha } from '@mui/material'
 import {
   Dashboard, People, AccountBalance, Analytics, Route, Payment,
@@ -7,6 +9,11 @@ import {
 import { useRouter, usePathname } from 'next/navigation'
 import DashboardDataProvider from '@/components/providers/DashboardDataProvider'
 import { iosColors } from '@/lib/theme'
+import { useManagerStore } from '@/stores/manager'
+
+const SimuladorModal          = dynamic(() => import('@/components/manager/SimuladorModal'), { ssr: false })
+const InactiveClientsModal    = dynamic(() => import('@/components/clients/InactiveClientsModal'), { ssr: false })
+const ActiveLoansClientsModal = dynamic(() => import('@/components/clients/ActiveLoansClientsModal'), { ssr: false })
 
 const prestamistaMenuItems = [
   { label: 'Dashboard',   icon: <Dashboard />,       path: '/dashboard/prestamista' },
@@ -24,6 +31,20 @@ export default function PrestamistaLayout({
 }) {
   const router   = useRouter()
   const pathname = usePathname()
+
+  const pendingModal    = useManagerStore((s) => s.pendingModal)
+  const setPendingModal = useManagerStore((s) => s.setPendingModal)
+  const [simuladorOpen,    setSimuladorOpen]    = useState(false)
+  const [inactiveOpen,     setInactiveOpen]     = useState(false)
+  const [activeLoansOpen,  setActiveLoansOpen]  = useState(false)
+
+  useEffect(() => {
+    if (!pendingModal) return
+    if (pendingModal === 'simulador')   setSimuladorOpen(true)
+    if (pendingModal === 'inactive')    setInactiveOpen(true)
+    if (pendingModal === 'activeloans') setActiveLoansOpen(true)
+    setPendingModal(null)
+  }, [pendingModal, setPendingModal])
 
   return (
     <DashboardDataProvider>
@@ -84,6 +105,10 @@ export default function PrestamistaLayout({
           {children}
         </Box>
       </Box>
+
+      <SimuladorModal          open={simuladorOpen}    onClose={() => setSimuladorOpen(false)} />
+      <InactiveClientsModal    open={inactiveOpen}     onClose={() => setInactiveOpen(false)} />
+      <ActiveLoansClientsModal open={activeLoansOpen}  onClose={() => setActiveLoansOpen(false)} />
     </DashboardDataProvider>
   )
 }

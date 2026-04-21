@@ -29,7 +29,8 @@ import {
 } from '@mui/material'
 import { Close, VerifiedUser, Phone, Home, CheckCircle, Search, Warning, Work, Description } from '@mui/icons-material'
 import { clientsService } from '@/services/clients.service'
-import { blacklistService } from '@/services/blacklist.service'
+// commented by july
+// import { blacklistService } from '@/services/blacklist.service'
 
 interface UnverifiedClientsModalProps {
   open: boolean
@@ -57,7 +58,8 @@ export default function UnverifiedClientsModal({ open, onClose }: UnverifiedClie
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false)
   const [clientToVerify, setClientToVerify] = useState<{ id: string; nombre: string; dni?: string } | null>(null)
   const [confirmText, setConfirmText] = useState('')
-  const [blacklistWarning, setBlacklistWarning] = useState<string | null>(null)
+  // commented by july
+  // const [blacklistWarning, setBlacklistWarning] = useState<string | null>(null)
 
   useEffect(() => {
     if (open) {
@@ -87,19 +89,19 @@ export default function UnverifiedClientsModal({ open, onClose }: UnverifiedClie
     setBlacklistWarning(null)
     setConfirmText('')
 
-    // Check blacklist before opening confirm dialog
-    if (client.dni) {
-      try {
-        const result = await blacklistService.checkDni(client.dni)
-        if (result.isBlacklisted && result.entry) {
-          setBlacklistWarning(
-            `CLIENTE EN LISTA NEGRA: ${result.entry.fullName} (DNI: ${result.entry.dni}) - Motivo: ${result.entry.reason}`
-          )
-        }
-      } catch {
-        // If check fails, don't block - just skip warning
-      }
-    }
+    // commented by july
+    // if (client.dni) {
+    //   try {
+    //     const result = await blacklistService.checkDni(client.dni)
+    //     if (result.isBlacklisted && result.entry) {
+    //       setBlacklistWarning(
+    //         `CLIENTE EN LISTA NEGRA: ${result.entry.fullName} (DNI: ${result.entry.dni}) - Motivo: ${result.entry.reason}`
+    //       )
+    //     }
+    //   } catch {
+    //     // If check fails, don't block - just skip warning
+    //   }
+    // }
 
     setConfirmDialogOpen(true)
   }
@@ -532,7 +534,8 @@ export default function UnverifiedClientsModal({ open, onClose }: UnverifiedClie
               </Box>
               .
             </Typography>
-            {blacklistWarning && (
+            {/* commented by july */}
+            {/* {blacklistWarning && (
               <Alert severity="error" sx={{ mb: 2, mt: 2 }} icon={false}>
                 <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 0.5 }}>
                   ALERTA: CLIENTE EN LISTA NEGRA
@@ -541,7 +544,7 @@ export default function UnverifiedClientsModal({ open, onClose }: UnverifiedClie
                   {blacklistWarning}
                 </Typography>
               </Alert>
-            )}
+            )} */}
             <Alert severity="info" sx={{ mb: 3, mt: 2 }}>
               Una vez verificado, el cobrador podrá comenzar a otorgar préstamos a este cliente.
             </Alert>

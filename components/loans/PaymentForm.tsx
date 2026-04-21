@@ -34,7 +34,6 @@ import {
   Info,
   TuneRounded,
   CalendarToday,
-  EditCalendar,
 } from '@mui/icons-material'
 import { DateTime } from 'luxon'
 import { formatAmount, unformatAmount, formatCurrencyDisplay, numberToFormattedAmount } from '@/lib/formatters'
@@ -57,9 +56,6 @@ function calcNextDueDate(dueDate: string | undefined, frequency: string | undefi
     : DateTime.utc()
   return base.plus({ days }).toISODate() ?? ''
 }
-
-const fmtDate = (iso: string) =>
-  DateTime.fromISO(iso, { zone: 'utc' }).setLocale('es').toFormat("cccc d 'de' MMMM")
 
 export interface PaymentFormProps {
   // Data
@@ -87,6 +83,7 @@ export interface PaymentFormProps {
   onAdjustedAmountChange: (raw: string) => void
   onRegister: () => void
   onCancel: () => void
+  onNextDueDateChange?: (date: string) => void
 }
 
 const fmtDateShort = (dateString?: string) => {
@@ -117,6 +114,7 @@ export function PaymentForm({
   onAdjustedAmountChange,
   onRegister,
   onCancel,
+  onNextDueDateChange,
 }: PaymentFormProps) {
   const theme = useTheme()
   const canRegister = currentSubloan && paymentAmount && parseFloat(paymentAmount) > 0
@@ -288,51 +286,20 @@ export function PaymentForm({
                   borderRadius: 2,
                   border: `1px solid ${iosColors.orange}`,
                   bgcolor: 'rgba(255,149,0,0.05)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 1.5,
                 }}
               >
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
-                  <CalendarToday sx={{ fontSize: 18, color: iosColors.orange }} />
+                <CalendarToday sx={{ fontSize: 18, color: iosColors.orange, flexShrink: 0 }} />
+                <Box>
                   <Typography variant="body2" fontWeight={700} color="warning.main">
-                    Próximo pago
+                    Pago parcial — queda pendiente
+                  </Typography>
+                  <Typography variant="body2" fontWeight={700} color="warning.main">
+                    {formatCurrencyDisplay(paymentPreview?.remainingAfterPayment ?? 0)}
                   </Typography>
                 </Box>
-
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
-                  <Box>
-                    <Typography variant="caption" color="text.secondary" display="block">
-                      Monto restante
-                    </Typography>
-                    <Typography variant="body2" fontWeight={700} color="warning.main">
-                      {formatCurrencyDisplay(paymentPreview?.remainingAfterPayment ?? 0)}
-                    </Typography>
-                  </Box>
-                  <Box sx={{ textAlign: 'right' }}>
-                    <Typography variant="caption" color="text.secondary" display="block">
-                      Fecha sugerida
-                    </Typography>
-                    <Typography variant="body2" fontWeight={600}>
-                      {nextDueDate ? fmtDate(nextDueDate) : '—'}
-                    </Typography>
-                  </Box>
-                </Box>
-
-                <TextField
-                  type="date"
-                  size="small"
-                  fullWidth
-                  label="Cambiar fecha"
-                  value={nextDueDate}
-                  onChange={(e) => setNextDueDate(e.target.value)}
-                  InputProps={{
-                    startAdornment: <InputAdornment position="start"><EditCalendar sx={{ fontSize: 18 }} /></InputAdornment>,
-                  }}
-                  InputLabelProps={{ shrink: true }}
-                  inputProps={{ min: new Date().toISOString().split('T')[0] }}
-                />
-
-                <Typography variant="caption" color="text.secondary" sx={{ mt: 0.75, display: 'block' }}>
-                  Esta fecha se enviará al servidor como próximo vencimiento de la cuota.
-                </Typography>
               </Box>
             )}
 
