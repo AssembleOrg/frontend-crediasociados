@@ -25,18 +25,20 @@ import {
   Alert,
   IconButton,
 } from '@mui/material'
-import { Payment, Warning, Close } from '@mui/icons-material'
-import { formatAmount, unformatAmount, numberToFormattedAmount } from '@/lib/formatters'
+import { Payment, AttachMoney, PictureAsPdf, Info, Warning, Autorenew, CheckCircle, Close } from '@mui/icons-material'
+import { formatAmount, unformatAmount, formatCurrencyDisplay, numberToFormattedAmount } from '@/lib/formatters'
 import { generatePaymentPDF, type PaymentReceiptData } from '@/utils/pdf/paymentReceipt'
 import { useOperativa } from '@/hooks/useOperativa'
 import { paymentsService } from '@/services/payments.service'
 import { subLoansService } from '@/services/sub-loans.service'
+import { loansService, type RenewLoanRequest } from '@/services/loans.service'
 import { PaymentErrorModal } from './PaymentErrorModal'
 import { PaymentSuccessModal } from './PaymentSuccessModal'
 import { PaymentForm } from './PaymentForm'
 import { useBottomSheet } from '@/hooks/useBottomSheet'
 import { iosColors } from '@/lib/theme'
 import type { SubLoanWithClientInfo } from '@/services/subloans-lookup.service'
+import type { LoanResponseDto } from '@/types/auth'
 
 interface PaymentModalProps {
   open: boolean
@@ -89,6 +91,26 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
   } | null>(null)
   const [receiptData, setReceiptData] = useState<PaymentReceiptData | null>(null)
 
+  // Renewal mode state
+  const [renewMode, setRenewMode] = useState<boolean>(false)
+  const [renewLoading, setRenewLoading] = useState<boolean>(false)
+  const [loanDetails, setLoanDetails] = useState<LoanResponseDto | null>(null)
+  const [loanLoading, setLoanLoading] = useState<boolean>(false)
+  const [renewAmount, setRenewAmount] = useState<string>('')
+  const [renewInterestPct, setRenewInterestPct] = useState<string>('')
+  const [renewPenaltyPct, setRenewPenaltyPct] = useState<string>('')
+  const [renewFrequency, setRenewFrequency] = useState<'DAILY' | 'WEEKLY' | 'BIWEEKLY' | 'MONTHLY'>('DAILY')
+  const [renewPaymentDay, setRenewPaymentDay] = useState<'MONDAY' | 'TUESDAY' | 'WEDNESDAY' | 'THURSDAY' | 'FRIDAY' | 'SATURDAY' | ''>('')
+  const [renewTotalPayments, setRenewTotalPayments] = useState<string>('')
+  const [renewFirstDueDate, setRenewFirstDueDate] = useState<string>('')
+  const [renewSuccessOpen, setRenewSuccessOpen] = useState<boolean>(false)
+  const [renewSuccessData, setRenewSuccessData] = useState<{
+    loanTrack: string
+    settledAmount: number
+    newLoanTrack: string
+    newAmount: number
+  } | null>(null)
+
   // ── Derived ────────────────────────────────────────────────────────────────
   const currentSubloan = useMemo(
     () => (mode === 'single' ? subloan : subloans.find((s) => s.id === selectedSubloanId)),
@@ -110,6 +132,14 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
   useEffect(() => {
     if (!open) {
       setReceiptData(null)
+      setRenewMode(false)
+      setLoanDetails(null)
+      setRenewAmount('')
+      setRenewInterestPct('')
+      setRenewPenaltyPct('')
+      setRenewTotalPayments('')
+      setRenewFirstDueDate('')
+      setRenewPaymentDay('')
       return
     }
     setHasUserEdited(false)
@@ -166,6 +196,175 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
     }
   }, [currentSubloan, paymentAmount, effectiveTotalAmount])
 
+  // Fetch loan details and prefill renewal form when renewMode is activated
+  useEffect(() => {
+    if (!renewMode || !currentSubloan?.loanId) return
+    // Already loaded for this loan
+    if (loanDetails?.id === currentSubloan.loanId) return
+
+    let cancelled = false
+    setLoanLoading(true)
+    loansService
+      .getLoanById(currentSubloan.loanId)
+      .then((loan) => {
+        if (cancelled) return
+        setLoanDetails(loan)
+        const capital = Number(loan.originalAmount ?? loan.amount ?? 0)
+        setRenewAmount(capital > 0 ? numberToFormattedAmount(capital) : '')
+        setRenewInterestPct(
+          loan.baseInterestRate != null
+            ? (Number(loan.baseInterestRate) * 100).toString()
+            : ''
+        )
+        setRenewPenaltyPct(
+          loan.penaltyInterestRate != null
+            ? (Number(loan.penaltyInterestRate) * 100).toString()
+            : ''
+        )
+        setRenewFrequency(
+          (loan.paymentFrequency as 'DAILY' | 'WEEKLY' | 'BIWEEKLY' | 'MONTHLY') || 'DAILY'
+        )
+        setRenewPaymentDay(
+          (loan.paymentDay as typeof renewPaymentDay) || ''
+        )
+        setRenewTotalPayments(
+          loan.totalPayments != null ? String(loan.totalPayments) : ''
+        )
+      })
+      .catch((err) => {
+        if (cancelled) return
+        const errObj = err as Record<string, unknown>
+        setErrorMessage(
+          String(errObj?.message || 'No se pudieron cargar los datos del préstamo')
+        )
+        setErrorModalOpen(true)
+        setRenewMode(false)
+      })
+      .finally(() => {
+        if (!cancelled) setLoanLoading(false)
+      })
+
+    return () => {
+      cancelled = true
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [renewMode, currentSubloan?.loanId])
+
+  const downloadPdfFromBase64 = (base64: string, filename: string) => {
+    try {
+      const binaryString = atob(base64)
+      const bytes = new Uint8Array(binaryString.length)
+      for (let i = 0; i < binaryString.length; i++) {
+        bytes[i] = binaryString.charCodeAt(i)
+      }
+      const blob = new Blob([bytes], { type: 'application/pdf' })
+      const url = window.URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = filename
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      window.URL.revokeObjectURL(url)
+    } catch (err) {
+      console.error('Error al descargar PDF del préstamo:', err)
+    }
+  }
+
+  const canRenew = useMemo(() => {
+    if (!renewMode || !currentSubloan?.loanId) return false
+    const amt = parseFloat(unformatAmount(renewAmount)) || 0
+    const interest = parseFloat(renewInterestPct.replace(',', '.'))
+    const penalty = parseFloat(renewPenaltyPct.replace(',', '.'))
+    const cuotas = parseInt(renewTotalPayments, 10)
+    const needsPaymentDay = renewFrequency !== 'DAILY' && renewFrequency !== 'MONTHLY'
+    return (
+      amt > 0 &&
+      !isNaN(interest) &&
+      interest >= 0 &&
+      !isNaN(penalty) &&
+      penalty >= 0 &&
+      !isNaN(cuotas) &&
+      cuotas > 0 &&
+      !!renewFirstDueDate &&
+      (!needsPaymentDay || !!renewPaymentDay)
+    )
+  }, [
+    renewMode,
+    currentSubloan?.loanId,
+    renewAmount,
+    renewInterestPct,
+    renewPenaltyPct,
+    renewTotalPayments,
+    renewFirstDueDate,
+    renewFrequency,
+    renewPaymentDay,
+  ])
+
+  const handleRenewLoan = async () => {
+    if (!currentSubloan?.loanId || !canRenew) return
+    setRenewLoading(true)
+    try {
+      const payload: RenewLoanRequest = {
+        amount: parseFloat(unformatAmount(renewAmount)),
+        baseInterestRate:
+          parseFloat(renewInterestPct.replace(',', '.')) / 100,
+        penaltyInterestRate:
+          parseFloat(renewPenaltyPct.replace(',', '.')) / 100,
+        paymentFrequency: renewFrequency,
+        paymentDay:
+          renewFrequency === 'DAILY' || renewFrequency === 'MONTHLY'
+            ? undefined
+            : (renewPaymentDay as RenewLoanRequest['paymentDay']),
+        totalPayments: parseInt(renewTotalPayments, 10),
+        firstDueDate: renewFirstDueDate,
+        description: notes || undefined,
+      }
+
+      const result = await loansService.renewLoan(
+        currentSubloan.loanId,
+        payload
+      )
+
+      // Trigger PDF download of the new loan
+      if (result.pdfBase64) {
+        downloadPdfFromBase64(
+          result.pdfBase64,
+          result.pdfFilename || `prestamo-${result.newLoan?.loanTrack || 'nuevo'}.pdf`
+        )
+      }
+
+      setRenewSuccessData({
+        loanTrack: result.previousLoan.loanTrack,
+        settledAmount: result.previousLoan.settledAmount,
+        newLoanTrack: result.newLoan?.loanTrack || '-',
+        newAmount: Number(result.newLoan?.originalAmount ?? payload.amount),
+      })
+      setRenewSuccessOpen(true)
+
+      if (onPaymentSuccess) onPaymentSuccess()
+    } catch (error) {
+      const errObj = error as Record<string, unknown>
+      const responseData = (errObj?.response as Record<string, unknown>)?.data as
+        | Record<string, unknown>
+        | undefined
+      const errorMsg =
+        responseData?.message ||
+        errObj?.message ||
+        'Error al renovar el préstamo. Por favor intenta nuevamente.'
+      setErrorMessage(String(errorMsg))
+      setErrorModalOpen(true)
+    } finally {
+      setRenewLoading(false)
+    }
+  }
+
+  const handleRenewSuccessClose = () => {
+    setRenewSuccessOpen(false)
+    setRenewSuccessData(null)
+    onClose()
+  }
+
   // ── Handlers ───────────────────────────────────────────────────────────────
   const handleAmountChange = (raw: string) => {
     setHasUserEdited(true)
@@ -184,6 +383,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
       setAdjustedAmount(numberToFormattedAmount(currentSubloan.totalAmount ?? 0))
     }
   }
+
 
   const handleRegisterPayment = async () => {
     if (!currentSubloan) return
@@ -355,6 +555,27 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
     onRegister: handleRegisterPayment,
     onCancel:   onClose,
     onNextDueDateChange: setNextDueDate,
+    // Renewal mode
+    renewMode,
+    onRenewModeChange: setRenewMode,
+    loanLoading,
+    renewAmount,
+    renewInterestPct,
+    renewPenaltyPct,
+    renewFrequency,
+    renewPaymentDay,
+    renewTotalPayments,
+    renewFirstDueDate,
+    onRenewAmountChange: setRenewAmount,
+    onRenewInterestPctChange: setRenewInterestPct,
+    onRenewPenaltyPctChange: setRenewPenaltyPct,
+    onRenewFrequencyChange: setRenewFrequency,
+    onRenewPaymentDayChange: setRenewPaymentDay,
+    onRenewTotalPaymentsChange: setRenewTotalPayments,
+    onRenewFirstDueDateChange: setRenewFirstDueDate,
+    canRenew,
+    renewLoading,
+    onRenew: handleRenewLoan,
   }
 
   // Guard: no subloan in single mode → render nothing
@@ -448,6 +669,62 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
         </Dialog>
       )}
 
+      {/* Renewal Success Modal */}
+      <Dialog
+        open={renewSuccessOpen}
+        onClose={handleRenewSuccessClose}
+        maxWidth="sm"
+        fullWidth
+        PaperProps={{ sx: { borderRadius: 2 } }}
+      >
+        <DialogTitle sx={{ pb: 2 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            <CheckCircle color="success" sx={{ fontSize: 28 }} />
+            <Typography variant="h6" fontWeight="bold">
+              Préstamo renovado exitosamente
+            </Typography>
+          </Box>
+        </DialogTitle>
+        <DialogContent>
+          {renewSuccessData && (
+            <>
+              <Alert severity="success" sx={{ mb: 2 }}>
+                Se descargó el PDF del nuevo préstamo.
+              </Alert>
+              <Box sx={{ mb: 2, p: 2, bgcolor: 'grey.50', borderRadius: 1 }}>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                  <Typography variant="body2" fontWeight={500}>Préstamo cancelado:</Typography>
+                  <Typography variant="body2" fontWeight={600}>{renewSuccessData.loanTrack}</Typography>
+                </Box>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                  <Typography variant="body2" fontWeight={500}>Saldo cobrado:</Typography>
+                  <Typography variant="body2" fontWeight={600} color="success.main">
+                    {formatCurrencyDisplay(renewSuccessData.settledAmount)}
+                  </Typography>
+                </Box>
+                <Divider sx={{ my: 1 }} />
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                  <Typography variant="body2" fontWeight={500}>Nuevo préstamo:</Typography>
+                  <Typography variant="body2" fontWeight={600}>{renewSuccessData.newLoanTrack}</Typography>
+                </Box>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <Typography variant="body2" fontWeight={500}>Capital desembolsado:</Typography>
+                  <Typography variant="body2" fontWeight={600} color="primary.main">
+                    {formatCurrencyDisplay(renewSuccessData.newAmount)}
+                  </Typography>
+                </Box>
+              </Box>
+            </>
+          )}
+        </DialogContent>
+        <DialogActions sx={{ p: 3, pt: 1 }}>
+          <Button onClick={handleRenewSuccessClose} variant="contained" fullWidth sx={{ borderRadius: 2 }}>
+            Cerrar
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Multi-Payment Confirmation Modal */}
       {/* ── Multi-payment confirmation (shared) ── */}
       <Dialog
         open={multiPaymentConfirmOpen}

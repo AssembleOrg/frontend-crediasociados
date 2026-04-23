@@ -10,6 +10,35 @@ import type {
   PaginatedResponse,
 } from '@/types/auth';
 
+export interface RenewLoanRequest {
+  amount: number;
+  baseInterestRate: number;
+  penaltyInterestRate: number;
+  paymentFrequency: 'DAILY' | 'WEEKLY' | 'BIWEEKLY' | 'MONTHLY';
+  paymentDay?:
+    | 'MONDAY'
+    | 'TUESDAY'
+    | 'WEDNESDAY'
+    | 'THURSDAY'
+    | 'FRIDAY'
+    | 'SATURDAY';
+  totalPayments: number;
+  firstDueDate: string;
+  description?: string;
+  notes?: string;
+}
+
+export interface RenewLoanResponse {
+  previousLoan: {
+    id: string;
+    loanTrack: string;
+    settledAmount: number;
+  };
+  newLoan: LoanResponseDto | null;
+  pdfBase64: string;
+  pdfFilename: string;
+}
+
 /**
  * THE MESSENGER - Loans Service
  * Simple, testable functions that only communicate with the API.
@@ -202,6 +231,15 @@ class LoansService {
   async updateLoanDescription(loanId: string, description: string): Promise<{ id: string; description: string }> {
     const response = await api.patch(`/loans/${loanId}/description`, { description });
     return response.data.data || response.data;
+  }
+
+  async renewLoan(
+    loanId: string,
+    data: RenewLoanRequest
+  ): Promise<RenewLoanResponse> {
+    const response = await api.post(`/loans/${loanId}/renew`, data);
+    // Match the extraction pattern used elsewhere (response.data.data or response.data)
+    return response.data?.data ?? response.data;
   }
 
   /**
