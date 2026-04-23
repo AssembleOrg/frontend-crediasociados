@@ -39,7 +39,10 @@ import {
 import { DateTime } from 'luxon'
 import { formatAmount, unformatAmount, formatCurrencyDisplay, numberToFormattedAmount } from '@/lib/formatters'
 import { iosColors } from '@/lib/theme'
+import { CustomCalendar } from '@/components/ui/CustomCalendar'
 import type { SubLoanWithClientInfo } from '@/services/subloans-lookup.service'
+
+const BA_TZ = 'America/Argentina/Buenos_Aires'
 
 // Days to add per payment frequency
 const FREQUENCY_DAYS: Record<string, number> = {
@@ -471,15 +474,6 @@ export function PaymentForm({
                         helperText="Ej: 50 para 50%"
                         fullWidth
                       />
-                      <TextField
-                        label="Tasa de mora (%)"
-                        type="number"
-                        value={renewPenaltyPct}
-                        onChange={(e) => onRenewPenaltyPctChange?.(e.target.value)}
-                        inputProps={{ min: 0, step: '0.01' }}
-                        helperText="Ej: 5 para 5%"
-                        fullWidth
-                      />
                       <FormControl fullWidth>
                         <InputLabel>Frecuencia</InputLabel>
                         <Select
@@ -514,14 +508,22 @@ export function PaymentForm({
                           </Select>
                         </FormControl>
                       )}
-                      <TextField
+                      <CustomCalendar
                         label="Fecha del primer pago"
-                        type="date"
-                        value={renewFirstDueDate}
-                        onChange={(e) => onRenewFirstDueDateChange?.(e.target.value)}
-                        InputLabelProps={{ shrink: true }}
-                        fullWidth
-                        required
+                        value={
+                          renewFirstDueDate
+                            ? DateTime.fromISO(renewFirstDueDate, { zone: BA_TZ }).toJSDate()
+                            : null
+                        }
+                        onChange={(date) => {
+                          if (!date) {
+                            onRenewFirstDueDateChange?.('')
+                            return
+                          }
+                          const iso = DateTime.fromJSDate(date).setZone(BA_TZ).toISODate()
+                          onRenewFirstDueDateChange?.(iso ?? '')
+                        }}
+                        minDate={DateTime.now().setZone(BA_TZ).startOf('day').toJSDate()}
                       />
                     </Box>
 
