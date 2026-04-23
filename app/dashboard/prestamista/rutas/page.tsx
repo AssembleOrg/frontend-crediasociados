@@ -1057,6 +1057,8 @@ export default function RutasPage() {
           onClose={handleClosePaymentModal}
           subloan={{
             id: selectedItem.subLoanId,
+            loanId: selectedItem.subLoan.loan?.id,
+            loanTrack: selectedItem.subLoan.loan?.loanTrack,
             paymentNumber: selectedItem.subLoan.paymentNumber,
             amount: selectedItem.subLoan.amount,
             totalAmount: selectedItem.subLoan.totalAmount,
