@@ -12,12 +12,12 @@ interface RouteStatsProps {
   currency?: string;
 }
 
-const fmtCompact = (amount: number) => {
+const fmtCurrency = (amount: number) => {
   const abs = Math.abs(amount);
   const sign = amount < 0 ? '-' : '';
-  if (abs >= 1_000_000) return `${sign}$${(abs / 1_000_000).toFixed(1).replace('.0', '')}M`;
-  if (abs >= 1_000) return `${sign}$${(abs / 1_000).toFixed(1).replace('.0', '')}k`;
-  return `${sign}$${abs}`;
+  return `${sign}$${new Intl.NumberFormat('es-AR', {
+    maximumFractionDigits: 0,
+  }).format(abs)}`;
 };
 
 export function RouteStats({
@@ -67,7 +67,7 @@ export function RouteStats({
                 primaryTypographyProps={{ variant: 'body2', color: 'text.secondary' }}
               />
               <Typography variant="body1" fontWeight={700} color={item.color}>
-                {fmtCompact(item.value)}
+                {fmtCurrency(item.value)}
               </Typography>
             </ListItem>
             {i < items.length - 1 && <Divider component="li" />}

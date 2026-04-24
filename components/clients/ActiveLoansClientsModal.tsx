@@ -222,11 +222,9 @@ export default function ActiveLoansClientsModal({ open, onClose }: ActiveLoansCl
   const formatCurrencyCompact = (amount: number) => {
     const abs = Math.abs(amount);
     const sign = amount < 0 ? '-' : '';
-    if (abs >= 1_000_000)
-      return `${sign}$${(abs / 1_000_000).toFixed(1).replace('.0', '')}M`;
-    if (abs >= 1_000)
-      return `${sign}$${(abs / 1_000).toFixed(1).replace('.0', '')}k`;
-    return `${sign}$${abs}`;
+    return `${sign}$${new Intl.NumberFormat('es-AR', {
+      maximumFractionDigits: 0,
+    }).format(abs)}`;
   }
 
   const getStatusColor = (status: string) => {

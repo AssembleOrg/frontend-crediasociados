@@ -49,13 +49,7 @@ const formatXAxis = (value: string) => {
 }
 
 const formatYAxis = (value: number) => {
-  if (value >= 1000000) {
-    return `$${(value / 1000000).toFixed(1)}M`
-  }
-  if (value >= 1000) {
-    return `$${(value / 1000).toFixed(0)}K`
-  }
-  return `$${value}`
+  return `$${new Intl.NumberFormat('es-AR', { maximumFractionDigits: 0 }).format(value)}`
 }
 
 const PortfolioEvolutionChart = memo(function PortfolioEvolutionChart({

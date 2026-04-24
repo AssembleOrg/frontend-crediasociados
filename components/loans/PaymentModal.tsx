@@ -25,7 +25,7 @@ import {
   Alert,
   IconButton,
 } from '@mui/material'
-import { Payment, AttachMoney, PictureAsPdf, Info, Warning, Autorenew, CheckCircle, Close } from '@mui/icons-material'
+import { Payment, AttachMoney, PictureAsPdf, Info, Warning, Autorenew, Close } from '@mui/icons-material'
 import { formatAmount, unformatAmount, formatCurrencyDisplay, numberToFormattedAmount } from '@/lib/formatters'
 import { generatePaymentPDF, type PaymentReceiptData } from '@/utils/pdf/paymentReceipt'
 import { useOperativa } from '@/hooks/useOperativa'
@@ -103,13 +103,6 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
   const [renewPaymentDay, setRenewPaymentDay] = useState<'MONDAY' | 'TUESDAY' | 'WEDNESDAY' | 'THURSDAY' | 'FRIDAY' | 'SATURDAY' | ''>('')
   const [renewTotalPayments, setRenewTotalPayments] = useState<string>('')
   const [renewFirstDueDate, setRenewFirstDueDate] = useState<string>('')
-  const [renewSuccessOpen, setRenewSuccessOpen] = useState<boolean>(false)
-  const [renewSuccessData, setRenewSuccessData] = useState<{
-    loanTrack: string
-    settledAmount: number
-    newLoanTrack: string
-    newAmount: number
-  } | null>(null)
 
   // ── Derived ────────────────────────────────────────────────────────────────
   const currentSubloan = useMemo(
@@ -326,22 +319,14 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
         payload
       )
 
-      // Trigger PDF download of the new loan
+      // Éxito: primero cerrar el modal, después descargar el PDF
+      onClose()
       if (result.pdfBase64) {
         downloadPdfFromBase64(
           result.pdfBase64,
           result.pdfFilename || `prestamo-${result.newLoan?.loanTrack || 'nuevo'}.pdf`
         )
       }
-
-      setRenewSuccessData({
-        loanTrack: result.previousLoan.loanTrack,
-        settledAmount: result.previousLoan.settledAmount,
-        newLoanTrack: result.newLoan?.loanTrack || '-',
-        newAmount: Number(result.newLoan?.originalAmount ?? payload.amount),
-      })
-      setRenewSuccessOpen(true)
-
       if (onPaymentSuccess) onPaymentSuccess()
     } catch (error) {
       const errObj = error as Record<string, unknown>
@@ -357,12 +342,6 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
     } finally {
       setRenewLoading(false)
     }
-  }
-
-  const handleRenewSuccessClose = () => {
-    setRenewSuccessOpen(false)
-    setRenewSuccessData(null)
-    onClose()
   }
 
   // ── Handlers ───────────────────────────────────────────────────────────────
@@ -668,61 +647,6 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
           <PaymentForm {...formProps} />
         </Dialog>
       )}
-
-      {/* Renewal Success Modal */}
-      <Dialog
-        open={renewSuccessOpen}
-        onClose={handleRenewSuccessClose}
-        maxWidth="sm"
-        fullWidth
-        PaperProps={{ sx: { borderRadius: 2 } }}
-      >
-        <DialogTitle sx={{ pb: 2 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-            <CheckCircle color="success" sx={{ fontSize: 28 }} />
-            <Typography variant="h6" fontWeight="bold">
-              Préstamo renovado exitosamente
-            </Typography>
-          </Box>
-        </DialogTitle>
-        <DialogContent>
-          {renewSuccessData && (
-            <>
-              <Alert severity="success" sx={{ mb: 2 }}>
-                Se descargó el PDF del nuevo préstamo.
-              </Alert>
-              <Box sx={{ mb: 2, p: 2, bgcolor: 'grey.50', borderRadius: 1 }}>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                  <Typography variant="body2" fontWeight={500}>Préstamo cancelado:</Typography>
-                  <Typography variant="body2" fontWeight={600}>{renewSuccessData.loanTrack}</Typography>
-                </Box>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                  <Typography variant="body2" fontWeight={500}>Saldo cobrado:</Typography>
-                  <Typography variant="body2" fontWeight={600} color="success.main">
-                    {formatCurrencyDisplay(renewSuccessData.settledAmount)}
-                  </Typography>
-                </Box>
-                <Divider sx={{ my: 1 }} />
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                  <Typography variant="body2" fontWeight={500}>Nuevo préstamo:</Typography>
-                  <Typography variant="body2" fontWeight={600}>{renewSuccessData.newLoanTrack}</Typography>
-                </Box>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <Typography variant="body2" fontWeight={500}>Capital desembolsado:</Typography>
-                  <Typography variant="body2" fontWeight={600} color="primary.main">
-                    {formatCurrencyDisplay(renewSuccessData.newAmount)}
-                  </Typography>
-                </Box>
-              </Box>
-            </>
-          )}
-        </DialogContent>
-        <DialogActions sx={{ p: 3, pt: 1 }}>
-          <Button onClick={handleRenewSuccessClose} variant="contained" fullWidth sx={{ borderRadius: 2 }}>
-            Cerrar
-          </Button>
-        </DialogActions>
-      </Dialog>
 
       {/* Multi-Payment Confirmation Modal */}
       {/* ── Multi-payment confirmation (shared) ── */}
