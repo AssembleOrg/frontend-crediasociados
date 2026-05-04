@@ -27,6 +27,8 @@ import {
   ListItem,
   ListItemIcon,
   ListItemText,
+  TextField,
+  Snackbar,
 } from '@mui/material'
 import {
   ChevronLeft,
@@ -43,9 +45,11 @@ import {
   ViewModule,
   ExpandMore,
   Assessment,
+  Edit,
 } from '@mui/icons-material'
 import { collectorReportService, type CollectorPeriodReport } from '@/services/collector-report.service'
 import { collectorWalletService } from '@/services/collector-wallet.service'
+import { usersService } from '@/services/users.service'
 import { useCurrentUser } from '@/hooks/useCurrentUser'
 
 interface CollectorReportViewProps {
@@ -87,6 +91,13 @@ export default function CollectorReportView({
   const [calendarOpen, setCalendarOpen] = useState(false)
   const [commissionDrawerOpen, setCommissionDrawerOpen] = useState(false)
   const [financialSummaryDrawerOpen, setFinancialSummaryDrawerOpen] = useState(false)
+
+  // Commission editing states
+  const [editingCommission, setEditingCommission] = useState(false)
+  const [customPercentage, setCustomPercentage] = useState<number | ''>('')
+  const [savingCommission, setSavingCommission] = useState(false)
+  const [commissionSaveError, setCommissionSaveError] = useState<string | null>(null)
+  const [commissionSnackbar, setCommissionSnackbar] = useState(false)
 
   const isMobile = useMediaQuery(theme.breakpoints.down('md'))
   const [txViewMode, setTxViewMode] = useState<'list' | 'cards'>(isMobile ? 'cards' : 'list')
@@ -150,6 +161,15 @@ export default function CollectorReportView({
       setLoading(false)
     }
   }
+
+  useEffect(() => {
+    setReport(null)
+    setError(null)
+    if (selectedRange) {
+      loadReport(selectedRange.start, selectedRange.end)
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [managerId])
 
   useEffect(() => {
     const loadLastWithdrawal = async () => {
@@ -243,6 +263,14 @@ export default function CollectorReportView({
     }).format(abs)}`
   }
 
+  const formatCurrencyAbbr = (amount: number) => {
+    const abs = Math.abs(amount)
+    const sign = amount < 0 ? '-' : ''
+    if (abs >= 1_000_000) return `${sign}$${(abs / 1_000_000).toLocaleString('es-AR', { maximumFractionDigits: 1 })}M`
+    if (abs >= 1_000) return `${sign}$${(abs / 1_000).toLocaleString('es-AR', { maximumFractionDigits: 1 })}K`
+    return `${sign}$${abs}`
+  }
+
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('es-ES', {
       day: '2-digit',
@@ -295,6 +323,39 @@ export default function CollectorReportView({
     if (type === 'CASH_ADJUSTMENT') return amount < 0 ? 'error.main' : 'info.main'
     if (type === 'COLLECTION') return 'success.main'
     return 'error.main'
+  }
+
+  // ─── Commission editing ────────────────────────────────────────────────────
+
+  const originalPercentage = report?.commission?.percentage ?? 0
+  const displayPercentage = customPercentage !== '' ? customPercentage : originalPercentage
+  const displayCommissionAmount = (report?.commission?.baseAmount ?? 0) * ((Number(displayPercentage)) / 100)
+  const commissionChanged = customPercentage !== '' && Number(customPercentage) !== originalPercentage
+
+  const handleCommissionDrawerClose = () => {
+    setCommissionDrawerOpen(false)
+    setEditingCommission(false)
+    setCustomPercentage('')
+    setCommissionSaveError(null)
+  }
+
+  const handleSaveCommission = async () => {
+    if (!managerId) return
+    setSavingCommission(true)
+    setCommissionSaveError(null)
+    try {
+      await usersService.updateUser(managerId, { commission: Number(customPercentage) } as any)
+      setEditingCommission(false)
+      setCustomPercentage('')
+      setCommissionSnackbar(true)
+      if (selectedRange) {
+        loadReport(selectedRange.start, selectedRange.end)
+      }
+    } catch {
+      setCommissionSaveError('No se pudo guardar el cambio')
+    } finally {
+      setSavingCommission(false)
+    }
   }
 
   // ─── Calendar grid ─────────────────────────────────────────────────────────
@@ -677,7 +738,7 @@ export default function CollectorReportView({
                   ].map((monto) => (
                     <Box key={monto.label} sx={{ textAlign: 'center', p: 1, borderRadius: 1, bgcolor: alpha(theme.palette.grey[500], 0.06) }}>
                       <Typography variant="body2" fontWeight={700} color={monto.color} sx={{ fontSize: { xs: '0.85rem', sm: '0.9rem' } }}>
-                        {formatCurrencyCompact(monto.value)}
+                        {isMobile ? formatCurrencyAbbr(monto.value) : formatCurrencyCompact(monto.value)}
                       </Typography>
                       <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.65rem' }}>
                         {monto.label}
@@ -945,32 +1006,131 @@ export default function CollectorReportView({
         anchor="bottom"
         open={commissionDrawerOpen}
         onOpen={() => setCommissionDrawerOpen(true)}
-        onClose={() => setCommissionDrawerOpen(false)}
+        onClose={handleCommissionDrawerClose}
         PaperProps={{ sx: { borderRadius: '20px 20px 0 0', maxHeight: '90vh', overflowY: 'auto' } }}
       >
-        <Box sx={{ p: 3, pb: 'calc(24px + env(safe-area-inset-bottom))' }}>
-          <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 2 }}>Comisión del Cobrador</Typography>
+        <Box sx={{ px: 3, pt: 3.5, pb: 'calc(24px + env(safe-area-inset-bottom))', maxWidth: { sm: 480 }, mx: { sm: 'auto' } }}>
+          <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 2.5, color: 'text.primary', letterSpacing: -0.3 }}>
+            Comisión del Cobrador
+          </Typography>
+
           {report && (
-            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(3, 1fr)' }, gap: 2 }}>
-              <Box sx={{ textAlign: 'center', p: 2, borderRadius: 2, bgcolor: alpha(theme.palette.primary.main, 0.08) }}>
-                <Typography variant="h4" color="primary.main" fontWeight={700}>
-                  {report.commission?.percentage || 0}%
-                </Typography>
-                <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>Porcentaje</Typography>
+            <>
+              {/* Fila compacta: Porcentaje | Monto Base | Comisión Total */}
+              <Box sx={{ display: 'flex', gap: 3, mb: 2.5, flexWrap: 'wrap' }}>
+                <Box sx={{ minWidth: 80 }}>
+                  <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>
+                    Porcentaje
+                  </Typography>
+                  <Box
+                    onClick={() => !editingCommission && setEditingCommission(true)}
+                    sx={{ display: 'flex', alignItems: 'center', gap: 0.75, cursor: editingCommission ? 'default' : 'pointer' }}
+                  >
+                    <Typography variant="h5" fontWeight={700} color="text.primary">
+                      {displayPercentage}%
+                    </Typography>
+                    {!editingCommission && <Edit sx={{ fontSize: 14, color: 'text.disabled' }} />}
+                  </Box>
+                </Box>
+                <Box sx={{ minWidth: 100 }}>
+                  <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>
+                    Monto Base
+                  </Typography>
+                  <Typography variant="h5" fontWeight={700} color="text.primary" sx={{ wordBreak: 'break-word' }}>
+                    {formatCurrency(report.commission?.baseAmount || 0)}
+                  </Typography>
+                </Box>
+                <Box sx={{ minWidth: 100 }}>
+                  <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>
+                    Comisión Total
+                  </Typography>
+                  <Typography variant="h5" fontWeight={700} color="text.primary" sx={{ wordBreak: 'break-word' }}>
+                    {formatCurrency(displayCommissionAmount)}
+                  </Typography>
+                  {commissionChanged && (
+                    <Typography variant="caption" color="text.disabled">
+                      antes: {formatCurrency((report.commission?.baseAmount || 0) * (originalPercentage / 100))}
+                    </Typography>
+                  )}
+                </Box>
               </Box>
-              <Box sx={{ textAlign: 'center', p: 2, borderRadius: 2, bgcolor: alpha(theme.palette.primary.main, 0.08) }}>
-                <Typography variant="h5" color="primary.main" fontWeight={700} sx={{ wordBreak: 'break-word' }}>
-                  {formatCurrency(report.commission?.baseAmount || 0)}
-                </Typography>
-                <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>Monto Base</Typography>
-              </Box>
-              <Box sx={{ textAlign: 'center', p: 2, borderRadius: 2, bgcolor: alpha(theme.palette.success.main, 0.08) }}>
-                <Typography variant="h5" color="success.main" fontWeight={700} sx={{ wordBreak: 'break-word' }}>
-                  {formatCurrency(report.commission?.commissionAmount || 0)}
-                </Typography>
-                <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>Comisión Total</Typography>
-              </Box>
-            </Box>
+
+              {/* Input de edición */}
+              {editingCommission && (
+                <>
+                  <Divider sx={{ mb: 2 }} />
+                  <TextField
+                    fullWidth
+                    type="number"
+                    value={customPercentage}
+                    onChange={(e) => {
+                      const val = e.target.value
+                      if (val === '') { setCustomPercentage(''); return }
+                      const num = Math.min(100, Math.max(0, Number(val)))
+                      setCustomPercentage(num)
+                    }}
+                    placeholder={`${originalPercentage}`}
+                    autoFocus
+                    inputProps={{ min: 0, max: 100, step: 0.01 }}
+                    sx={{
+                      mb: 2,
+                      '& .MuiOutlinedInput-root': {
+                        borderRadius: 2,
+                        minHeight: 44,
+                        '& fieldset': { borderColor: 'divider' },
+                        '&:hover fieldset': { borderColor: 'text.disabled' },
+                        '&.Mui-focused fieldset': { borderColor: 'text.primary', borderWidth: 1.5 },
+                      },
+                      '& input': { fontSize: '0.9375rem' },
+                    }}
+                  />
+
+                  {commissionSaveError && (
+                    <Typography variant="caption" color="error" sx={{ display: 'block', mb: 1.5 }}>
+                      {commissionSaveError}
+                    </Typography>
+                  )}
+
+                  <Button
+                    fullWidth
+                    onClick={handleSaveCommission}
+                    variant="contained"
+                    disableElevation
+                    disabled={savingCommission || customPercentage === '' || !commissionChanged}
+                    sx={{
+                      minHeight: 48,
+                      borderRadius: 2,
+                      fontSize: '0.9375rem',
+                      fontWeight: 600,
+                      textTransform: 'none',
+                      mb: 1,
+                    }}
+                  >
+                    {savingCommission ? <CircularProgress size={20} color="inherit" /> : 'Guardar cambio'}
+                  </Button>
+
+                  <Button
+                    fullWidth
+                    onClick={() => {
+                      setEditingCommission(false)
+                      setCustomPercentage('')
+                      setCommissionSaveError(null)
+                    }}
+                    variant="text"
+                    sx={{
+                      minHeight: 44,
+                      borderRadius: 2,
+                      fontSize: '0.9375rem',
+                      textTransform: 'none',
+                      color: 'text.secondary',
+                      '&:hover': { bgcolor: 'action.hover', color: 'text.primary' },
+                    }}
+                  >
+                    Cancelar
+                  </Button>
+                </>
+              )}
+            </>
           )}
         </Box>
       </SwipeableDrawer>
@@ -1033,6 +1193,13 @@ export default function CollectorReportView({
         </Box>
       </SwipeableDrawer>
 
+      <Snackbar
+        open={commissionSnackbar}
+        autoHideDuration={3000}
+        onClose={() => setCommissionSnackbar(false)}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+        message="Comisión actualizada correctamente"
+      />
     </Box>
   )
 }

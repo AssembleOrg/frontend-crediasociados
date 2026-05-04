@@ -48,3 +48,16 @@ a {
     color-scheme: dark;
   }
 }
+
+.login-back-btn:hover:not(:disabled) {
+  opacity: 1 !important;
+}
+
+.login-back-btn:hover:not(:disabled) svg {
+  transform: translateX(-2px);
+  transition: transform 0.2s ease;
+}
+
+.login-back-btn svg {
+  transition: transform 0.2s ease;
+}

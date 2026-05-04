@@ -25,9 +25,10 @@ import {
   Button,
   Tooltip,
   TextField,
-  InputAdornment
+  InputAdornment,
+  Snackbar,
 } from '@mui/material'
-import { Close, VerifiedUser, Phone, Home, CheckCircle, Search, Warning, Work, Description } from '@mui/icons-material'
+import { Close, VerifiedUser, Phone, Home, CheckCircle, Search, Work, Description } from '@mui/icons-material'
 import { clientsService } from '@/services/clients.service'
 // commented by july
 // import { blacklistService } from '@/services/blacklist.service'
@@ -58,6 +59,9 @@ export default function UnverifiedClientsModal({ open, onClose }: UnverifiedClie
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false)
   const [clientToVerify, setClientToVerify] = useState<{ id: string; nombre: string; dni?: string } | null>(null)
   const [confirmText, setConfirmText] = useState('')
+  const [snackbar, setSnackbar] = useState<{ open: boolean; message: string; severity: 'success' | 'error' }>({
+    open: false, message: '', severity: 'success',
+  })
   // commented by july
   // const [blacklistWarning, setBlacklistWarning] = useState<string | null>(null)
 
@@ -86,7 +90,6 @@ export default function UnverifiedClientsModal({ open, onClose }: UnverifiedClie
 
   const handleVerifyClick = async (client: { id: string; nombre: string; dni?: string }) => {
     setClientToVerify(client)
-    setBlacklistWarning(null)
     setConfirmText('')
 
     // commented by july
@@ -122,14 +125,14 @@ export default function UnverifiedClientsModal({ open, onClose }: UnverifiedClie
     setConfirmDialogOpen(false)
     setVerifyingIds(prev => new Set(prev).add(clientToVerify.id))
     
+    const nombreCliente = clientToVerify.nombre
     try {
       await clientsService.verifyClient(clientToVerify.id)
-      // Remove client from list and update total
       setClients(prev => prev.filter(c => c.id !== clientToVerify.id))
       setTotalClients(prev => Math.max(0, prev - 1))
+      setSnackbar({ open: true, message: `"${nombreCliente}" fue verificado exitosamente`, severity: 'success' })
     } catch (err: any) {
-      // Error verifying client
-      setError(err.response?.data?.message || 'Error al verificar el cliente')
+      setSnackbar({ open: true, message: err.response?.data?.message || 'Error al verificar el cliente', severity: 'error' })
     } finally {
       setVerifyingIds(prev => {
         const newSet = new Set(prev)
@@ -164,6 +167,7 @@ export default function UnverifiedClientsModal({ open, onClose }: UnverifiedClie
   }, [clients, searchQuery])
 
   return (
+    <>
     <Dialog
       open={open}
       onClose={onClose}
@@ -476,18 +480,22 @@ export default function UnverifiedClientsModal({ open, onClose }: UnverifiedClie
                         <TableCell align="right">
                           <Tooltip title="Verificar cliente">
                             <Button
-                              variant="contained"
+                              variant={isVerifying ? 'contained' : 'outlined'}
                               color="success"
                               size="small"
                               startIcon={isVerifying ? <CircularProgress size={16} color="inherit" /> : <CheckCircle />}
                               onClick={() => handleVerifyClick(client)}
                               disabled={isVerifying}
                               sx={{
-                                minWidth: { xs: 'auto', sm: 140 },
-                                px: { xs: 1.5, sm: 2 }
+                                minWidth: { xs: 'auto', sm: 130 },
+                                px: { xs: 1.5, sm: 2 },
+                                transition: 'all 0.2s ease',
+                                '&:hover': {
+                                  transform: 'scale(1.03)',
+                                },
                               }}
                             >
-                              {isMobile ? '' : 'Verificar'}
+                              {isVerifying ? 'Verificando...' : (isMobile ? '' : 'Verificar')}
                             </Button>
                           </Tooltip>
                         </TableCell>
@@ -506,81 +514,117 @@ export default function UnverifiedClientsModal({ open, onClose }: UnverifiedClie
       <Dialog
         open={confirmDialogOpen}
         onClose={handleConfirmClose}
-        maxWidth="sm"
+        maxWidth="xs"
         fullWidth
         PaperProps={{
           sx: {
-            borderRadius: 2
+            borderRadius: 3,
+            m: { xs: 2, sm: 'auto' },
+            width: { xs: 'calc(100% - 32px)', sm: 400 },
           }
         }}
       >
-        <DialogTitle sx={{ 
-          display: 'flex', 
-          alignItems: 'center', 
-          gap: 1.5,
-          pb: 1
-        }}>
-          <Warning sx={{ color: 'warning.main', fontSize: 28 }} />
-          <Typography variant="h6" component="div" fontWeight={600}>
-            Confirmar Verificación
+        <Box sx={{ px: 3, pt: 3.5, pb: 3 }}>
+          {/* Title */}
+          <Typography variant="h6" fontWeight={600} sx={{ mb: 1, color: 'text.primary', letterSpacing: -0.3 }}>
+            Verificar cliente
           </Typography>
-        </DialogTitle>
-        <DialogContent>
-          <Box sx={{ py: 1 }}>
-            <Typography variant="body1" paragraph>
-              Estás a punto de verificar al cliente{' '}
-              <Box component="span" sx={{ fontWeight: 600 }}>
-                {clientToVerify?.nombre}
-              </Box>
-              .
-            </Typography>
-            {/* commented by july */}
-            {/* {blacklistWarning && (
-              <Alert severity="error" sx={{ mb: 2, mt: 2 }} icon={false}>
-                <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 0.5 }}>
-                  ALERTA: CLIENTE EN LISTA NEGRA
-                </Typography>
-                <Typography variant="body2">
-                  {blacklistWarning}
-                </Typography>
-              </Alert>
-            )} */}
-            <Alert severity="info" sx={{ mb: 3, mt: 2 }}>
-              Una vez verificado, el cobrador podrá comenzar a otorgar préstamos a este cliente.
-            </Alert>
-            <Typography variant="body2" color="text.secondary" gutterBottom>
-              Para confirmar, escribe{' '}
-              <Box component="span" sx={{ fontWeight: 600 }}>
-                "confirmar"
-              </Box>
-              {' '}en el campo a continuación:
-            </Typography>
-            <TextField
-              fullWidth
-              value={confirmText}
-              onChange={(e) => setConfirmText(e.target.value)}
-              placeholder="Escribe 'confirmar' aquí"
-              sx={{ mt: 2 }}
-              autoFocus
-            />
-          </Box>
-        </DialogContent>
-        <DialogActions sx={{ px: 3, pb: 2 }}>
-          <Button onClick={handleConfirmClose} color="inherit">
-            Cancelar
-          </Button>
+
+          {/* Subtitle */}
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 3, lineHeight: 1.6 }}>
+            Para habilitar los préstamos a{' '}
+            <Box component="span" sx={{ color: 'text.primary', fontWeight: 500 }}>
+              {clientToVerify?.nombre}
+            </Box>
+            , escribe{' '}
+            <Box component="span" sx={{ fontFamily: 'monospace', color: 'text.primary' }}>
+              "confirmar"
+            </Box>
+            {' '}abajo.
+          </Typography>
+
+          {/* Input */}
+          <TextField
+            fullWidth
+            value={confirmText}
+            onChange={(e) => setConfirmText(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && confirmText.toLowerCase().trim() === 'confirmar') handleVerifyClient()
+            }}
+            placeholder="confirmar"
+            autoFocus
+            size="small"
+            sx={{
+              mb: 3,
+              '& .MuiOutlinedInput-root': {
+                borderRadius: 2,
+                minHeight: 44,
+                '& fieldset': { borderColor: 'divider' },
+                '&:hover fieldset': { borderColor: 'text.disabled' },
+                '&.Mui-focused fieldset': { borderColor: 'text.primary', borderWidth: 1.5 },
+              },
+              '& input': { fontSize: '0.9375rem' },
+            }}
+          />
+
+          {/* Botón principal — ancho completo */}
           <Button
+            fullWidth
             onClick={handleVerifyClient}
             variant="contained"
-            color="success"
+            disableElevation
             disabled={confirmText.toLowerCase().trim() !== 'confirmar'}
-            startIcon={<CheckCircle />}
+            sx={{
+              minHeight: 48,
+              borderRadius: 2,
+              fontSize: '0.9375rem',
+              fontWeight: 600,
+              textTransform: 'none',
+              bgcolor: 'success.main',
+              '&:hover': { bgcolor: 'success.dark' },
+              '&.Mui-disabled': { bgcolor: 'action.disabledBackground', color: 'action.disabled' },
+              mb: 1,
+            }}
           >
-            Verificar Cliente
+            Verificar
           </Button>
-        </DialogActions>
+
+          {/* Botón cancelar — ghost */}
+          <Button
+            fullWidth
+            onClick={handleConfirmClose}
+            variant="text"
+            sx={{
+              minHeight: 44,
+              borderRadius: 2,
+              fontSize: '0.9375rem',
+              textTransform: 'none',
+              color: 'text.secondary',
+              '&:hover': { bgcolor: 'action.hover', color: 'text.primary' },
+            }}
+          >
+            Cancelar
+          </Button>
+        </Box>
       </Dialog>
     </Dialog>
+
+    <Snackbar
+      open={snackbar.open}
+      autoHideDuration={4000}
+      onClose={() => setSnackbar(prev => ({ ...prev, open: false }))}
+      anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+    >
+      <Alert
+        onClose={() => setSnackbar(prev => ({ ...prev, open: false }))}
+        severity={snackbar.severity}
+        variant="filled"
+        sx={{ width: '100%' }}
+      >
+        {snackbar.message}
+      </Alert>
+    </Snackbar>
+    </>
   )
 }
 

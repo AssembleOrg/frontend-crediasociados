@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CircularProgress } from '@mui/material';
 import { useAuth } from '@/hooks/useAuth';
@@ -26,6 +26,13 @@ export default function LoginPage() {
   const submitLock = useRef(false);
 
   const isBusy = isLoading || isRedirecting;
+
+  const scrollIntoView = useCallback((el: HTMLInputElement | null) => {
+    if (!el) return;
+    setTimeout(() => {
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 100);
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -78,7 +85,8 @@ export default function LoginPage() {
           flexDirection: 'column',
           background: 'linear-gradient(160deg, #0a1628 0%, #0d1f3c 60%, #0a1628 100%)',
           position: 'relative',
-          overflow: 'hidden',
+          overflowY: 'auto',
+          overflowX: 'hidden',
         }}
       >
 
@@ -251,9 +259,11 @@ export default function LoginPage() {
                     <input
                       name="email"
                       type="email"
+                      inputMode="email"
                       placeholder="Correo electrónico"
                       value={formData.email}
                       onChange={handleChange}
+                      onFocus={(e) => scrollIntoView(e.currentTarget)}
                       disabled={isBusy}
                       required
                       autoComplete="email"
@@ -293,6 +303,7 @@ export default function LoginPage() {
                       placeholder="Contraseña"
                       value={formData.password}
                       onChange={handleChange}
+                      onFocus={(e) => scrollIntoView(e.currentTarget)}
                       disabled={isBusy}
                       required
                       autoComplete="current-password"
@@ -380,20 +391,29 @@ export default function LoginPage() {
                   type="button"
                   onClick={() => { setShowForm(false); clearError(); }}
                   disabled={isBusy}
+                  className="login-back-btn"
                   style={{
-                    marginTop: 16,
+                    marginTop: 20,
                     background: 'none',
                     border: 'none',
-                    color: 'rgba(255,255,255,0.4)',
-                    fontSize: '0.875rem',
+                    color: '#ffffff',
+                    fontSize: '0.8rem',
+                    fontWeight: 400,
+                    letterSpacing: '0.06em',
+                    textTransform: 'uppercase',
                     cursor: 'pointer',
-                    padding: 0,
+                    padding: '6px 0',
                     display: 'flex',
                     alignItems: 'center',
-                    gap: 6,
+                    gap: 10,
+                    opacity: isBusy ? 0.3 : 0.7,
+                    transition: 'opacity 0.2s ease',
                   }}
                 >
-                  ← Volver
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" style={{ flexShrink: 0 }}>
+                    <path d="M19 12H5M5 12l7 7M5 12l7-7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                  Cancelar
                 </button>
               </motion.div>
             )}

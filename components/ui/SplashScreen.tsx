@@ -86,7 +86,7 @@ export function SplashScreen({ visible }: SplashScreenProps) {
           sx={{
             width: '100%',
             height: '100%',
-            background: 'linear-gradient(90deg, transparent 0%, #1976d2 50%, transparent 100%)',
+            background: 'linear-gradient(90deg, transparent 0%, #0d1f3c 50%, transparent 100%)',
             backgroundSize: '200% 100%',
             animation: `${shimmer} 1.5s ease-in-out infinite`,
           }}
