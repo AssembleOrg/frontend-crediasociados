@@ -29,6 +29,8 @@ import {
   ListItemText,
   TextField,
   Snackbar,
+  Tabs,
+  Tab,
 } from '@mui/material'
 import {
   ChevronLeft,
@@ -100,7 +102,8 @@ export default function CollectorReportView({
   const [commissionSnackbar, setCommissionSnackbar] = useState(false)
 
   const isMobile = useMediaQuery(theme.breakpoints.down('md'))
-  const [txViewMode, setTxViewMode] = useState<'list' | 'cards'>(isMobile ? 'cards' : 'list')
+  const [txViewMode, setTxViewMode] = useState<'list' | 'cards'>('list')
+  const [txTab, setTxTab] = useState<'all' | 'collections' | 'loans' | 'others'>('all')
 
   // ─── Date helpers ──────────────────────────────────────────────────────────
 
@@ -671,6 +674,7 @@ export default function CollectorReportView({
                     { icon: <SwapHoriz sx={{ fontSize: 20 }} />, label: 'Ajuste de Caja', value: ajusteCaja, color: 'info.main' },
                     { icon: <AttachMoney sx={{ fontSize: 20 }} />, label: 'Neto (con ajuste)', value: netoConAjuste, color: 'primary.main' },
                     { icon: <AttachMoney sx={{ fontSize: 20 }} />, label: 'Neto (sin ajuste)', value: netoSinAjuste, color: 'text.primary' },
+                    { icon: <AccountBalance sx={{ fontSize: 20 }} />, label: `Comisión (${report.commission?.percentage ?? 0}%)`, value: report.commission?.commissionAmount ?? 0, color: 'secondary.main' },
                   ].map((item, i, arr) => (
                     <React.Fragment key={item.label}>
                       <ListItem sx={{ py: 1.25, px: 2 }}>
@@ -875,12 +879,14 @@ export default function CollectorReportView({
               </Paper>
 
               {/* ── Transacciones Wallet ── */}
-              <Paper sx={{ p: { xs: 1.5, sm: 3 }, mb: 2, bgcolor: '#FFFFFF' }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+              <Paper sx={{ mb: 2, bgcolor: '#FFFFFF', overflow: 'hidden' }}>
+                {/* Header */}
+                <Box sx={{ px: { xs: 1.5, sm: 3 }, pt: { xs: 1.5, sm: 3 }, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                   <Typography variant="subtitle2" fontWeight={600}>
                     Transacciones de la Wallet
                   </Typography>
-                  {report.collectorWallet?.transactions && report.collectorWallet.transactions.length > 0 && (
+                  {/* Toggle list/cards — solo desktop */}
+                  {!isMobile && report.collectorWallet?.transactions && report.collectorWallet.transactions.length > 0 && (
                     <Box sx={{ display: 'flex', bgcolor: 'action.hover', borderRadius: 1, p: 0.25 }}>
                       <IconButton
                         size="small"
@@ -909,27 +915,147 @@ export default function CollectorReportView({
                     </Box>
                   )}
                 </Box>
-                <Divider sx={{ mb: 2 }} />
 
-                {report.collectorWallet?.transactions && report.collectorWallet.transactions.length > 0 ? (
-                  txViewMode === 'list' ? (
-                    <TableContainer sx={{ overflowX: 'auto' }}>
-                      <Table sx={{ minWidth: 600 }}>
-                        <TableHead>
-                          <TableRow>
-                            <TableCell>Fecha</TableCell>
-                            <TableCell>Tipo</TableCell>
-                            <TableCell>Descripción</TableCell>
-                            <TableCell align="right">Balance Antes</TableCell>
-                            <TableCell align="right">Balance Después</TableCell>
-                            <TableCell align="right">Monto</TableCell>
-                          </TableRow>
-                        </TableHead>
-                        <TableBody>
-                          {report.collectorWallet.transactions.map((tx) => (
-                            <TableRow key={tx.id} hover>
-                              <TableCell><Typography variant="body2">{formatDate(tx.createdAt)}</Typography></TableCell>
-                              <TableCell>
+                {/* Filtros de transacciones */}
+                {report.collectorWallet?.transactions && report.collectorWallet.transactions.length > 0 && (
+                  isMobile ? (
+                    /* Mobile: grid 2×2 estilo segmented control */
+                    (() => {
+                      const txs = report.collectorWallet.transactions
+                      const filters: { value: typeof txTab; label: string; icon: React.ReactNode; count: number; color: string }[] = [
+                        { value: 'all',         label: 'Todos',      icon: <ViewList sx={{ fontSize: 18 }} />,        count: txs.length,                                                                      color: theme.palette.primary.main },
+                        { value: 'collections', label: 'Cobros',     icon: <TrendingUp sx={{ fontSize: 18 }} />,      count: txs.filter(t => t.type === 'COLLECTION').length,                                 color: theme.palette.success.main },
+                        { value: 'loans',       label: 'Préstamos',  icon: <AccountBalance sx={{ fontSize: 18 }} />,  count: txs.filter(t => t.type === 'LOAN_DISBURSEMENT').length,                          color: theme.palette.error.main },
+                        { value: 'others',      label: 'Otros',      icon: <SwapHoriz sx={{ fontSize: 18 }} />,       count: txs.filter(t => !['COLLECTION','LOAN_DISBURSEMENT'].includes(t.type)).length,    color: theme.palette.text.secondary },
+                      ]
+                      return (
+                        <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 0.5, p: 1, mt: 0.5 }}>
+                          {filters.map(f => {
+                            const selected = txTab === f.value
+                            return (
+                              <Box
+                                key={f.value}
+                                onClick={() => setTxTab(f.value)}
+                                sx={{
+                                  display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                                  py: 1.25, borderRadius: 2, cursor: 'pointer',
+                                  bgcolor: selected ? alpha(f.color, 0.1) : 'transparent',
+                                  border: '1px solid', borderColor: selected ? alpha(f.color, 0.3) : 'transparent',
+                                  transition: 'all 0.15s ease',
+                                }}
+                              >
+                                <Box sx={{ color: selected ? f.color : 'text.disabled', mb: 0.25 }}>{f.icon}</Box>
+                                <Typography variant="body2" fontWeight={700} sx={{ color: selected ? f.color : 'text.primary', lineHeight: 1 }}>
+                                  {f.count}
+                                </Typography>
+                                <Typography variant="caption" sx={{ color: selected ? f.color : 'text.secondary', fontSize: '0.7rem' }}>
+                                  {f.label}
+                                </Typography>
+                              </Box>
+                            )
+                          })}
+                        </Box>
+                      )
+                    })()
+                  ) : (
+                    /* Desktop: tabs de texto */
+                    <Tabs
+                      value={txTab}
+                      onChange={(_, v) => setTxTab(v)}
+                      variant="scrollable"
+                      scrollButtons={false}
+                      sx={{
+                        px: 2, mt: 1,
+                        '& .MuiTab-root': { minHeight: 40, fontSize: '0.8rem', textTransform: 'none', fontWeight: 500, py: 0.5 },
+                        '& .MuiTabs-indicator': { height: 2 },
+                      }}
+                    >
+                      <Tab value="all" label={`Todos (${report.collectorWallet.transactions.length})`} />
+                      <Tab value="collections" label={`Cobros (${report.collectorWallet.transactions.filter(t => t.type === 'COLLECTION').length})`} sx={{ color: 'success.main', '&.Mui-selected': { color: 'success.main' } }} />
+                      <Tab value="loans" label={`Préstamos (${report.collectorWallet.transactions.filter(t => t.type === 'LOAN_DISBURSEMENT').length})`} sx={{ color: 'error.main', '&.Mui-selected': { color: 'error.main' } }} />
+                      <Tab value="others" label={`Otros (${report.collectorWallet.transactions.filter(t => !['COLLECTION','LOAN_DISBURSEMENT'].includes(t.type)).length})`} />
+                    </Tabs>
+                  )
+                )}
+
+                <Divider />
+
+                {/* Contenido */}
+                <Box sx={{ p: { xs: 1.5, sm: 3 } }}>
+                  {(() => {
+                    const allTx = report.collectorWallet?.transactions ?? []
+                    const filtered = txTab === 'all' ? allTx
+                      : txTab === 'collections' ? allTx.filter(t => t.type === 'COLLECTION')
+                      : txTab === 'loans' ? allTx.filter(t => t.type === 'LOAN_DISBURSEMENT')
+                      : allTx.filter(t => !['COLLECTION', 'LOAN_DISBURSEMENT'].includes(t.type))
+
+                    if (filtered.length === 0) {
+                      return (
+                        <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center', py: 3 }}>
+                          No hay transacciones en esta categoría
+                        </Typography>
+                      )
+                    }
+
+                    if (!isMobile && txViewMode === 'list') {
+                      return (
+                        <TableContainer sx={{ overflowX: 'auto' }}>
+                          <Table sx={{ minWidth: 600 }}>
+                            <TableHead>
+                              <TableRow>
+                                <TableCell>Fecha</TableCell>
+                                <TableCell>Tipo</TableCell>
+                                <TableCell>Descripción</TableCell>
+                                <TableCell align="right">Balance Antes</TableCell>
+                                <TableCell align="right">Balance Después</TableCell>
+                                <TableCell align="right">Monto</TableCell>
+                              </TableRow>
+                            </TableHead>
+                            <TableBody>
+                              {filtered.map((tx) => (
+                                <TableRow key={tx.id} hover>
+                                  <TableCell><Typography variant="body2">{formatDate(tx.createdAt)}</Typography></TableCell>
+                                  <TableCell>
+                                    <Chip
+                                      icon={getTransactionIcon(tx.type)}
+                                      label={getTransactionLabel(tx.type, tx.amount)}
+                                      size="small"
+                                      color={getTransactionColor(tx.type, tx.amount)}
+                                      sx={{ fontWeight: 600 }}
+                                    />
+                                  </TableCell>
+                                  <TableCell><Typography variant="body2">{tx.description}</Typography></TableCell>
+                                  <TableCell align="right"><Typography variant="body2" color="text.secondary">{formatCurrency(tx.balanceBefore)}</Typography></TableCell>
+                                  <TableCell align="right"><Typography variant="body2" fontWeight={600}>{formatCurrency(tx.balanceAfter)}</Typography></TableCell>
+                                  <TableCell align="right">
+                                    <Typography variant="body1" fontWeight={600} color={getAmountColor(tx.type, tx.amount)}>
+                                      {getTransactionSign(tx.type, tx.amount)}{formatCurrency(Math.abs(tx.amount))}
+                                    </Typography>
+                                  </TableCell>
+                                </TableRow>
+                              ))}
+                            </TableBody>
+                          </Table>
+                        </TableContainer>
+                      )
+                    }
+
+                    return (
+                      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                        {filtered.map((tx) => (
+                          <Card
+                            key={tx.id}
+                            variant="outlined"
+                            sx={{
+                              borderLeft: 4,
+                              borderLeftColor: tx.type === 'COLLECTION' ? 'success.main'
+                                : tx.type === 'LOAN_DISBURSEMENT' ? 'error.main'
+                                : tx.type === 'CASH_ADJUSTMENT' && tx.amount >= 0 ? 'info.main'
+                                : 'error.main',
+                            }}
+                          >
+                            <CardContent sx={{ px: 2, py: 1.5, '&:last-child': { pb: 1.5 } }}>
+                              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 0.5 }}>
                                 <Chip
                                   icon={getTransactionIcon(tx.type)}
                                   label={getTransactionLabel(tx.type, tx.amount)}
@@ -937,63 +1063,26 @@ export default function CollectorReportView({
                                   color={getTransactionColor(tx.type, tx.amount)}
                                   sx={{ fontWeight: 600 }}
                                 />
-                              </TableCell>
-                              <TableCell><Typography variant="body2">{tx.description}</Typography></TableCell>
-                              <TableCell align="right"><Typography variant="body2" color="text.secondary">{formatCurrency(tx.balanceBefore)}</Typography></TableCell>
-                              <TableCell align="right"><Typography variant="body2" fontWeight={600}>{formatCurrency(tx.balanceAfter)}</Typography></TableCell>
-                              <TableCell align="right">
-                                <Typography variant="body1" fontWeight={600} color={getAmountColor(tx.type, tx.amount)}>
+                                <Typography variant="body1" fontWeight={700} color={getAmountColor(tx.type, tx.amount)}>
                                   {getTransactionSign(tx.type, tx.amount)}{formatCurrency(Math.abs(tx.amount))}
                                 </Typography>
-                              </TableCell>
-                            </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
-                    </TableContainer>
-                  ) : (
-                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-                      {report.collectorWallet.transactions.map((tx) => (
-                        <Card
-                          key={tx.id}
-                          variant="outlined"
-                          sx={{
-                            borderLeft: 4,
-                            borderLeftColor: tx.type === 'COLLECTION' ? 'success.main'
-                              : tx.type === 'CASH_ADJUSTMENT' && tx.amount >= 0 ? 'info.main'
-                              : 'error.main',
-                          }}
-                        >
-                          <CardContent sx={{ px: 2, py: 1.5, '&:last-child': { pb: 1.5 } }}>
-                            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 0.5 }}>
-                              <Chip
-                                icon={getTransactionIcon(tx.type)}
-                                label={getTransactionLabel(tx.type, tx.amount)}
-                                size="small"
-                                color={getTransactionColor(tx.type, tx.amount)}
-                                sx={{ fontWeight: 600 }}
-                              />
-                            </Box>
-                            <Typography variant="h6" fontWeight={700} color={getAmountColor(tx.type, tx.amount)} sx={{ fontSize: '1.1rem', mb: 0.5 }}>
-                              {getTransactionSign(tx.type, tx.amount)}{formatCurrency(Math.abs(tx.amount))}
-                            </Typography>
-                            <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>{tx.description}</Typography>
-                            <Typography variant="caption" color="text.disabled" sx={{ display: 'block', mb: 0.5 }}>{formatDate(tx.createdAt)}</Typography>
-                            <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
-                              <Typography variant="caption" color="text.disabled">{formatCurrency(tx.balanceBefore)}</Typography>
-                              <Typography variant="caption" color="text.disabled">→</Typography>
-                              <Typography variant="caption" fontWeight={600}>{formatCurrency(tx.balanceAfter)}</Typography>
-                            </Box>
-                          </CardContent>
-                        </Card>
-                      ))}
-                    </Box>
-                  )
-                ) : (
-                  <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center', py: 3 }}>
-                    No hay transacciones registradas en este período
-                  </Typography>
-                )}
+                              </Box>
+                              <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>{tx.description}</Typography>
+                              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <Typography variant="caption" color="text.disabled">{formatDate(tx.createdAt)}</Typography>
+                                <Box sx={{ display: 'flex', gap: 0.75, alignItems: 'center' }}>
+                                  <Typography variant="caption" color="text.disabled">{formatCurrency(tx.balanceBefore)}</Typography>
+                                  <Typography variant="caption" color="text.disabled">→</Typography>
+                                  <Typography variant="caption" fontWeight={600}>{formatCurrency(tx.balanceAfter)}</Typography>
+                                </Box>
+                              </Box>
+                            </CardContent>
+                          </Card>
+                        ))}
+                      </Box>
+                    )
+                  })()}
+                </Box>
               </Paper>
 
             </Box>
