@@ -48,6 +48,7 @@ function toClientSummary(c: CobrosClient) {
       loanTrack:     sl.loanTrack,
       clientId:      c.client.id,
       clientName:    c.client.fullName,
+      loanTotalPayments: sl.loanTotalPayments,
       payments:      sl.payments,
     })) as SubLoanWithClientInfo[],
     urgencyLevel: c.urgencyLevel,

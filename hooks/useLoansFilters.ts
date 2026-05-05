@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useEffect, useState, useRef } from 'react'
+import { useCallback, useMemo, useEffect, useRef } from 'react'
 import { useFiltersStore, type LoansFilters } from '@/stores/filters'
 import { getFrequencyLabel } from '@/lib/formatters'
 import { loansService } from '@/services/loans.service'
@@ -15,26 +15,15 @@ import type { Loan, PaginatedResponse, LoanResponseDto } from '@/types/auth'
  * - Filter persistence and clearing
  */
 export function useLoansFilters() {
-  const { 
-    loansFilters, 
-    setLoansFilters, 
-    clearLoansFilters 
+  const {
+    loansFilters,
+    setLoansFilters,
+    clearLoansFilters,
+    filteredLoans, setFilteredLoans,
+    loansFilterPagination: pagination, setLoansFilterPagination: setPagination,
+    loansFilterLoading: isLoading, setLoansFilterLoading: setIsLoading,
+    loansFilterError: error, setLoansFilterError: setError,
   } = useFiltersStore()
-
-  const [filteredLoans, setFilteredLoans] = useState<Loan[]>([])
-  const [isLoading, setIsLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [pagination, setPagination] = useState<{
-    page: number
-    limit: number
-    total: number
-    totalPages: number
-  }>({
-    page: 1,
-    limit: 50,
-    total: 0,
-    totalPages: 0
-  })
 
   // Debounce timer for client name search
   const debounceTimerRef = useRef<NodeJS.Timeout | null>(null)
@@ -114,14 +103,16 @@ export function useLoansFilters() {
     }
 
     if (!hasActiveFilters) {
+      setIsLoading(false)
       setFilteredLoans([])
-      setPagination(prev => ({ ...prev, total: 0, totalPages: 0, page: 1 }))
+      setPagination({ page: 1, limit: pagination.limit, total: 0, totalPages: 0 })
       return
     }
 
     if (loansFilters.clientName && loansFilters.clientName.length < 2) {
+      setIsLoading(false)
       setFilteredLoans([])
-      setPagination(prev => ({ ...prev, total: 0, totalPages: 0 }))
+      setPagination({ page: 1, limit: pagination.limit, total: 0, totalPages: 0 })
       return
     }
 
@@ -143,7 +134,7 @@ export function useLoansFilters() {
 
   // Filter statistics
   const filterStats = useMemo(() => {
-    const total = filteredLoans.length
+    const total = pagination.total > 0 ? pagination.total : filteredLoans.length
     const totalAmount = filteredLoans.reduce((sum, loan) => sum + loan.amount, 0)
     const avgAmount = total > 0 ? totalAmount / total : 0
     
@@ -160,7 +151,7 @@ export function useLoansFilters() {
         overdue: filteredLoans.filter(loan => loan.status === 'DEFAULTED').length
       }
     }
-  }, [filteredLoans])
+  }, [filteredLoans, pagination])
 
   // Filter options for dropdowns
   const filterOptions = useMemo(() => {
@@ -184,25 +175,27 @@ export function useLoansFilters() {
     const current = useFiltersStore.getState().loansFilters
     const newFilters = { ...current, [key]: value }
     if (key !== 'clientName' || (key === 'clientName' && (!value || (typeof value === 'string' && value.length < 2)))) {
-      setPagination(prev => ({ ...prev, page: 1 }))
+      setPagination({ ...useFiltersStore.getState().loansFilterPagination, page: 1 })
     }
     setLoansFilters(newFilters)
-  }, [setLoansFilters])
+  }, [setLoansFilters, setPagination])
 
   // Batch update multiple filters at once (prevents multiple re-renders/fetches)
   const updateFilters = useCallback((updates: Partial<LoansFilters>) => {
     const current = useFiltersStore.getState().loansFilters
     const newFilters = { ...current, ...updates }
-    setPagination(prev => ({ ...prev, page: 1 }))
+    setPagination({ ...useFiltersStore.getState().loansFilterPagination, page: 1 })
     setLoansFilters(newFilters)
-  }, [setLoansFilters])
+  }, [setLoansFilters, setPagination])
 
   // Clear all filters
   const clearAllFilters = useCallback(() => {
     clearLoansFilters()
-    setPagination(prev => ({ ...prev, page: 1, total: 0, totalPages: 0 }))
     setFilteredLoans([])
-  }, [clearLoansFilters])
+    setPagination({ page: 1, limit: 50, total: 0, totalPages: 0 })
+    setIsLoading(false)
+    setError(null)
+  }, [clearLoansFilters, setFilteredLoans, setPagination, setIsLoading, setError])
 
   return {
     // Filtered data

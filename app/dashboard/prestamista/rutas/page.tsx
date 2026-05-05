@@ -333,7 +333,7 @@ export default function RutasPage() {
       // Refresh loans and subloans to update progress after reset
       fetchLoans();
       fetchAllSubLoansWithClientInfo();
-      setSuccessMessage('✅ Pagos reseteados exitosamente');
+      setSuccessMessage('Pagos reseteados exitosamente');
       setItemToReset(null);
     } catch (error: any) {
       const errorMessage = error?.response?.data?.message || error?.message || 'Error al resetear los pagos';
@@ -422,12 +422,12 @@ export default function RutasPage() {
         })),
       };
       await updateRouteOrder(currentRoute.id, orderData);
-      setSuccessMessage('✅ Orden actualizado exitosamente');
+      setSuccessMessage('Orden actualizado exitosamente');
       setIsReorderMode(false);
       await fetchTodayRoute(); // Refresh to confirm
     } catch (err) {
       // Error saving order
-      setSuccessMessage('❌ Error al guardar el orden');
+      setSuccessMessage('Error al guardar el orden');
     } finally {
       setIsSavingOrder(false);
     }
@@ -776,99 +776,120 @@ export default function RutasPage() {
       {/* Items Header - Mobile Optimized */}
       {currentRoute && currentRoute.items.length > 0 && (
         <Box sx={{ mb: { xs: 1.5, sm: 2 } }}>
-          {/* Title and Toggle Row */}
-        <Box
-          sx={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
+          {/* Fila 1: Título + botón Reordenar (solo cuando no está en modo reorder) */}
+          <Box
+            sx={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
               mb: 1,
-            gap: 1,
-              flexWrap: 'wrap',
-          }}
-        >
-          <Typography 
-            variant="h6" 
-            sx={{ 
-              fontSize: { xs: '0.938rem', sm: '1.25rem' },
-              fontWeight: { xs: 600, sm: 500 }
+              gap: 1,
             }}
           >
+            <Typography
+              variant="h6"
+              sx={{
+                fontSize: { xs: '0.938rem', sm: '1.25rem' },
+                fontWeight: { xs: 600, sm: 500 },
+              }}
+            >
               Clientes del Día ({showOnlyPending ? filteredItems.length : currentRoute?.items.length || 0})
             </Typography>
-            
-            {/* iOS filter chips */}
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flexWrap: 'wrap' }}>
-              {(['all', 'pending', 'paid', 'debt'] as const).map((f) => {
-                const labels = { all: 'Todos', pending: 'Pendientes', paid: 'Pagados', debt: 'Vencidos' };
-                return (
-                  <Chip
-                    key={f}
-                    label={labels[f]}
-                    size="small"
-                    onClick={() => setStatusFilter(f)}
-                    variant={statusFilter === f ? 'filled' : 'outlined'}
-                    color={statusFilter === f ? 'primary' : 'default'}
-                    sx={{ minHeight: 32, fontWeight: statusFilter === f ? 700 : 500 }}
-                  />
-                );
-              })}
-            </Box>
+
+            {!isRouteClosed && !isReorderMode && (
+              <Button
+                variant="outlined"
+                size="small"
+                startIcon={<SwapVert sx={{ fontSize: { xs: 16, sm: 18 } }} />}
+                onClick={handleToggleReorderMode}
+                sx={{
+                  fontSize: { xs: '0.75rem', sm: '0.813rem' },
+                  px: { xs: 1.5, sm: 1.5 },
+                  py: { xs: 0.5, sm: 0.75 },
+                  flexShrink: 0,
+                }}
+              >
+                Reordenar
+              </Button>
+            )}
           </Box>
 
-          {/* Action Buttons Row */}
-          {!isRouteClosed && (
-            <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 0.5 }}>
-              {isReorderMode ? (
-                <>
-                  <Button
-                    variant="outlined"
-                    size="small"
-                    startIcon={<CloseIcon sx={{ fontSize: { xs: 16, sm: 18 } }} />}
-                    onClick={handleToggleReorderMode}
-                    disabled={isSavingOrder}
-                    sx={{
-                      fontSize: { xs: '0.688rem', sm: '0.813rem' },
-                      px: { xs: 1, sm: 1.5 },
-                      py: { xs: 0.5, sm: 0.75 }
-                    }}
-                  >
-                    <Box component="span" sx={{ display: { xs: 'none', sm: 'inline' } }}>Cancelar</Box>
-                  </Button>
-                  <Button
-                    variant="contained"
-                    size="small"
-                    startIcon={isSavingOrder ? <CircularProgress size={14} /> : <Save sx={{ fontSize: { xs: 16, sm: 18 } }} />}
-                    onClick={handleSaveOrder}
-                    disabled={isSavingOrder}
-                    sx={{
-                      fontSize: { xs: '0.688rem', sm: '0.813rem' },
-                      px: { xs: 1, sm: 1.5 },
-                      py: { xs: 0.5, sm: 0.75 }
-                    }}
-                  >
-                    {isSavingOrder ? (
-                      <Box component="span" sx={{ display: { xs: 'none', sm: 'inline' } }}>Guardando...</Box>
-                    ) : (
-                      <Box component="span" sx={{ display: { xs: 'none', sm: 'inline' } }}>Guardar</Box>
-                    )}
-                  </Button>
-                </>
-              ) : (
-                <Button
-                  variant="outlined"
+          {/* Fila 2: Filter chips con scroll horizontal en mobile */}
+          <Box
+            sx={{
+              display: 'flex',
+              gap: 0.5,
+              overflowX: 'auto',
+              pb: 0.5,
+              '&::-webkit-scrollbar': { display: 'none' },
+              scrollbarWidth: 'none',
+            }}
+          >
+            {(['all', 'pending', 'paid', 'debt'] as const).map((f) => {
+              const labels = { all: 'Todos', pending: 'Pendientes', paid: 'Pagados', debt: 'Vencidos' };
+              return (
+                <Chip
+                  key={f}
+                  label={labels[f]}
                   size="small"
-                  startIcon={<SwapVert sx={{ fontSize: { xs: 16, sm: 18 } }} />}
+                  onClick={() => setStatusFilter(f)}
+                  variant={statusFilter === f ? 'filled' : 'outlined'}
+                  color={statusFilter === f ? 'primary' : 'default'}
+                  sx={{ minHeight: 32, fontWeight: statusFilter === f ? 700 : 500, flexShrink: 0 }}
+                />
+              );
+            })}
+          </Box>
+
+          {/* Banner de modo reorder activo */}
+          {!isRouteClosed && isReorderMode && (
+            <Box
+              sx={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                px: 2,
+                py: 1.25,
+                mt: 1,
+                bgcolor: 'primary.main',
+                borderRadius: 2,
+                color: 'white',
+              }}
+            >
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <SwapVert sx={{ fontSize: 18 }} />
+                <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                  Arrastrá para reordenar
+                </Typography>
+              </Box>
+              <Box sx={{ display: 'flex', gap: 1 }}>
+                <Button
+                  size="small"
+                  variant="outlined"
+                  color="inherit"
                   onClick={handleToggleReorderMode}
+                  disabled={isSavingOrder}
+                  sx={{ borderColor: 'rgba(255,255,255,0.6)', fontSize: '0.75rem' }}
+                >
+                  Cancelar
+                </Button>
+                <Button
+                  size="small"
+                  variant="contained"
+                  onClick={handleSaveOrder}
+                  disabled={isSavingOrder}
+                  startIcon={isSavingOrder ? <CircularProgress size={14} color="inherit" /> : <Save sx={{ fontSize: 16 }} />}
                   sx={{
-                    fontSize: { xs: '0.688rem', sm: '0.813rem' },
-                    px: { xs: 1, sm: 1.5 },
-                    py: { xs: 0.5, sm: 0.75 }
+                    bgcolor: 'white',
+                    color: 'primary.main',
+                    fontSize: '0.75rem',
+                    '&:hover': { bgcolor: 'grey.100' },
+                    '&.Mui-disabled': { bgcolor: 'rgba(255,255,255,0.5)' },
                   }}
                 >
-                  <Box component="span" sx={{ display: { xs: 'none', sm: 'inline' } }}>Reordenar</Box>
+                  {isSavingOrder ? 'Guardando...' : 'Guardar'}
                 </Button>
-              )}
+              </Box>
             </Box>
           )}
         </Box>
@@ -1067,6 +1088,7 @@ export default function RutasPage() {
             dueDate: selectedItem.subLoan.dueDate,
             outstandingBalance: selectedItem.subLoan.outstandingBalance,
             clientName: selectedItem.clientName,
+            loanTotalPayments: selectedItem.subLoan.loan?.totalPayments,
           }}
           clientName={selectedItem.clientName}
           mode="single"

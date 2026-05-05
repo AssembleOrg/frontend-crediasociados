@@ -87,11 +87,10 @@ class OperativaService {
     const userId = 'current-user-id' // TODO: Get from auth context
     
     return this.createIngreso(userId, {
+      subTipo: 'pago_cuota',
       amount,
-      description: `Pago cuota #${paymentNumber} - ${clientName}`,
+      descripcion: `Pago cuota #${paymentNumber} - ${clientName}`,
       fecha: paymentDate,
-      category: 'payments',
-      paymentMethod: 'cash'
     })
   }
 

@@ -10,7 +10,6 @@ import {
   Button,
   Box,
   Typography,
-  Alert,
   FormControl,
   InputLabel,
   Select,
@@ -472,28 +471,30 @@ export function CreateLoanModal({
         }
       }}
     >
-      <DialogTitle sx={{ 
+      <DialogTitle sx={{
         pb: { xs: 1.5, sm: 1 },
         pt: { xs: 2, sm: 2 },
         px: { xs: 2, sm: 3 },
-        background: 'linear-gradient(135deg, #667eea 0%, #4facfe 100%)',
-        color: 'white',
+        bgcolor: 'background.paper',
+        borderBottom: '1px solid',
+        borderColor: 'divider',
         borderRadius: { xs: 0, sm: '12px 12px 0 0' }
       }}>
-        <Typography 
-          variant="h5" 
-          component="div" 
-          sx={{ 
+        <Typography
+          variant="h5"
+          component="div"
+          sx={{
             fontWeight: 600,
-            fontSize: { xs: '1.25rem', sm: '1.5rem' }
+            fontSize: { xs: '1.25rem', sm: '1.5rem' },
+            color: 'text.primary'
           }}
         >
           {title}
         </Typography>
-        <Typography 
-          variant="body2" 
-          sx={{ 
-            opacity: 0.9, 
+        <Typography
+          variant="body2"
+          color="text.secondary"
+          sx={{
             mt: 0.5,
             fontSize: { xs: '0.8rem', sm: '0.875rem' }
           }}
@@ -503,10 +504,9 @@ export function CreateLoanModal({
       </DialogTitle>
 
       <DialogContent sx={{ p: 0 }}>
-        {/* Single Unified Card with Blue Gradient Background */}
-        <Box sx={{ 
+        <Box sx={{
           p: { xs: 2, sm: 3 },
-          background: 'linear-gradient(135deg, #667eea 0%, #4facfe 100%)',
+          bgcolor: 'background.paper',
         }}>
           <Card sx={{ 
             borderRadius: 3, 
@@ -518,13 +518,14 @@ export function CreateLoanModal({
               <Box sx={{ mb: 3 }}>
                 <Autocomplete
                   fullWidth
-                  options={searchInput.length >= 2 ? searchResults.filter(c => c.verified !== false) : clients.filter(c => c.verified !== false)}
-                  getOptionLabel={(option) => {
-                    const parts = [option.fullName]
-                    if (option.dni) parts.push(`DNI: ${option.dni}`)
-                    if (option.cuit) parts.push(`CUIT: ${option.cuit}`)
-                    return parts.join(' • ')
+                  sx={{
+                    '& .MuiAutocomplete-clearIndicator, & .MuiAutocomplete-popupIndicator': {
+                      padding: '2px',
+                      '& svg': { fontSize: '1.1rem' },
+                    },
                   }}
+                  options={searchInput.length >= 2 ? searchResults.filter(c => c.verified !== false) : clients.filter(c => c.verified !== false)}
+                  getOptionLabel={(option) => option.fullName}
                   value={selectedClient}
                   onChange={(_, newValue) => {
                     if (newValue && newValue.verified === false) {
@@ -535,12 +536,7 @@ export function CreateLoanModal({
                     handleSelectChange('clientId', newValue?.id || '')
                     // When selecting a client, update searchInput to match the label to prevent re-search
                     if (newValue) {
-                      const label = [
-                        newValue.fullName,
-                        newValue.dni ? `DNI: ${newValue.dni}` : null,
-                        newValue.cuit ? `CUIT: ${newValue.cuit}` : null
-                      ].filter(Boolean).join(' • ')
-                      setSearchInput(label)
+                      setSearchInput(newValue.fullName)
                     } else {
                       setSearchInput('')
                     }
@@ -570,19 +566,20 @@ export function CreateLoanModal({
                       error={!!formErrors.clientId}
                       helperText={formErrors.clientId || "Busca por nombre, DNI o CUIT (solo clientes verificados)"}
                     sx={{
-                        '& .MuiOutlinedInput-root': { 
-                      borderRadius: 2,
-                          bgcolor: 'grey.50' 
-                        } 
+                        '& .MuiOutlinedInput-root': {
+                          borderRadius: 2,
+                        },
                       }}
-                      InputProps={{
-                        ...params.InputProps,
-                        endAdornment: (
-                          <>
-                            {isSearching ? <CircularProgress color="inherit" size={20} /> : null}
-                            {params.InputProps.endAdornment}
-                          </>
-                        ),
+                      slotProps={{
+                        input: {
+                          ...params.InputProps,
+                          endAdornment: (
+                            <>
+                              {isSearching ? <CircularProgress color="inherit" size={20} /> : null}
+                              {params.InputProps.endAdornment}
+                            </>
+                          ),
+                        }
                       }}
                     />
                   )}
@@ -603,11 +600,11 @@ export function CreateLoanModal({
                 />
 
                 {selectedClient && (
-                  <Alert severity="info" sx={{ mt: 2, borderRadius: 2 }}>
+                  <Typography variant="body2" color="text.secondary" sx={{ mt: 1.5 }}>
                     <strong>{selectedClient.fullName}</strong>
                     {selectedClient.phone && ` • ${selectedClient.phone}`}
                     {selectedClient.email && ` • ${selectedClient.email}`}
-                  </Alert>
+                  </Typography>
                 )}
               </Box>
 
@@ -668,7 +665,7 @@ export function CreateLoanModal({
                       startAdornment: <InputAdornment position="start">$</InputAdornment>,
                     }}
                     sx={{
-                    '& .MuiOutlinedInput-root': { borderRadius: 2, bgcolor: 'grey.50' },
+                    '& .MuiOutlinedInput-root': { borderRadius: 2 },
                     }}
                   />
 
@@ -685,7 +682,7 @@ export function CreateLoanModal({
                     endAdornment: <InputAdornment position="end">%</InputAdornment>,
                   }}
                     sx={{
-                    '& .MuiOutlinedInput-root': { borderRadius: 2, bgcolor: 'grey.50' },
+                    '& .MuiOutlinedInput-root': { borderRadius: 2 },
                     '& input[type=number]': { MozAppearance: 'textfield' },
                     '& input[type=number]::-webkit-outer-spin-button, & input[type=number]::-webkit-inner-spin-button': { display: 'none' },
                     }}
@@ -694,13 +691,10 @@ export function CreateLoanModal({
 
               {/* Summary Preview - Inline */}
                 {formData.amount && formData.baseInterestRate && (
-                  <Box sx={{ 
-                  p: 2, 
+                  <Box sx={{
+                  p: 2,
                   mb: 3,
-                    bgcolor: 'primary.50', 
-                    borderRadius: 2, 
-                  border: '2px solid',
-                    borderColor: 'primary.200'
+                  borderRadius: 2,
                   }}>
                   <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1.5, color: 'primary.main' }}>
                       Resumen del Préstamo
@@ -732,7 +726,7 @@ export function CreateLoanModal({
                     </Box>
                   </Box>
                   {formData.totalPayments && (
-                    <Box sx={{ mt: 2, pt: 2, borderTop: '1px solid', borderColor: 'primary.200' }}>
+                    <Box sx={{ mt: 2, pt: 2, borderTop: '1px solid', borderColor: 'divider' }}>
                       <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>
                         Valor por cuota:
                       </Typography>
@@ -773,7 +767,7 @@ export function CreateLoanModal({
                       value={formData.paymentFrequency}
                       onChange={(e) => handleSelectChange('paymentFrequency', e.target.value)}
                       label="Frecuencia de Pago"
-                      sx={{ borderRadius: 2, bgcolor: 'grey.50' }}
+                      sx={{ borderRadius: 2 }}
                     >
                       <MenuItem value="DAILY">Diario</MenuItem>
                       <MenuItem value="WEEKLY">Semanal</MenuItem>
@@ -798,7 +792,7 @@ export function CreateLoanModal({
                         value={formData.paymentDay}
                         onChange={(e) => handleSelectChange('paymentDay', e.target.value)}
                         label="Día de Pago"
-                        sx={{ borderRadius: 2, bgcolor: 'grey.50' }}
+                        sx={{ borderRadius: 2 }}
                       >
                         <MenuItem value="MONDAY">Lunes</MenuItem>
                         <MenuItem value="TUESDAY">Martes</MenuItem>
@@ -826,7 +820,7 @@ export function CreateLoanModal({
                     required
                     fullWidth
                     sx={{
-                      '& .MuiOutlinedInput-root': { borderRadius: 2, bgcolor: 'grey.50' },
+                      '& .MuiOutlinedInput-root': { borderRadius: 2 },
                       '& input[type=number]': { MozAppearance: 'textfield' },
                       '& input[type=number]::-webkit-outer-spin-button, & input[type=number]::-webkit-inner-spin-button': { display: 'none' },
                     }}
@@ -868,7 +862,7 @@ export function CreateLoanModal({
                 fullWidth
                 placeholder="Agrega notas o detalles sobre el préstamo (opcional)"
                 sx={{
-                  '& .MuiOutlinedInput-root': { borderRadius: 2, bgcolor: 'grey.50' }
+                  '& .MuiOutlinedInput-root': { borderRadius: 2 }
                 }}
               />
             </CardContent>
@@ -876,13 +870,13 @@ export function CreateLoanModal({
         </Box>
       </DialogContent>
 
-      <Divider />
-
-      <DialogActions sx={{ 
-        p: { xs: 2, sm: 3 }, 
+      <DialogActions sx={{
+        p: { xs: 2, sm: 3 },
         gap: { xs: 1.5, sm: 2 },
         flexDirection: { xs: 'column', sm: 'row' },
-        background: 'linear-gradient(135deg, #667eea08 0%, #4facfe08 100%)',
+        bgcolor: 'background.paper',
+        borderTop: '1px solid',
+        borderColor: 'divider',
       }}>
         <Button
           onClick={handleClose}
@@ -917,17 +911,11 @@ export function CreateLoanModal({
             py: { xs: 1.25, sm: 1.5 },
             order: { xs: 1, sm: 2 },
             minWidth: { xs: '100%', sm: 'auto' },
-            background: 'linear-gradient(135deg, #667eea 0%, #4facfe 100%)',
-            boxShadow: '0 4px 12px rgba(102, 126, 234, 0.4)',
             fontSize: '1rem',
             fontWeight: 600,
-            '&:hover': {
-              background: 'linear-gradient(135deg, #5a6fd8 0%, #3d8bfe 100%)',
-              boxShadow: '0 6px 16px rgba(102, 126, 234, 0.5)',
-            }
           }}
         >
-          {isSimulating ? 'Simulando...' : '📊 Simular Préstamo'}
+          {isSimulating ? 'Simulando...' : 'Simular Préstamo'}
         </Button>
       </DialogActions>
 

@@ -71,7 +71,7 @@ export const PaymentSuccessModal: React.FC<PaymentSuccessModalProps> = ({
         <CheckCircle />
         <Box>
           <Typography variant="h6" sx={{ fontWeight: 600 }}>
-            ✅ Pago Registrado
+            Pago Registrado
           </Typography>
           <Typography variant="caption" sx={{ opacity: 0.9 }}>
             {isPartial ? 'Pago Parcial' : 'Pago Completo'}

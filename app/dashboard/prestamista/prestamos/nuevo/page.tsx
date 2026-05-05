@@ -63,22 +63,21 @@ export default function NuevoPrestamoPage() {
       )}
 
       {/* Main Content */}
-      <Paper sx={{ p: 4, textAlign: 'center', background: (theme) => `linear-gradient(135deg, ${theme.palette.primary.light} 0%, ${theme.palette.primary.main} 100%)`, color: 'primary.contrastText', borderRadius: 2 }}>
-        <Typography variant="h6" gutterBottom sx={{ color: 'primary.contrastText' }}>
+      <Paper sx={{ p: 4, textAlign: 'center', bgcolor: 'background.paper', borderRadius: 2, border: '1px solid', borderColor: 'divider' }}>
+        <Typography variant="h6" gutterBottom color="text.primary">
           Simulador de Préstamos
         </Typography>
-        <Typography variant="body1" sx={{ mb: 3, color: 'rgba(255,255,255,0.9)' }}>
+        <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
           Utiliza el simulador para calcular las cuotas y términos del préstamo antes de confirmarlo.
           Podrás ver todos los pagos calculados y ajustar los parámetros según necesites.
         </Typography>
 
         <Button
-          variant="outlined"
+          variant="contained"
           size="medium"
           startIcon={<Add />}
           onClick={() => setModalOpen(true)}
           disabled={isLoading || clients.length === 0}
-          sx={{ color: 'primary.contrastText', borderColor: 'rgba(255,255,255,0.8)', '&:hover': { borderColor: '#fff', backgroundColor: 'rgba(255,255,255,0.1)' } }}
         >
           {isLoading ? 'Cargando...' : 'Abrir Simulador de Préstamos'}
         </Button>

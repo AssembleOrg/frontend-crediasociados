@@ -1,9 +1,9 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { Box, Button, Alert, CircularProgress } from '@mui/material'
-import { Add} from '@mui/icons-material'
-import { useRouter, usePathname } from 'next/navigation'
+import { Box, Alert, CircularProgress } from '@mui/material'
+import { Add } from '@mui/icons-material'
+import { useRouter } from 'next/navigation'
 import { useLoans } from '@/hooks/useLoans'
 import { useSubLoans } from '@/hooks/useSubLoans'
 import { useManagerDashboard } from '@/hooks/useManagerDashboard'
@@ -15,15 +15,12 @@ import { useLoansFilters } from '@/hooks/useLoansFilters'
 import PageHeader from '@/components/ui/PageHeader'
 import LoanDetailsModal from '@/components/loans/modals/LoanDetailsModal'
 
-// Utilities
-import { calculateLoanStats } from '@/lib/loans/loanCalculations'
 
 export default function PrestamosAnalyticsPage() {
   const router = useRouter()
-  const pathname = usePathname()
   const { loans, error, isLoading, fetchLoans } = useLoans()
   const { allSubLoansWithClient, isLoading: subLoansLoading, fetchAllSubLoansWithClientInfo } = useSubLoans()
-  const { filteredLoans, filterStats, hasActiveFilters, isLoading: filtersLoading, error: filtersError } = useLoansFilters()
+  const { filteredLoans, hasActiveFilters, isLoading: filtersLoading, error: filtersError } = useLoansFilters()
   const { refetch: refetchManagerData } = useManagerDashboard()
   
   // Load loans + subloans when this page mounts
@@ -41,14 +38,9 @@ export default function PrestamosAnalyticsPage() {
 
   // Use filtered data for display when filters are active
   const displayLoans = hasActiveFilters ? filteredLoans : loans
-  const displayStats = hasActiveFilters ? filterStats : calculateLoanStats(loans)
 
   const handleCreateLoan = () => {
     router.push('/dashboard/prestamista/prestamos/nuevo')
-  }
-
-  const handleGoToCobros = () => {
-    router.push('/dashboard/prestamista/cobros')
   }
 
   const handleViewDetails = (loanId: string) => {
@@ -85,14 +77,7 @@ export default function PrestamosAnalyticsPage() {
             color: 'secondary',
             startIcon: <Add />,
             size: 'small'
-          },
-          // {
-          //   label: 'Ir a Cobros', 
-          //   onClick: handleGoToCobros,
-          //   variant: 'contained',
-          //   color: 'primary',
-          //   size: 'small'
-          // }
+          }
         ]}
       />
 
@@ -112,7 +97,7 @@ export default function PrestamosAnalyticsPage() {
 
       {/* Filter Panel */}
       {!isLoading && (
-        <Box sx={{ mb: 3 }}>
+        <Box sx={{ mb: 1.5 }}>
           <LoansFilterPanel variant="expanded" />
         </Box>
       )}
@@ -120,25 +105,14 @@ export default function PrestamosAnalyticsPage() {
       {/* Loans Table */}
       {!isLoading && !filtersLoading && (
         <Box>
-          <Box sx={{ mb: 3 }}>
-            <Box sx={{ typography: 'h6', mb: { xs: 1.5, sm: 0 } }}>Tu Cartera de Prestamos</Box>
-            <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-              <ExportButtons
-                filteredLoans={hasActiveFilters ? filteredLoans : undefined}
-              />
-              <Button
-                variant="contained"
-                startIcon={<Add />}
-                onClick={handleCreateLoan}
-                size="small"
-              >
-                Nuevo Prestamo
-              </Button>
-            </Box>
+          <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 1 }}>
+            <ExportButtons
+              filteredLoans={hasActiveFilters ? filteredLoans : undefined}
+            />
           </Box>
 
           {error && (
-            <Alert severity="error" sx={{ mb: 3 }}>
+            <Alert severity="error" sx={{ mb: 2 }}>
               {error}
             </Alert>
           )}
@@ -148,26 +122,6 @@ export default function PrestamosAnalyticsPage() {
             onViewDetails={handleViewDetails}
             onLoanDeleted={refetchManagerData}
           />
-
-          {/* Quick Actions */}
-          {displayStats.total > 0 && (
-            <Box
-              sx={{ mt: 3, display: 'flex', gap: 2, justifyContent: 'center' }}
-            >
-              <Button
-                variant="outlined"
-                onClick={() => router.push('/dashboard/prestamista/cobros')}
-              >
-                Ver Cobros del Día
-              </Button>
-              <Button
-                variant="outlined"
-                onClick={() => router.push('/dashboard/prestamista/clientes')}
-              >
-                Gestionar Clientes
-              </Button>
-            </Box>
-          )}
         </Box>
       )}
 

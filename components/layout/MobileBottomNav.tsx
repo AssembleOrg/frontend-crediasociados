@@ -50,8 +50,9 @@ const MANAGER_PRIMARY: NavItem[] = [
   { label: 'Dashboard',  icon: <Dashboard sx={{ fontSize: 24 }} />,      path: '/dashboard/prestamista' },
   { label: 'Ruta',       icon: <RouteIcon sx={{ fontSize: 24 }} />,      path: '/dashboard/prestamista/rutas' },
   { label: 'Cobros',     icon: <Payment sx={{ fontSize: 24 }} />,        path: '/dashboard/prestamista/cobros' },
-  { label: 'Clientes',   icon: <People sx={{ fontSize: 24 }} />,         path: '/dashboard/prestamista/clientes' },
+  { label: 'Reportes',   icon: <Analytics sx={{ fontSize: 24 }} />,      path: '/dashboard/prestamista/reportes' },
   { label: 'Préstamos',  icon: <AccountBalance sx={{ fontSize: 24 }} />, path: '/dashboard/prestamista/prestamos' },
+  { label: 'Clientes',   icon: <People sx={{ fontSize: 24 }} />,         path: '/dashboard/prestamista/clientes' },
 ]
 const MANAGER_MORE: NavItem[] = [
   { label: 'Simulador',      icon: <Calculate />,        path: '/dashboard/prestamista?modal=simulador' },
@@ -104,9 +105,9 @@ function NavButton({ item, isActive, onClick }: NavButtonProps) {
         alignItems:     'center',
         justifyContent: 'center',
         gap:            '2px',
-        minWidth:       44,
+        minWidth:       64,
         minHeight:      44,
-        flex:           1,
+        flexShrink:     0,
         borderRadius:   12,
         px:             0.5,
         py:             0.75,
@@ -271,32 +272,46 @@ export function MobileBottomNav({ badges = {} }: MobileBottomNavProps) {
           borderRadius:         0,
           boxShadow:            'none',
 
-          alignItems:           'center',
+          alignItems:           'stretch',
           paddingBottom:        'env(safe-area-inset-bottom)',
-          paddingX:             1,
           paddingTop:           0.5,
-          gap:                  0,
+        }}
+      >
+        {/* Scrolleable primary items */}
+        <Box sx={{
+          display:              'flex',
+          flex:                 1,
           overflowX:            'auto',
           scrollbarWidth:       'none',
           '&::-webkit-scrollbar': { display: 'none' },
-        }}
-      >
-        {primary.map((item) => (
-          <NavButton
-            key={item.path}
-            item={{ ...item, badge: badges[item.path] }}
-            isActive={pathname === item.path}
-            onClick={() => router.push(item.path)}
-          />
-        ))}
+          alignItems:           'center',
+          paddingX:             1,
+        }}>
+          {primary.map((item) => (
+            <NavButton
+              key={item.path}
+              item={{ ...item, badge: badges[item.path] }}
+              isActive={pathname === item.path}
+              onClick={() => router.push(item.path)}
+            />
+          ))}
+        </Box>
 
-        {/* More button — only if this role has overflow items */}
+        {/* Sticky "Más" button */}
         {more.length > 0 && (
-          <NavButton
-            item={{ label: 'Más', icon: <MoreHoriz sx={{ fontSize: 24 }} />, path: '' }}
-            isActive={isMoreActive}
-            onClick={openMore}
-          />
+          <Box sx={{
+            flexShrink:   0,
+            borderLeft:   `0.5px solid ${iosColors.separator}`,
+            paddingX:     0.5,
+            display:      'flex',
+            alignItems:   'center',
+          }}>
+            <NavButton
+              item={{ label: 'Más', icon: <MoreHoriz sx={{ fontSize: 24 }} />, path: '' }}
+              isActive={isMoreActive}
+              onClick={openMore}
+            />
+          </Box>
         )}
       </Paper>
 

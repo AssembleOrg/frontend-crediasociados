@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import {
   Box,
   Typography,
@@ -104,6 +104,7 @@ export default function CollectorReportView({
   const isMobile = useMediaQuery(theme.breakpoints.down('md'))
   const [txViewMode, setTxViewMode] = useState<'list' | 'cards'>('list')
   const [txTab, setTxTab] = useState<'all' | 'collections' | 'loans' | 'others'>('all')
+  const txSectionRef = useRef<HTMLDivElement>(null)
 
   // ─── Date helpers ──────────────────────────────────────────────────────────
 
@@ -740,7 +741,18 @@ export default function CollectorReportView({
                     { label: 'Monto Cobrado', value: report.collections?.amounts?.totalCollected || 0, color: 'success.main' },
                     { label: 'Pendiente', value: (report.collections?.amounts?.totalDue || 0) - (report.collections?.amounts?.totalCollected || 0), color: 'error.main' },
                   ].map((monto) => (
-                    <Box key={monto.label} sx={{ textAlign: 'center', p: 1, borderRadius: 1, bgcolor: alpha(theme.palette.grey[500], 0.06) }}>
+                    <Box
+                      key={monto.label}
+                      onClick={() => txSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+                      sx={{
+                        textAlign: 'center', p: 1, borderRadius: 1,
+                        bgcolor: alpha(theme.palette.grey[500], 0.06),
+                        cursor: 'pointer',
+                        transition: 'background-color 0.15s',
+                        '&:hover': { bgcolor: alpha(theme.palette.grey[500], 0.14) },
+                        '&:active': { bgcolor: alpha(theme.palette.grey[500], 0.2) },
+                      }}
+                    >
                       <Typography variant="body2" fontWeight={700} color={monto.color} sx={{ fontSize: { xs: '0.85rem', sm: '0.9rem' } }}>
                         {isMobile ? formatCurrencyAbbr(monto.value) : formatCurrencyCompact(monto.value)}
                       </Typography>
@@ -879,7 +891,7 @@ export default function CollectorReportView({
               </Paper>
 
               {/* ── Transacciones Wallet ── */}
-              <Paper sx={{ mb: 2, bgcolor: '#FFFFFF', overflow: 'hidden' }}>
+              <Paper ref={txSectionRef} sx={{ mb: 2, bgcolor: '#FFFFFF', overflow: 'hidden' }}>
                 {/* Header */}
                 <Box sx={{ px: { xs: 1.5, sm: 3 }, pt: { xs: 1.5, sm: 3 }, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                   <Typography variant="subtitle2" fontWeight={600}>
@@ -1112,13 +1124,13 @@ export default function CollectorReportView({
                     Porcentaje
                   </Typography>
                   <Box
-                    onClick={() => !editingCommission && setEditingCommission(true)}
-                    sx={{ display: 'flex', alignItems: 'center', gap: 0.75, cursor: editingCommission ? 'default' : 'pointer' }}
+                    onClick={() => managerId && !editingCommission && setEditingCommission(true)}
+                    sx={{ display: 'flex', alignItems: 'center', gap: 0.75, cursor: managerId && !editingCommission ? 'pointer' : 'default' }}
                   >
                     <Typography variant="h5" fontWeight={700} color="text.primary">
                       {displayPercentage}%
                     </Typography>
-                    {!editingCommission && <Edit sx={{ fontSize: 14, color: 'text.disabled' }} />}
+                    {managerId && !editingCommission && <Edit sx={{ fontSize: 14, color: 'text.disabled' }} />}
                   </Box>
                 </Box>
                 <Box sx={{ minWidth: 100 }}>

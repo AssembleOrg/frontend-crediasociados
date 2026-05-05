@@ -116,7 +116,6 @@ export const useOperativa = () => {
 
       try {
         const newIngreso = await operativaService.createIngresoFromPago(
-          user?.id || '',
           subloanId,
           amount,
           clientName,

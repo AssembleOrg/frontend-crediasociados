@@ -42,7 +42,6 @@ export function LoansFilterPanel({ variant: _variant = 'expanded', onClose }: Lo
     filterOptions,
     filterStats,
     hasActiveFilters,
-    isLoading,
     updateFilter,
     updateFilters,
     clearAllFilters
@@ -132,7 +131,6 @@ export function LoansFilterPanel({ variant: _variant = 'expanded', onClose }: Lo
             <Typography variant="h6">
               Filtros
             </Typography>
-            {isLoading && <CircularProgress size={16} />}
           </Box>
           {hasActiveFilters && (
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>

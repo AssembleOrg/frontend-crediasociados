@@ -58,7 +58,7 @@ export function ClientCard({ client, onEdit, onDelete }: ClientCardProps) {
     setLoadingNotes(true)
     try {
       const fullClient = await clientsService.getClientById(client.id)
-      const activeLoan = fullClient.loans?.find((l: { status: string }) => l.status === 'ACTIVE')
+      const activeLoan = (fullClient as any).loans?.find((l: { status: string }) => l.status === 'ACTIVE')
 
       if (activeLoan) {
         setCurrentLoanId(activeLoan.id)

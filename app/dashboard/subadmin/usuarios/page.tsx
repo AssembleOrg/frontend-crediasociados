@@ -277,7 +277,7 @@ export default function ManagersPage() {
 
       {/* Mobile: Cards */}
       {isMobile ? (
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5, bgcolor: '#F2F2F7', p: { xs: 2, sm: 0 }, mb: -3, mx: -3, mb: 0, px: 2 }}>
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5, bgcolor: '#F2F2F7', p: { xs: 2, sm: 0 }, mx: -3, mb: 0, px: 2 }}>
           {isLoading ? (
             <Paper sx={{ p: 4, textAlign: 'center', mt: 3 }}>
               <Typography color="text.secondary">Cargando...</Typography>

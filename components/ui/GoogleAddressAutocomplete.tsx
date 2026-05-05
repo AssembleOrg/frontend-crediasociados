@@ -129,7 +129,7 @@ export function GoogleAddressAutocomplete({
                 {
                   address: input,
                   componentRestrictions: {
-                    country: ['ar', 'br'] // Argentina y Brasil
+                    country: 'ar' // Argentina
                   }
                 },
                 (results, geocodeStatus) => {
@@ -189,7 +189,7 @@ export function GoogleAddressAutocomplete({
     return () => clearTimeout(timer)
   }, [inputValue, fetchPredictions])
 
-  // Handle input change
+  // Handle input change (for MUI Autocomplete onInputChange)
   const handleInputChange = useCallback(
     (_event: any, newInputValue: string, reason?: string) => {
       setInputValue(newInputValue)
@@ -197,6 +197,14 @@ export function GoogleAddressAutocomplete({
       if (reason === 'clear' || newInputValue === '') {
         setOptions([])
       }
+    },
+    []
+  )
+
+  // Handle input change for plain TextField (fallback)
+  const handleTextFieldChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      setInputValue(e.target.value)
     },
     []
   )
@@ -226,7 +234,7 @@ export function GoogleAddressAutocomplete({
           label={label}
           placeholder={placeholder}
           value={value}
-          onChange={handleInputChange}
+          onChange={handleTextFieldChange}
           error={error}
           helperText={helperText || 'API key de Google Maps no configurada. Escribe la dirección manualmente.'}
           required={required}
@@ -264,7 +272,7 @@ export function GoogleAddressAutocomplete({
           label={label}
           placeholder={placeholder}
           value={value}
-          onChange={handleInputChange}
+          onChange={handleTextFieldChange}
           error={error}
           helperText={helperText || 'Error al cargar Google Maps. Escribe la dirección manualmente.'}
           required={required}

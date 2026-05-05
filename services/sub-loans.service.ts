@@ -92,6 +92,7 @@ export interface CobrosClientSubLoan {
   dueDate: string
   paidDate: string | null
   loanTrack: string
+  loanTotalPayments?: number
   payments?: Array<{ id: string; amount: number; paymentDate: string; description?: string; createdAt: string }>
 }
 

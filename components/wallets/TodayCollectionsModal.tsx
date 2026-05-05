@@ -395,9 +395,9 @@ export default function TodayCollectionsModal({ open, onClose, data }: TodayColl
                                 </Typography>
                               )}
 
-                              {transaction.payments && transaction.payments.length > 0 && (
+                              {'payments' in transaction && (transaction as any).payments && (transaction as any).payments.length > 0 && (
                                 <Box sx={{ mt: 0.75, display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-                                  {transaction.payments.map((payment, idx) => (
+                                  {((transaction as any).payments as Array<{ id?: string; description?: string }>).map((payment, idx) => (
                                     payment.description && payment.description.trim() ? (
                                       <Chip
                                         key={payment.id || idx}

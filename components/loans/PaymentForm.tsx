@@ -26,6 +26,7 @@ import {
   Paper,
   alpha,
   useTheme,
+  type Theme,
 } from '@mui/material'
 import {
   Payment,
@@ -112,6 +113,7 @@ export interface PaymentFormProps {
   canRenew?: boolean
   renewLoading?: boolean
   onRenew?: () => void
+  totalPayments?: number
 }
 
 const fmtDateShort = (dateString?: string) => {
@@ -163,6 +165,7 @@ export function PaymentForm({
   canRenew = false,
   renewLoading = false,
   onRenew,
+  totalPayments,
 }: PaymentFormProps) {
   const theme = useTheme()
   const canRegister = currentSubloan && paymentAmount && parseFloat(paymentAmount) > 0
@@ -195,13 +198,14 @@ export function PaymentForm({
               value={selectedSubloanId}
               onChange={(e) => onSubloanChange(e.target.value)}
               label="Seleccionar Cuota"
+              MenuProps={{ sx: { zIndex: 1500 } }}
             >
               {pendingSubloans.map((s) => {
                 const pending = (s.totalAmount ?? 0) - (s.paidAmount || 0)
                 return (
                   <MenuItem key={s.id ?? ''} value={s.id ?? ''}>
                     <Box sx={{ display: 'flex', justifyContent: 'space-between', width: '100%' }}>
-                      <Typography>Cuota #{s.paymentNumber ?? '?'} - Vence: {fmtDateShort(s.dueDate)}</Typography>
+                      <Typography>Cuota #{s.paymentNumber ?? '?'} / {totalPayments ?? '?'} - Vence: {fmtDateShort(s.dueDate)}</Typography>
                       <Typography color="primary" fontWeight="bold">{formatCurrencyDisplay(pending)}</Typography>
                     </Box>
                   </MenuItem>
@@ -217,7 +221,7 @@ export function PaymentForm({
             <Paper elevation={0} sx={{ bgcolor: '#FFFFFF', borderLeft: 4, borderLeftColor: 'primary.main', mb: 3, overflow: 'hidden' }}>
               <Box sx={{ p: { xs: 2, sm: 2.5 } }}>
                 <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1.5 }}>
-                  Cuota #{currentSubloan.paymentNumber ?? '?'}
+                  Cuota #{currentSubloan.paymentNumber ?? '?'} / {totalPayments ?? '?'}
                 </Typography>
                 <Box sx={{ display: 'grid', gridTemplateColumns: { xs: 'repeat(2, 1fr)', sm: 'repeat(4, 1fr)' }, gap: 1 }}>
                   <StatBox label="Monto Total"     value={formatCurrencyDisplay(currentSubloan.totalAmount ?? 0)} theme={theme} />
@@ -479,6 +483,7 @@ export function PaymentForm({
                         <Select
                           value={renewFrequency}
                           label="Frecuencia"
+                          MenuProps={{ sx: { zIndex: 1500 } }}
                           onChange={(e) => {
                             const v = e.target.value as RenewFrequency
                             onRenewFrequencyChange?.(v)
@@ -497,6 +502,7 @@ export function PaymentForm({
                           <Select
                             value={renewPaymentDay}
                             label="Día de pago"
+                            MenuProps={{ sx: { zIndex: 1500 } }}
                             onChange={(e) => onRenewPaymentDayChange?.(e.target.value as RenewPaymentDay)}
                           >
                             <MenuItem value="MONDAY">Lunes</MenuItem>
@@ -621,7 +627,7 @@ function StatBox({
   label: string
   value: string
   color?: string
-  theme: ReturnType<typeof useTheme>
+  theme: Theme
 }) {
   return (
     <Box

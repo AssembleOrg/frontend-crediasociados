@@ -76,24 +76,26 @@ export const PaymentSuccessModal: React.FC<PaymentSuccessModalProps> = ({
       onClose={onClose}
       maxWidth={hasFullData ? "lg" : "sm"}
       fullWidth
+      sx={{
+        zIndex: 1500,
+        '& .MuiDialog-container': {
+          alignItems: { xs: 'flex-end', sm: 'center' },
+        },
+      }}
       disableEscapeKeyDown={false}
       PaperProps={{
         sx: {
-          borderRadius: { xs: 2, sm: 3 },
-          boxShadow: 3,
-          maxHeight: { xs: 'calc(100dvh - 96px)', sm: '90vh' },
-          m: { xs: 1, sm: 2 },
-          mt: { xs: 'auto', sm: 2 },
-          width: { xs: '100%', sm: 'auto' },
+          borderRadius: { xs: '16px 16px 0 0', sm: 3 },
+          maxHeight: { xs: '92dvh', sm: '90vh' },
+          m: 0,
+          mt: 'auto',
+          mx: { sm: 2 },
+          mb: { sm: 2 },
+          width: '100%',
           overflow: 'hidden',
           display: 'flex',
-          flexDirection: 'column'
-        }
-      }}
-      sx={{
-        '& .MuiDialog-container': {
-          alignItems: { xs: 'flex-end', sm: 'center' }
-        }
+          flexDirection: 'column',
+        },
       }}
     >
       <DialogTitle
@@ -131,7 +133,7 @@ export const PaymentSuccessModal: React.FC<PaymentSuccessModalProps> = ({
               whiteSpace: 'nowrap'
             }}
           >
-            ✅ Pago registrado exitosamente
+            Pago registrado exitosamente
           </Typography>
         </Box>
         {isMobile && (
@@ -180,9 +182,9 @@ export const PaymentSuccessModal: React.FC<PaymentSuccessModalProps> = ({
             variant="outlined"
             sx={{ borderRadius: 1 }}
           >
-            <Typography variant="body2">
-              El pago ha sido registrado en el sistema correctamente.
-            </Typography>
+          <Typography variant="body2">
+            El pago ha sido registrado en el sistema correctamente.
+          </Typography>
           </Alert>
 
           {/* Pending Debt Warning */}
@@ -264,29 +266,29 @@ export const PaymentSuccessModal: React.FC<PaymentSuccessModalProps> = ({
           {/* Payment Details Card */}
           <Paper variant="outlined" sx={{ p: { xs: 1.5, sm: 2 }, bgcolor: 'background.paper' }}>
             <Grid container spacing={{ xs: 1, sm: 1.5 }}>
-              <Grid item xs={6} sm={4}>
+              <Grid xs={6} sm={4}>
                 <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.25 }}>Cliente</Typography>
                 <Typography variant="body2" fontWeight={600} sx={{ wordBreak: 'break-word' }}>{displayClientName}</Typography>
               </Grid>
-              <Grid item xs={6} sm={4}>
+              <Grid xs={6} sm={4}>
                 <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.25 }}>Préstamo</Typography>
                 <Typography variant="body2" fontWeight={600}>{loanTrack}</Typography>
               </Grid>
-              <Grid item xs={6} sm={4}>
+              <Grid xs={6} sm={4}>
                 <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.25 }}>Cuota #</Typography>
                 <Typography variant="body2" fontWeight={600}>{displayPaymentNumber}</Typography>
               </Grid>
-              <Grid item xs={6} sm={4}>
+              <Grid xs={6} sm={4}>
                 <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.25 }}>Monto pagado</Typography>
                 <Typography variant="body2" fontWeight={700} color="success.main">{formatCurrencyDisplay(displayAmount)}</Typography>
               </Grid>
-              <Grid item xs={6} sm={4}>
+              <Grid xs={6} sm={4}>
                 <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.25 }}>Fecha</Typography>
                 <Typography variant="body2" fontWeight={600}>
                   {displayDate instanceof Date ? displayDate.toLocaleDateString('es-AR') : new Date(displayDate).toLocaleDateString('es-AR')}
                 </Typography>
               </Grid>
-              <Grid item xs={6} sm={4}>
+              <Grid xs={6} sm={4}>
                 <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.25 }}>Estado</Typography>
                 <Chip
                   label={displayStatus === 'PAID' ? 'Pagada' : displayStatus === 'PARTIAL' ? 'Parcial' : displayStatus === 'OVERDUE' ? 'Vencida' : 'Pendiente'}
@@ -296,7 +298,7 @@ export const PaymentSuccessModal: React.FC<PaymentSuccessModalProps> = ({
                 />
               </Grid>
               {hasPendingDebt && (
-                <Grid item xs={6} sm={4}>
+                <Grid xs={6} sm={4}>
                   <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.25 }}>Saldo pendiente</Typography>
                   <Typography variant="body2" fontWeight={700} color="warning.main">{formatCurrencyDisplay(displayRemaining)}</Typography>
                 </Grid>
@@ -323,7 +325,7 @@ export const PaymentSuccessModal: React.FC<PaymentSuccessModalProps> = ({
                       { label: 'Cuotas Pagadas', value: `${receiptData.loanSummary.cuotasPagadasTotales} / ${receiptData.loanSummary.totalCuotas}`, color: undefined },
                       { label: 'Cuotas Pendientes', value: String(receiptData.loanSummary.cuotasNoPagadas), color: 'warning.main' },
                     ].map(({ label, value, color }) => (
-                      <Grid item xs={6} sm={4} key={label}>
+                      <Grid xs={6} sm={4} key={label}>
                         <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.25 }}>
                           {label}
                         </Typography>

@@ -33,6 +33,7 @@ export interface SubLoanWithClientInfo {
   clientName?: string
   clientFullData?: ClientResponseDto
   payments?: PaymentInfo[]
+  loanTotalPayments?: number
 }
 
 /**
@@ -92,10 +93,11 @@ class SubLoansLookupService {
         
         return {
           ...subLoan,
-          clientId: client?.id || loan?.clientId,
+          clientId: client?.id || (loan as any)?.clientId,
           loanTrack: (loan as any)?.loanTrack,
           clientName: client?.fullName,
           clientFullData: client,
+          loanTotalPayments: (loan as any)?.totalPayments,
           // Preserve payments array if present, mapping to PaymentInfo format
           payments: payments?.map((p: any) => ({
             id: p.id,
@@ -111,7 +113,7 @@ class SubLoansLookupService {
       return enrichedSubLoans
 
     } catch (error) {
-      
+
       throw new Error('No se pudieron cargar los datos de cuotas. Por favor, intente nuevamente.')
     }
   }
@@ -147,10 +149,11 @@ class SubLoansLookupService {
         
         return {
           ...subLoan,
-          clientId: client?.id || loan?.clientId,
+          clientId: client?.id || (loan as any)?.clientId,
           loanTrack: (loan as any)?.loanTrack,
           clientName: client?.fullName,
           clientFullData: client,
+          loanTotalPayments: (loan as any)?.totalPayments,
           // Preserve payments array if present, mapping to PaymentInfo format
           payments: payments?.map((p: any) => ({
             id: p.id,

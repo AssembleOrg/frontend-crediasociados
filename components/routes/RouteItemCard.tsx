@@ -116,7 +116,10 @@ export function RouteItemCard({
             sx={{
               display:        'flex',
               alignItems:     'center',
-              px:             1,
+              justifyContent: 'center',
+              px:             { xs: 1.5, sm: 1 },
+              py:             { xs: 1, sm: 0 },
+              minWidth:       44,
               cursor:         'grab',
               color:          iosColors.gray3,
               touchAction:    'none',

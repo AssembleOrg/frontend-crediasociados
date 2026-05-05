@@ -232,7 +232,7 @@ export default function RutasHistorialPage() {
                         Clientes Pagados:
                       </Typography>
                       <Typography variant="body2" fontWeight="bold" color="success.main">
-                        {route.items.filter((item) => item.subLoan.status === 'PAID').length}
+                        {route.items.filter((item) => item.subLoan?.status === 'PAID').length}
                       </Typography>
                     </Box>
                   </Box>
@@ -300,7 +300,7 @@ export default function RutasHistorialPage() {
                                 #{index + 1} - {item.clientName}
                               </Typography>
                               <Typography variant="caption" color="text.secondary">
-                                Cuota #{item.subLoan.paymentNumber}
+                                Cuota #{item.subLoan?.paymentNumber}
                               </Typography>
                             </Box>
                             <Box sx={{ textAlign: 'right' }}>
@@ -312,10 +312,10 @@ export default function RutasHistorialPage() {
                                 {formatCurrency(item.amountCollected)}
                               </Typography>
                               <Chip
-                                label={item.subLoan.status}
+                                label={item.subLoan?.status}
                                 size="small"
                                 color={
-                                  item.subLoan.status === 'PAID' ? 'success' : 'default'
+                                  item.subLoan?.status === 'PAID' ? 'success' : 'default'
                                 }
                                 sx={{ mt: 0.5 }}
                               />

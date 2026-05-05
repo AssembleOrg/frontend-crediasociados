@@ -243,6 +243,21 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [renewMode, currentSubloan?.loanId])
 
+  // Fetch loan totalPayments when not available in subloan (e.g. from Rutas endpoint)
+  useEffect(() => {
+    if (!open || !currentSubloan?.loanId || currentSubloan.loanTotalPayments != null) return
+    if (loanDetails?.id === currentSubloan.loanId) return
+
+    let cancelled = false
+    loansService.getLoanById(currentSubloan.loanId).then((loan) => {
+      if (cancelled) return
+      setLoanDetails(loan)
+    }).catch(() => {})
+
+    return () => { cancelled = true }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, currentSubloan?.loanId, currentSubloan?.loanTotalPayments])
+
   const downloadPdfFromBase64 = (base64: string, filename: string) => {
     try {
       const binaryString = atob(base64)
@@ -555,6 +570,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
     canRenew,
     renewLoading,
     onRenew: handleRenewLoan,
+    totalPayments: currentSubloan?.loanTotalPayments ?? (loanDetails?.id === currentSubloan?.loanId ? loanDetails?.totalPayments ?? undefined : undefined),
   }
 
   // Guard: no subloan in single mode → render nothing
@@ -655,49 +671,55 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
         onClose={() => setMultiPaymentConfirmOpen(false)}
         maxWidth="sm"
         fullWidth
-        PaperProps={{ sx: { borderRadius: { xs: 2, sm: 3 }, m: { xs: 1, sm: 2 }, mt: { xs: 'auto', sm: 2 } } }}
+        sx={{ zIndex: 1500 }}
+        PaperProps={{
+          sx: {
+            borderRadius: { xs: '16px 16px 0 0', sm: 3 },
+            m: 0,
+            mt: 'auto',
+            mx: { sm: 2 },
+            mb: { sm: 2 },
+            width: '100%',
+          },
+        }}
       >
-        <DialogTitle sx={{ pb: 2, pt: 3, px: 3, display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid', borderColor: 'divider' }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-            <Warning sx={{ fontSize: 24, color: 'warning.main' }} />
-            <Typography variant="h6" fontWeight={600}>Confirmar Pago de Múltiples Cuotas</Typography>
-          </Box>
-          <IconButton onClick={() => setMultiPaymentConfirmOpen(false)} size="small">
-            <Close />
-          </IconButton>
+        <DialogTitle sx={{ pt: 3, pb: 0, px: 3, fontWeight: 600 }}>
+          El monto supera el saldo pendiente
         </DialogTitle>
-        <DialogContent>
+        <DialogContent sx={{ px: 3, pt: 2, pb: 1 }}>
           {currentSubloan && (
             <>
-              <Typography variant="body1" gutterBottom sx={{ mb: 2 }}>
-                El monto a pagar es mayor al saldo pendiente de la cuota actual.
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+                El excedente se aplicará a cuotas anteriores con saldo parcial, no a cuotas futuras.
               </Typography>
-              <Box sx={{ mb: 2, p: 2, bgcolor: 'grey.50', borderRadius: 1 }}>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                  <Typography variant="body2" fontWeight={500}>Saldo pendiente cuota #{currentSubloan.paymentNumber}:</Typography>
-                  <Typography variant="body2" fontWeight={600} color="error.main">
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <Typography variant="body2" color="text.secondary">
+                    Saldo pendiente cuota #{currentSubloan.paymentNumber}
+                  </Typography>
+                  <Typography variant="body2" fontWeight={600} color="text.primary">
                     {`$${formatAmount(String((currentSubloan.totalAmount ?? 0) - (currentSubloan.paidAmount || 0)))}`}
                   </Typography>
                 </Box>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <Typography variant="body2" fontWeight={500}>Monto a pagar:</Typography>
-                  <Typography variant="body2" fontWeight={600} color="primary.main">${formatAmount(paymentAmount)}</Typography>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <Typography variant="body2" color="text.secondary">Monto a registrar</Typography>
+                  <Typography variant="body2" fontWeight={600} color="text.primary">
+                    ${formatAmount(paymentAmount)}
+                  </Typography>
                 </Box>
               </Box>
-              <Alert severity="info" sx={{ mb: 2 }}>
-                <Typography variant="body2" fontWeight={600} gutterBottom>⚠️ Importante:</Typography>
-                <Typography variant="body2">
-                  Este pago completará la cuota actual y se aplicará el excedente a las siguientes cuotas pendientes.
-                </Typography>
-              </Alert>
-              <Typography variant="body2" color="text.secondary">¿Deseas continuar con el registro del pago?</Typography>
             </>
           )}
         </DialogContent>
-        <DialogActions sx={{ p: 3, pt: 2, gap: 2 }}>
-          <Button onClick={() => setMultiPaymentConfirmOpen(false)} variant="outlined" sx={{ minWidth: 120 }}>
-            Cancelar
-          </Button>
+        <DialogActions
+          sx={{
+            flexDirection: 'column',
+            gap: 1,
+            p: 3,
+            pt: 2,
+            paddingBottom: 'max(env(safe-area-inset-bottom), 24px)',
+          }}
+        >
           <Button
             onClick={async () => {
               setMultiPaymentConfirmOpen(false)
@@ -705,9 +727,19 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
             }}
             variant="contained"
             color="primary"
-            sx={{ minWidth: 120 }}
+            fullWidth
+            sx={{ minHeight: 44, borderRadius: 2 }}
           >
-            Aceptar
+            Confirmar pago
+          </Button>
+          <Button
+            onClick={() => setMultiPaymentConfirmOpen(false)}
+            variant="text"
+            color="inherit"
+            fullWidth
+            sx={{ minHeight: 44, borderRadius: 2, color: 'text.secondary' }}
+          >
+            Cancelar
           </Button>
         </DialogActions>
       </Dialog>

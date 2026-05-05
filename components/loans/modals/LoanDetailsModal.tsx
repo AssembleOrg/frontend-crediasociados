@@ -174,11 +174,11 @@ export default function LoanDetailsModal({
       fullWidth
       PaperProps={{
         sx: {
-          width: { sm: '95vw', md: '95vw' },
+          width: { xs: '100vw', sm: '95vw', md: '95vw' },
           maxWidth: '1800px',
           borderRadius: { xs: 2, sm: 3 },
           maxHeight: { xs: 'calc(100dvh - 96px)', sm: '90vh' },
-          m: { xs: 1, sm: 2 },
+          m: { xs: 0, sm: 2 },
           mt: { xs: 'auto', sm: 2 },
         },
       }}

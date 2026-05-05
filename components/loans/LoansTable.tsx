@@ -314,7 +314,7 @@ export function LoansTable({ loans: externalLoans, onViewDetails, onLoanDeleted 
     <Paper sx={{ overflow: 'hidden', mx: { xs: -1, sm: 0 }, borderRadius: { xs: 0, sm: 1 } }}>
       {/* View Toggle */}
       <Box sx={{ display: 'flex', justifyContent: 'flex-end', p: 1, borderBottom: '1px solid', borderColor: 'divider' }}>
-        <Box sx={{ display: 'flex', bgcolor: 'action.hover', borderRadius: 1, p: 0.25 }}>
+        <Box sx={{ display: { xs: 'none', sm: 'flex' }, bgcolor: 'action.hover', borderRadius: 1, p: 0.25 }}>
           <IconButton size="small" onClick={() => setViewMode('list')} sx={{ borderRadius: 1, bgcolor: viewMode === 'list' ? 'primary.main' : 'transparent', color: viewMode === 'list' ? 'white' : 'text.secondary', '&:hover': { bgcolor: viewMode === 'list' ? 'primary.dark' : 'action.selected' } }}>
             <ViewList fontSize="small" />
           </IconButton>

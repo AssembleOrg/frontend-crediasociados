@@ -61,16 +61,20 @@ class GastosService {
 
       const response = await api.get(`/gastos/summary?${params.toString()}`)
       return response.data.data || {
-        totalAmount: 0,
-        expensesByCategory: {},
-        topExpenses: []
+        totalExpenses: 0,
+        expensesByCategory: { fuel: 0, travel: 0, materials: 0, other: 0 },
+        averageExpense: 0,
+        expenseCount: 0,
+        period: { from: startDate, to: endDate }
       }
     } catch (error) {
-      
+
       return {
-        totalAmount: 0,
-        expensesByCategory: {},
-        topExpenses: []
+        totalExpenses: 0,
+        expensesByCategory: { fuel: 0, travel: 0, materials: 0, other: 0 },
+        averageExpense: 0,
+        expenseCount: 0,
+        period: { from: startDate, to: endDate }
       }
     }
   }

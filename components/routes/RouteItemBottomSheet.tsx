@@ -191,7 +191,7 @@ export function RouteItemBottomSheet({
     paymentsService
       .getPaymentHistory(subLoanId)
       .then((res) => {
-        setHistorialPayments(res.payments ?? []);
+        setHistorialPayments((res.payments ?? []) as Array<{ id: string; amount: number; paymentDate: string; description?: string }>);
         fetchedHistorialId.current = subLoanId;
       })
       .catch(() => setHistorialPayments([]))

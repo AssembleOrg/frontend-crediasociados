@@ -33,6 +33,7 @@ export interface CollectionRouteItem {
       amount: number;
       currency: string;
       notes?: string;
+      totalPayments?: number;
     };
   };
   expenseDetails?: Array<{

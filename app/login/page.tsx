@@ -6,7 +6,7 @@ import { CircularProgress } from '@mui/material';
 import { useAuth } from '@/hooks/useAuth';
 import { SplashScreen } from '@/components/ui/SplashScreen';
 
-const spring = { type: 'spring', stiffness: 300, damping: 30 };
+const spring = { type: 'spring' as const, stiffness: 300, damping: 30 };
 
 const glass: React.CSSProperties = {
   background: 'rgba(255, 255, 255, 0.08)',

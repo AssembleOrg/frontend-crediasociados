@@ -81,6 +81,8 @@ export function RouteItemDetailModal({
     }
   };
 
+  if (!item?.subLoan) return null;
+
   const pendingAmount = item.subLoan.totalAmount - item.subLoan.paidAmount;
   const isPaid = item.subLoan.status === 'PAID';
 

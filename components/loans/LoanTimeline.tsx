@@ -263,35 +263,35 @@ const TimelineNode: React.FC<TimelineNodeProps> = ({
                   size="small"
                   onClick={handlePayClick}
                   sx={{
-                    width: compact ? 22 : 26,
-                    height: compact ? 22 : 26,
+                    width: compact ? 28 : 36,
+                    height: compact ? 28 : 36,
                     bgcolor: '#4caf50',
                     color: 'white',
                     boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
                     '&:hover': { bgcolor: '#388e3c' },
                   }}
                 >
-                  <AttachMoney sx={{ fontSize: compact ? 13 : 15 }} />
+                  <AttachMoney sx={{ fontSize: compact ? 16 : 20 }} />
                 </IconButton>
               )}
               <IconButton
                 size="small"
                 onClick={handleEditDateClick}
                 sx={{
-                  width: compact ? 22 : 26,
-                  height: compact ? 22 : 26,
+                  width: compact ? 28 : 36,
+                  height: compact ? 28 : 36,
                   bgcolor: '#1976d2',
                   color: 'white',
                   boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
                   '&:hover': { bgcolor: '#1565c0' },
                 }}
               >
-                <Edit sx={{ fontSize: compact ? 12 : 14 }} />
+                <Edit sx={{ fontSize: compact ? 14 : 18 }} />
               </IconButton>
             </Box>
           ) : (
             // Spacer to keep consistent height when actions not shown
-            <Box sx={{ height: compact ? 22 : 26, mb: 0.5 }} />
+            <Box sx={{ height: compact ? 28 : 36, mb: 0.5 }} />
           )}
 
           {/* Connection Line */}
