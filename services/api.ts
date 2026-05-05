@@ -2,10 +2,12 @@ import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
 import type { ApiError } from '@/types/auth';
 import { useAuthStore } from '@/stores/auth';
 
-// Use Next.js proxy in browser, direct URL in server-side
-const API_BASE_URL = typeof window === 'undefined' 
-  ? process.env.NEXT_PUBLIC_API_URL  // Server-side: use full URL
-  : '/api';  // Client-side: use Next.js proxy
+// Use Next.js proxy in browser, direct URL in server-side.
+// Server-side prioriza `API_URL` (server-only) para soportar private domain
+// de Railway. Browser usa siempre `/api` que entra al rewrite de Next.
+const API_BASE_URL = typeof window === 'undefined'
+  ? process.env.API_URL ?? process.env.NEXT_PUBLIC_API_URL
+  : '/api';
 
 const api: AxiosInstance = axios.create({
   baseURL: API_BASE_URL,

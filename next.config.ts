@@ -47,9 +47,15 @@ const nextConfig: NextConfig = {
   // Proxy to backend API for security
   // This proxies /api/* to the backend URL
   async rewrites() {
-    // Backend URL should include full path (e.g., .../api/v1)
-    const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api/v1';
-    
+    // `API_URL` (server-only) tiene prioridad para soportar private domain
+    // de Railway (`*.railway.internal`) — el browser nunca lo ve. Si no
+    // está, cae a `NEXT_PUBLIC_API_URL` que sí queda en el bundle del
+    // cliente. La URL debe incluir el path (e.g., .../api/v1).
+    const backendUrl =
+      process.env.API_URL ||
+      process.env.NEXT_PUBLIC_API_URL ||
+      'http://localhost:3001/api/v1';
+
     return [
       {
         source: '/api/:path*',
