@@ -250,15 +250,22 @@ class CollectionRoutesService {
     return response.data.data || response.data;
   }
   /**
-   * Reschedule a route item: change subloan due date and remove from today's route
+   * Reschedule a route item: change subloan due date and remove from today's route.
+   * Optionally pass a new amount to apply a recargo/descuento — propagates to the loan total.
    */
-  async rescheduleRouteItem(itemId: string, dueDate: string): Promise<{
+  async rescheduleRouteItem(itemId: string, dueDate: string, amount?: number): Promise<{
     message: string;
     subLoanId: string;
     newDueDate: string;
-    removedItemId: string;
+    removedItemId: string | null;
+    newAmount: number | null;
+    amountDelta: number;
   }> {
-    const response = await api.post(`/collection-routes/items/${itemId}/reschedule`, { dueDate });
+    const body: { dueDate: string; amount?: number } = { dueDate };
+    if (typeof amount === 'number' && Number.isFinite(amount)) {
+      body.amount = amount;
+    }
+    const response = await api.post(`/collection-routes/items/${itemId}/reschedule`, body);
     return response.data.data || response.data;
   }
 }

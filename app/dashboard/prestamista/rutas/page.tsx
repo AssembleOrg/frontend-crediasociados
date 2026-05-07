@@ -298,17 +298,23 @@ export default function RutasPage() {
     setRescheduleItem(item);
   };
 
-  const handleRescheduleSave = async (isoDate: string) => {
+  const handleRescheduleSave = async (isoDate: string, amount: number) => {
     if (!rescheduleItem) return;
-    await collectionRoutesService.rescheduleRouteItem(
+    const result = await collectionRoutesService.rescheduleRouteItem(
       rescheduleItem.id,
       isoDate + 'T12:00:00.000Z',
+      amount,
     );
     setRescheduleItem(null);
-    setSuccessMessage('Cuota reprogramada y eliminada de la ruta');
-    // Refresh route data
+    setSuccessMessage(
+      result.amountDelta && result.amountDelta !== 0
+        ? `Cuota reprogramada con ${result.amountDelta > 0 ? 'recargo' : 'descuento'} aplicado`
+        : 'Cuota reprogramada y eliminada de la ruta',
+    );
+    // Refresh route data + loans (loan total may have changed via recargo/descuento)
     fetchTodayRoute();
     fetchAllSubLoansWithClientInfo();
+    fetchLoans();
   };
 
   const handleResetPayments = (item: CollectionRouteItem) => {
@@ -1138,6 +1144,8 @@ export default function RutasPage() {
         onSave={handleRescheduleSave}
         title={`Reprogramar Cuota #${rescheduleItem?.subLoan?.paymentNumber || ''} - ${rescheduleItem?.clientName || ''}`}
         currentDueDate={rescheduleItem?.subLoan?.dueDate}
+        currentAmount={rescheduleItem?.subLoan?.totalAmount}
+        paidAmount={rescheduleItem?.subLoan?.paidAmount}
       />
 
       {/* Reset Confirmation Modal */}

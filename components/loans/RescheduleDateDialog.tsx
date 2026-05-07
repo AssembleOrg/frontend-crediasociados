@@ -13,16 +13,20 @@ import {
   IconButton,
   CircularProgress,
   Stack,
+  InputAdornment,
 } from '@mui/material'
 import { CalendarMonth, ChevronLeft, ChevronRight } from '@mui/icons-material'
 import { DateTime } from 'luxon'
+import { formatCurrency } from '@/lib/loan-utils'
 
 interface RescheduleDateDialogProps {
   open: boolean
   onClose: () => void
-  onSave: (isoDate: string) => Promise<void>
+  onSave: (isoDate: string, amount: number) => Promise<void>
   title: string
   currentDueDate?: string
+  currentAmount?: number
+  paidAmount?: number
 }
 
 export default function RescheduleDateDialog({
@@ -31,12 +35,15 @@ export default function RescheduleDateDialog({
   onSave,
   title,
   currentDueDate,
+  currentAmount,
+  paidAmount = 0,
 }: RescheduleDateDialogProps) {
   const today = DateTime.now().setZone('America/Argentina/Buenos_Aires').startOf('day')
   const todayIso = today.toISODate() || ''
 
   const [newDate, setNewDate] = useState('')
   const [dateInput, setDateInput] = useState('')
+  const [amountInput, setAmountInput] = useState('')
   const [saving, setSaving] = useState(false)
   const [calendarMonth, setCalendarMonth] = useState<DateTime>(() => today.startOf('month'))
 
@@ -49,9 +56,14 @@ export default function RescheduleDateDialog({
       setNewDate(iso)
       setDateInput(currentDt.toFormat('dd/MM/yyyy'))
       setCalendarMonth(currentDt.startOf('month'))
+      setAmountInput(
+        typeof currentAmount === 'number' && Number.isFinite(currentAmount)
+          ? String(Math.round(currentAmount))
+          : '',
+      )
       setSaving(false)
     }
-  }, [open, currentDueDate])
+  }, [open, currentDueDate, currentAmount])
 
   const handleCalendarDateClick = (day: DateTime) => {
     const iso = day.toISODate() || ''
@@ -76,11 +88,22 @@ export default function RescheduleDateDialog({
     }
   }
 
+  const parsedAmount = (() => {
+    const digits = amountInput.replace(/[^\d]/g, '')
+    if (!digits) return NaN
+    return Number(digits)
+  })()
+  const isAmountValid = Number.isFinite(parsedAmount) && parsedAmount >= paidAmount
+  const amountDelta =
+    typeof currentAmount === 'number' && Number.isFinite(parsedAmount)
+      ? parsedAmount - currentAmount
+      : 0
+
   const handleSave = async () => {
-    if (!newDate || !isDateValid) return
+    if (!newDate || !isDateValid || !isAmountValid) return
     setSaving(true)
     try {
-      await onSave(newDate)
+      await onSave(newDate, parsedAmount)
     } finally {
       setSaving(false)
     }
@@ -135,13 +158,38 @@ export default function RescheduleDateDialog({
         overflowY: 'auto',
       }}>
         <TextField
+          label="Monto de la cuota"
+          value={amountInput}
+          onChange={(e) => setAmountInput(e.target.value.replace(/[^\d]/g, ''))}
+          placeholder="0"
+          fullWidth
+          size="small"
+          inputMode="numeric"
+          sx={{ mb: 2, mt: 1 }}
+          InputLabelProps={{ shrink: true }}
+          InputProps={{
+            startAdornment: <InputAdornment position="start">$</InputAdornment>,
+          }}
+          error={amountInput.length > 0 && !isAmountValid}
+          helperText={
+            amountInput.length === 0
+              ? 'Editable: aplicá un recargo o descuento'
+              : !isAmountValid
+                ? `El monto no puede ser menor al ya pagado (${formatCurrency(paidAmount)})`
+                : amountDelta !== 0
+                  ? `${amountDelta > 0 ? 'Recargo' : 'Descuento'} de ${formatCurrency(Math.abs(amountDelta))} sobre el monto original`
+                  : 'Sin cambios respecto al monto original'
+          }
+        />
+
+        <TextField
           label="Fecha (DD/MM/AAAA)"
           value={dateInput}
           onChange={(e) => handleDateInputChange(e.target.value)}
           placeholder="10/04/2026"
           fullWidth
           size="small"
-          sx={{ mb: 2, mt: 1 }}
+          sx={{ mb: 2 }}
           InputLabelProps={{ shrink: true }}
           error={dateInput.length === 10 && !isDateValid}
           helperText={dateInput.length === 10 && !isDateValid ? 'La fecha no puede ser anterior a hoy' : ''}
@@ -214,7 +262,7 @@ export default function RescheduleDateDialog({
         <Button
           variant="contained"
           onClick={handleSave}
-          disabled={saving || !newDate || !isDateValid}
+          disabled={saving || !newDate || !isDateValid || !isAmountValid}
           startIcon={saving ? <CircularProgress size={16} /> : undefined}
         >
           {saving ? 'Guardando...' : 'Guardar'}
