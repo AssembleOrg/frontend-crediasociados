@@ -73,6 +73,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
   const [hasUserEdited, setHasUserEdited]           = useState<boolean>(false)
   const [adjustEnabled, setAdjustEnabled]           = useState<boolean>(false)
   const [adjustedAmount, setAdjustedAmount]         = useState<string>('')
+  const [distributeOverflow, setDistributeOverflow] = useState<boolean>(true)
   const [paymentPreview, setPaymentPreview]         = useState<{
     remainingAfterPayment: number
     status: 'PARTIAL' | 'PAID'
@@ -138,6 +139,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
     setHasUserEdited(false)
     setAdjustEnabled(false)
     setAdjustedAmount('')
+    setDistributeOverflow(true)
     if (mode === 'single' && subloan) {
       setSelectedSubloanId(subloan.id ?? '')
       const pending = (subloan.totalAmount ?? 0) - (subloan.paidAmount || 0)
@@ -382,8 +384,11 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
   const handleRegisterPayment = async () => {
     if (!currentSubloan) return
     const amount = parseFloat(unformatAmount(paymentAmount)) || 0
-    const pending = (currentSubloan.totalAmount ?? 0) - (currentSubloan.paidAmount || 0)
-    if (amount > pending) {
+    const pending = effectiveTotalAmount - (currentSubloan.paidAmount || 0)
+    // Solo abrir el confirm cuando va a haber distribución automática.
+    // Si el usuario apagó la distribución, el aviso ya está en el formulario
+    // y el botón debería estar deshabilitado; el backend además rechazaría.
+    if (amount > pending && distributeOverflow) {
       setMultiPaymentConfirmOpen(true)
       return
     }
@@ -400,6 +405,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
         currency: 'ARS',
         paymentDate: new Date().toISOString().split('T')[0],
         description: notes || undefined,
+        distributeOverflow,
         ...(adjustEnabled && adjustedAmount ? { adjustedTotalAmount: parseFloat(unformatAmount(adjustedAmount)) || undefined } : {}),
       })
 
@@ -540,12 +546,14 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
     effectiveTotalAmount,
     paymentPreview,
     isRegistering,
+    distributeOverflow,
     onSubloanChange: setSelectedSubloanId,
     onAmountChange:  handleAmountChange,
     onNotesChange:   setNotes,
     onGeneratePDFChange: setGeneratePDF,
     onAdjustEnabledChange: handleAdjustEnabledChange,
     onAdjustedAmountChange: setAdjustedAmount,
+    onDistributeOverflowChange: setDistributeOverflow,
     onRegister: handleRegisterPayment,
     onCancel:   onClose,
     onNextDueDateChange: setNextDueDate,

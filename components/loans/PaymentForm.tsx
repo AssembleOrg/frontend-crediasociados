@@ -82,6 +82,7 @@ export interface PaymentFormProps {
   effectiveTotalAmount: number
   paymentPreview: { remainingAfterPayment: number; status: 'PARTIAL' | 'PAID'; isPartial: boolean } | null
   isRegistering: boolean
+  distributeOverflow: boolean
   // Handlers
   onSubloanChange: (id: string) => void
   onAmountChange: (raw: string) => void
@@ -89,6 +90,7 @@ export interface PaymentFormProps {
   onGeneratePDFChange: (checked: boolean) => void
   onAdjustEnabledChange: (checked: boolean) => void
   onAdjustedAmountChange: (raw: string) => void
+  onDistributeOverflowChange: (checked: boolean) => void
   onRegister: () => void
   onCancel: () => void
   onNextDueDateChange?: (date: string) => void
@@ -136,12 +138,14 @@ export function PaymentForm({
   effectiveTotalAmount,
   paymentPreview,
   isRegistering,
+  distributeOverflow,
   onSubloanChange,
   onAmountChange,
   onNotesChange,
   onGeneratePDFChange,
   onAdjustEnabledChange,
   onAdjustedAmountChange,
+  onDistributeOverflowChange,
   onRegister,
   onCancel,
   onNextDueDateChange,
@@ -168,7 +172,17 @@ export function PaymentForm({
   totalPayments,
 }: PaymentFormProps) {
   const theme = useTheme()
-  const canRegister = currentSubloan && paymentAmount && parseFloat(paymentAmount) > 0
+  const parsedAmount = parseFloat(unformatAmount(paymentAmount)) || 0
+  const pendingForCurrent = currentSubloan
+    ? effectiveTotalAmount - (currentSubloan.paidAmount || 0)
+    : 0
+  const excessAmount = Math.max(0, parsedAmount - pendingForCurrent)
+  const hasUndistributableExcess = !distributeOverflow && excessAmount > 0.01
+  const canRegister =
+    !!currentSubloan &&
+    !!paymentAmount &&
+    parsedAmount > 0 &&
+    !hasUndistributableExcess
   const outstandingBalance = currentSubloan
     ? (currentSubloan.outstandingBalance ?? ((currentSubloan.totalAmount ?? 0) - (currentSubloan.paidAmount || 0)))
     : 0
@@ -332,6 +346,54 @@ export function PaymentForm({
                     </Box>
                   )}
                 </Box>
+
+                {/* Distribute overflow toggle */}
+                <Box
+                  sx={{
+                    mb: 2, p: 2,
+                    border: '1px solid',
+                    borderColor: distributeOverflow ? 'primary.main' : 'divider',
+                    borderRadius: 2,
+                    bgcolor: distributeOverflow ? 'primary.lighter' : 'transparent',
+                    transition: 'all 0.2s',
+                  }}
+                >
+                  <FormControlLabel
+                    control={
+                      <Checkbox
+                        checked={distributeOverflow}
+                        onChange={(e) => onDistributeOverflowChange(e.target.checked)}
+                        color="primary"
+                        size="small"
+                      />
+                    }
+                    label={
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <Info fontSize="small" color={distributeOverflow ? 'primary' : 'action'} />
+                        <Typography variant="body2" fontWeight={distributeOverflow ? 600 : 400}>
+                          Completar otras cuotas con excedente
+                        </Typography>
+                      </Box>
+                    }
+                  />
+                  <Typography variant="caption" color="text.secondary" sx={{ display: 'block', pl: 4, mt: 0.5 }}>
+                    {distributeOverflow
+                      ? 'El excedente se aplicará automáticamente a cuotas anteriores impagas y, si sobra, a cuotas siguientes.'
+                      : 'El excedente NO se distribuirá. Si el monto supera el saldo pendiente, ajustá el monto o el total de la cuota.'}
+                  </Typography>
+                </Box>
+
+                {/* Aviso de excedente cuando la distribución está desactivada */}
+                {hasUndistributableExcess && (
+                  <Alert severity="warning" icon={<Info />} sx={{ mb: 2 }}>
+                    <Typography variant="body2" fontWeight={600}>
+                      Hay un excedente de {formatCurrencyDisplay(excessAmount)}
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      Como la distribución automática está desactivada, no se puede registrar el pago. Reducí el monto o ajustá el total de la cuota.
+                    </Typography>
+                  </Alert>
+                )}
 
                 {/* Payment amount */}
                 <TextField

@@ -68,6 +68,9 @@ interface RegisterPaymentRequest {
   paymentDate: string;
   description?: string;
   adjustedTotalAmount?: number;
+  // Si es false, el backend NO distribuye el excedente y rechaza el pago si el
+  // monto supera el saldo pendiente de la cuota. Default: true.
+  distributeOverflow?: boolean;
 }
 
 /**
