@@ -52,11 +52,11 @@ interface FiltersStore {
 
 export const useFiltersStore = create<FiltersStore>((set, get) => ({
   // Loans filters
-  loansFilters: {},
+  loansFilters: { loanStatus: 'ACTIVE' },
   setLoansFilters: (filters: LoansFilters) =>
     set({ loansFilters: filters }),
   clearLoansFilters: () =>
-    set({ loansFilters: {} }),
+    set({ loansFilters: { loanStatus: 'ACTIVE' } }),
 
   // Loans filter results
   filteredLoans: [],
@@ -92,7 +92,7 @@ export const useFiltersStore = create<FiltersStore>((set, get) => ({
   
   clearAllFilters: () =>
     set({
-      loansFilters: {},
+      loansFilters: { loanStatus: 'ACTIVE' },
       filteredLoans: [],
       loansFilterPagination: { page: 1, limit: 50, total: 0, totalPages: 0 },
       loansFilterLoading: false,

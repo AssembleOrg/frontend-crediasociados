@@ -76,11 +76,14 @@ export function useLoansFilters() {
     }
   }, []) // Stable reference - reads from store directly
 
-  // Check if any filters are active
+  // Check if any filters are active (loanStatus='ACTIVE' es el default, no cuenta)
   const hasActiveFilters = useMemo(() => {
     return Object.entries(loansFilters).some(([key, value]) => {
       if (key === 'clientName') {
         return value !== undefined && value !== null && value !== '' && value.length >= 2
+      }
+      if (key === 'loanStatus') {
+        return value !== undefined && value !== null && value !== '' && value !== 'ACTIVE'
       }
       return value !== undefined && value !== null && value !== ''
     })

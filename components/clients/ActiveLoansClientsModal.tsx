@@ -122,6 +122,7 @@ export default function ActiveLoansClientsModal({ open, onClose }: ActiveLoansCl
     }>
   } | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
+  const [debtFilter, setDebtFilter] = useState<'ALL' | 'WITH_DEBT' | 'PAID_UP'>('WITH_DEBT')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -154,9 +155,10 @@ export default function ActiveLoansClientsModal({ open, onClose }: ActiveLoansCl
       setError(null)
       loadingManagerRef.current = null
     }
-    // Reset search when manager changes or modal opens
+    // Reset search and debt filter when manager changes or modal opens
     if (open) {
       setSearchQuery('')
+      setDebtFilter('WITH_DEBT')
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, managerIdToUse, isSubadmin])
@@ -184,27 +186,47 @@ export default function ActiveLoansClientsModal({ open, onClose }: ActiveLoansCl
     }
   }
 
-  // Filter loans based on search query
+  // Filter loans based on search query AND debt filter
   const filteredLoans = useMemo(() => {
     if (!managerDetail || !managerDetail.loans) return []
-    
-    if (!searchQuery.trim()) return managerDetail.loans
-    
+
+    const byDebt = managerDetail.loans.filter((loan) => {
+      if (debtFilter === 'WITH_DEBT') return loan.stats.totalPending > 0
+      if (debtFilter === 'PAID_UP') return loan.stats.totalPending === 0
+      return true
+    })
+
+    if (!searchQuery.trim()) return byDebt
+
     const query = searchQuery.toLowerCase().trim()
-    return managerDetail.loans.filter(loan => {
+    return byDebt.filter(loan => {
       const clientName = loan.client.fullName?.toLowerCase() || ''
       const loanTrack = loan.loanTrack?.toLowerCase() || ''
       const clientDni = loan.client.dni?.toLowerCase() || ''
       const clientPhone = loan.client.phone?.toLowerCase() || ''
       const clientAddress = loan.client.address?.toLowerCase() || ''
-      
-      return clientName.includes(query) || 
+
+      return clientName.includes(query) ||
              loanTrack.includes(query) ||
              clientDni.includes(query) ||
              clientPhone.includes(query) ||
              clientAddress.includes(query)
     })
-  }, [managerDetail, searchQuery])
+  }, [managerDetail, searchQuery, debtFilter])
+
+  // Counts por estado de deuda (sobre el total, no sobre el filtrado por search)
+  const debtCounts = useMemo(() => {
+    if (!managerDetail?.loans) return { all: 0, withDebt: 0, paidUp: 0, totalDebt: 0 }
+    const withDebt = managerDetail.loans.filter((l) => l.stats.totalPending > 0)
+    const paidUp = managerDetail.loans.filter((l) => l.stats.totalPending === 0)
+    const totalDebt = withDebt.reduce((sum, l) => sum + l.stats.totalPending, 0)
+    return {
+      all: managerDetail.loans.length,
+      withDebt: withDebt.length,
+      paidUp: paidUp.length,
+      totalDebt,
+    }
+  }, [managerDetail])
 
   const formatDate = (dateString: string) => {
     const date = DateTime.fromISO(dateString)
@@ -392,13 +414,30 @@ export default function ActiveLoansClientsModal({ open, onClose }: ActiveLoansCl
                   {formatCurrencyCompact(managerDetail.dineroEnCalle)}
                 </Typography>
               </ListItem>
+              <Divider component='li' />
+              <ListItem sx={{ py: 1.25, px: 2 }}>
+                <ListItemIcon sx={{ minWidth: 36 }}>
+                  <Box sx={{ color: 'warning.main', display: 'flex' }}>
+                    <AccountBalance sx={{ fontSize: 20 }} />
+                  </Box>
+                </ListItemIcon>
+                <ListItemText
+                  primary='Total adeudado actual'
+                  primaryTypographyProps={{ variant: 'body2', color: 'text.secondary' }}
+                  secondary={`${debtCounts.withDebt} con deuda · ${debtCounts.paidUp} al día`}
+                  secondaryTypographyProps={{ variant: 'caption', color: 'text.secondary' }}
+                />
+                <Typography variant='body1' fontWeight={700} color='warning.main'>
+                  {formatCurrencyCompact(debtCounts.totalDebt)}
+                </Typography>
+              </ListItem>
             </List>
           </Paper>
         )}
 
         {/* Search Input */}
         {managerIdToUse && !loading && !error && managerDetail && managerDetail.loans.length > 0 && (
-          <Box sx={{ mb: 3 }}>
+          <Box sx={{ mb: 2 }}>
             <TextField
               fullWidth
               placeholder="Buscar por nombre, teléfono, dirección o número de préstamo..."
@@ -415,6 +454,35 @@ export default function ActiveLoansClientsModal({ open, onClose }: ActiveLoansCl
                 }
               }}
             />
+          </Box>
+        )}
+
+        {/* Debt Filter Chips */}
+        {managerIdToUse && !loading && !error && managerDetail && managerDetail.loans.length > 0 && (
+          <Box sx={{ mb: 3, display: 'flex', flexWrap: 'wrap', gap: 0.75 }}>
+            {([
+              { value: 'ALL',       label: `Todos (${debtCounts.all})`,            color: '#1976d2' },
+              { value: 'WITH_DEBT', label: `Deben (${debtCounts.withDebt})`,       color: '#ed6c02' },
+              { value: 'PAID_UP',   label: `Al día (${debtCounts.paidUp})`,        color: '#2e7d32' },
+            ] as const).map((opt) => {
+              const isSelected = debtFilter === opt.value
+              return (
+                <Chip
+                  key={opt.value}
+                  label={opt.label}
+                  size="small"
+                  onClick={() => setDebtFilter(opt.value)}
+                  sx={{
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    bgcolor: isSelected ? opt.color : 'transparent',
+                    color: isSelected ? 'white' : opt.color,
+                    border: `1.5px solid ${opt.color}`,
+                    '&:hover': { bgcolor: isSelected ? opt.color : `${opt.color}15` },
+                  }}
+                />
+              )
+            })}
           </Box>
         )}
 
@@ -500,7 +568,13 @@ export default function ActiveLoansClientsModal({ open, onClose }: ActiveLoansCl
             {filteredLoans.length === 0 ? (
               <Paper sx={{ p: 4, textAlign: 'center' }}>
                 <Typography variant="body2" color="text.secondary">
-                  No se encontraron préstamos que coincidan con "{searchQuery}"
+                  {searchQuery
+                    ? `No se encontraron préstamos que coincidan con "${searchQuery}"`
+                    : debtFilter === 'WITH_DEBT'
+                      ? 'No hay préstamos con deuda actual'
+                      : debtFilter === 'PAID_UP'
+                        ? 'No hay préstamos al día'
+                        : 'No hay préstamos para mostrar'}
                 </Typography>
               </Paper>
             ) : isMobile ? (
