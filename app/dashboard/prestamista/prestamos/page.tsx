@@ -11,9 +11,10 @@ import { LoansTable } from '@/components/loans/LoansTable'
 import { ExportButtons } from '@/components/export/ExportButtons'
 import { LoansFilterPanel } from '@/components/filters/LoansFilterPanel'
 import { useLoansFilters } from '@/hooks/useLoansFilters'
-// New reusable components
 import PageHeader from '@/components/ui/PageHeader'
 import LoanDetailsModal from '@/components/loans/modals/LoanDetailsModal'
+import { loansService } from '@/services/loans.service'
+import type { SubLoanWithClientInfo } from '@/services/subloans-lookup.service'
 
 
 export default function PrestamosAnalyticsPage() {
@@ -35,6 +36,32 @@ export default function PrestamosAnalyticsPage() {
   // Modal states
   const [selectedLoanId, setSelectedLoanId] = useState<string | null>(null)
   const [timelineModalOpen, setTimelineModalOpen] = useState(false)
+  const [directSubLoans, setDirectSubLoans] = useState<SubLoanWithClientInfo[]>([])
+  const [directSubLoansLoading, setDirectSubLoansLoading] = useState(false)
+
+  // Fetch subloans directly when a completed loan has none in the global store
+  useEffect(() => {
+    if (!selectedLoanId || !timelineModalOpen) return
+    const fromStore = allSubLoansWithClient.filter(s => s.loanId === selectedLoanId)
+    if (fromStore.length > 0) {
+      setDirectSubLoans([])
+      return
+    }
+    setDirectSubLoansLoading(true)
+    loansService.getLoanById(selectedLoanId)
+      .then(loan => {
+        const subLoans = (loan as any).subLoans ?? []
+        const mapped: SubLoanWithClientInfo[] = subLoans.map((sl: any) => ({
+          ...sl,
+          clientId: (loan as any).clientId,
+          clientName: (loan as any).client?.fullName ?? '',
+          clientDni: (loan as any).client?.dni ?? '',
+        }))
+        setDirectSubLoans(mapped)
+      })
+      .finally(() => setDirectSubLoansLoading(false))
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedLoanId, timelineModalOpen])
 
   // Use filtered data for display when filters are active
   const displayLoans = hasActiveFilters ? filteredLoans : loans
@@ -45,9 +72,8 @@ export default function PrestamosAnalyticsPage() {
 
   const handleViewDetails = (loanId: string) => {
     setSelectedLoanId(loanId)
+    setDirectSubLoans([])
     setTimelineModalOpen(true)
-    // Load subloans only when modal opens (lazy loading)
-    fetchAllSubLoansWithClientInfo()
   }
 
   const handleGoToCobrosForClient = () => {
@@ -59,9 +85,8 @@ export default function PrestamosAnalyticsPage() {
   // Search in filtered loans if filters are active, otherwise in all loans
   const loansToSearch = hasActiveFilters ? filteredLoans : loans
   const selectedLoan = selectedLoanId ? loansToSearch.find(loan => loan.id === selectedLoanId) || null : null
-  const selectedLoanSubLoans = selectedLoanId 
-    ? allSubLoansWithClient.filter(subloan => subloan.loanId === selectedLoanId)
-    : []
+  const fromStore = selectedLoanId ? allSubLoansWithClient.filter(s => s.loanId === selectedLoanId) : []
+  const selectedLoanSubLoans = fromStore.length > 0 ? fromStore : directSubLoans
 
   return (
     <Box sx={{ p: { xs: 1, sm: 2, md: 3 } }}>
@@ -131,7 +156,7 @@ export default function PrestamosAnalyticsPage() {
         onClose={() => setTimelineModalOpen(false)}
         loan={selectedLoan}
         subLoans={selectedLoanSubLoans}
-        isLoading={subLoansLoading}
+        isLoading={subLoansLoading || directSubLoansLoading}
         onGoToCobros={handleGoToCobrosForClient}
         onPaymentSuccess={() => {
           // Refrescar los datos después de un pago exitoso

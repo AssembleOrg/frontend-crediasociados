@@ -72,8 +72,8 @@ export default function LoanDetailsModal({
 
   // Calculate remaining amount and payments
   // Use sum of subloans totalAmount for accurate remaining calculation
-  const totalSubLoansAmount = subLoans.reduce((sum, subloan) => sum + (subloan.totalAmount || 0), 0)
-  const totalPaid = subLoans.reduce((sum, subloan) => sum + (subloan.paidAmount || 0), 0)
+  const totalSubLoansAmount = subLoans.reduce((sum, subloan) => sum + Number(subloan.totalAmount || 0), 0)
+  const totalPaid = subLoans.reduce((sum, subloan) => sum + Number(subloan.paidAmount || 0), 0)
   
   // If no subloans loaded, use loan data as fallback
   const hasSubLoans = subLoans.length > 0

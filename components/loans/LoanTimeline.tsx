@@ -37,7 +37,7 @@ const TimelineNode: React.FC<TimelineNodeProps> = ({
   onPaymentClick,
   onResetClick,
   resettingSubloanId,
-  onDateUpdated
+  onDateUpdated,
 }) => {
   const urgency = getUrgencyLevel(subloan)
   const isPaid = subloan.status === 'PAID'
