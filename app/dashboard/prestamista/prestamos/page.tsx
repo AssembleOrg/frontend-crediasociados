@@ -20,7 +20,7 @@ import type { SubLoanWithClientInfo } from '@/services/subloans-lookup.service'
 export default function PrestamosAnalyticsPage() {
   const router = useRouter()
   const { loans, error, isLoading, fetchLoans } = useLoans()
-  const { allSubLoansWithClient, isLoading: subLoansLoading, fetchAllSubLoansWithClientInfo } = useSubLoans()
+  const { fetchAllSubLoansWithClientInfo } = useSubLoans()
   const { filteredLoans, hasActiveFilters, isLoading: filtersLoading, error: filtersError } = useLoansFilters()
   const { refetch: refetchManagerData } = useManagerDashboard()
   
@@ -38,16 +38,15 @@ export default function PrestamosAnalyticsPage() {
   const [timelineModalOpen, setTimelineModalOpen] = useState(false)
   const [directSubLoans, setDirectSubLoans] = useState<SubLoanWithClientInfo[]>([])
   const [directSubLoansLoading, setDirectSubLoansLoading] = useState(false)
+  const [directSubLoansError, setDirectSubLoansError] = useState<string | null>(null)
 
-  // Fetch subloans directly when a completed loan has none in the global store
+  // Siempre fetch via getLoanById: el store global solo trae la primera pagina
+  // de loans → los COMPLETED viejos quedan fuera y antes se mostraba "no hay cuotas"
+  // cuando en realidad la carga fallaba en silencio.
   useEffect(() => {
     if (!selectedLoanId || !timelineModalOpen) return
-    const fromStore = allSubLoansWithClient.filter(s => s.loanId === selectedLoanId)
-    if (fromStore.length > 0) {
-      setDirectSubLoans([])
-      return
-    }
     setDirectSubLoansLoading(true)
+    setDirectSubLoansError(null)
     loansService.getLoanById(selectedLoanId)
       .then(loan => {
         const subLoans = (loan as any).subLoans ?? []
@@ -59,8 +58,14 @@ export default function PrestamosAnalyticsPage() {
         }))
         setDirectSubLoans(mapped)
       })
+      .catch((err) => {
+        console.error('Error cargando cuotas del prestamo', selectedLoanId, err)
+        setDirectSubLoans([])
+        setDirectSubLoansError(
+          err?.response?.data?.message || err?.message || 'Error cargando cuotas',
+        )
+      })
       .finally(() => setDirectSubLoansLoading(false))
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedLoanId, timelineModalOpen])
 
   // Use filtered data for display when filters are active
@@ -85,8 +90,7 @@ export default function PrestamosAnalyticsPage() {
   // Search in filtered loans if filters are active, otherwise in all loans
   const loansToSearch = hasActiveFilters ? filteredLoans : loans
   const selectedLoan = selectedLoanId ? loansToSearch.find(loan => loan.id === selectedLoanId) || null : null
-  const fromStore = selectedLoanId ? allSubLoansWithClient.filter(s => s.loanId === selectedLoanId) : []
-  const selectedLoanSubLoans = fromStore.length > 0 ? fromStore : directSubLoans
+  const selectedLoanSubLoans = directSubLoans
 
   return (
     <Box sx={{ p: { xs: 1, sm: 2, md: 3 } }}>
@@ -156,13 +160,27 @@ export default function PrestamosAnalyticsPage() {
         onClose={() => setTimelineModalOpen(false)}
         loan={selectedLoan}
         subLoans={selectedLoanSubLoans}
-        isLoading={subLoansLoading || directSubLoansLoading}
+        isLoading={directSubLoansLoading}
+        loadError={directSubLoansError}
         onGoToCobros={handleGoToCobrosForClient}
         onPaymentSuccess={() => {
           // Refrescar los datos después de un pago exitoso
           fetchAllSubLoansWithClientInfo()
           // Refrescar préstamos para mantener el resumen/estado actualizado
           fetchLoans()
+          // Refrescar las cuotas del modal
+          if (selectedLoanId) {
+            loansService.getLoanById(selectedLoanId).then(loan => {
+              const subLoans = (loan as any).subLoans ?? []
+              const mapped: SubLoanWithClientInfo[] = subLoans.map((sl: any) => ({
+                ...sl,
+                clientId: (loan as any).clientId,
+                clientName: (loan as any).client?.fullName ?? '',
+                clientDni: (loan as any).client?.dni ?? '',
+              }))
+              setDirectSubLoans(mapped)
+            }).catch(() => {})
+          }
         }}
       />
     </Box>

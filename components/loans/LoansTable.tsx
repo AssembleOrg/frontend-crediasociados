@@ -136,21 +136,32 @@ export function LoansTable({ loans: externalLoans, onViewDetails, onLoanDeleted 
     }
   }
 
-  type LoanLike = { totalPayments?: number; id: string }
+  type LoanLike = { totalPayments?: number; id: string; status?: string }
   const getProgressInfo = (loan: LoanLike) => {
     const totalPayments = loan.totalPayments || 0
-    
+
+    // Si el loan está COMPLETED, asumimos todas las cuotas pagas sin depender
+    // del store global (que solo trae los primeros loans → falla con completed viejos).
+    if (loan.status === 'COMPLETED') {
+      return {
+        totalPayments,
+        completedPayments: totalPayments,
+        progress: 100,
+        statusGroups: { paid: totalPayments, partial: 0, overdue: 0, pending: 0 },
+      }
+    }
+
     // Get all subloans for this loan
     const loanSubLoans = allSubLoansWithClient.filter(subloan => subloan.loanId === loan.id)
-    
+
     // Count only PAID and PARTIAL for the numeric progress
     const completedPayments = loanSubLoans.filter(
       sl => sl.status === 'PAID' || sl.status === 'PARTIAL'
     ).length
-    
+
     // Calculate percentage for the numeric display
     const progress = totalPayments > 0 ? (completedPayments / totalPayments) * 100 : 0
-    
+
     // Group subloans by status for visual progress
     const statusGroups = {
       paid: loanSubLoans.filter(sl => sl.status === 'PAID').length,
@@ -158,7 +169,7 @@ export function LoansTable({ loans: externalLoans, onViewDetails, onLoanDeleted 
       overdue: loanSubLoans.filter(sl => sl.status === 'OVERDUE').length,
       pending: loanSubLoans.filter(sl => sl.status === 'PENDING').length,
     }
-    
+
     return { totalPayments, completedPayments, progress, statusGroups }
   }
 
@@ -175,31 +186,35 @@ export function LoansTable({ loans: externalLoans, onViewDetails, onLoanDeleted 
   }
 
   // Multi-color progress bar component
-  const MultiColorProgressBar = ({ loanId, totalPayments }: { 
+  const MultiColorProgressBar = ({ loanId, totalPayments, loanStatus }: {
     loanId: string
-    totalPayments: number 
+    totalPayments: number
+    loanStatus?: string
   }) => {
     if (totalPayments === 0) {
       return (
-        <Box sx={{ 
-          width: '100%', 
-          height: 8, 
-          bgcolor: 'grey.200', 
-          borderRadius: 1 
+        <Box sx={{
+          width: '100%',
+          height: 8,
+          bgcolor: 'grey.200',
+          borderRadius: 1
         }} />
       )
     }
 
-    // Get all subloans for this loan and sort by payment number
-    const loanSubLoans = allSubLoansWithClient
-      .filter(subloan => subloan.loanId === loanId)
-      .sort((a, b) => (a.paymentNumber || 0) - (b.paymentNumber || 0))
-
-    // Create an array representing each payment slot
-    const paymentSlots = Array.from({ length: totalPayments }, (_, index) => {
-      const subloan = loanSubLoans.find(sl => (sl.paymentNumber || 0) === index + 1)
-      return subloan?.status || 'PENDING'
-    })
+    // Si el loan está COMPLETED, todos los slots se pintan como PAID
+    // (evita depender del store global cacheado).
+    const paymentSlots = loanStatus === 'COMPLETED'
+      ? Array.from({ length: totalPayments }, () => 'PAID' as const)
+      : (() => {
+          const loanSubLoans = allSubLoansWithClient
+            .filter(subloan => subloan.loanId === loanId)
+            .sort((a, b) => (a.paymentNumber || 0) - (b.paymentNumber || 0))
+          return Array.from({ length: totalPayments }, (_, index) => {
+            const subloan = loanSubLoans.find(sl => (sl.paymentNumber || 0) === index + 1)
+            return subloan?.status || 'PENDING'
+          })
+        })()
 
     const segmentWidth = 100 / totalPayments
 
@@ -368,7 +383,7 @@ export function LoansTable({ loans: externalLoans, onViewDetails, onLoanDeleted 
                     <TableCell align="center">
                       <Box sx={{ minWidth: 100 }}>
                         <Typography variant="caption">{completedPayments} de {totalPayments}</Typography>
-                        <MultiColorProgressBar loanId={loan.id} totalPayments={totalPayments} />
+                        <MultiColorProgressBar loanId={loan.id} totalPayments={totalPayments} loanStatus={loan.status} />
                       </Box>
                     </TableCell>
                     <TableCell align="center">
@@ -418,7 +433,7 @@ export function LoansTable({ loans: externalLoans, onViewDetails, onLoanDeleted 
                     <Typography variant="caption" color="text.secondary" sx={{ mb: 0.5, display: 'block' }}>
                       Progreso: {completedPayments}/{totalPayments} cuotas
                     </Typography>
-                    <MultiColorProgressBar loanId={loan.id} totalPayments={totalPayments} />
+                    <MultiColorProgressBar loanId={loan.id} totalPayments={totalPayments} loanStatus={loan.status} />
                   </Box>
                   {/* Row 5: Date + Actions */}
                   <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid', borderColor: 'divider', pt: 1 }}>

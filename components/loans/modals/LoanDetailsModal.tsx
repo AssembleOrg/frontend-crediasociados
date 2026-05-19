@@ -35,6 +35,7 @@ interface LoanDetailsModalProps {
   loan: Loan | null
   subLoans: SubLoanWithClientInfo[]
   isLoading?: boolean
+  loadError?: string | null
   onGoToCobros?: () => void
   onPaymentSuccess?: () => void // Callback para refrescar datos después del pago
 }
@@ -45,6 +46,7 @@ export default function LoanDetailsModal({
   loan,
   subLoans,
   isLoading = false,
+  loadError = null,
   onPaymentSuccess
 }: LoanDetailsModalProps) {
   const theme = useTheme()
@@ -74,17 +76,23 @@ export default function LoanDetailsModal({
   // Use sum of subloans totalAmount for accurate remaining calculation
   const totalSubLoansAmount = subLoans.reduce((sum, subloan) => sum + Number(subloan.totalAmount || 0), 0)
   const totalPaid = subLoans.reduce((sum, subloan) => sum + Number(subloan.paidAmount || 0), 0)
-  
-  // If no subloans loaded, use loan data as fallback
+
   const hasSubLoans = subLoans.length > 0
-  const remainingAmount = hasSubLoans 
-    ? totalSubLoansAmount - totalPaid
-    : (totalAmountToRepay - totalPaid)
-  const remainingPayments = hasSubLoans
-    ? subLoans.filter(subloan => 
-        subloan.status === 'PENDING' || subloan.status === 'OVERDUE'
-      ).length
-    : (loan.totalPayments || 0)
+  const isCompleted = loan.status === 'COMPLETED'
+  // Si el loan esta COMPLETED, no resta nada — evita el mensaje engañoso
+  // "Resta pagar X" cuando las cuotas no llegaron a cargar.
+  const remainingAmount = isCompleted
+    ? 0
+    : hasSubLoans
+      ? totalSubLoansAmount - totalPaid
+      : (totalAmountToRepay - totalPaid)
+  const remainingPayments = isCompleted
+    ? 0
+    : hasSubLoans
+      ? subLoans.filter(subloan =>
+          subloan.status === 'PENDING' || subloan.status === 'OVERDUE'
+        ).length
+      : (loan.totalPayments || 0)
 
   // Sort subloans by payment number
   const sortedSubLoans = [...subLoans].sort((a, b) => (a.paymentNumber ?? 0) - (b.paymentNumber ?? 0))
@@ -298,14 +306,27 @@ export default function LoanDetailsModal({
                 </Typography>
               </Box>
             ) : subLoans.length === 0 ? (
-              <Box sx={{ textAlign: 'center', py: 4, bgcolor: 'grey.50', borderRadius: 2, p: 3 }}>
-                <Typography variant="h6" color="text.secondary" gutterBottom>
-                  No hay cuotas registradas
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  Este préstamo aún no tiene cuotas generadas. Las cuotas se crean automáticamente al crear el préstamo.
-                </Typography>
-              </Box>
+              loadError || (loan.totalPayments ?? 0) > 0 ? (
+                <Box sx={{ textAlign: 'center', py: 4, bgcolor: 'error.lighter', borderRadius: 2, p: 3, border: 1, borderColor: 'error.light' }}>
+                  <Typography variant="h6" color="error.main" gutterBottom>
+                    Error cargando las cuotas
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    {loadError
+                      ? `No se pudieron cargar las cuotas: ${loadError}`
+                      : `Este préstamo tiene ${loan.totalPayments} cuotas registradas pero no se pudieron cargar. Intentá cerrar y abrir de nuevo.`}
+                  </Typography>
+                </Box>
+              ) : (
+                <Box sx={{ textAlign: 'center', py: 4, bgcolor: 'grey.50', borderRadius: 2, p: 3 }}>
+                  <Typography variant="h6" color="text.secondary" gutterBottom>
+                    No hay cuotas registradas
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    Este préstamo aún no tiene cuotas generadas. Las cuotas se crean automáticamente al crear el préstamo.
+                  </Typography>
+                </Box>
+              )
             ) : (
               <LoanTimeline
                 clientName={clientName}
