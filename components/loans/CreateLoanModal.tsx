@@ -34,6 +34,7 @@ import { useBuenosAiresDate } from '@/hooks/useBuenosAiresDate'
 import { formatAmount, unformatAmount } from '@/lib/formatters'
 import { ValidationUtils } from '@/lib/validation-utils'
 import { clientsService } from '@/services/clients.service'
+import PhoneChip from '@/components/ui/PhoneChip'
 import { apiClientToClient } from '@/types/transforms'
 import type { Client } from '@/types/auth'
 
@@ -600,11 +601,22 @@ export function CreateLoanModal({
                 />
 
                 {selectedClient && (
-                  <Typography variant="body2" color="text.secondary" sx={{ mt: 1.5 }}>
-                    <strong>{selectedClient.fullName}</strong>
-                    {selectedClient.phone && ` • ${selectedClient.phone}`}
-                    {selectedClient.email && ` • ${selectedClient.email}`}
-                  </Typography>
+                  <Box sx={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 0.5, mt: 1.5 }}>
+                    <Typography variant="body2" color="text.secondary" component="span">
+                      <strong>{selectedClient.fullName}</strong>
+                    </Typography>
+                    {selectedClient.phone && (
+                      <>
+                        <Typography variant="body2" color="text.secondary" component="span">•</Typography>
+                        <PhoneChip phone={selectedClient.phone} size="medium" showIcon={false} />
+                      </>
+                    )}
+                    {selectedClient.email && (
+                      <Typography variant="body2" color="text.secondary" component="span">
+                        {` • ${selectedClient.email}`}
+                      </Typography>
+                    )}
+                  </Box>
                 )}
               </Box>
 

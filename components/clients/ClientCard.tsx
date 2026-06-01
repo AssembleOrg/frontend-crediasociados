@@ -24,13 +24,13 @@ import {
   Delete,
   Person,
   Email,
-  Phone,
   Badge,
   Work,
   Description,
   LocationOn,
   Numbers
 } from '@mui/icons-material'
+import PhoneChip from '@/components/ui/PhoneChip'
 import type { Client } from '@/types/auth'
 import { clientsService } from '@/services/clients.service'
 import { loansService } from '@/services/loans.service'
@@ -163,10 +163,9 @@ export function ClientCard({ client, onEdit, onDelete }: ClientCardProps) {
           </Typography>
         )}
         {client.phone && (
-          <Typography variant="body2" color="text.secondary" sx={{ display: 'flex', alignItems: 'center', mb: 0.25 }}>
-            <Phone sx={{ fontSize: 16, mr: 0.75, color: 'text.disabled' }} />
-            {client.phone}
-          </Typography>
+          <Box sx={{ display: 'flex', alignItems: 'center', mb: 0.25 }}>
+            <PhoneChip phone={client.phone} size="medium" />
+          </Box>
         )}
         {client.email && (
           <Typography variant="body2" color="text.secondary" sx={{ display: 'flex', alignItems: 'flex-start', mb: 0.25, wordBreak: 'break-all' }}>

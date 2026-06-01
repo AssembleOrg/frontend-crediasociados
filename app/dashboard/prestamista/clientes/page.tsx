@@ -43,6 +43,7 @@ import { DeleteClientConfirmDialog } from '@/components/clients/DeleteClientConf
 import { ClientCard } from '@/components/clients/ClientCard'
 import { TableSkeleton } from '@/components/ui/TableSkeleton'
 import PageHeader from '@/components/ui/PageHeader'
+import PhoneChip from '@/components/ui/PhoneChip'
 import type { Client } from '@/types/auth'
 
 export default function ClientesPage() {
@@ -331,14 +332,7 @@ export default function ClientesPage() {
                         </Typography>
                       </TableCell>
                       <TableCell>
-                        <Typography 
-                          sx={{ 
-                            color: client.verified === false ? 'text.disabled' : 'text.primary',
-                            opacity: client.verified === false ? 0.6 : 1
-                          }}
-                        >
-                          {client.phone || 'N/A'}
-                        </Typography>
+                        <PhoneChip phone={client.phone} size="medium" showIcon={false} />
                       </TableCell>
                       <TableCell>
                         <Typography 

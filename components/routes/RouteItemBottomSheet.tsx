@@ -11,6 +11,8 @@ import {
   Stack,
   Skeleton,
   Collapse,
+  IconButton,
+  Snackbar,
 } from '@mui/material';
 import {
   Phone,
@@ -27,8 +29,11 @@ import {
   RadioButtonUnchecked,
   ErrorOutline,
   Schedule,
+  WhatsApp,
 } from '@mui/icons-material';
 import { CollectionRouteItem } from '@/services/collection-routes.service';
+import { getWhatsAppUrl } from '@/lib/phone';
+import { useCopyToClipboard } from '@/lib/useCopyToClipboard';
 import { StatusChip } from '@/components/ui/StatusChip';
 import { iosColors } from '@/lib/theme';
 import { useBottomSheet } from '@/hooks/useBottomSheet';
@@ -117,6 +122,9 @@ export function RouteItemBottomSheet({
   const [allSubLoans, setAllSubLoans] = useState<LoanSubLoan[]>([]);
   const [loadingAllSubLoans, setLoadingAllSubLoans] = useState(false);
   const fetchedAllSubLoansLoanId = useRef<string | null>(null);
+
+  const { copy } = useCopyToClipboard();
+  const [phoneToastOpen, setPhoneToastOpen] = useState(false);
 
 
   // Fetch overdue subloans when sheet opens for a new item
@@ -244,6 +252,7 @@ export function RouteItemBottomSheet({
   };
 
   return (
+    <>
     <SwipeableDrawer
       anchor="bottom"
       open={open}
@@ -309,24 +318,47 @@ export function RouteItemBottomSheet({
         >
           {item.clientPhone && (
             <Box
-              component="a"
-              href={`tel:${item.clientPhone}`}
               sx={{
-                display:        'flex',
-                alignItems:     'center',
-                gap:            1.5,
-                px:             2,
-                py:             1.5,
-                textDecoration: 'none',
-                color:          iosColors.blue,
-                minHeight:      44,
-                '&:active':     { bgcolor: iosColors.gray6 },
+                display:    'flex',
+                alignItems: 'center',
+                gap:        1.5,
+                px:         2,
+                py:         1,
+                color:      iosColors.blue,
+                minHeight:  44,
               }}
             >
-              <Phone sx={{ fontSize: 20 }} />
-              <Typography variant="body2" sx={{ fontWeight: 500, color: 'inherit' }}>
-                {item.clientPhone}
-              </Typography>
+              <Box
+                onClick={async () => {
+                  const ok = await copy(item.clientPhone!);
+                  if (ok) setPhoneToastOpen(true);
+                }}
+                sx={{
+                  display:    'flex',
+                  alignItems: 'center',
+                  gap:        1.5,
+                  flex:       1,
+                  minWidth:   0,
+                  cursor:     'pointer',
+                  py:         0.5,
+                  '&:active': { opacity: 0.6 },
+                }}
+              >
+                <Phone sx={{ fontSize: 20 }} />
+                <Typography variant="body2" sx={{ fontWeight: 500, color: 'inherit' }}>
+                  {item.clientPhone}
+                </Typography>
+              </Box>
+              <IconButton
+                onClick={(e) => {
+                  e.stopPropagation();
+                  window.open(getWhatsAppUrl(item.clientPhone!), '_blank', 'noopener,noreferrer');
+                }}
+                aria-label="Abrir WhatsApp"
+                sx={{ color: '#25D366' }}
+              >
+                <WhatsApp sx={{ fontSize: 22 }} />
+              </IconButton>
             </Box>
           )}
           {item.clientPhone && item.clientAddress && <Divider />}
@@ -720,6 +752,17 @@ export function RouteItemBottomSheet({
         </Box>
       )}
     </SwipeableDrawer>
+    <Snackbar
+      open={phoneToastOpen}
+      autoHideDuration={2000}
+      onClose={() => setPhoneToastOpen(false)}
+      anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+    >
+      <Alert onClose={() => setPhoneToastOpen(false)} severity="success" sx={{ width: '100%' }}>
+        Número copiado
+      </Alert>
+    </Snackbar>
+    </>
   );
 }
 

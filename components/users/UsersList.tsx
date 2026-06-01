@@ -21,6 +21,7 @@ import {
 } from '@mui/material'
 import { Search, Add, Edit, Delete } from '@mui/icons-material'
 import { useUsers } from '@/hooks/useUsers'
+import PhoneChip from '@/components/ui/PhoneChip'
 import { getRoleDisplayName } from '@/types/transforms'
 import type { User } from '@/types/auth'
 
@@ -164,7 +165,9 @@ export const UsersList = ({ onEditUser, onCreateUser }: UsersListProps) => {
                     </Typography>
                   </TableCell>
                   <TableCell>{user.email}</TableCell>
-                  <TableCell>{user.phone || '-'}</TableCell>
+                  <TableCell>
+                    <PhoneChip phone={user.phone} size="medium" showIcon={false} />
+                  </TableCell>
                   <TableCell>
                     <Chip
                       label={getRoleDisplayName(user.role)}

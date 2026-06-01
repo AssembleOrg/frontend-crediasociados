@@ -15,6 +15,7 @@ import {
 } from '@mui/material'
 import { Payment } from '@mui/icons-material'
 import LoanTimeline from '@/components/loans/LoanTimeline'
+import PhoneChip from '@/components/ui/PhoneChip'
 import type { ClientSummary } from '@/lib/cobros/clientSummaryHelpers'
 import type { SubLoanWithClientInfo } from '@/services/subloans-lookup.service'
 import { getSubloanUrgencyLevel, isSubloanSettled } from '@/lib/cobros/urgencyHelpers'
@@ -304,9 +305,18 @@ export default function ClientTimelineModal({
                           }}
                         >
                           <Box>
-                            <Typography variant="body2" color="text.secondary">
-                              <strong>Teléfono:</strong> {clientData?.phone || 'Dato no ingresado'}
-                            </Typography>
+                            {clientData?.phone ? (
+                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                                <Typography variant="body2" color="text.secondary" component="span">
+                                  <strong>Teléfono:</strong>
+                                </Typography>
+                                <PhoneChip phone={clientData.phone} size="medium" showIcon={false} />
+                              </Box>
+                            ) : (
+                              <Typography variant="body2" color="text.secondary">
+                                <strong>Teléfono:</strong> Dato no ingresado
+                              </Typography>
+                            )}
                             <Typography variant="body2" color="text.secondary">
                               <strong>Email:</strong> {clientData?.email || 'Dato no ingresado'}
                             </Typography>
