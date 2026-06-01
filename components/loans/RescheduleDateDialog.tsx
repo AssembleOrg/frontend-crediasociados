@@ -17,7 +17,7 @@ import {
 } from '@mui/material'
 import { CalendarMonth, ChevronLeft, ChevronRight } from '@mui/icons-material'
 import { DateTime } from 'luxon'
-import { formatCurrency } from '@/lib/loan-utils'
+import { formatCurrencyDisplay as formatCurrency } from '@/lib/formatters'
 
 interface RescheduleDateDialogProps {
   open: boolean

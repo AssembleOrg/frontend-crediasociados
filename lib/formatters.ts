@@ -144,11 +144,23 @@ export const numberToFormattedAmount = (num: number): string => {
  * Backend sends: 8000.59
  * Returns: "$8.000,59" (formatted for display)
  */
-export const formatCurrencyDisplay = (amount: number): string => {
+/**
+ * Convierte cualquier valor del backend (string Decimal, number, null, undefined)
+ * a un número finito. Si no es convertible, devuelve 0.
+ * Usar en todos los sitios donde se hace matemática con montos.
+ */
+export const toAmount = (value: unknown): number => {
+  const n = Number(value)
+  return Number.isFinite(n) ? n : 0
+}
+
+export const formatCurrencyDisplay = (amount: unknown): string => {
+  // Red de seguridad: coerce + guarda NaN para que nunca renderice "$NaN".
+  const n = toAmount(amount)
   return `$${new Intl.NumberFormat('es-AR', {
     minimumFractionDigits: 0,
     maximumFractionDigits: 2
-  }).format(amount)}`
+  }).format(n)}`
 }
 
 // Payment frequency localization - Centralizes all frequency translations
