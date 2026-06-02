@@ -1,4 +1,5 @@
 import type { Loan } from '@/types/auth'
+import { toAmount } from '@/lib/formatters'
 
 /**
  * Calculate the interest rate as a percentage for display
@@ -46,11 +47,11 @@ export const calculateInterestRateDecimal = (loan: Loan): number => {
 export const calculateTotalRepaymentAmount = (loan: Loan): number => {
   // If originalAmount exists, then amount is already the total to repay (with interest)
   if (loan.originalAmount !== undefined) {
-    return loan.amount
+    return toAmount(loan.amount)
   }
   // Otherwise, calculate from original amount and interest rate
   const rate = calculateInterestRateDecimal(loan)
-  return loan.amount * (1 + rate)
+  return toAmount(loan.amount) * (1 + rate)
 }
 
 /**
@@ -61,11 +62,11 @@ export const calculateTotalRepaymentAmount = (loan: Loan): number => {
 export const calculateInterestAmount = (loan: Loan): number => {
   // If originalAmount exists, calculate interest as the difference
   if (loan.originalAmount !== undefined) {
-    return loan.amount - loan.originalAmount
+    return toAmount(loan.amount) - toAmount(loan.originalAmount)
   }
   // Otherwise, calculate from amount and interest rate
   const rate = calculateInterestRateDecimal(loan)
-  return loan.amount * rate
+  return toAmount(loan.amount) * rate
 }
 
 /**
@@ -108,7 +109,7 @@ export const getLoanStatusInfo = (status: string) => {
  */
 export const calculateLoanStats = (loans: Loan[]) => {
   const total = loans.length
-  const totalAmount = loans.reduce((sum, loan) => sum + loan.amount, 0)
+  const totalAmount = loans.reduce((sum, loan) => sum + toAmount(loan.amount), 0)
   const avgAmount = total > 0 ? totalAmount / total : 0
   
   const byStatus = {

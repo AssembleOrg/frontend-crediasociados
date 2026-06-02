@@ -28,7 +28,8 @@ import {
   InputAdornment,
   Snackbar,
 } from '@mui/material'
-import { Close, VerifiedUser, Phone, Home, CheckCircle, Search, Work, Description } from '@mui/icons-material'
+import { Close, VerifiedUser, Home, CheckCircle, Search, Work, Description } from '@mui/icons-material'
+import PhoneChip from '@/components/ui/PhoneChip'
 import { clientsService } from '@/services/clients.service'
 // commented by july
 // import { blacklistService } from '@/services/blacklist.service'
@@ -366,11 +367,8 @@ export default function UnverifiedClientsModal({ open, onClose }: UnverifiedClie
                           {isMobile && (
                             <>
                               {client.telefono && (
-                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.5 }}>
-                                  <Phone sx={{ fontSize: 14, color: 'text.secondary' }} />
-                                  <Typography variant="caption" color="text.secondary">
-                                    {client.telefono}
-                                  </Typography>
+                                <Box sx={{ mt: 0.5 }}>
+                                  <PhoneChip phone={client.telefono} size="small" />
                                 </Box>
                               )}
                               {client.direccion && (
@@ -402,18 +400,7 @@ export default function UnverifiedClientsModal({ open, onClose }: UnverifiedClie
                         </TableCell>
                         {!isMobile && (
                           <TableCell>
-                            {client.telefono ? (
-                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                                <Phone sx={{ fontSize: 16, color: 'text.secondary' }} />
-                                <Typography variant="body2">
-                                  {client.telefono}
-                                </Typography>
-                              </Box>
-                            ) : (
-                              <Typography variant="body2" color="text.secondary">
-                                -
-                              </Typography>
-                            )}
+                            <PhoneChip phone={client.telefono} size="medium" showIcon={false} />
                           </TableCell>
                         )}
                         {!isMobile && (

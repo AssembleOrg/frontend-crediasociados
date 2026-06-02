@@ -22,10 +22,10 @@ import { useLoans } from '@/hooks/useLoans';
 import { useClients } from '@/hooks/useClients';
 import type { Loan } from '@/types/auth';
 import {
-  formatCurrency,
   translateLoanStatus,
   getLoanStatusColor,
 } from '@/lib/loan-utils';
+import { formatCurrencyDisplay as formatCurrency } from '@/lib/formatters';
 
 interface EditLoanModalProps {
   open: boolean;

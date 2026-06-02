@@ -21,6 +21,7 @@ import {
   Notes,
 } from '@mui/icons-material';
 import { CollectionRouteItem } from '@/services/collection-routes.service';
+import PhoneChip from '@/components/ui/PhoneChip';
 import { DateTime } from 'luxon';
 
 interface RouteItemDetailModalProps {
@@ -147,9 +148,9 @@ export function RouteItemDetailModal({
           </Typography>
           <Box sx={{ pl: 3.5 }}>
             {item.clientPhone ? (
-              <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
-                {item.clientPhone}
-              </Typography>
+              <Box sx={{ mb: 0.5 }}>
+                <PhoneChip phone={item.clientPhone} size="medium" showIcon={false} />
+              </Box>
             ) : (
               <Typography variant="body2" color="text.disabled" sx={{ mb: 0.5 }}>
                 Sin teléfono registrado

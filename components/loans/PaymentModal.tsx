@@ -25,7 +25,7 @@ import {
   Alert,
   IconButton,
 } from '@mui/material'
-import { Payment, AttachMoney, PictureAsPdf, Info, Warning, Autorenew, Close } from '@mui/icons-material'
+import { Payment, AttachMoney, PictureAsPdf, Info, Warning, Autorenew, Close, TaskAlt } from '@mui/icons-material'
 import { formatAmount, unformatAmount, formatCurrencyDisplay, numberToFormattedAmount } from '@/lib/formatters'
 import { generatePaymentPDF, type PaymentReceiptData } from '@/utils/pdf/paymentReceipt'
 import { useOperativa } from '@/hooks/useOperativa'
@@ -87,6 +87,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
   const [errorMessage, setErrorMessage]                     = useState('')
   const [successModalOpen, setSuccessModalOpen]             = useState(false)
   const [multiPaymentConfirmOpen, setMultiPaymentConfirmOpen] = useState(false)
+  const [finishLoanConfirmOpen, setFinishLoanConfirmOpen]     = useState(false)
   const [successData, setSuccessData]                       = useState<{
     clientName: string; paymentNumber: number; amount: number; paymentDate: Date
     status: 'PARTIAL' | 'PAID'; remainingAmount: number; notes?: string; pdfGenerated: boolean
@@ -117,6 +118,14 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
     : (currentSubloan?.totalAmount ?? 0)
 
   const pendingSubloans = subloans.filter((s) => s.status !== 'PAID')
+
+  // ── Derivados para el confirm de "Terminar préstamo" ───────────────────────
+  const finishAmount = parseFloat(unformatAmount(paymentAmount)) || 0
+  const finishOutstanding = currentSubloan
+    ? (currentSubloan.outstandingBalance ?? ((currentSubloan.totalAmount ?? 0) - (currentSubloan.paidAmount || 0)))
+    : 0
+  const finishForgiven = Math.max(0, finishOutstanding - finishAmount)
+  const finishOverpaid = Math.max(0, finishAmount - finishOutstanding)
 
   // ── Bottom sheet hook (for mobile SwipeableDrawer) ─────────────────────────
   const { handleOpen: sheetOpen, handleClose: sheetClose } = useBottomSheet(open, (v) => {
@@ -396,12 +405,16 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
     if (!currentSubloan) return
     const amount = parseFloat(unformatAmount(paymentAmount)) || 0
     const pending = effectiveTotalAmount - (currentSubloan.paidAmount || 0)
-    // Al terminar el préstamo el excedente/condonación es esperado: no mostramos
-    // el confirm de "monto supera el saldo".
+    // Al terminar el préstamo siempre pedimos confirmación: el préstamo se cierra
+    // condonando (o cobrando de más) el resto del saldo.
+    if (finishLoan) {
+      setFinishLoanConfirmOpen(true)
+      return
+    }
     // En el resto de los casos solo abrimos el confirm cuando va a haber
     // distribución automática (si la distribución está apagada el botón ya está
     // deshabilitado y el backend además rechazaría).
-    if (!finishLoan && amount > pending && distributeOverflow) {
+    if (amount > pending && distributeOverflow) {
       setMultiPaymentConfirmOpen(true)
       return
     }
@@ -761,6 +774,104 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
           </Button>
           <Button
             onClick={() => setMultiPaymentConfirmOpen(false)}
+            variant="text"
+            color="inherit"
+            fullWidth
+            sx={{ minHeight: 44, borderRadius: 2, color: 'text.secondary' }}
+          >
+            Cancelar
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* ── Confirmación: Terminar préstamo ── */}
+      <Dialog
+        open={finishLoanConfirmOpen}
+        onClose={() => setFinishLoanConfirmOpen(false)}
+        maxWidth="sm"
+        fullWidth
+        sx={{ zIndex: 1500 }}
+        PaperProps={{
+          sx: {
+            borderRadius: { xs: '16px 16px 0 0', sm: 3 },
+            m: 0,
+            mt: 'auto',
+            mx: { sm: 2 },
+            mb: { sm: 2 },
+            width: '100%',
+          },
+        }}
+      >
+        <DialogTitle sx={{ pt: 3, pb: 0, px: 3, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 1 }}>
+          <TaskAlt color="warning" />
+          Terminar préstamo
+        </DialogTitle>
+        <DialogContent sx={{ px: 3, pt: 2, pb: 1 }}>
+          {currentSubloan && (
+            <>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+                Vas a dar por terminado el préstamo con este pago. Las cuotas restantes se
+                marcarán como pagadas y {finishForgiven > 0
+                  ? 'la diferencia se condonará'
+                  : 'el préstamo quedará saldado'}. Esta acción no se puede deshacer.
+              </Typography>
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <Typography variant="body2" color="text.secondary">Saldo a finalizar</Typography>
+                  <Typography variant="body2" fontWeight={600} color="text.primary">
+                    {formatCurrencyDisplay(finishOutstanding)}
+                  </Typography>
+                </Box>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <Typography variant="body2" color="text.secondary">Monto a registrar</Typography>
+                  <Typography variant="body2" fontWeight={600} color="text.primary">
+                    {formatCurrencyDisplay(finishAmount)}
+                  </Typography>
+                </Box>
+                {finishForgiven > 0 && (
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <Typography variant="body2" color="text.secondary">Se condonará</Typography>
+                    <Typography variant="body2" fontWeight={700} color="warning.main">
+                      {formatCurrencyDisplay(finishForgiven)}
+                    </Typography>
+                  </Box>
+                )}
+                {finishOverpaid > 0 && (
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <Typography variant="body2" color="text.secondary">Cobro por encima del saldo</Typography>
+                    <Typography variant="body2" fontWeight={700} color="success.main">
+                      {formatCurrencyDisplay(finishOverpaid)}
+                    </Typography>
+                  </Box>
+                )}
+              </Box>
+            </>
+          )}
+        </DialogContent>
+        <DialogActions
+          sx={{
+            flexDirection: 'column',
+            gap: 1,
+            p: 3,
+            pt: 2,
+            paddingBottom: 'max(env(safe-area-inset-bottom), 24px)',
+          }}
+        >
+          <Button
+            onClick={async () => {
+              setFinishLoanConfirmOpen(false)
+              await executePayment(finishAmount)
+            }}
+            variant="contained"
+            color="warning"
+            fullWidth
+            startIcon={<TaskAlt />}
+            sx={{ minHeight: 44, borderRadius: 2 }}
+          >
+            Terminar préstamo
+          </Button>
+          <Button
+            onClick={() => setFinishLoanConfirmOpen(false)}
             variant="text"
             color="inherit"
             fullWidth

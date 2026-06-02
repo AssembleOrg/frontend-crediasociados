@@ -25,8 +25,9 @@ import {
   useMediaQuery,
   Divider
 } from '@mui/material'
-import { Close, PersonOff, Phone, Home, CalendarToday, Search } from '@mui/icons-material'
+import { Close, PersonOff, Home, CalendarToday, Search } from '@mui/icons-material'
 import { clientsService } from '@/services/clients.service'
+import PhoneChip from '@/components/ui/PhoneChip'
 import { useUsers } from '@/hooks/useUsers'
 import { useCurrentUser } from '@/hooks/useCurrentUser'
 
@@ -131,34 +132,6 @@ export default function InactiveClientsModal({ open, onClose }: InactiveClientsM
       month: 'long',
       year: 'numeric'
     })
-  }
-
-  const formatPhoneForWhatsApp = (phone: string): string => {
-    // Remove all non-numeric characters except +
-    let cleaned = phone.replace(/[^\d+]/g, '')
-    
-    // If it starts with +54, keep it
-    // If it starts with 54, add +
-    // If it starts with 0 or 9, add +54
-    // Otherwise, assume it's a local number and add +54
-    if (cleaned.startsWith('+54')) {
-      return cleaned
-    } else if (cleaned.startsWith('54')) {
-      return '+' + cleaned
-    } else if (cleaned.startsWith('0')) {
-      return '+54' + cleaned.substring(1)
-    } else if (cleaned.startsWith('9')) {
-      return '+54' + cleaned
-    } else {
-      // Assume it's a local number without country code
-      return '+54' + cleaned
-    }
-  }
-
-  const handlePhoneClick = (phone: string) => {
-    const whatsappNumber = formatPhoneForWhatsApp(phone)
-    const whatsappUrl = `https://wa.me/${whatsappNumber}`
-    window.open(whatsappUrl, '_blank', 'noopener,noreferrer')
   }
 
   return (
@@ -404,30 +377,8 @@ export default function InactiveClientsModal({ open, onClose }: InactiveClientsM
                         {isMobile && (
                           <>
                             {client.telefono && (
-                              <Box 
-                                sx={{ 
-                                  display: 'flex', 
-                                  alignItems: 'center', 
-                                  gap: 0.5, 
-                                  mt: 0.5,
-                                  cursor: 'pointer',
-                                  '&:hover': {
-                                    opacity: 0.7
-                                  }
-                                }}
-                                onClick={(e) => {
-                                  e.stopPropagation()
-                                  handlePhoneClick(client.telefono!)
-                                }}
-                              >
-                                <Phone sx={{ fontSize: 14, color: 'success.main' }} />
-                                <Typography 
-                                  variant="caption" 
-                                  color="success.main"
-                                  sx={{ textDecoration: 'underline' }}
-                                >
-                                  {client.telefono}
-                                </Typography>
+                              <Box sx={{ mt: 0.5 }}>
+                                <PhoneChip phone={client.telefono} size="small" />
                               </Box>
                             )}
                             {client.direccion && (
@@ -443,36 +394,7 @@ export default function InactiveClientsModal({ open, onClose }: InactiveClientsM
                       </TableCell>
                       {!isMobile && (
                         <TableCell>
-                          {client.telefono ? (
-                            <Box 
-                              sx={{ 
-                                display: 'flex', 
-                                alignItems: 'center', 
-                                gap: 0.5,
-                                cursor: 'pointer',
-                                '&:hover': {
-                                  opacity: 0.7
-                                }
-                              }}
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                handlePhoneClick(client.telefono!)
-                              }}
-                            >
-                              <Phone sx={{ fontSize: 16, color: 'success.main' }} />
-                              <Typography 
-                                variant="body2"
-                                color="success.main"
-                                sx={{ textDecoration: 'underline' }}
-                              >
-                                {client.telefono}
-                              </Typography>
-                            </Box>
-                          ) : (
-                            <Typography variant="body2" color="text.secondary">
-                              -
-                            </Typography>
-                          )}
+                          <PhoneChip phone={client.telefono} size="medium" showIcon={false} />
                         </TableCell>
                       )}
                       {!isMobile && (

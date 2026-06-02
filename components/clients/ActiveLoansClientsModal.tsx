@@ -43,6 +43,7 @@ import { PDFDownloadLink } from '@react-pdf/renderer'
 import { ActiveLoansPDF } from './ActiveLoansPDF'
 import { clientsService } from '@/services/clients.service'
 import { collectorWalletService } from '@/services/collector-wallet.service'
+import PhoneChip from '@/components/ui/PhoneChip'
 import { requestDeduplicator } from '@/lib/request-deduplicator'
 import { useUsers } from '@/hooks/useUsers'
 import { useCurrentUser } from '@/hooks/useCurrentUser'
@@ -275,30 +276,6 @@ export default function ActiveLoansClientsModal({ open, onClose }: ActiveLoansCl
         return status
     }
   }
-
-  const formatPhoneForWhatsApp = (phone: string): string => {
-    // Remove all non-numeric characters except +
-    let cleaned = phone.replace(/[^\d+]/g, '')
-    
-    // If it starts with +54, keep it
-    // If it starts with 54, add +
-    // If it starts with 0 or 9, add +54
-    // Otherwise, assume it's a local number and add +54
-    if (cleaned.startsWith('+54')) {
-      return cleaned
-    } else if (cleaned.startsWith('54')) {
-      return '+' + cleaned
-    } else if (cleaned.startsWith('0')) {
-      return '+54' + cleaned.substring(1)
-    } else if (cleaned.startsWith('9')) {
-      return '+54' + cleaned
-    } else {
-      // Assume it's a local number without country code
-      return '+54' + cleaned
-    }
-  }
-
-
 
   return (
     <Dialog
@@ -603,9 +580,16 @@ export default function ActiveLoansClientsModal({ open, onClose }: ActiveLoansCl
                             mb: 1.5,
                           }}
                         >
-                          <Typography variant="body2" fontWeight={600}>
-                            {loan.client.fullName}
-                          </Typography>
+                          <Box>
+                            <Typography variant="body2" fontWeight={600}>
+                              {loan.client.fullName}
+                            </Typography>
+                            {loan.client.phone && (
+                              <Box sx={{ mt: 0.25 }}>
+                                <PhoneChip phone={loan.client.phone} size="small" />
+                              </Box>
+                            )}
+                          </Box>
                           <Typography variant="caption" color="text.secondary">
                             {formatDate(loan.createdAt)}
                           </Typography>
@@ -703,6 +687,11 @@ export default function ActiveLoansClientsModal({ open, onClose }: ActiveLoansCl
                             <Typography variant="body2" fontWeight={500}>
                               {loan.client.fullName}
                             </Typography>
+                            {loan.client.phone && (
+                              <Box sx={{ mt: 0.25 }}>
+                                <PhoneChip phone={loan.client.phone} size="small" />
+                              </Box>
+                            )}
                           </TableCell>
                           <TableCell align="right">
                             <Typography variant="body2">

@@ -5,6 +5,7 @@ import { Box, Typography, Chip, Tooltip, useTheme, useMediaQuery, IconButton, Ci
 import { CheckCircle, RadioButtonUnchecked, Warning, Error, Refresh, AttachMoney, Edit, CalendarMonth, ChevronLeft, ChevronRight } from '@mui/icons-material'
 import type { SubLoanWithClientInfo } from '@/services/subloans-lookup.service'
 import { subLoansService } from '@/services/sub-loans.service'
+import { formatCurrencyDisplay, toAmount } from '@/lib/formatters'
 import { DateTime } from 'luxon'
 
 interface LoanTimelineProps {
@@ -91,10 +92,10 @@ const TimelineNode: React.FC<TimelineNodeProps> = ({
   const getDaysInfo = () => {
     if (isPaid) return 'Pagada'
     if (isPartial) {
-      const paidAmount = subloan.paidAmount || 0
-      const totalAmount = subloan.totalAmount ?? 0
+      const paidAmount = toAmount(subloan.paidAmount)
+      const totalAmount = toAmount(subloan.totalAmount)
       const pending = totalAmount - paidAmount
-      return `Pagado parcial: $${paidAmount.toLocaleString()} (Resta: $${pending.toLocaleString()})`
+      return `Pagado parcial: ${formatCurrencyDisplay(paidAmount)} (Resta: ${formatCurrencyDisplay(pending)})`
     }
     const dateToCheck = subloan.dueDate
     if (!dateToCheck) return 'Sin fecha vencimiento'
@@ -210,7 +211,7 @@ const TimelineNode: React.FC<TimelineNodeProps> = ({
               Cuota #{subloan.paymentNumber}
             </Typography>
             <Typography variant="caption" display="block">
-              Monto: ${(subloan.totalAmount ?? 0).toLocaleString()}
+              Monto: {formatCurrencyDisplay(subloan.totalAmount)}
             </Typography>
             <Typography variant="caption" display="block">
               Vencimiento: {subloan.dueDate ? formatDate(subloan.dueDate) : 'N/A'}
@@ -220,7 +221,7 @@ const TimelineNode: React.FC<TimelineNodeProps> = ({
             </Typography>
             {(subloan.paidAmount ?? 0) > 0 && (
               <Typography variant="caption" display="block" color="success.main">
-                Pagado: ${(subloan.paidAmount ?? 0).toLocaleString()}
+                Pagado: {formatCurrencyDisplay(subloan.paidAmount)}
               </Typography>
             )}
             {paymentDescriptions && (
@@ -336,7 +337,7 @@ const TimelineNode: React.FC<TimelineNodeProps> = ({
                 {formatDate(subloan.dueDate)}
               </Typography>
               <Typography variant="caption" fontWeight="bold" color={colors.primary}>
-                ${(subloan.totalAmount ?? 0).toLocaleString()}
+                {formatCurrencyDisplay(subloan.totalAmount)}
               </Typography>
             </>
           )}
@@ -544,20 +545,16 @@ export const LoanTimeline: React.FC<LoanTimelineProps> = ({
   const pendingCuotas = totalCuotas - paidCuotas
   const progressPercentage = totalCuotas > 0 ? (paidCuotas / totalCuotas) * 100 : 0
 
-  const totalAmount = subLoans.reduce((sum, s) => sum + (s.totalAmount || 0), 0)
+  const totalAmount = subLoans.reduce((sum, s) => sum + toAmount(s.totalAmount), 0)
   const paidAmount = subLoans.reduce((sum, s) => {
-    if (s.status === 'PAID') return sum + (s.totalAmount || 0)
-    if (s.status === 'PARTIAL') return sum + (s.paidAmount || 0)
+    if (s.status === 'PAID') return sum + toAmount(s.totalAmount)
+    if (s.status === 'PARTIAL') return sum + toAmount(s.paidAmount)
     return sum
   }, 0)
   const remainingAmount = totalAmount - paidAmount
 
-  const formatCurrency = (amount: number) => {
-    return `$${new Intl.NumberFormat('es', { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(amount)}`
-  }
-
   const getRemainingAmountColor = () => {
-    const percentageRemaining = (remainingAmount / totalAmount) * 100
+    const percentageRemaining = totalAmount > 0 ? (remainingAmount / totalAmount) * 100 : 0
     if (percentageRemaining < 25) return 'success.main'
     if (percentageRemaining < 50) return 'warning.main'
     return 'error.main'
@@ -587,7 +584,7 @@ export const LoanTimeline: React.FC<LoanTimelineProps> = ({
             color="primary"
           />
           <Chip
-            label={`Resta pagar: ${formatCurrency(remainingAmount)} en ${pendingCuotas} cuota${pendingCuotas !== 1 ? 's' : ''}`}
+            label={`Resta pagar: ${formatCurrencyDisplay(remainingAmount)} en ${pendingCuotas} cuota${pendingCuotas !== 1 ? 's' : ''}`}
             size="small"
             variant="filled"
             color={remainingAmount <= 0 ? 'success' : undefined}

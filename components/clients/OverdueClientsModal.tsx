@@ -34,6 +34,7 @@ import {
   ExpandLess,
 } from '@mui/icons-material'
 import { subLoansService } from '@/services/sub-loans.service'
+import PhoneChip from '@/components/ui/PhoneChip'
 import type { OverdueClientEntry } from '@/services/sub-loans.service'
 import { useUsers } from '@/hooks/useUsers'
 import { useCurrentUser } from '@/hooks/useCurrentUser'
@@ -172,6 +173,11 @@ export default function OverdueClientsModal({ open, onClose }: OverdueClientsMod
             <Typography variant="subtitle2" fontWeight={600} noWrap>
               {entry.client.fullName}
             </Typography>
+            {entry.client.phone && (
+              <Box sx={{ mt: 0.25 }}>
+                <PhoneChip phone={entry.client.phone} size="small" />
+              </Box>
+            )}
             {!selectedManager && (
               <Typography variant="caption" color="text.secondary">
                 Manager: {entry.manager.fullName}

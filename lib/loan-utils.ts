@@ -218,17 +218,6 @@ export function formatDaysUntilDue(daysUntilDue: number): string {
 }
 
 /**
- * Formatea el monto como moneda
- */
-export function formatCurrency(amount: number): string {
-  // Formato genérico sin especificar país o moneda
-  return `$${new Intl.NumberFormat('es', {
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(amount)}`;
-}
-
-/**
  * Obtiene el color del chip para el estado coherente del préstamo
  */
 export function getLoanStatusColor(status: string): 'default' | 'primary' | 'secondary' | 'error' | 'info' | 'success' | 'warning' {

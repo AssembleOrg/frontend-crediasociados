@@ -24,7 +24,7 @@ import {
   formatInterestRate,
   getLoanStatusInfo 
 } from '@/lib/loans/loanCalculations'
-import { getFrequencyLabel } from '@/lib/formatters'
+import { getFrequencyLabel, formatCurrencyDisplay, toAmount } from '@/lib/formatters'
 import { paymentsService } from '@/services/payments.service'
 import type { SubLoanWithClientInfo } from '@/services/subloans-lookup.service'
 import type { Loan } from '@/types/auth'
@@ -65,10 +65,10 @@ export default function LoanDetailsModal({
     : `Cliente #${loan.clientId}`
 
   // Use originalAmount if available, otherwise fallback to calculations
-  const principalAmount = loan.originalAmount ?? loan.amount
-  const totalAmountToRepay = loan.originalAmount !== undefined ? loan.amount : calculateTotalRepaymentAmount(loan)
-  const interestAmount = loan.originalAmount !== undefined 
-    ? loan.amount - loan.originalAmount 
+  const principalAmount = toAmount(loan.originalAmount ?? loan.amount)
+  const totalAmountToRepay = loan.originalAmount !== undefined ? toAmount(loan.amount) : calculateTotalRepaymentAmount(loan)
+  const interestAmount = loan.originalAmount !== undefined
+    ? toAmount(loan.amount) - toAmount(loan.originalAmount)
     : calculateInterestAmount(loan)
   const statusInfo = getLoanStatusInfo(loan.status)
 
@@ -222,7 +222,7 @@ export default function LoanDetailsModal({
                 <Paper elevation={0} sx={{ mt: 2, mb: 3, bgcolor: '#FFFFFF', borderLeft: 4, borderLeftColor: 'primary.main', overflow: 'hidden' }}>
                   <Box sx={{ p: 2 }}>
                     <Typography variant="body1" fontWeight={700} color="primary.main">
-                      Resta pagar ${remainingAmount.toLocaleString()} en {remainingPayments} {remainingPayments === 1 ? 'cuota' : 'cuotas'}
+                      Resta pagar {formatCurrencyDisplay(remainingAmount)} en {remainingPayments} {remainingPayments === 1 ? 'cuota' : 'cuotas'}
                     </Typography>
                   </Box>
                 </Paper>
@@ -232,7 +232,7 @@ export default function LoanDetailsModal({
                 <Paper elevation={0} sx={{ mt: 2, mb: 3, bgcolor: '#FFFFFF', borderLeft: 4, borderLeftColor: 'success.main', overflow: 'hidden' }}>
                   <Box sx={{ p: 2 }}>
                     <Typography variant="body1" fontWeight={700} color="success.main">
-                      ✓ Préstamo completado · Total pagado: ${totalPaid.toLocaleString()}
+                      ✓ Préstamo completado · Total pagado: {formatCurrencyDisplay(totalPaid)}
                     </Typography>
                   </Box>
                 </Paper>
@@ -249,7 +249,7 @@ export default function LoanDetailsModal({
                 <Box>
                   <Typography variant="caption" color="text.secondary">Monto</Typography>
                   <Typography variant={isMobile ? 'body1' : 'h6'} fontWeight="bold">
-                    ${principalAmount.toLocaleString()}
+                    {formatCurrencyDisplay(principalAmount)}
                   </Typography>
                 </Box>
                 <Box>
@@ -261,7 +261,7 @@ export default function LoanDetailsModal({
                 <Box>
                   <Typography variant="caption" color="text.secondary">Intereses</Typography>
                   <Typography variant={isMobile ? 'body1' : 'h6'} fontWeight="bold" color="warning.main">
-                    ${interestAmount.toLocaleString()}
+                    {formatCurrencyDisplay(interestAmount)}
                   </Typography>
                 </Box>
                 <Box>

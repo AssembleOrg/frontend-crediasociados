@@ -1,6 +1,7 @@
 import { subLoansService } from './sub-loans.service'
 import { loansService } from './loans.service'
 import { clientsService } from './clients.service'
+import { toAmount } from '@/lib/formatters'
 import type { components } from '@/types/api-generated'
 import type { PaginationParams, LoanListResponseDto } from '@/types/auth'
 import type { SubLoanResponseDto } from '@/types/export'
@@ -93,6 +94,11 @@ class SubLoansLookupService {
         
         return {
           ...subLoan,
+          // Coerce amounts to number: backend puede enviar Decimal serializado como string
+          amount: toAmount(subLoan.amount),
+          totalAmount: toAmount(subLoan.totalAmount),
+          paidAmount: toAmount(subLoan.paidAmount),
+          outstandingBalance: toAmount((subLoan as any).outstandingBalance),
           clientId: client?.id || (loan as any)?.clientId,
           loanTrack: (loan as any)?.loanTrack,
           clientName: client?.fullName,
@@ -101,7 +107,7 @@ class SubLoansLookupService {
           // Preserve payments array if present, mapping to PaymentInfo format
           payments: payments?.map((p: any) => ({
             id: p.id,
-            amount: p.amount,
+            amount: toAmount(p.amount),
             currency: p.currency || 'ARS',
             paymentDate: p.paymentDate,
             description: p.description || undefined,
@@ -149,6 +155,11 @@ class SubLoansLookupService {
         
         return {
           ...subLoan,
+          // Coerce amounts to number: backend puede enviar Decimal serializado como string
+          amount: toAmount(subLoan.amount),
+          totalAmount: toAmount(subLoan.totalAmount),
+          paidAmount: toAmount(subLoan.paidAmount),
+          outstandingBalance: toAmount((subLoan as any).outstandingBalance),
           clientId: client?.id || (loan as any)?.clientId,
           loanTrack: (loan as any)?.loanTrack,
           clientName: client?.fullName,
@@ -157,7 +168,7 @@ class SubLoansLookupService {
           // Preserve payments array if present, mapping to PaymentInfo format
           payments: payments?.map((p: any) => ({
             id: p.id,
-            amount: p.amount,
+            amount: toAmount(p.amount),
             currency: p.currency || 'ARS',
             paymentDate: p.paymentDate,
             description: p.description || undefined,
