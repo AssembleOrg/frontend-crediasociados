@@ -74,6 +74,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
   const [adjustEnabled, setAdjustEnabled]           = useState<boolean>(false)
   const [adjustedAmount, setAdjustedAmount]         = useState<string>('')
   const [distributeOverflow, setDistributeOverflow] = useState<boolean>(true)
+  const [finishLoan, setFinishLoan]                 = useState<boolean>(false)
   const [paymentPreview, setPaymentPreview]         = useState<{
     remainingAfterPayment: number
     status: 'PARTIAL' | 'PAID'
@@ -140,6 +141,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
     setAdjustEnabled(false)
     setAdjustedAmount('')
     setDistributeOverflow(true)
+    setFinishLoan(false)
     if (mode === 'single' && subloan) {
       setSelectedSubloanId(subloan.id ?? '')
       const pending = (subloan.totalAmount ?? 0) - (subloan.paidAmount || 0)
@@ -381,14 +383,25 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
   }
 
 
+  // Activar "Terminar préstamo" anula el ajuste de cuota (no aplica al condonar).
+  const handleFinishLoanChange = (checked: boolean) => {
+    setFinishLoan(checked)
+    if (checked) {
+      setAdjustEnabled(false)
+      setAdjustedAmount('')
+    }
+  }
+
   const handleRegisterPayment = async () => {
     if (!currentSubloan) return
     const amount = parseFloat(unformatAmount(paymentAmount)) || 0
     const pending = effectiveTotalAmount - (currentSubloan.paidAmount || 0)
-    // Solo abrir el confirm cuando va a haber distribución automática.
-    // Si el usuario apagó la distribución, el aviso ya está en el formulario
-    // y el botón debería estar deshabilitado; el backend además rechazaría.
-    if (amount > pending && distributeOverflow) {
+    // Al terminar el préstamo el excedente/condonación es esperado: no mostramos
+    // el confirm de "monto supera el saldo".
+    // En el resto de los casos solo abrimos el confirm cuando va a haber
+    // distribución automática (si la distribución está apagada el botón ya está
+    // deshabilitado y el backend además rechazaría).
+    if (!finishLoan && amount > pending && distributeOverflow) {
       setMultiPaymentConfirmOpen(true)
       return
     }
@@ -406,6 +419,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
         paymentDate: new Date().toISOString().split('T')[0],
         description: notes || undefined,
         distributeOverflow,
+        ...(finishLoan ? { finishLoan: true } : {}),
         ...(adjustEnabled && adjustedAmount ? { adjustedTotalAmount: parseFloat(unformatAmount(adjustedAmount)) || undefined } : {}),
       })
 
@@ -422,7 +436,10 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
           // Payment registered — operativa entry is supplemental
         }
 
-        const remaining = Math.max(0, ((currentSubloan.totalAmount ?? 0) - (currentSubloan.paidAmount || 0)) - amountValue)
+        // Al terminar el préstamo, la cuota/préstamo queda saldado (condonando el resto).
+        const remaining = finishLoan
+          ? 0
+          : Math.max(0, ((currentSubloan.totalAmount ?? 0) - (currentSubloan.paidAmount || 0)) - amountValue)
         const newStatus = remaining === 0 ? 'PAID' : 'PARTIAL'
 
         if (newStatus === 'PARTIAL' && nextDueDate) {
@@ -547,6 +564,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
     paymentPreview,
     isRegistering,
     distributeOverflow,
+    finishLoan,
     onSubloanChange: setSelectedSubloanId,
     onAmountChange:  handleAmountChange,
     onNotesChange:   setNotes,
@@ -554,6 +572,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
     onAdjustEnabledChange: handleAdjustEnabledChange,
     onAdjustedAmountChange: setAdjustedAmount,
     onDistributeOverflowChange: setDistributeOverflow,
+    onFinishLoanChange: handleFinishLoanChange,
     onRegister: handleRegisterPayment,
     onCancel:   onClose,
     onNextDueDateChange: setNextDueDate,

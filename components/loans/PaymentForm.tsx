@@ -36,6 +36,7 @@ import {
   TuneRounded,
   CalendarToday,
   Autorenew,
+  TaskAlt,
 } from '@mui/icons-material'
 import { DateTime } from 'luxon'
 import { formatAmount, unformatAmount, formatCurrencyDisplay, numberToFormattedAmount } from '@/lib/formatters'
@@ -83,6 +84,7 @@ export interface PaymentFormProps {
   paymentPreview: { remainingAfterPayment: number; status: 'PARTIAL' | 'PAID'; isPartial: boolean } | null
   isRegistering: boolean
   distributeOverflow: boolean
+  finishLoan: boolean
   // Handlers
   onSubloanChange: (id: string) => void
   onAmountChange: (raw: string) => void
@@ -91,6 +93,7 @@ export interface PaymentFormProps {
   onAdjustEnabledChange: (checked: boolean) => void
   onAdjustedAmountChange: (raw: string) => void
   onDistributeOverflowChange: (checked: boolean) => void
+  onFinishLoanChange: (checked: boolean) => void
   onRegister: () => void
   onCancel: () => void
   onNextDueDateChange?: (date: string) => void
@@ -139,6 +142,7 @@ export function PaymentForm({
   paymentPreview,
   isRegistering,
   distributeOverflow,
+  finishLoan,
   onSubloanChange,
   onAmountChange,
   onNotesChange,
@@ -146,6 +150,7 @@ export function PaymentForm({
   onAdjustEnabledChange,
   onAdjustedAmountChange,
   onDistributeOverflowChange,
+  onFinishLoanChange,
   onRegister,
   onCancel,
   onNextDueDateChange,
@@ -182,11 +187,14 @@ export function PaymentForm({
     !!currentSubloan &&
     !!paymentAmount &&
     parsedAmount > 0 &&
-    !hasUndistributableExcess
+    (finishLoan || !hasUndistributableExcess)
   const outstandingBalance = currentSubloan
     ? (currentSubloan.outstandingBalance ?? ((currentSubloan.totalAmount ?? 0) - (currentSubloan.paidAmount || 0)))
     : 0
   const canShowRenewToggle = !!onRenewModeChange && outstandingBalance > 0
+  // Saldo total del préstamo que quedaría condonado al terminarlo con este monto.
+  const forgivenOnFinish = finishLoan ? Math.max(0, outstandingBalance - parsedAmount) : 0
+  const overpaidOnFinish = finishLoan ? Math.max(0, parsedAmount - outstandingBalance) : 0
 
   // "Próximo pago" state — only relevant when paymentPreview.isPartial
   const suggestedNextDate = calcNextDueDate(currentSubloan?.dueDate, paymentFrequency)
@@ -252,7 +260,7 @@ export function PaymentForm({
             {canShowRenewToggle && (
               <Box
                 sx={{
-                  mb: 2, p: 2,
+                  mb: 1.5, px: 2, py: 0.75,
                   border: '2px dashed',
                   borderColor: renewMode ? 'secondary.main' : 'divider',
                   borderRadius: 2,
@@ -267,6 +275,7 @@ export function PaymentForm({
                       onChange={(e) => onRenewModeChange?.(e.target.checked)}
                       color="secondary"
                       size="small"
+                      sx={{ py: 0.5 }}
                     />
                   }
                   label={
@@ -288,10 +297,51 @@ export function PaymentForm({
 
             {!renewMode ? (
               <>
+                {/* Terminar préstamo — checkbox */}
+                {outstandingBalance > 0 && (
+                  <Box
+                    sx={{
+                      mb: 1.5, px: 2, py: 0.75,
+                      border: '2px dashed',
+                      borderColor: finishLoan ? 'warning.main' : 'divider',
+                      borderRadius: 2,
+                      bgcolor: finishLoan ? 'rgba(255,149,0,0.08)' : 'transparent',
+                      transition: 'all 0.2s',
+                    }}
+                  >
+                    <FormControlLabel
+                      control={
+                        <Checkbox
+                          checked={finishLoan}
+                          onChange={(e) => onFinishLoanChange(e.target.checked)}
+                          color="warning"
+                          size="small"
+                          sx={{ py: 0.5 }}
+                        />
+                      }
+                      label={
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                          <TaskAlt fontSize="small" color={finishLoan ? 'warning' : 'action'} />
+                          <Typography variant="body2" fontWeight={finishLoan ? 600 : 400}>
+                            Terminar préstamo
+                          </Typography>
+                        </Box>
+                      }
+                    />
+                    {finishLoan && (
+                      <Typography variant="caption" color="text.secondary" sx={{ display: 'block', pl: 4, mt: 0.5 }}>
+                        El monto ingresado salda el préstamo. Las cuotas restantes se marcan como pagadas; si el monto es menor al saldo a finalizar, la diferencia se condona.
+                      </Typography>
+                    )}
+                  </Box>
+                )}
+
+                {!finishLoan && (
+                <>
                 {/* Adjust installment */}
                 <Box
                   sx={{
-                    mb: 2, p: 2,
+                    mb: 1.5, px: 2, py: 0.75,
                     border: '1px solid',
                     borderColor: adjustEnabled ? 'primary.main' : 'divider',
                     borderRadius: 2,
@@ -306,6 +356,7 @@ export function PaymentForm({
                         onChange={(e) => onAdjustEnabledChange(e.target.checked)}
                         color="primary"
                         size="small"
+                        sx={{ py: 0.5 }}
                       />
                     }
                     label={
@@ -350,7 +401,7 @@ export function PaymentForm({
                 {/* Distribute overflow toggle */}
                 <Box
                   sx={{
-                    mb: 2, p: 2,
+                    mb: 1.5, px: 2, py: 0.75,
                     border: '1px solid',
                     borderColor: distributeOverflow ? 'primary.main' : 'divider',
                     borderRadius: 2,
@@ -365,6 +416,7 @@ export function PaymentForm({
                         onChange={(e) => onDistributeOverflowChange(e.target.checked)}
                         color="primary"
                         size="small"
+                        sx={{ py: 0.5 }}
                       />
                     }
                     label={
@@ -382,9 +434,33 @@ export function PaymentForm({
                       : 'El excedente NO se distribuirá. Si el monto supera el saldo pendiente, ajustá el monto o el total de la cuota.'}
                   </Typography>
                 </Box>
+                </>
+                )}
+
+                {/* Resumen al terminar el préstamo */}
+                {finishLoan && (
+                  <Alert severity={forgivenOnFinish > 0 ? 'warning' : 'success'} icon={<TaskAlt />} sx={{ mb: 2 }}>
+                    <Typography variant="body2" fontWeight={600}>
+                      El préstamo quedará terminado (COMPLETED)
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
+                      Saldo a finalizar: {formatCurrencyDisplay(outstandingBalance)}
+                    </Typography>
+                    {forgivenOnFinish > 0 && (
+                      <Typography variant="caption" sx={{ display: 'block', color: 'warning.main', fontWeight: 600 }}>
+                        Se condonará: {formatCurrencyDisplay(forgivenOnFinish)}
+                      </Typography>
+                    )}
+                    {overpaidOnFinish > 0 && (
+                      <Typography variant="caption" sx={{ display: 'block', color: 'success.main', fontWeight: 600 }}>
+                        Se cobra {formatCurrencyDisplay(overpaidOnFinish)} por encima del saldo
+                      </Typography>
+                    )}
+                  </Alert>
+                )}
 
                 {/* Aviso de excedente cuando la distribución está desactivada */}
-                {hasUndistributableExcess && (
+                {!finishLoan && hasUndistributableExcess && (
                   <Alert severity="warning" icon={<Info />} sx={{ mb: 2 }}>
                     <Typography variant="body2" fontWeight={600}>
                       Hay un excedente de {formatCurrencyDisplay(excessAmount)}
@@ -412,7 +488,7 @@ export function PaymentForm({
                 />
 
                 {/* Payment preview */}
-                {paymentPreview && (
+                {!finishLoan && paymentPreview && (
                   <Alert icon={<Info />} severity={paymentPreview.isPartial ? 'warning' : 'success'} sx={{ mb: 2 }}>
                     <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, alignItems: { sm: 'center' }, gap: 1, justifyContent: 'space-between' }}>
                       <Typography variant="body2">
@@ -436,7 +512,7 @@ export function PaymentForm({
                 )}
 
                 {/* ── Próximo pago (solo si es pago parcial) ── */}
-                {isPartial && (
+                {!finishLoan && isPartial && (
                   <Box
                     sx={{
                       mb: 2,

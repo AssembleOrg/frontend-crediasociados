@@ -71,6 +71,9 @@ interface RegisterPaymentRequest {
   // Si es false, el backend NO distribuye el excedente y rechaza el pago si el
   // monto supera el saldo pendiente de la cuota. Default: true.
   distributeOverflow?: boolean;
+  // Si es true, el monto ingresado termina el préstamo: se cobra y distribuye, y
+  // las cuotas restantes se marcan PAID condonando la diferencia (loan COMPLETED).
+  finishLoan?: boolean;
 }
 
 /**
