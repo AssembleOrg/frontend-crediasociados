@@ -439,7 +439,7 @@ export function PaymentForm({
 
                 {/* Resumen al terminar el préstamo */}
                 {finishLoan && (
-                  <Alert severity={forgivenOnFinish > 0 ? 'warning' : 'success'} icon={<TaskAlt />} sx={{ mb: 2 }}>
+                  <Alert severity={forgivenOnFinish > 0 ? 'warning' : 'success'} icon={false} sx={{ mb: 2 }}>
                     <Typography variant="body2" fontWeight={600}>
                       El préstamo quedará terminado (COMPLETED)
                     </Typography>
@@ -573,11 +573,12 @@ export function PaymentForm({
                   </Box>
                 ) : (
                   <Box>
-                    <Alert severity="info" sx={{ mb: 2 }}>
-                      <Typography variant="body2">
-                        Los valores vienen precargados del préstamo actual. Todos son editables.
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mb: 1.5, px: 0.5 }}>
+                      <Info sx={{ fontSize: 15, color: 'text.disabled', flexShrink: 0 }} />
+                      <Typography variant="caption" color="text.secondary">
+                        Valores precargados del préstamo · todos editables
                       </Typography>
-                    </Alert>
+                    </Box>
 
                     <Box
                       sx={{
