@@ -258,7 +258,7 @@ export const ActiveLoansPDF: React.FC<ActiveLoansPDFProps> = ({ managerDetail, s
         <View style={styles.header}>
           <View style={styles.headerRow}>
             <Image
-              src="/crediasociados-logo.png"
+              src="/logo-prestamito.png"
               style={styles.logo}
             />
             <View style={styles.headerText}>
@@ -306,7 +306,7 @@ export const ActiveLoansPDF: React.FC<ActiveLoansPDFProps> = ({ managerDetail, s
             const isEven = index % 2 === 0
 
             return (
-              <View key={loan.id} style={[styles.tableRow, isEven && styles.tableRowEven]}>
+              <View key={loan.id} style={isEven ? [styles.tableRow, styles.tableRowEven] : styles.tableRow}>
                 <Text style={[styles.tableCell, styles.tableCellClient]}>
                   {loan.client.fullName}
                 </Text>

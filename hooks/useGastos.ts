@@ -15,7 +15,7 @@
 import { useState, useCallback, useEffect, useRef } from 'react'
 import { useFinanzasStore } from '@/stores/finanzas'
 import { useAuth } from '@/hooks/useAuth'
-import { gastosService } from '@/services/gastos.service'
+import gastosService from '@/services/gastos.service'
 import type {
   CreateExpenseDto,
   UpdateExpenseDto,

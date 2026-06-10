@@ -64,6 +64,24 @@ class ManagerService {
     const response = await api.get(`/users/${managerId}/loans/chart`, { params: filters })
     return response.data.data || response.data || []
   }
+  /**
+   * Get summary of all managers for a subadmin in a single call.
+   * Replaces N calls to clients/chart + loans/chart.
+   */
+  async getSubadminManagersSummary(): Promise<SubadminManagerSummary[]> {
+    const response = await api.get('/users/subadmin/managers-summary')
+    return response.data.data || response.data || []
+  }
+}
+
+export interface SubadminManagerSummary {
+  id: string
+  fullName: string
+  email: string
+  totalClients: number
+  totalLoans: number
+  totalAmount: number
+  clients: Array<{ createdAt: string }>
 }
 
 export const managerService = new ManagerService()

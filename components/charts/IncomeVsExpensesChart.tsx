@@ -53,13 +53,7 @@ const CustomTooltip = ({ active, payload, label }: TooltipProps) => {
 }
 
 const formatYAxis = (value: number) => {
-  if (value >= 1000000) {
-    return `$${(value / 1000000).toFixed(1)}M`
-  }
-  if (value >= 1000) {
-    return `$${(value / 1000).toFixed(0)}K`
-  }
-  return `$${value}`
+  return `$${new Intl.NumberFormat('es-AR', { maximumFractionDigits: 0 }).format(value)}`
 }
 
 const IncomeVsExpensesChart = memo(function IncomeVsExpensesChart({
@@ -124,7 +118,7 @@ const IncomeVsExpensesChart = memo(function IncomeVsExpensesChart({
         Últimos {data.length} meses
       </Typography>
 
-      <ResponsiveContainer width="100%" height="65%">
+      <ResponsiveContainer width="100%" height={260}>
         <BarChart
           data={data}
           margin={{

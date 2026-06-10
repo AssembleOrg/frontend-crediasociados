@@ -48,7 +48,7 @@ export default function WalletTransactionsModal({ open, onClose }: WalletTransac
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [page, setPage] = useState(0) // MUI TablePagination uses 0-based indexing
-  const [rowsPerPage, setRowsPerPage] = useState(20)
+  const [rowsPerPage, setRowsPerPage] = useState(25)
   const [total, setTotal] = useState(0)
   const [filterType, setFilterType] = useState<TransactionType>('ALL')
   const [startDate, setStartDate] = useState<string>('')
@@ -160,46 +160,38 @@ export default function WalletTransactionsModal({ open, onClose }: WalletTransac
       onClose={onClose}
       maxWidth="lg"
       fullWidth
-      fullScreen={isMobile}
       PaperProps={{
         sx: {
-          borderRadius: isMobile ? 0 : 3,
-          maxHeight: isMobile ? '100vh' : '90vh',
-          m: { xs: 0, sm: 2 },
-          mt: { xs: 0, sm: 3 }
+          borderRadius: { xs: 2, sm: 3 },
+          maxHeight: { xs: 'calc(100dvh - 96px)', sm: '90vh' },
+          m: { xs: 1, sm: 2 },
+          mt: { xs: 'auto', sm: 2 },
+          width: { xs: '100%', sm: 'auto' },
         }
       }}
     >
-      <DialogTitle sx={{ 
+      <DialogTitle sx={{
         pb: 2,
         pt: 2,
         px: 3,
-        display: 'flex', 
-        alignItems: 'center', 
+        display: 'flex',
+        alignItems: 'center',
         justifyContent: 'space-between',
-        background: 'linear-gradient(135deg, #1976d2 0%, #1565c0 100%)',
-        color: 'white'
+        borderBottom: '1px solid',
+        borderColor: 'divider',
       }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-          <History sx={{ fontSize: 28 }} />
+          <History sx={{ fontSize: 28, color: 'primary.main' }} />
           <Box>
             <Typography variant="h6" component="div" fontWeight={600}>
               Historial de Transacciones
             </Typography>
-            <Typography variant="caption" component="div" sx={{ opacity: 0.9, display: 'block', mt: 0.5 }}>
+            <Typography variant="caption" component="div" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
               Retiros, depósitos y transferencias
             </Typography>
           </Box>
         </Box>
-        <IconButton
-          onClick={onClose}
-          sx={{ 
-            color: 'white',
-            '&:hover': {
-              bgcolor: 'rgba(255,255,255,0.1)'
-            }
-          }}
-        >
+        <IconButton onClick={onClose} size="small">
           <Close />
         </IconButton>
       </DialogTitle>
@@ -212,15 +204,15 @@ export default function WalletTransactionsModal({ open, onClose }: WalletTransac
         flexDirection: 'column'
       }}>
         {/* Filters */}
-        <Box sx={{ mb: 3, display: 'flex', flexWrap: 'wrap', alignItems: 'center', mt:3 }}>
-          <FormControl size="small" sx={{ minWidth: 200 }}>
+        <Box sx={{ mb: 3, mt: 2, display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, flexWrap: 'wrap', gap: 2 }}>
+          <FormControl size="small" sx={{ minWidth: { xs: '100%', sm: 200 }, maxWidth: { sm: 280 } }}>
             <InputLabel>Tipo de Transacción</InputLabel>
             <Select
               value={filterType}
               label="Tipo de Transacción"
               onChange={(e) => {
                 setFilterType(e.target.value as TransactionType)
-                setPage(0) // Reset to first page when changing filter
+                setPage(0)
               }}
             >
               <MenuItem value="ALL">Todas</MenuItem>
@@ -232,31 +224,25 @@ export default function WalletTransactionsModal({ open, onClose }: WalletTransac
               <MenuItem value="TRANSFER_FROM_SUBADMIN">Transferencias desde Subadmin</MenuItem>
             </Select>
           </FormControl>
-          
+
           <TextField
             label="Fecha Desde"
             type="date"
             size="small"
             value={startDate}
-            onChange={(e) => {
-              setStartDate(e.target.value)
-              setPage(0) // Reset to first page when changing date
-            }}
+            onChange={(e) => { setStartDate(e.target.value); setPage(0) }}
             InputLabelProps={{ shrink: true }}
-            sx={{ minWidth: 150 }}
+            sx={{ minWidth: { xs: '100%', sm: 160 }, maxWidth: { sm: 200 } }}
           />
-          
+
           <TextField
             label="Fecha Hasta"
             type="date"
             size="small"
             value={endDate}
-            onChange={(e) => {
-              setEndDate(e.target.value)
-              setPage(0) // Reset to first page when changing date
-            }}
+            onChange={(e) => { setEndDate(e.target.value); setPage(0) }}
             InputLabelProps={{ shrink: true }}
-            sx={{ minWidth: 150 }}
+            sx={{ minWidth: { xs: '100%', sm: 160 }, maxWidth: { sm: 200 } }}
           />
         </Box>
 

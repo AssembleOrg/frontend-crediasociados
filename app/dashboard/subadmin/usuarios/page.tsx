@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useRef } from 'react';
 import {
   Typography,
   Box,
@@ -19,6 +19,9 @@ import {
   Menu,
   MenuItem,
   useTheme,
+  useMediaQuery,
+  Card,
+  CardContent,
 } from '@mui/material';
 import {
   Search,
@@ -27,6 +30,7 @@ import {
   Edit,
   Delete,
   LockReset,
+  Phone,
 } from '@mui/icons-material';
 import { useUsers } from '@/hooks/useUsers';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
@@ -39,7 +43,8 @@ import { authService } from '@/services/auth.service';
 import { TableSkeleton } from '@/components/ui/TableSkeleton';
 
 export default function ManagersPage() {
-  useTheme();
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
   const [searchTerm, setSearchTerm] = useState('');
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
@@ -97,6 +102,28 @@ export default function ManagersPage() {
   const handleChangePassword = () => {
     setIsChangePasswordModalOpen(true);
     handleMenuClose();
+  };
+
+  const handleDirectEdit = (managerId: string) => {
+    setSelectedManagerId(managerId);
+    setIsEditModalOpen(true);
+  };
+
+  const pointerDownPos = useRef<{x: number, y: number} | null>(null);
+  const dragThreshold = 8;
+
+  const handleCardPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    pointerDownPos.current = { x: e.clientX, y: e.clientY };
+  };
+
+  const handleCardPointerUp = (e: React.PointerEvent<HTMLDivElement>, managerId: string) => {
+    if (!pointerDownPos.current) return;
+    const dx = Math.abs(e.clientX - pointerDownPos.current.x);
+    const dy = Math.abs(e.clientY - pointerDownPos.current.y);
+    if (dx < dragThreshold && dy < dragThreshold) {
+      handleDirectEdit(managerId);
+    }
+    pointerDownPos.current = null;
   };
 
   const handleChangePasswordSubmit = async (userId: string, newPassword: string): Promise<boolean> => {
@@ -159,7 +186,7 @@ export default function ManagersPage() {
   }, [currentSubadmin]);
 
   return (
-    <Box>
+    <Box sx={{ bgcolor: isMobile ? '#F2F2F7' : 'transparent', minHeight: isMobile ? '100vh' : 'auto', p: isMobile ? 2 : 0 }}>
       <Box
         sx={{
           mb: 4,
@@ -248,157 +275,186 @@ export default function ManagersPage() {
         </Paper>
       )}
 
-      <Paper elevation={1}>
-        <TableContainer>
-          <Table>
-            <TableHead>
-              <TableRow>
-                <TableCell>Cobrador</TableCell>
-                <TableCell align='center'>Rol</TableCell>
-                <TableCell
-                  align='center'
-                  sx={{ display: { xs: 'none', sm: 'table-cell' } }}
+      {/* Mobile: Cards */}
+      {isMobile ? (
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5, bgcolor: '#F2F2F7', p: { xs: 2, sm: 0 }, mx: -3, mb: 0, px: 2 }}>
+          {isLoading ? (
+            <Paper sx={{ p: 4, textAlign: 'center', mt: 3 }}>
+              <Typography color="text.secondary">Cargando...</Typography>
+            </Paper>
+          ) : filteredManagers.length === 0 ? (
+            <Paper sx={{ p: 4, textAlign: 'center', mt: 3 }}>
+              <Typography variant='body2' color='text.secondary'>
+                {managers.length === 0
+                  ? 'No hay cobradores registrados todavia'
+                  : 'No se encontraron cobradores que coincidan con la busqueda'}
+              </Typography>
+            </Paper>
+          ) : (
+            filteredManagers.map((manager) => {
+              const quotaPct = calculateQuotaPercentage(manager.usedClientQuota ?? 0, manager.clientQuota ?? 0);
+              const available = (manager.clientQuota ?? 0) - (manager.usedClientQuota ?? 0);
+
+              return (
+                <Card
+                  key={manager.id}
+                  variant="outlined"
+                  onPointerDown={handleCardPointerDown}
+                  onPointerUp={(e) => handleCardPointerUp(e, manager.id)}
+                  sx={{
+                    cursor: 'pointer',
+                    userSelect: 'none',
+                    transition: 'background-color 0.2s',
+                    '&:active': { bgcolor: 'action.hover' },
+                  }}
                 >
-                  Cuota Total
-                </TableCell>
-                <TableCell
-                  align='center'
-                  sx={{ display: { xs: 'none', md: 'table-cell' } }}
-                >
-                  Cuota Usada
-                </TableCell>
-                <TableCell
-                  align='center'
-                  sx={{ display: { xs: 'none', lg: 'table-cell' } }}
-                >
-                  Cuota Disponible
-                </TableCell>
-                <TableCell
-                  align='center'
-                  sx={{ display: { xs: 'none', md: 'table-cell' } }}
-                >
-                  Teléfono
-                </TableCell>
-                <TableCell align='center'>Acciones</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {isLoading ? (
-                <TableSkeleton columns={7} rows={8} />
-              ) : (
-                <>
-                  {filteredManagers.map((manager) => (
-                    <TableRow
-                      key={manager.id}
-                      hover
-                    >
-                      <TableCell>
-                        <Typography
-                          variant='subtitle2'
-                          sx={{ fontWeight: 500 }}
-                        >
+                  <CardContent sx={{ px: 2, py: 1.5, '&:last-child': { pb: 1.5 } }}>
+                    {/* Row 1: Name + Menu */}
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 0.5 }}>
+                      <Box sx={{ flex: 1, minWidth: 0 }}>
+                        <Typography variant="subtitle2" fontWeight={600} noWrap>
                           {manager.fullName}
                         </Typography>
-                        <Typography
-                          variant='caption'
-                          color='text.secondary'
-                        >
+                        <Typography variant="caption" color="text.secondary" display="block" noWrap>
                           {manager.email}
                         </Typography>
-                        <Typography
-                          variant='caption'
-                          color='text.secondary'
-                          sx={{ display: { xs: 'block', sm: 'none' }, mt: 0.5 }}
-                        >
-                          Rol: {RoleUtils.getRoleDisplayName(manager.role as UserRole)} • Creado:{' '}
-                          {formatDate(manager.createdAt.toISOString())}
+                        <Typography variant="caption" color="text.disabled" sx={{ mt: 0.5, display: 'block' }}>
+                          Toca para editar
                         </Typography>
-                      </TableCell>
-                      <TableCell align='center'>
-                        <Chip
-                          label={RoleUtils.getRoleDisplayName(manager.role as UserRole)}
-                          color='primary'
-                          size='small'
-                        />
-                      </TableCell>
-                      <TableCell
-                        align='center'
-                        sx={{ display: { xs: 'none', sm: 'table-cell' } }}
+                      </Box>
+                      <IconButton
+                        size="small"
+                        onPointerDown={(e) => e.stopPropagation()}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleMenuOpen(e, manager.id);
+                        }}
                       >
-                        <Typography variant='body2' sx={{ fontWeight: 600 }}>
-                          {manager.clientQuota ?? 0}
-                        </Typography>
-                      </TableCell>
-                      <TableCell
-                        align='center'
-                        sx={{ display: { xs: 'none', md: 'table-cell' } }}
-                      >
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, justifyContent: 'center' }}>
-                          <Typography variant='body2' sx={{ fontWeight: 500 }}>
-                            {manager.usedClientQuota ?? 0}
-                          </Typography>
-                          <Typography variant='caption' color='text.secondary'>
-                            ({calculateQuotaPercentage(manager.usedClientQuota ?? 0, manager.clientQuota ?? 0)}%)
+                        <MoreVert />
+                      </IconButton>
+                    </Box>
+                    {/* Row 2: Quota + Phone */}
+                    <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', flexWrap: 'wrap', mt: 1 }}>
+                      <Chip
+                        label={`${manager.usedClientQuota ?? 0} / ${manager.clientQuota ?? 0} clientes`}
+                        size="small"
+                        color={getQuotaColor(quotaPct)}
+                        variant="outlined"
+                        sx={{ fontWeight: 600, fontSize: '0.75rem' }}
+                      />
+                      <Chip
+                        label={`${available} disponibles`}
+                        size="small"
+                        color={available > 0 ? 'success' : 'default'}
+                        sx={{ fontWeight: 500, fontSize: '0.75rem' }}
+                      />
+                      {manager.phone && (
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, ml: 'auto' }}>
+                          <Phone sx={{ fontSize: 14, color: 'text.disabled' }} />
+                          <Typography variant="caption" color="text.secondary">
+                            {manager.phone}
                           </Typography>
                         </Box>
-                      </TableCell>
-                      <TableCell
-                        align='center'
-                        sx={{ display: { xs: 'none', lg: 'table-cell' } }}
-                      >
-                        <Chip
-                          label={(manager.clientQuota ?? 0) - (manager.usedClientQuota ?? 0)}
-                          color={getQuotaColor(calculateQuotaPercentage(manager.usedClientQuota ?? 0, manager.clientQuota ?? 0))}
-                          variant='outlined'
-                          size='small'
-                          sx={{ fontWeight: 600 }}
-                        />
-                      </TableCell>
-                      <TableCell
-                        align='center'
-                        sx={{ display: { xs: 'none', md: 'table-cell' } }}
-                      >
-                        <Typography
-                          variant='body2'
-                          color='text.secondary'
-                        >
-                          {manager.phone || 'No especificado'}
-                        </Typography>
-                      </TableCell>
-                      <TableCell align='center'>
-                        <IconButton
-                          size='small'
-                          onClick={(e) => handleMenuOpen(e, manager.id)}
-                        >
-                          <MoreVert />
-                        </IconButton>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-
-                  {filteredManagers.length === 0 && !isLoading && (
-                    <TableRow>
-                      <TableCell
-                        colSpan={7}
-                        sx={{ textAlign: 'center', py: 4 }}
-                      >
-                        <Typography
-                          variant='body2'
-                          color='text.secondary'
-                        >
-                          {managers.length === 0
-                            ? 'No hay cobradores registrados todavía'
-                            : 'No se encontraron cobradores que coincidan con la búsqueda'}
-                        </Typography>
-                      </TableCell>
-                    </TableRow>
-                  )}
-                </>
-              )}
-            </TableBody>
-          </Table>
-        </TableContainer>
-      </Paper>
+                      )}
+                    </Box>
+                  </CardContent>
+                </Card>
+              );
+            })
+          )}
+        </Box>
+      ) : (
+        /* Desktop: Table */
+        <Paper elevation={1}>
+          <TableContainer>
+            <Table>
+              <TableHead>
+                <TableRow>
+                  <TableCell>Cobrador</TableCell>
+                  <TableCell align='center'>Rol</TableCell>
+                  <TableCell align='center'>Cuota Total</TableCell>
+                  <TableCell align='center' sx={{ display: { xs: 'none', md: 'table-cell' } }}>Cuota Usada</TableCell>
+                  <TableCell align='center' sx={{ display: { xs: 'none', lg: 'table-cell' } }}>Cuota Disponible</TableCell>
+                  <TableCell align='center' sx={{ display: { xs: 'none', md: 'table-cell' } }}>Telefono</TableCell>
+                  <TableCell align='center'>Acciones</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {isLoading ? (
+                  <TableSkeleton columns={7} rows={8} />
+                ) : (
+                  <>
+                    {filteredManagers.map((manager) => (
+                      <TableRow key={manager.id} hover>
+                        <TableCell>
+                          <Typography variant='subtitle2' sx={{ fontWeight: 500 }}>
+                            {manager.fullName}
+                          </Typography>
+                          <Typography variant='caption' color='text.secondary'>
+                            {manager.email}
+                          </Typography>
+                        </TableCell>
+                        <TableCell align='center'>
+                          <Chip
+                            label={RoleUtils.getRoleDisplayName(manager.role as UserRole)}
+                            color='primary'
+                            size='small'
+                          />
+                        </TableCell>
+                        <TableCell align='center'>
+                          <Typography variant='body2' sx={{ fontWeight: 600 }}>
+                            {manager.clientQuota ?? 0}
+                          </Typography>
+                        </TableCell>
+                        <TableCell align='center' sx={{ display: { xs: 'none', md: 'table-cell' } }}>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, justifyContent: 'center' }}>
+                            <Typography variant='body2' sx={{ fontWeight: 500 }}>
+                              {manager.usedClientQuota ?? 0}
+                            </Typography>
+                            <Typography variant='caption' color='text.secondary'>
+                              ({calculateQuotaPercentage(manager.usedClientQuota ?? 0, manager.clientQuota ?? 0)}%)
+                            </Typography>
+                          </Box>
+                        </TableCell>
+                        <TableCell align='center' sx={{ display: { xs: 'none', lg: 'table-cell' } }}>
+                          <Chip
+                            label={(manager.clientQuota ?? 0) - (manager.usedClientQuota ?? 0)}
+                            color={getQuotaColor(calculateQuotaPercentage(manager.usedClientQuota ?? 0, manager.clientQuota ?? 0))}
+                            variant='outlined'
+                            size='small'
+                            sx={{ fontWeight: 600 }}
+                          />
+                        </TableCell>
+                        <TableCell align='center' sx={{ display: { xs: 'none', md: 'table-cell' } }}>
+                          <Typography variant='body2' color='text.secondary'>
+                            {manager.phone || 'No especificado'}
+                          </Typography>
+                        </TableCell>
+                        <TableCell align='center'>
+                          <IconButton size='small' onClick={(e) => handleMenuOpen(e, manager.id)}>
+                            <MoreVert />
+                          </IconButton>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                    {filteredManagers.length === 0 && !isLoading && (
+                      <TableRow>
+                        <TableCell colSpan={7} sx={{ textAlign: 'center', py: 4 }}>
+                          <Typography variant='body2' color='text.secondary'>
+                            {managers.length === 0
+                              ? 'No hay cobradores registrados todavia'
+                              : 'No se encontraron cobradores que coincidan con la busqueda'}
+                          </Typography>
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </>
+                )}
+              </TableBody>
+            </Table>
+          </TableContainer>
+        </Paper>
+      )}
 
       <Menu
         anchorEl={anchorEl}

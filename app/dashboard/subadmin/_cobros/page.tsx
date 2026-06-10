@@ -27,7 +27,7 @@ function TabPanel({ children, value, index }: TabPanelProps) {
 }
 
 export default function CobradorCobrosPage() {
-  const { allSubLoansWithClient, isLoading, error } = useSubLoans();
+  const { allSubLoansWithClient, isLoading, error, fetchAllSubLoansWithClientInfo } = useSubLoans();
   const [selectedTab, setSelectedTab] = useState(0);
 
   // Group subloans by client (simplificado - sin manager tracking)
@@ -176,6 +176,7 @@ export default function CobradorCobrosPage() {
                     clientName={client.clientName}
                     subLoans={client.subLoans}
                     compact={false}
+                    onDateUpdated={() => fetchAllSubLoansWithClientInfo()}
                   />
                 </Box>
               </Box>

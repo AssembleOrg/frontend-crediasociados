@@ -18,24 +18,32 @@ import {
   TableRow,
   Paper,
   CircularProgress,
-  Alert,
   Chip,
   alpha,
   useTheme,
   useMediaQuery,
   Divider,
+  List,
+  ListItem,
+  ListItemIcon,
+  ListItemText,
+  Card,
+  CardContent,
+  Alert,
 } from '@mui/material'
-import { 
-  Close, 
-  AccountBalance, 
+import {
+  Close,
+  AccountBalance,
   Search,
-  PictureAsPdf
+  PictureAsPdf,
+  TrendingUp,
 } from '@mui/icons-material'
 import { Button } from '@mui/material'
 import { PDFDownloadLink } from '@react-pdf/renderer'
 import { ActiveLoansPDF } from './ActiveLoansPDF'
 import { clientsService } from '@/services/clients.service'
 import { collectorWalletService } from '@/services/collector-wallet.service'
+import PhoneChip from '@/components/ui/PhoneChip'
 import { requestDeduplicator } from '@/lib/request-deduplicator'
 import { useUsers } from '@/hooks/useUsers'
 import { useCurrentUser } from '@/hooks/useCurrentUser'
@@ -115,6 +123,7 @@ export default function ActiveLoansClientsModal({ open, onClose }: ActiveLoansCl
     }>
   } | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
+  const [debtFilter, setDebtFilter] = useState<'ALL' | 'WITH_DEBT' | 'PAID_UP'>('WITH_DEBT')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -147,9 +156,10 @@ export default function ActiveLoansClientsModal({ open, onClose }: ActiveLoansCl
       setError(null)
       loadingManagerRef.current = null
     }
-    // Reset search when manager changes or modal opens
+    // Reset search and debt filter when manager changes or modal opens
     if (open) {
       setSearchQuery('')
+      setDebtFilter('WITH_DEBT')
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, managerIdToUse, isSubadmin])
@@ -177,27 +187,47 @@ export default function ActiveLoansClientsModal({ open, onClose }: ActiveLoansCl
     }
   }
 
-  // Filter loans based on search query
+  // Filter loans based on search query AND debt filter
   const filteredLoans = useMemo(() => {
     if (!managerDetail || !managerDetail.loans) return []
-    
-    if (!searchQuery.trim()) return managerDetail.loans
-    
+
+    const byDebt = managerDetail.loans.filter((loan) => {
+      if (debtFilter === 'WITH_DEBT') return loan.stats.totalPending > 0
+      if (debtFilter === 'PAID_UP') return loan.stats.totalPending === 0
+      return true
+    })
+
+    if (!searchQuery.trim()) return byDebt
+
     const query = searchQuery.toLowerCase().trim()
-    return managerDetail.loans.filter(loan => {
+    return byDebt.filter(loan => {
       const clientName = loan.client.fullName?.toLowerCase() || ''
       const loanTrack = loan.loanTrack?.toLowerCase() || ''
       const clientDni = loan.client.dni?.toLowerCase() || ''
       const clientPhone = loan.client.phone?.toLowerCase() || ''
       const clientAddress = loan.client.address?.toLowerCase() || ''
-      
-      return clientName.includes(query) || 
+
+      return clientName.includes(query) ||
              loanTrack.includes(query) ||
              clientDni.includes(query) ||
              clientPhone.includes(query) ||
              clientAddress.includes(query)
     })
-  }, [managerDetail, searchQuery])
+  }, [managerDetail, searchQuery, debtFilter])
+
+  // Counts por estado de deuda (sobre el total, no sobre el filtrado por search)
+  const debtCounts = useMemo(() => {
+    if (!managerDetail?.loans) return { all: 0, withDebt: 0, paidUp: 0, totalDebt: 0 }
+    const withDebt = managerDetail.loans.filter((l) => l.stats.totalPending > 0)
+    const paidUp = managerDetail.loans.filter((l) => l.stats.totalPending === 0)
+    const totalDebt = withDebt.reduce((sum, l) => sum + l.stats.totalPending, 0)
+    return {
+      all: managerDetail.loans.length,
+      withDebt: withDebt.length,
+      paidUp: paidUp.length,
+      totalDebt,
+    }
+  }, [managerDetail])
 
   const formatDate = (dateString: string) => {
     const date = DateTime.fromISO(dateString)
@@ -211,6 +241,14 @@ export default function ActiveLoansClientsModal({ open, onClose }: ActiveLoansCl
       minimumFractionDigits: 0,
       maximumFractionDigits: 0
     }).format(amount)
+  }
+
+  const formatCurrencyCompact = (amount: number) => {
+    const abs = Math.abs(amount);
+    const sign = amount < 0 ? '-' : '';
+    return `${sign}$${new Intl.NumberFormat('es-AR', {
+      maximumFractionDigits: 0,
+    }).format(abs)}`;
   }
 
   const getStatusColor = (status: string) => {
@@ -239,71 +277,39 @@ export default function ActiveLoansClientsModal({ open, onClose }: ActiveLoansCl
     }
   }
 
-  const formatPhoneForWhatsApp = (phone: string): string => {
-    // Remove all non-numeric characters except +
-    let cleaned = phone.replace(/[^\d+]/g, '')
-    
-    // If it starts with +54, keep it
-    // If it starts with 54, add +
-    // If it starts with 0 or 9, add +54
-    // Otherwise, assume it's a local number and add +54
-    if (cleaned.startsWith('+54')) {
-      return cleaned
-    } else if (cleaned.startsWith('54')) {
-      return '+' + cleaned
-    } else if (cleaned.startsWith('0')) {
-      return '+54' + cleaned.substring(1)
-    } else if (cleaned.startsWith('9')) {
-      return '+54' + cleaned
-    } else {
-      // Assume it's a local number without country code
-      return '+54' + cleaned
-    }
-  }
-
-
-
   return (
     <Dialog
       open={open}
       onClose={onClose}
       maxWidth="lg"
       fullWidth
-      fullScreen={isMobile}
       PaperProps={{
         sx: {
-          borderRadius: isMobile ? 0 : 3,
-          maxHeight: isMobile ? '100vh' : '90vh',
-          m: { xs: 0, sm: 2 },
-          mt: { xs: 0, sm: 3 }
+          borderRadius: { xs: 2, sm: 3 },
+          maxHeight: { xs: 'calc(100dvh - 96px)', sm: '90vh' },
+          m: { xs: 1, sm: 2 },
+          mt: { xs: 'auto', sm: 2 },
+          width: { xs: '100%', sm: 'auto' },
         }
       }}
     >
-      <DialogTitle sx={{ 
-        pb: 2, 
-        pt: 2,
+      <DialogTitle sx={{
+        pb: 2,
+        pt: 3,
         px: 3,
-        display: 'flex', 
-        alignItems: 'center', 
+        display: 'flex',
+        alignItems: 'center',
         justifyContent: 'space-between',
-        background: 'linear-gradient(135deg, #1976d2 0%, #42a5f5 100%)',
-        color: 'white'
+        borderBottom: '1px solid',
+        borderColor: 'divider',
       }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-          <AccountBalance sx={{ fontSize: 28 }} />
+          <AccountBalance sx={{ fontSize: 24, color: 'primary.main' }} />
           <Typography variant="h6" fontWeight={600}>
             Clientes con Préstamos Activos
           </Typography>
         </Box>
-        <IconButton
-          onClick={onClose}
-          sx={{ 
-            color: 'white',
-            '&:hover': {
-              bgcolor: 'rgba(255,255,255,0.1)'
-            }
-          }}
-        >
+        <IconButton onClick={onClose} size="small">
           <Close />
         </IconButton>
       </DialogTitle>
@@ -329,18 +335,21 @@ export default function ActiveLoansClientsModal({ open, onClose }: ActiveLoansCl
                     variant="outlined"
                   />
                 )}
-                renderOption={(props, option) => (
-                  <Box component="li" {...props}>
-                    <Box>
-                      <Typography variant="body1" fontWeight={500}>
-                        {option.fullName}
-                      </Typography>
-                      <Typography variant="caption" color="text.secondary">
-                        {option.email}
-                      </Typography>
+                renderOption={(props, option) => {
+                  const { key, ...otherProps } = props
+                  return (
+                    <Box component="li" key={key} {...otherProps}>
+                      <Box>
+                        <Typography variant="body1" fontWeight={500}>
+                          {option.fullName}
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          {option.email}
+                        </Typography>
+                      </Box>
                     </Box>
-                  </Box>
-                )}
+                  )
+                }}
                 noOptionsText="No se encontraron managers"
               />
             </Box>
@@ -348,47 +357,64 @@ export default function ActiveLoansClientsModal({ open, onClose }: ActiveLoansCl
           </>
         )}
 
-        {/* Manager Info - Only for Manager */}
-        {isManager && currentUser && (
-          <>
-            <Box sx={{ mb: 3, p: 2, bgcolor: alpha('#1976d2', 0.1), borderRadius: 2 }}>
-              <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 1 }}>
-                Tus Clientes con Préstamos Activos
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                {currentUser.fullName} ({currentUser.email})
-              </Typography>
-            </Box>
-            <Divider sx={{ mb: 3 }} />
-          </>
-        )}
-
-        {/* Summary Cards */}
+        {/* Summary - Grouped List */}
         {managerIdToUse && !loading && !error && managerDetail && managerDetail.loans.length > 0 && (
-          <Box sx={{ mb: 3, display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)' }, gap: 2 }}>
-            <Paper elevation={1} sx={{ p: 2, bgcolor: alpha('#1976d2', 0.05) }}>
-              <Typography variant="caption" color="text.secondary" gutterBottom>
-                Total de Préstamos Activos
-              </Typography>
-              <Typography variant="h5" fontWeight={600} color="primary">
-                {searchQuery ? filteredLoans.length : managerDetail.totalLoans}
-                {searchQuery && ` de ${managerDetail.totalLoans}`}
-              </Typography>
-            </Paper>
-            <Paper elevation={1} sx={{ p: 2, bgcolor: alpha('#1976d2', 0.05) }}>
-              <Typography variant="caption" color="text.secondary" gutterBottom>
-                Dinero en Calle
-              </Typography>
-              <Typography variant="h5" fontWeight={600} color="primary">
-                {formatCurrency(managerDetail.dineroEnCalle)}
-              </Typography>
-            </Paper>
-          </Box>
+          <Paper sx={{ mb: 3, bgcolor: '#FFFFFF', overflow: 'hidden' }}>
+            <List disablePadding>
+              <ListItem sx={{ py: 1.25, px: 2 }}>
+                <ListItemIcon sx={{ minWidth: 36 }}>
+                  <Box sx={{ color: 'primary.main', display: 'flex' }}>
+                    <AccountBalance sx={{ fontSize: 20 }} />
+                  </Box>
+                </ListItemIcon>
+                <ListItemText
+                  primary='Préstamos Activos'
+                  primaryTypographyProps={{ variant: 'body2', color: 'text.secondary' }}
+                />
+                <Typography variant='body1' fontWeight={700} color='primary.main'>
+                  {searchQuery ? filteredLoans.length : managerDetail.totalLoans}
+                  {searchQuery && ` de ${managerDetail.totalLoans}`}
+                </Typography>
+              </ListItem>
+              <Divider component='li' />
+              <ListItem sx={{ py: 1.25, px: 2 }}>
+                <ListItemIcon sx={{ minWidth: 36 }}>
+                  <Box sx={{ color: 'success.main', display: 'flex' }}>
+                    <TrendingUp sx={{ fontSize: 20 }} />
+                  </Box>
+                </ListItemIcon>
+                <ListItemText
+                  primary='Dinero en Calle'
+                  primaryTypographyProps={{ variant: 'body2', color: 'text.secondary' }}
+                />
+                <Typography variant='body1' fontWeight={700} color='success.main'>
+                  {formatCurrencyCompact(managerDetail.dineroEnCalle)}
+                </Typography>
+              </ListItem>
+              <Divider component='li' />
+              <ListItem sx={{ py: 1.25, px: 2 }}>
+                <ListItemIcon sx={{ minWidth: 36 }}>
+                  <Box sx={{ color: 'warning.main', display: 'flex' }}>
+                    <AccountBalance sx={{ fontSize: 20 }} />
+                  </Box>
+                </ListItemIcon>
+                <ListItemText
+                  primary='Total adeudado actual'
+                  primaryTypographyProps={{ variant: 'body2', color: 'text.secondary' }}
+                  secondary={`${debtCounts.withDebt} con deuda · ${debtCounts.paidUp} al día`}
+                  secondaryTypographyProps={{ variant: 'caption', color: 'text.secondary' }}
+                />
+                <Typography variant='body1' fontWeight={700} color='warning.main'>
+                  {formatCurrencyCompact(debtCounts.totalDebt)}
+                </Typography>
+              </ListItem>
+            </List>
+          </Paper>
         )}
 
         {/* Search Input */}
         {managerIdToUse && !loading && !error && managerDetail && managerDetail.loans.length > 0 && (
-          <Box sx={{ mb: 3 }}>
+          <Box sx={{ mb: 2 }}>
             <TextField
               fullWidth
               placeholder="Buscar por nombre, teléfono, dirección o número de préstamo..."
@@ -405,6 +431,35 @@ export default function ActiveLoansClientsModal({ open, onClose }: ActiveLoansCl
                 }
               }}
             />
+          </Box>
+        )}
+
+        {/* Debt Filter Chips */}
+        {managerIdToUse && !loading && !error && managerDetail && managerDetail.loans.length > 0 && (
+          <Box sx={{ mb: 3, display: 'flex', flexWrap: 'wrap', gap: 0.75 }}>
+            {([
+              { value: 'ALL',       label: `Todos (${debtCounts.all})`,            color: '#1976d2' },
+              { value: 'WITH_DEBT', label: `Deben (${debtCounts.withDebt})`,       color: '#ed6c02' },
+              { value: 'PAID_UP',   label: `Al día (${debtCounts.paidUp})`,        color: '#2e7d32' },
+            ] as const).map((opt) => {
+              const isSelected = debtFilter === opt.value
+              return (
+                <Chip
+                  key={opt.value}
+                  label={opt.label}
+                  size="small"
+                  onClick={() => setDebtFilter(opt.value)}
+                  sx={{
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    bgcolor: isSelected ? opt.color : 'transparent',
+                    color: isSelected ? 'white' : opt.color,
+                    border: `1.5px solid ${opt.color}`,
+                    '&:hover': { bgcolor: isSelected ? opt.color : `${opt.color}15` },
+                  }}
+                />
+              )
+            })}
           </Box>
         )}
 
@@ -477,14 +532,9 @@ export default function ActiveLoansClientsModal({ open, onClose }: ActiveLoansCl
                   {({ loading: pdfLoading }) => (
                     <Button
                       variant="contained"
+                      color="primary"
                       startIcon={<PictureAsPdf />}
                       disabled={pdfLoading}
-                      sx={{
-                        background: 'linear-gradient(135deg, #1976d2 0%, #42a5f5 100%)',
-                        '&:hover': {
-                          background: 'linear-gradient(135deg, #1565c0 0%, #1976d2 100%)',
-                        },
-                      }}
                     >
                       {pdfLoading ? 'Generando PDF...' : 'Descargar PDF'}
                     </Button>
@@ -495,10 +545,127 @@ export default function ActiveLoansClientsModal({ open, onClose }: ActiveLoansCl
             {filteredLoans.length === 0 ? (
               <Paper sx={{ p: 4, textAlign: 'center' }}>
                 <Typography variant="body2" color="text.secondary">
-                  No se encontraron préstamos que coincidan con "{searchQuery}"
+                  {searchQuery
+                    ? `No se encontraron préstamos que coincidan con "${searchQuery}"`
+                    : debtFilter === 'WITH_DEBT'
+                      ? 'No hay préstamos con deuda actual'
+                      : debtFilter === 'PAID_UP'
+                        ? 'No hay préstamos al día'
+                        : 'No hay préstamos para mostrar'}
                 </Typography>
               </Paper>
+            ) : isMobile ? (
+              /* Mobile: Cards */
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+                {filteredLoans.map((loan) => {
+                  const intereses = loan.amount - (loan.originalAmount || 0)
+                  return (
+                    <Card
+                      key={loan.id}
+                      elevation={0}
+                      sx={{
+                        border: `1px solid ${theme.palette.divider}`,
+                        borderRadius: 2,
+                        borderLeft: 3,
+                        borderLeftColor: 'primary.main',
+                      }}
+                    >
+                      <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
+                        {/* Header */}
+                        <Box
+                          sx={{
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'flex-start',
+                            mb: 1.5,
+                          }}
+                        >
+                          <Box>
+                            <Typography variant="body2" fontWeight={600}>
+                              {loan.client.fullName}
+                            </Typography>
+                            {loan.client.phone && (
+                              <Box sx={{ mt: 0.25 }}>
+                                <PhoneChip phone={loan.client.phone} size="small" />
+                              </Box>
+                            )}
+                          </Box>
+                          <Typography variant="caption" color="text.secondary">
+                            {formatDate(loan.createdAt)}
+                          </Typography>
+                        </Box>
+                        {/* Grid 2x2 */}
+                        <Box
+                          sx={{
+                            display: 'grid',
+                            gridTemplateColumns: '1fr 1fr',
+                            gap: 1,
+                          }}
+                        >
+                          <Box>
+                            <Typography
+                              variant="caption"
+                              color="text.secondary"
+                              display="block"
+                            >
+                              Monto Original
+                            </Typography>
+                            <Typography variant="body2" fontWeight={500}>
+                              {formatCurrencyCompact(loan.originalAmount || 0)}
+                            </Typography>
+                          </Box>
+                          <Box>
+                            <Typography
+                              variant="caption"
+                              color="text.secondary"
+                              display="block"
+                            >
+                              Intereses
+                            </Typography>
+                            <Typography variant="body2" fontWeight={500}>
+                              {formatCurrencyCompact(intereses)}
+                            </Typography>
+                          </Box>
+                          <Box>
+                            <Typography
+                              variant="caption"
+                              color="text.secondary"
+                              display="block"
+                            >
+                              Pagado
+                            </Typography>
+                            <Typography
+                              variant="body2"
+                              fontWeight={600}
+                              color="success.main"
+                            >
+                              {formatCurrencyCompact(loan.stats.totalPaid)}
+                            </Typography>
+                          </Box>
+                          <Box>
+                            <Typography
+                              variant="caption"
+                              color="text.secondary"
+                              display="block"
+                            >
+                              Faltante
+                            </Typography>
+                            <Typography
+                              variant="body2"
+                              fontWeight={700}
+                              color="warning.main"
+                            >
+                              {formatCurrencyCompact(loan.stats.totalPending)}
+                            </Typography>
+                          </Box>
+                        </Box>
+                      </CardContent>
+                    </Card>
+                  )
+                })}
+              </Box>
             ) : (
+              /* Desktop: Table */
               <TableContainer component={Paper} elevation={0} sx={{ border: `1px solid ${theme.palette.divider}`, borderRadius: 1 }}>
                 <Table>
                   <TableHead>
@@ -520,6 +687,11 @@ export default function ActiveLoansClientsModal({ open, onClose }: ActiveLoansCl
                             <Typography variant="body2" fontWeight={500}>
                               {loan.client.fullName}
                             </Typography>
+                            {loan.client.phone && (
+                              <Box sx={{ mt: 0.25 }}>
+                                <PhoneChip phone={loan.client.phone} size="small" />
+                              </Box>
+                            )}
                           </TableCell>
                           <TableCell align="right">
                             <Typography variant="body2">

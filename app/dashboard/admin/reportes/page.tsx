@@ -71,13 +71,13 @@ export default function AdminReportsPage() {
   const additionalCards = null
 
   return (
-    <Box sx={{ p: 3 }}>
+    <Box sx={{ p: { xs: 1, sm: 2, md: 3 } }}>
       <Box sx={{ mb: 3 }}>
-        <Typography variant="h4" component="h1" gutterBottom>
+        <Typography variant="h4" component="h1" gutterBottom sx={{ fontSize: { xs: '1.5rem', sm: '2.125rem' } }}>
           Reportes Administrativos
         </Typography>
         <Typography variant="body1" color="text.secondary">
-          Panel de gestión y exportación de datos de asociados
+          Panel de gestion y exportacion de datos de asociados
         </Typography>
       </Box>
 

@@ -17,14 +17,14 @@ import {
 import { Schedule, CheckCircle, RadioButtonUnchecked, Error } from '@mui/icons-material'
 import { useClients } from '@/hooks/useClients'
 import type { Loan } from '@/types/auth'
-import { 
-  calculateInstallments, 
+import {
+  calculateInstallments,
   calculateLoanProgress,
-  formatCurrency, 
   getInstallmentStatusColor,
   translateLoanStatus,
   getLoanStatusColor
 } from '@/lib/loan-utils'
+import { formatCurrencyDisplay as formatCurrency } from '@/lib/formatters'
 
 interface LoanInstallmentsModalProps {
   open: boolean

@@ -9,10 +9,13 @@ import {
   Button,
   Box,
   Typography,
-  Divider
+  Divider,
+  useTheme,
+  useMediaQuery,
 } from '@mui/material'
 import { Payment } from '@mui/icons-material'
 import LoanTimeline from '@/components/loans/LoanTimeline'
+import PhoneChip from '@/components/ui/PhoneChip'
 import type { ClientSummary } from '@/lib/cobros/clientSummaryHelpers'
 import type { SubLoanWithClientInfo } from '@/services/subloans-lookup.service'
 import { getSubloanUrgencyLevel, isSubloanSettled } from '@/lib/cobros/urgencyHelpers'
@@ -23,6 +26,7 @@ interface ClientTimelineModalProps {
   clientSummary: ClientSummary | null
   onPaymentClick: (subloan: SubLoanWithClientInfo) => void
   onRegisterPaymentClick: (clientSummary: ClientSummary) => void
+  onDateUpdated?: () => void
 }
 
 export default function ClientTimelineModal({
@@ -30,7 +34,8 @@ export default function ClientTimelineModal({
   onClose,
   clientSummary,
   onPaymentClick,
-  onRegisterPaymentClick
+  onRegisterPaymentClick,
+  onDateUpdated
 }: ClientTimelineModalProps) {
   const [showClientInfo, setShowClientInfo] = useState<string | null>(null)
 
@@ -73,6 +78,9 @@ export default function ClientTimelineModal({
     })
   }, [clientSummary?.subLoans])
 
+  const theme = useTheme()
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'))
+
   if (!clientSummary) {
     return null
   }
@@ -85,34 +93,35 @@ export default function ClientTimelineModal({
       fullWidth
       PaperProps={{
         sx: {
-          width: { xs: '95vw', sm: '90vw', md: '1400px' },
-          height: { xs: '90vh', sm: 'auto' },
+          width: { sm: '90vw', md: '1400px' },
           maxWidth: 'none',
-          m: { xs: 1, sm: 3 },
-          borderRadius: { xs: 2, sm: 3 },
+          borderRadius: { xs: '16px 16px 0 0', sm: 3 },
+          maxHeight: { xs: '92dvh', sm: '90vh' },
+          m: { xs: 0, sm: 3 },
+          mt: { xs: 'auto', sm: 2 },
         },
       }}
     >
-      <DialogTitle sx={{ pt: 2.5, px: 3, pb: 2 }}>
+      <DialogTitle sx={{ pt: { xs: 2, sm: 2.5 }, px: { xs: 2, sm: 3 }, pb: { xs: 1.5, sm: 2 } }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
           <Payment color="primary" />
-          <Typography variant="h6">Timeline de Cuotas</Typography>
+          <Typography variant="h6" component="div">Timeline de Cuotas</Typography>
         </Box>
       </DialogTitle>
       
-      <DialogContent sx={{ p: { xs: 2, sm: 4 }, overflow: 'auto' }}>
+      <DialogContent sx={{ p: { xs: 1.5, sm: 4 }, overflow: 'auto' }}>
         <Box>
           {/* Client Summary Header */}
-          <Box sx={{ mb: 4, p: 3, bgcolor: '#f9f9f9', borderRadius: 2 }}>
-            <Typography variant="h5" fontWeight="bold" gutterBottom>
+          <Box sx={{ mb: { xs: 2, sm: 4 }, p: { xs: 2, sm: 3 }, bgcolor: '#f9f9f9', borderRadius: 2 }}>
+            <Typography variant="h6" fontWeight="bold" gutterBottom>
               {clientSummary.clientName}
             </Typography>
             <Box
               sx={{
                 display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
-                gap: 3,
-                mt: 2,
+                gridTemplateColumns: { xs: 'repeat(2, 1fr)', sm: 'repeat(auto-fit, minmax(140px, 1fr))' },
+                gap: { xs: 2, sm: 3 },
+                mt: 1.5,
               }}
             >
               <Box>
@@ -166,10 +175,10 @@ export default function ClientTimelineModal({
           {groupedByLoan.map((loanGroup) => (
             <Box
               key={loanGroup.loanId}
-              sx={{ mb: 3, p: 2, border: 1, borderColor: 'divider', borderRadius: 2 }}
+              sx={{ mb: { xs: 2, sm: 3 }, p: { xs: 1.5, sm: 2 }, border: 1, borderColor: 'divider', borderRadius: 2 }}
             >
-              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1, gap: 1 }}>
-                <Typography variant="subtitle1" fontWeight="bold">
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1, gap: 1, flexWrap: 'wrap' }}>
+                <Typography variant="subtitle2" fontWeight="bold">
                   {`Préstamo ${loanGroup.loanLabel} (${loanGroup.totalInstallments} cuota${loanGroup.totalInstallments === 1 ? '' : 's'})`}
                 </Typography>
                 <Typography
@@ -187,38 +196,50 @@ export default function ClientTimelineModal({
                   {loanGroup.summaryLabel}
                 </Typography>
               </Box>
-              <LoanTimeline
-                clientName={`${clientSummary.clientName} - ${loanGroup.loanLabel}`}
-                subLoans={loanGroup.subLoans}
-                compact={false}
-                onPaymentClick={onPaymentClick}
-              />
+              <Box sx={{ overflowX: 'auto', mx: { xs: -0.5, sm: 0 } }}>
+                <LoanTimeline
+                  clientName={`${clientSummary.clientName} - ${loanGroup.loanLabel}`}
+                  subLoans={loanGroup.subLoans}
+                  compact={false}
+                  onPaymentClick={onPaymentClick}
+                  onDateUpdated={onDateUpdated}
+                />
+              </Box>
             </Box>
           ))}
 
           {/* Urgent Actions */}
-          {(clientSummary.stats.overdue > 0 || clientSummary.stats.today > 0) && (
+          {(clientSummary.stats.overdue > 0 || clientSummary.stats.today > 0 || clientSummary.stats.soon > 0) && (
             <Box
               sx={{
                 mt: 4,
-                p: 3,
-                bgcolor: clientSummary.urgencyLevel === 'overdue' ? '#ffebee' : '#fff3e0',
+                p: { xs: 2, sm: 3 },
+                bgcolor: clientSummary.urgencyLevel === 'overdue' ? '#ffebee'
+                  : clientSummary.urgencyLevel === 'today' ? '#fff3e0'
+                  : '#fff8e1',
                 borderRadius: 2,
                 border: 1,
-                borderColor: clientSummary.urgencyLevel === 'overdue' ? 'error.main' : 'warning.main',
+                borderColor: clientSummary.urgencyLevel === 'overdue' ? 'error.main'
+                  : clientSummary.urgencyLevel === 'today' ? 'warning.main'
+                  : '#ffc107',
               }}
             >
               <Typography
                 variant="h6"
                 fontWeight="bold"
-                color={clientSummary.urgencyLevel === 'overdue' ? 'error.main' : 'warning.main'}
+                color={clientSummary.urgencyLevel === 'overdue' ? 'error.main'
+                  : clientSummary.urgencyLevel === 'today' ? 'warning.main'
+                  : '#ff6f00'}
                 gutterBottom
               >
-                Atención Requerida
+                {clientSummary.urgencyLevel === 'soon' ? 'Vence Pronto' : 'Atencion Requerida'}
               </Typography>
               <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                Este cliente requiere seguimiento inmediato por cuotas{' '}
-                {clientSummary.urgencyLevel === 'overdue' ? 'vencidas' : 'que vencen hoy'}.
+                {clientSummary.urgencyLevel === 'overdue'
+                  ? 'Este cliente requiere seguimiento inmediato por cuotas vencidas.'
+                  : clientSummary.urgencyLevel === 'today'
+                  ? 'Este cliente tiene cuotas que vencen hoy.'
+                  : `Este cliente tiene ${clientSummary.stats.soon} cuota${clientSummary.stats.soon > 1 ? 's' : ''} por vencer pronto.`}
               </Typography>
               <Box
                 sx={{
@@ -239,14 +260,16 @@ export default function ClientTimelineModal({
                 >
                   Contactar Cliente
                 </Button>
-                <Button
-                  variant="outlined"
-                  color={clientSummary.urgencyLevel === 'overdue' ? 'error' : 'warning'}
-                  size="small"
-                  onClick={() => onRegisterPaymentClick(clientSummary)}
-                >
-                  Registrar Pago
-                </Button>
+                {clientSummary.urgencyLevel !== 'soon' && (
+                  <Button
+                    variant="outlined"
+                    color={clientSummary.urgencyLevel === 'overdue' ? 'error' : 'warning'}
+                    size="small"
+                    onClick={() => onRegisterPaymentClick(clientSummary)}
+                  >
+                    Registrar Pago
+                  </Button>
+                )}
               </Box>
 
               {/* Client Contact Information - Collapsible */}
@@ -282,9 +305,18 @@ export default function ClientTimelineModal({
                           }}
                         >
                           <Box>
-                            <Typography variant="body2" color="text.secondary">
-                              <strong>Teléfono:</strong> {clientData?.phone || 'Dato no ingresado'}
-                            </Typography>
+                            {clientData?.phone ? (
+                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                                <Typography variant="body2" color="text.secondary" component="span">
+                                  <strong>Teléfono:</strong>
+                                </Typography>
+                                <PhoneChip phone={clientData.phone} size="medium" showIcon={false} />
+                              </Box>
+                            ) : (
+                              <Typography variant="body2" color="text.secondary">
+                                <strong>Teléfono:</strong> Dato no ingresado
+                              </Typography>
+                            )}
                             <Typography variant="body2" color="text.secondary">
                               <strong>Email:</strong> {clientData?.email || 'Dato no ingresado'}
                             </Typography>

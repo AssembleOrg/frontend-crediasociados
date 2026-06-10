@@ -1,4 +1,5 @@
 import api from './api';
+import { requestDeduplicator } from '@/lib/request-deduplicator';
 import type {
   LoanResponseDto,
   LoanListResponseDto,
@@ -8,6 +9,35 @@ import type {
   PaginationParams,
   PaginatedResponse,
 } from '@/types/auth';
+
+export interface RenewLoanRequest {
+  amount: number;
+  baseInterestRate: number;
+  penaltyInterestRate: number;
+  paymentFrequency: 'DAILY' | 'WEEKLY' | 'BIWEEKLY' | 'MONTHLY';
+  paymentDay?:
+    | 'MONDAY'
+    | 'TUESDAY'
+    | 'WEDNESDAY'
+    | 'THURSDAY'
+    | 'FRIDAY'
+    | 'SATURDAY';
+  totalPayments: number;
+  firstDueDate: string;
+  description?: string;
+  notes?: string;
+}
+
+export interface RenewLoanResponse {
+  previousLoan: {
+    id: string;
+    loanTrack: string;
+    settledAmount: number;
+  };
+  newLoan: LoanResponseDto | null;
+  pdfBase64: string;
+  pdfFilename: string;
+}
 
 /**
  * THE MESSENGER - Loans Service
@@ -82,8 +112,8 @@ class LoansService {
   ): Promise<PaginatedResponse<LoanResponseDto>> {
     const searchParams = new URLSearchParams();
 
-    // if (params.page) searchParams.append('page', params.page.toString());
-    // if (params.limit) searchParams.append('limit', params.limit.toString());
+    if (params.page) searchParams.append('page', params.page.toString());
+    if (params.limit) searchParams.append('limit', params.limit.toString());
     if (params.clientName) searchParams.append('clientName', params.clientName);
     if (params.loanStatus) searchParams.append('loanStatus', params.loanStatus);
     if (params.paymentFrequency) searchParams.append('paymentFrequency', params.paymentFrequency);
@@ -92,18 +122,38 @@ class LoansService {
     const queryString = searchParams.toString();
     const url = queryString ? `/loans/pagination?${queryString}` : '/loans/pagination';
 
-    const response = await api.get(url);
+    const response = await requestDeduplicator.dedupe(
+      `loans:paginated:${queryString}`,
+      () => api.get(url),
+      { ttl: 3000 }
+    );
     return this.extractPaginatedLoansPayload(response.data);
   }
 
   async getAllLoans(): Promise<LoanResponseDto[]> {
-    const response = await api.get('/loans');
+    const response = await requestDeduplicator.dedupe(
+      'loans:get-all',
+      () => api.get('/loans'),
+      { ttl: 5000 }
+    );
     return this.extractLoanArrayPayload(response.data);
   }
 
   async getActiveLoansWithClientId(): Promise<LoanListResponseDto[]> {
-    const response = await api.get('/loans');
-    return response.data.data || response.data || []; // Handle different response structures
+    const response = await requestDeduplicator.dedupe(
+      'loans:get-all',
+      () => api.get('/loans'),
+      { ttl: 5000 }
+    );
+    return response.data.data || response.data || [];
+  }
+
+  async getDashboardStats(): Promise<{
+    loansEvolution: Array<{ date: string; loans: number }>
+    paymentsDistribution: Array<{ status: string; count: number }>
+  }> {
+    const response = await api.get('/loans/dashboard-stats');
+    return response.data?.data || response.data;
   }
 
   async getLoanById(id: string): Promise<LoanResponseDto> {
@@ -181,6 +231,15 @@ class LoansService {
   async updateLoanDescription(loanId: string, description: string): Promise<{ id: string; description: string }> {
     const response = await api.patch(`/loans/${loanId}/description`, { description });
     return response.data.data || response.data;
+  }
+
+  async renewLoan(
+    loanId: string,
+    data: RenewLoanRequest
+  ): Promise<RenewLoanResponse> {
+    const response = await api.post(`/loans/${loanId}/renew`, data);
+    // Match the extraction pattern used elsewhere (response.data.data or response.data)
+    return response.data?.data ?? response.data;
   }
 
   /**

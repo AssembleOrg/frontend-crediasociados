@@ -179,7 +179,7 @@ export default function LoanDetails({ loanDetails }: LoanDetailsProps) {
 
       {/* Loan Summary Cards - Centered */}
       <Grid container spacing={3} sx={{ mb: 4, justifyContent: 'center' }}>
-        <Grid item xs={12} sm={6} md={4}>
+        <Grid xs={12} sm={6} md={4}>
           <Card variant="outlined" sx={{ height: '100%', bgcolor: alpha(theme.palette.primary.main, 0.05), textAlign: 'center' }}>
             <CardContent>
               <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1, mb: 1 }}>
@@ -195,7 +195,7 @@ export default function LoanDetails({ loanDetails }: LoanDetailsProps) {
           </Card>
         </Grid>
 
-        <Grid item xs={12} sm={6} md={4}>
+        <Grid xs={12} sm={6} md={4}>
           <Card variant="outlined" sx={{ height: '100%', bgcolor: alpha(theme.palette.success.main, 0.05), textAlign: 'center' }}>
             <CardContent>
               <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1, mb: 1 }}>
@@ -211,7 +211,7 @@ export default function LoanDetails({ loanDetails }: LoanDetailsProps) {
           </Card>
         </Grid>
 
-        <Grid item xs={12} sm={6} md={4}>
+        <Grid xs={12} sm={6} md={4}>
           <Card variant="outlined" sx={{ height: '100%', bgcolor: alpha(theme.palette.warning.main, 0.05), textAlign: 'center' }}>
             <CardContent>
               <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1, mb: 1 }}>
@@ -289,7 +289,7 @@ export default function LoanDetails({ loanDetails }: LoanDetailsProps) {
                         <Typography variant="body2">
                           {formatDate(subloan.dueDate)}
                         </Typography>
-                        {subloan.daysOverdue > 0 && (
+                        {(subloan.daysOverdue ?? 0) > 0 && (
                           <Typography variant="caption" color="error.main" display="block">
                             {subloan.daysOverdue} días vencida
                           </Typography>
@@ -306,8 +306,8 @@ export default function LoanDetails({ loanDetails }: LoanDetailsProps) {
                       <TableCell align="right">
                         <Typography 
                           variant="body2" 
-                          color={subloan.paidAmount > 0 ? 'success.main' : 'text.secondary'}
-                          fontWeight={subloan.paidAmount > 0 ? 600 : 400}
+                          color={(subloan.paidAmount ?? 0) > 0 ? 'success.main' : 'text.secondary'}
+                          fontWeight={(subloan.paidAmount ?? 0) > 0 ? 600 : 400}
                         >
                           {formatCurrency(subloan.paidAmount || 0)}
                         </Typography>

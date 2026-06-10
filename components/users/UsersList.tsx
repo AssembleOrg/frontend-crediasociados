@@ -21,6 +21,7 @@ import {
 } from '@mui/material'
 import { Search, Add, Edit, Delete } from '@mui/icons-material'
 import { useUsers } from '@/hooks/useUsers'
+import PhoneChip from '@/components/ui/PhoneChip'
 import { getRoleDisplayName } from '@/types/transforms'
 import type { User } from '@/types/auth'
 
@@ -40,7 +41,7 @@ export const UsersList = ({ onEditUser, onCreateUser }: UsersListProps) => {
 
   const [searchTerm, setSearchTerm] = useState('')
   const [currentPage, setCurrentPage] = useState(0)
-  const [rowsPerPage, setRowsPerPage] = useState(10)
+  const [rowsPerPage, setRowsPerPage] = useState(25)
 
   // Local filtering and pagination
   const filteredUsers = useMemo(() => {
@@ -164,7 +165,9 @@ export const UsersList = ({ onEditUser, onCreateUser }: UsersListProps) => {
                     </Typography>
                   </TableCell>
                   <TableCell>{user.email}</TableCell>
-                  <TableCell>{user.phone || '-'}</TableCell>
+                  <TableCell>
+                    <PhoneChip phone={user.phone} size="medium" showIcon={false} />
+                  </TableCell>
                   <TableCell>
                     <Chip
                       label={getRoleDisplayName(user.role)}
@@ -216,7 +219,7 @@ export const UsersList = ({ onEditUser, onCreateUser }: UsersListProps) => {
           onPageChange={handlePageChange}
           rowsPerPage={rowsPerPage}
           onRowsPerPageChange={handleRowsPerPageChange}
-          rowsPerPageOptions={[5, 10, 25, 50]}
+          rowsPerPageOptions={[25, 50, 100]}
           labelRowsPerPage="Filas por página:"
         />
       </Paper>

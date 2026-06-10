@@ -1,7 +1,6 @@
 'use client'
 
 import { useState } from 'react'
-import { green } from '@mui/material/colors'
 import {
   Dialog,
   DialogTitle,
@@ -91,12 +90,12 @@ export const DepositModal: React.FC<DepositModalProps> = ({
         display: 'flex',
         alignItems: 'center',
         gap: 1.5,
-        background: `linear-gradient(135deg, ${green[500]} 0%, ${green[700]} 100%)`,
-        color: 'white',
+        borderBottom: '1px solid',
+        borderColor: 'divider',
         p: 2.5,
         pt: 3
       }}>
-        <TrendingUp sx={{ fontSize: 24 }} />
+        <TrendingUp sx={{ fontSize: 24, color: 'success.main' }} />
         <Typography variant="h6" component="div" sx={{ fontWeight: 600 }}>
           Hacer Depósito
         </Typography>

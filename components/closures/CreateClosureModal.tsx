@@ -138,7 +138,7 @@ export const CreateClosureModal: React.FC<CreateClosureModalProps> = ({
         pt: 3
       }}>
         <Receipt />
-        <Typography variant="h6" sx={{ fontWeight: 600 }}>
+        <Typography variant="h6" component="div" sx={{ fontWeight: 600 }}>
           Crear Cierre del Día
         </Typography>
       </DialogTitle>

@@ -68,7 +68,7 @@ export function CloseRouteModal({ open, onClose, route, onConfirm }: CloseRouteM
   if (!route) return null;
 
   const totalClients = route.items.length;
-  const paidClients = route.items.filter((item) => item.subLoan.status === 'PAID').length;
+  const paidClients = route.items.filter((item) => item.subLoan?.status === 'PAID').length;
 
   return (
     <Dialog
@@ -76,12 +76,13 @@ export function CloseRouteModal({ open, onClose, route, onConfirm }: CloseRouteM
       onClose={handleClose}
       maxWidth="sm"
       fullWidth
-      fullScreen={false} // Mobile responsive
       PaperProps={{
         sx: {
-          m: { xs: 2, sm: 3 },
-          mt: { xs: 2, sm: 4 },
-          maxHeight: { xs: '90vh', sm: '80vh' },
+          borderRadius: { xs: 2, sm: 3 },
+          maxHeight: { xs: 'calc(100dvh - 96px)', sm: '90vh' },
+          m: { xs: 1, sm: 2 },
+          mt: { xs: 'auto', sm: 2 },
+          width: { xs: '100%', sm: 'auto' },
         },
       }}
     >

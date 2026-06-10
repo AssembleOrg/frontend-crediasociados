@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { 
+import {
   Dialog,
   DialogTitle,
   DialogContent,
@@ -10,8 +10,12 @@ import {
   Box,
   Typography,
   Alert,
+  useTheme,
+  useMediaQuery,
+  IconButton,
+  Paper,
 } from '@mui/material'
-import { Payment, Refresh, Warning } from '@mui/icons-material'
+import { Payment, Refresh, Warning, Close } from '@mui/icons-material'
 import LoanTimeline from '@/components/loans/LoanTimeline'
 import { PaymentModal } from '@/components/loans/PaymentModal'
 import { 
@@ -20,7 +24,7 @@ import {
   formatInterestRate,
   getLoanStatusInfo 
 } from '@/lib/loans/loanCalculations'
-import { getFrequencyLabel } from '@/lib/formatters'
+import { getFrequencyLabel, formatCurrencyDisplay, toAmount } from '@/lib/formatters'
 import { paymentsService } from '@/services/payments.service'
 import type { SubLoanWithClientInfo } from '@/services/subloans-lookup.service'
 import type { Loan } from '@/types/auth'
@@ -31,6 +35,7 @@ interface LoanDetailsModalProps {
   loan: Loan | null
   subLoans: SubLoanWithClientInfo[]
   isLoading?: boolean
+  loadError?: string | null
   onGoToCobros?: () => void
   onPaymentSuccess?: () => void // Callback para refrescar datos después del pago
 }
@@ -41,8 +46,11 @@ export default function LoanDetailsModal({
   loan,
   subLoans,
   isLoading = false,
+  loadError = null,
   onPaymentSuccess
 }: LoanDetailsModalProps) {
+  const theme = useTheme()
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'))
   const [paymentModalOpen, setPaymentModalOpen] = useState(false)
   const [selectedSubloan, setSelectedSubloan] = useState<SubLoanWithClientInfo | null>(null)
   const [paymentError, setPaymentError] = useState<string | null>(null)
@@ -57,28 +65,34 @@ export default function LoanDetailsModal({
     : `Cliente #${loan.clientId}`
 
   // Use originalAmount if available, otherwise fallback to calculations
-  const principalAmount = loan.originalAmount ?? loan.amount
-  const totalAmountToRepay = loan.originalAmount !== undefined ? loan.amount : calculateTotalRepaymentAmount(loan)
-  const interestAmount = loan.originalAmount !== undefined 
-    ? loan.amount - loan.originalAmount 
+  const principalAmount = toAmount(loan.originalAmount ?? loan.amount)
+  const totalAmountToRepay = loan.originalAmount !== undefined ? toAmount(loan.amount) : calculateTotalRepaymentAmount(loan)
+  const interestAmount = loan.originalAmount !== undefined
+    ? toAmount(loan.amount) - toAmount(loan.originalAmount)
     : calculateInterestAmount(loan)
   const statusInfo = getLoanStatusInfo(loan.status)
 
   // Calculate remaining amount and payments
   // Use sum of subloans totalAmount for accurate remaining calculation
-  const totalSubLoansAmount = subLoans.reduce((sum, subloan) => sum + (subloan.totalAmount || 0), 0)
-  const totalPaid = subLoans.reduce((sum, subloan) => sum + (subloan.paidAmount || 0), 0)
-  
-  // If no subloans loaded, use loan data as fallback
+  const totalSubLoansAmount = subLoans.reduce((sum, subloan) => sum + Number(subloan.totalAmount || 0), 0)
+  const totalPaid = subLoans.reduce((sum, subloan) => sum + Number(subloan.paidAmount || 0), 0)
+
   const hasSubLoans = subLoans.length > 0
-  const remainingAmount = hasSubLoans 
-    ? totalSubLoansAmount - totalPaid
-    : (totalAmountToRepay - totalPaid)
-  const remainingPayments = hasSubLoans
-    ? subLoans.filter(subloan => 
-        subloan.status === 'PENDING' || subloan.status === 'OVERDUE'
-      ).length
-    : (loan.totalPayments || 0)
+  const isCompleted = loan.status === 'COMPLETED'
+  // Si el loan esta COMPLETED, no resta nada — evita el mensaje engañoso
+  // "Resta pagar X" cuando las cuotas no llegaron a cargar.
+  const remainingAmount = isCompleted
+    ? 0
+    : hasSubLoans
+      ? totalSubLoansAmount - totalPaid
+      : (totalAmountToRepay - totalPaid)
+  const remainingPayments = isCompleted
+    ? 0
+    : hasSubLoans
+      ? subLoans.filter(subloan =>
+          subloan.status === 'PENDING' || subloan.status === 'OVERDUE'
+        ).length
+      : (loan.totalPayments || 0)
 
   // Sort subloans by payment number
   const sortedSubLoans = [...subLoans].sort((a, b) => (a.paymentNumber ?? 0) - (b.paymentNumber ?? 0))
@@ -90,17 +104,18 @@ export default function LoanDetailsModal({
       return { canPay: false, reason: 'Esta cuota ya está pagada' }
     }
 
-    // Buscar si hay cuotas anteriores sin pagar
+    // Buscar si hay cuotas anteriores sin ningún pago (PARTIAL ya tiene saldo abonado, se permite continuar)
     const currentPaymentNumber = subloan.paymentNumber ?? 0
-    const previousUnpaid = sortedSubLoans.find(s => 
-      (s.paymentNumber ?? 0) < currentPaymentNumber && 
-      s.status !== 'PAID'
+    const previousUnpaid = sortedSubLoans.find(s =>
+      (s.paymentNumber ?? 0) < currentPaymentNumber &&
+      s.status !== 'PAID' &&
+      s.status !== 'PARTIAL'
     )
 
     if (previousUnpaid) {
-      return { 
-        canPay: false, 
-        reason: `No se puede pagar la cuota #${currentPaymentNumber} sin pagar primero la cuota #${previousUnpaid.paymentNumber}` 
+      return {
+        canPay: false,
+        reason: `La cuota #${previousUnpaid.paymentNumber} está pendiente de pago. Saldá esa cuota primero.`
       }
     }
 
@@ -167,22 +182,29 @@ export default function LoanDetailsModal({
       fullWidth
       PaperProps={{
         sx: {
-          width: { xs: '95vw', sm: '95vw', md: '95vw' },
-          height: { xs: '90vh', sm: 'auto' },
+          width: { xs: '100vw', sm: '95vw', md: '95vw' },
           maxWidth: '1800px',
-          m: { xs: 1, sm: 2 },
           borderRadius: { xs: 2, sm: 3 },
+          maxHeight: { xs: 'calc(100dvh - 96px)', sm: '90vh' },
+          m: { xs: 0, sm: 2 },
+          mt: { xs: 'auto', sm: 2 },
         },
       }}
     >
-      <DialogTitle sx={{ pt: 2.5, px: 3, pb: 2 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-          <Payment color="primary" />
-          <Typography variant="h6">Detalles del Préstamo</Typography>
+      <DialogTitle sx={{ pb: 2, pt: 3, px: 3, display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid', borderColor: 'divider' }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+          <Payment sx={{ fontSize: 24, color: 'primary.main' }} />
+          <Box>
+            <Typography variant="h6" fontWeight={600}>Detalles del Préstamo</Typography>
+            <Typography variant="caption" color="text.secondary">{clientName} · {loan.loanTrack}</Typography>
+          </Box>
         </Box>
+        <IconButton onClick={onClose} size="small">
+          <Close />
+        </IconButton>
       </DialogTitle>
-      
-      <DialogContent sx={{ p: { xs: 2, sm: 3 }, overflow: 'auto' }}>
+
+      <DialogContent sx={{ p: { xs: 1.5, sm: 3 }, overflow: 'auto' }}>
         {isLoading ? (
           <Box sx={{ textAlign: 'center', py: 4 }}>
             <Typography variant="h6" color="text.secondary" gutterBottom>
@@ -192,116 +214,77 @@ export default function LoanDetailsModal({
         ) : (
           <Box>
             {/* Loan Summary Header */}
-            <Box sx={{ mb: 4, p: 3, bgcolor: '#f9f9f9', borderRadius: 2 }}>
-              <Typography variant="h5" fontWeight="bold" gutterBottom>
-                {clientName} - {loan.loanTrack}
-              </Typography>
+            <Paper elevation={0} sx={{ mb: { xs: 2, sm: 3 }, bgcolor: '#FFFFFF', overflow: 'hidden' }}>
+              <Box sx={{ p: { xs: 1.5, sm: 3 } }}>
 
               {/* Remaining Summary - Highlighted */}
               {remainingPayments > 0 && (
-                <Box sx={{ 
-                  mt: 2, 
-                  mb: 3, 
-                  p: 2, 
-                  bgcolor: 'primary.main', 
-                  color: 'white',
-                  borderRadius: 2,
-                  textAlign: 'center'
-                }}>
-                  <Typography variant="h6" fontWeight="bold">
-                    Resta pagar ${remainingAmount.toLocaleString()} en {remainingPayments} {remainingPayments === 1 ? 'cuota' : 'cuotas'}
-                  </Typography>
-                </Box>
+                <Paper elevation={0} sx={{ mt: 2, mb: 3, bgcolor: '#FFFFFF', borderLeft: 4, borderLeftColor: 'primary.main', overflow: 'hidden' }}>
+                  <Box sx={{ p: 2 }}>
+                    <Typography variant="body1" fontWeight={700} color="primary.main">
+                      Resta pagar {formatCurrencyDisplay(remainingAmount)} en {remainingPayments} {remainingPayments === 1 ? 'cuota' : 'cuotas'}
+                    </Typography>
+                  </Box>
+                </Paper>
               )}
 
               {remainingPayments === 0 && (
-                <Box sx={{ 
-                  mt: 2, 
-                  mb: 3, 
-                  p: 2, 
-                  bgcolor: 'success.main', 
-                  color: 'white',
-                  borderRadius: 2,
-                  textAlign: 'center'
-                }}>
-                  <Typography variant="h6" fontWeight="bold">
-                    ✓ Préstamo completado - Total pagado: ${totalPaid.toLocaleString()}
-                  </Typography>
-                </Box>
+                <Paper elevation={0} sx={{ mt: 2, mb: 3, bgcolor: '#FFFFFF', borderLeft: 4, borderLeftColor: 'success.main', overflow: 'hidden' }}>
+                  <Box sx={{ p: 2 }}>
+                    <Typography variant="body1" fontWeight={700} color="success.main">
+                      ✓ Préstamo completado · Total pagado: {formatCurrencyDisplay(totalPaid)}
+                    </Typography>
+                  </Box>
+                </Paper>
               )}
 
               <Box
                 sx={{
                   display: 'grid',
-                  gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
-                  gap: 3,
+                  gridTemplateColumns: { xs: '1fr 1fr', sm: 'repeat(auto-fit, minmax(150px, 1fr))' },
+                  gap: { xs: 1.5, sm: 3 },
                   mt: 2,
                 }}
               >
                 <Box>
-                  <Typography variant="body2" color="text.secondary">
-                    Monto del préstamo
-                  </Typography>
-                  <Typography variant="h6" fontWeight="bold">
-                    ${principalAmount.toLocaleString()}
+                  <Typography variant="caption" color="text.secondary">Monto</Typography>
+                  <Typography variant={isMobile ? 'body1' : 'h6'} fontWeight="bold">
+                    {formatCurrencyDisplay(principalAmount)}
                   </Typography>
                 </Box>
-                
                 <Box>
-                  <Typography variant="body2" color="text.secondary">
-                    Tasa de interés
-                  </Typography>
-                  <Typography variant="h6" fontWeight="bold" color="primary.main">
+                  <Typography variant="caption" color="text.secondary">Tasa</Typography>
+                  <Typography variant={isMobile ? 'body1' : 'h6'} fontWeight="bold" color="primary.main">
                     {formatInterestRate(loan)}
                   </Typography>
                 </Box>
-                
                 <Box>
-                  <Typography variant="body2" color="text.secondary">
-                    Total de intereses
-                  </Typography>
-                  <Typography variant="h6" fontWeight="bold" color="warning.main">
-                    ${interestAmount.toLocaleString()}
+                  <Typography variant="caption" color="text.secondary">Intereses</Typography>
+                  <Typography variant={isMobile ? 'body1' : 'h6'} fontWeight="bold" color="warning.main">
+                    {formatCurrencyDisplay(interestAmount)}
                   </Typography>
                 </Box>
-
                 <Box>
-                  <Typography variant="body2" color="text.secondary">
-                    Estado
-                  </Typography>
-                  <Typography variant="h6" fontWeight="bold" color={`${statusInfo.color}.main`}>
+                  <Typography variant="caption" color="text.secondary">Estado</Typography>
+                  <Typography variant={isMobile ? 'body1' : 'h6'} fontWeight="bold" color={`${statusInfo.color}.main`}>
                     {statusInfo.label}
                   </Typography>
                 </Box>
-                
                 <Box>
-                  <Typography variant="body2" color="text.secondary">
-                    Total cuotas
-                  </Typography>
-                  <Typography variant="h6" fontWeight="bold">
-                    {loan.totalPayments}
+                  <Typography variant="caption" color="text.secondary">Cuotas</Typography>
+                  <Typography variant={isMobile ? 'body1' : 'h6'} fontWeight="bold">
+                    {loan.totalPayments} ({getFrequencyLabel(loan.paymentFrequency)})
                   </Typography>
                 </Box>
-                
                 <Box>
-                  <Typography variant="body2" color="text.secondary">
-                    Frecuencia
-                  </Typography>
-                  <Typography variant="h6" fontWeight="bold">
-                    {getFrequencyLabel(loan.paymentFrequency)}
-                  </Typography>
-                </Box>
-                
-                <Box>
-                  <Typography variant="body2" color="text.secondary">
-                    Fecha de creación
-                  </Typography>
-                  <Typography variant="h6" fontWeight="bold">
+                  <Typography variant="caption" color="text.secondary">Creado</Typography>
+                  <Typography variant={isMobile ? 'body1' : 'h6'} fontWeight="bold">
                     {new Date(loan.createdAt).toLocaleDateString('es-AR')}
                   </Typography>
                 </Box>
               </Box>
-            </Box>
+              </Box>
+            </Paper>
 
             {/* Error Alerts */}
             {paymentError && (
@@ -323,14 +306,27 @@ export default function LoanDetailsModal({
                 </Typography>
               </Box>
             ) : subLoans.length === 0 ? (
-              <Box sx={{ textAlign: 'center', py: 4, bgcolor: 'grey.50', borderRadius: 2, p: 3 }}>
-                <Typography variant="h6" color="text.secondary" gutterBottom>
-                  No hay cuotas registradas
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  Este préstamo aún no tiene cuotas generadas. Las cuotas se crean automáticamente al crear el préstamo.
-                </Typography>
-              </Box>
+              loadError || (loan.totalPayments ?? 0) > 0 ? (
+                <Box sx={{ textAlign: 'center', py: 4, bgcolor: 'error.lighter', borderRadius: 2, p: 3, border: 1, borderColor: 'error.light' }}>
+                  <Typography variant="h6" color="error.main" gutterBottom>
+                    Error cargando las cuotas
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    {loadError
+                      ? `No se pudieron cargar las cuotas: ${loadError}`
+                      : `Este préstamo tiene ${loan.totalPayments} cuotas registradas pero no se pudieron cargar. Intentá cerrar y abrir de nuevo.`}
+                  </Typography>
+                </Box>
+              ) : (
+                <Box sx={{ textAlign: 'center', py: 4, bgcolor: 'grey.50', borderRadius: 2, p: 3 }}>
+                  <Typography variant="h6" color="text.secondary" gutterBottom>
+                    No hay cuotas registradas
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    Este préstamo aún no tiene cuotas generadas. Las cuotas se crean automáticamente al crear el préstamo.
+                  </Typography>
+                </Box>
+              )
             ) : (
               <LoanTimeline
                 clientName={clientName}
@@ -339,6 +335,7 @@ export default function LoanDetailsModal({
                 onPaymentClick={handlePaymentClick}
                 onResetClick={handleResetPayments}
                 resettingSubloanId={resettingSubloanId}
+                onDateUpdated={onPaymentSuccess}
               />
             )}
 
@@ -372,62 +369,84 @@ export default function LoanDetailsModal({
       <Dialog
         open={resetConfirmModalOpen}
         onClose={handleCancelReset}
-        maxWidth="sm"
+        maxWidth="xs"
         fullWidth
+        PaperProps={{
+          sx: {
+            borderRadius: { xs: 2, sm: 3 },
+            m: { xs: 1, sm: 2 },
+            mt: { xs: 'auto', sm: 2 },
+            width: { xs: '100%', sm: 'auto' }
+          }
+        }}
+        sx={{ '& .MuiDialog-container': { alignItems: { xs: 'flex-end', sm: 'center' } } }}
       >
-        <DialogTitle sx={{ pb: 2 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-            <Warning color="warning" sx={{ fontSize: 28 }} />
-            <Typography variant="h6" fontWeight="bold">
-              Confirmar Reseteo de Pagos
+        <DialogTitle
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 1.5,
+            pb: 1.5,
+            pt: 2,
+            px: 2,
+            borderBottom: 1,
+            borderColor: 'divider',
+            bgcolor: 'background.paper'
+          }}
+        >
+          <Warning sx={{ color: 'warning.main', fontSize: 22, flexShrink: 0 }} />
+          <Box sx={{ minWidth: 0 }}>
+            <Typography variant="subtitle1" fontWeight={700} lineHeight={1.2}>
+              Resetear cuota #{subloanToReset?.paymentNumber}
+            </Typography>
+            <Typography variant="caption" color="text.secondary">
+              Esta acción no se puede deshacer
             </Typography>
           </Box>
         </DialogTitle>
-        <DialogContent>
-          <Typography variant="body1" gutterBottom sx={{ mb: 2 }}>
-            ¿Está seguro de resetear todos los pagos de la cuota #{subloanToReset?.paymentNumber}?
-          </Typography>
-          
-          <Alert severity="warning" sx={{ mb: 2 }}>
-            <Typography variant="body2" fontWeight="bold" gutterBottom>
-              Esta acción eliminará:
-            </Typography>
-            <Typography variant="body2" component="ul" sx={{ pl: 2, mb: 0 }}>
-              <li>Todos los pagos registrados de esta cuota</li>
-              <li>Los efectos en las wallets (se revertirán los créditos)</li>
-              <li>Los registros de la ruta del día (si aplica)</li>
-            </Typography>
-          </Alert>
 
-          <Alert severity="info" sx={{ mb: 2 }}>
-            <Typography variant="body2">
-              <strong>Importante:</strong> Solo se puede resetear si el último pago fue realizado en las últimas 24 horas.
+        <DialogContent sx={{ px: 2, pt: 2, pb: 1 }}>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+            {[
+              'Todos los pagos registrados de esta cuota',
+              'Los efectos en las wallets (créditos revertidos)',
+              'Los registros de ruta del día, si aplica',
+            ].map((item) => (
+              <Box
+                key={item}
+                sx={{ pl: 1.5, py: 0.5, borderLeft: '3px solid', borderColor: 'warning.main' }}
+              >
+                <Typography variant="body2" color="text.secondary">{item}</Typography>
+              </Box>
+            ))}
+            <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5 }}>
+              Solo disponible si el último pago fue en las últimas 24 horas.
             </Typography>
-          </Alert>
-
-          <Alert severity="error">
-            <Typography variant="body2" fontWeight="bold">
-              ⚠️ Esta acción no se puede deshacer.
-            </Typography>
-          </Alert>
+          </Box>
         </DialogContent>
-        <DialogActions sx={{ p: 3, pt: 2 }}>
-          <Button 
-            onClick={handleCancelReset}
-            variant="outlined"
-            sx={{ minWidth: 120 }}
-          >
+
+        <DialogActions
+          sx={{
+            px: 2,
+            pt: 1,
+            pb: 'calc(16px + env(safe-area-inset-bottom))',
+            gap: 1,
+            borderTop: 1,
+            borderColor: 'divider'
+          }}
+        >
+          <Button onClick={handleCancelReset} variant="outlined" fullWidth>
             Cancelar
           </Button>
           <Button
             onClick={handleConfirmReset}
             variant="contained"
             color="warning"
+            fullWidth
             startIcon={<Refresh />}
             disabled={resettingSubloanId === subloanToReset?.id}
-            sx={{ minWidth: 120 }}
           >
-            {resettingSubloanId === subloanToReset?.id ? 'Reseteando...' : 'Resetear Pagos'}
+            {resettingSubloanId === subloanToReset?.id ? 'Reseteando...' : 'Resetear'}
           </Button>
         </DialogActions>
       </Dialog>

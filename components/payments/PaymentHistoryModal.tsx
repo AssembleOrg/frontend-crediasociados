@@ -119,7 +119,7 @@ export const PaymentHistoryModal: React.FC<PaymentHistoryModalProps> = ({
         pt: 3
       }}>
         <History />
-        <Typography variant="h6" sx={{ fontWeight: 600 }}>
+        <Typography variant="h6" component="div" sx={{ fontWeight: 600 }}>
           Historial de Pagos
         </Typography>
       </DialogTitle>
@@ -174,7 +174,7 @@ export const PaymentHistoryModal: React.FC<PaymentHistoryModalProps> = ({
               </TableHead>
               <TableBody>
                 {displayHistory.map((item, index) => {
-                  const isReset = item.type === 'RESET' || (item.amount < 0 && item.description?.toLowerCase().includes('reseteo'))
+                  const isReset = (item as any).type === 'RESET' || (item.amount < 0 && item.description?.toLowerCase().includes('reseteo'))
                   const isPositive = !isReset && item.amount > 0
                   return (
                     <TableRow key={index} hover>

@@ -14,9 +14,6 @@ import {
   Button,
   CircularProgress,
   Typography,
-  Card,
-  CardContent,
-  Grid,
   useMediaQuery,
   useTheme,
   Snackbar,
@@ -187,73 +184,30 @@ export default function OperativoSubadminPage() {
     fetchManagersBalances();
   }, []);
 
-  // Fetch dinero en calle for each manager (con deduplicación)
-  const fetchDineroEnCalle = async (managerId: string, forceRefresh: boolean = false) => {
-    if (managersDineroEnCalle[managerId] !== undefined && !forceRefresh) return; // Already loaded
-    
-    setLoadingDineroEnCalle(prev => ({ ...prev, [managerId]: true }));
-    try {
-      const data = await requestDeduplicator.dedupe(
-        `manager:detail:${managerId}`,
-        () => collectorWalletService.getManagerDetail(managerId),
-        { ttl: 60000, forceRefresh } // 60 segundos de caché
-      );
-      // Calcular dinero en calle sumando el totalPending de todos los préstamos
-      // Esto asegura que se reflejen los pagos parciales correctamente
-      const calculatedDineroEnCalle = data.loans.reduce((sum: number, loan: any) => 
-        sum + (loan.stats?.totalPending || 0), 0
-      );
-      setManagersDineroEnCalle(prev => ({
-        ...prev,
-        [managerId]: calculatedDineroEnCalle
-      }));
-      
-      // Guardar dinero prestado (dineroPrestado) del endpoint
-      const dineroPrestado = data.dineroPrestado || 0;
-      setManagersDineroPrestado(prev => ({
-        ...prev,
-        [managerId]: dineroPrestado
-      }));
-    } catch (error) {
-      // Error fetching dinero en calle
-      setManagersDineroEnCalle(prev => ({
-        ...prev,
-        [managerId]: 0
-      }));
-      setManagersDineroPrestado(prev => ({
-        ...prev,
-        [managerId]: 0
-      }));
-    } finally {
-      setLoadingDineroEnCalle(prev => ({ ...prev, [managerId]: false }));
-    }
-  };
-
-  // Load dinero en calle for all managers when cobradores change
+  // Populate dineroEnCalle, dineroPrestado, and safeBalances from managersBalances (batch data)
   useEffect(() => {
-    cobradores.forEach(cobrador => {
-      fetchDineroEnCalle(cobrador.id);
-      fetchSafeBalance(cobrador.id);
-    });
-  }, [cobradores]);
+    if (!managersBalances?.managers) return;
+    const newDineroEnCalle: Record<string, number> = {};
+    const newDineroPrestado: Record<string, number> = {};
+    const newSafeBalances: Record<string, number> = {};
+    for (const m of managersBalances.managers) {
+      newDineroEnCalle[m.managerId] = (m as any).dineroEnCalle || 0;
+      newDineroPrestado[m.managerId] = (m as any).dineroPrestado || 0;
+      newSafeBalances[m.managerId] = (m as any).safeBalance || 0;
+    }
+    setManagersDineroEnCalle(newDineroEnCalle);
+    setManagersDineroPrestado(newDineroPrestado);
+    setSafeBalances(newSafeBalances);
+  }, [managersBalances]);
 
-  // Fetch safe balance for a manager
-  const fetchSafeBalance = async (managerId: string, forceRefresh = false) => {
-    if (!forceRefresh && safeBalances[managerId] !== undefined) return; // Already loaded
-    
+  // Individual refresh for safe balance (used after operations like deposits/withdrawals)
+  const fetchSafeBalance = async (managerId: string, _forceRefresh = false) => {
     setLoadingSafeBalances(prev => ({ ...prev, [managerId]: true }));
     try {
       const data = await safeService.getBalance(managerId);
-      setSafeBalances(prev => ({
-        ...prev,
-        [managerId]: data.balance
-      }));
-    } catch (error) {
-      // Error fetching safe balance
-      setSafeBalances(prev => ({
-        ...prev,
-        [managerId]: 0
-      }));
+      setSafeBalances(prev => ({ ...prev, [managerId]: data.balance }));
+    } catch {
+      setSafeBalances(prev => ({ ...prev, [managerId]: 0 }));
     } finally {
       setLoadingSafeBalances(prev => ({ ...prev, [managerId]: false }));
     }
@@ -455,7 +409,7 @@ export default function OperativoSubadminPage() {
   };
 
   return (
-    <Box sx={{ p: 3 }}>
+    <Box sx={{ p: { xs: 2, sm: 3 }, minHeight: '100vh', bgcolor: '#F2F2F7' }}>
       <PageHeader title="Operativa" subtitle="Gestión de dinero y cobradores" />
 
       <Box sx={{ display: "flex", gap: 1.5, mb: 2, flexWrap: "wrap" }}>
@@ -493,61 +447,32 @@ export default function OperativoSubadminPage() {
         </Button>
       </Box>
 
-      {/* Wallet Balance Card */}
-      <Card
+      {/* Total Cajas Fuertes */}
+      <Paper
+        elevation={0}
         sx={{
-          mb: 4,
-          bgcolor: "primary.light",
-          border: `1px solid ${theme.palette.primary.main}`,
+          mb: 3,
+          bgcolor: '#FFFFFF',
+          borderLeft: 4,
+          borderLeftColor: totalSafeBalance < 0 ? 'error.main' : 'success.main',
+          borderRadius: 2,
+          px: 3,
+          py: 2.5,
         }}
       >
-        <CardContent sx={{ p: 3 }}>
-          <Box
-            sx={{
-              display: "grid",
-              gridTemplateColumns: { xs: "1fr", sm: "1fr auto" },
-              gap: 3,
-              alignItems: "center",
-            }}
-          >
-            <Box>
-              <Typography
-                variant="subtitle2"
-                sx={{ mb: 1, fontWeight: 500, color: "text.primary" }}
-              >
-                Total Cajas Fuertes
-              </Typography>
-              <Typography
-                variant="h4"
-                sx={{
-                  fontWeight: 700,
-                  color: totalSafeBalance < 0 ? "error.main" : totalSafeBalance > 0 ? "success.main" : theme.palette.mode === "dark" ? "#fff" : "#000",
-                }}
-              >
-                ${totalSafeBalance.toLocaleString("es-AR")}
-              </Typography>
-            </Box>
-            <Box
-              sx={{
-                display: "flex",
-                gap: 1.5,
-                flexDirection: { xs: "column", sm: "row" },
-                justifyContent: { xs: "flex-start", sm: "flex-end" },
-              }}
-            >
-              {/* Botones de depósito y retiro ocultos ya que no se usa my wallet */}
-              {/* <Button
-                variant="outlined"
-                startIcon={<TrendingDown />}
-                onClick={() => setTransferModalOpen(true)}
-                disabled={!wallet || wallet.balance <= 0}
-              >
-                Transferir
-              </Button> */}
-            </Box>
-          </Box>
-        </CardContent>
-      </Card>
+        <Typography variant="caption" color="text.secondary" fontWeight={500} display="block" sx={{ mb: 0.5 }}>
+          Total Cajas Fuertes
+        </Typography>
+        <Typography
+          variant="h4"
+          sx={{
+            fontWeight: 700,
+            color: totalSafeBalance < 0 ? "error.main" : totalSafeBalance > 0 ? "success.main" : "text.primary",
+          }}
+        >
+          ${totalSafeBalance.toLocaleString("es-AR")}
+        </Typography>
+      </Paper>
 
       {/* Collector Wallets Section */}
       <Box sx={{ mb: 4 }}>
@@ -592,195 +517,229 @@ export default function OperativoSubadminPage() {
             </Button>
           </Box>
         </Box>
-        <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-          Gestiona las wallets de cobros de tus cobradores. Los retiros NO se
-          agregan a tu wallet principal.
-        </Typography>
-
         {loadingManagersBalances && cobradores.length > 0 ? (
           <Box sx={{ display: "flex", justifyContent: "center", p: 4 }}>
             <CircularProgress size={30} />
           </Box>
-        ) : (
-          <Paper elevation={1}>
-            <TableContainer>
-              <Table>
-                <TableHead sx={{ bgcolor: "success.lighter" }}>
-                  <TableRow>
-                    <TableCell sx={{ fontWeight: 600 }}>Cobrador</TableCell>
-                    <TableCell align="center" sx={{ fontWeight: 600 }}>
-                      Cuota de Clientes
-                    </TableCell>
-                    <TableCell align="right" sx={{ fontWeight: 600 }}>
-                      Wallet de Cobros
-                    </TableCell>
-                    <TableCell align="right" sx={{ fontWeight: 600 }}>
-                      Caja Fuerte
-                    </TableCell>
-                    <TableCell align="center" sx={{ fontWeight: 600 }}>
-                      Acciones
-                    </TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {cobradores.length === 0 ? (
-                    <TableRow>
-                      <TableCell
-                        colSpan={5}
-                        sx={{ textAlign: "center", py: 4 }}
-                      >
-                        <Typography color="text.secondary">
-                          No hay cobradores registrados aún
+        ) : isMobile ? (
+            /* Mobile: Unified cards — wallet + caja + préstamos + acciones en una sola card */
+            <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}>
+              {cobradores.length === 0 ? (
+                <Paper elevation={0} sx={{ p: 4, textAlign: "center", bgcolor: '#FFFFFF', borderRadius: 2 }}>
+                  <Typography color="text.secondary">No hay cobradores registrados</Typography>
+                </Paper>
+              ) : (
+                cobradores.map((cobrador) => {
+                  const collectorBalance = collectorBalances[cobrador.id] || 0;
+                  const safeBalance = safeBalances[cobrador.id] ?? 0;
+                  const dineroEnCalle = managersDineroEnCalle[cobrador.id];
+                  const dineroPrestado = managersDineroPrestado[cobrador.id];
+                  const isLoadingSafe = loadingSafeBalances[cobrador.id];
+                  return (
+                    <Paper key={`collector-${cobrador.id}`} elevation={0} sx={{ bgcolor: '#FFFFFF', borderRadius: 2, overflow: 'hidden' }}>
+                      {/* Header */}
+                      <Box sx={{ px: 2, pt: 2, pb: 1.5 }}>
+                        <Typography variant="subtitle2" fontWeight={700}>
+                          {cobrador.fullName}
                         </Typography>
-                      </TableCell>
-                    </TableRow>
-                  ) : (
-                    cobradores.map((cobrador) => {
-                      const collectorBalance =
-                        collectorBalances[cobrador.id] || 0;
-                      const safeBalance = safeBalances[cobrador.id] ?? 0;
-                      const isLoadingSafe = loadingSafeBalances[cobrador.id];
-                      return (
-                        <TableRow key={`collector-${cobrador.id}`} hover>
-                          <TableCell>
+                        <Typography variant="caption" color="text.secondary" display="block">
+                          {cobrador.email} · {cobrador.usedClientQuota ?? 0}/{cobrador.clientQuota ?? 0} clientes
+                        </Typography>
+                      </Box>
+
+                      {/* Metrics grid 2x2 */}
+                      <Box sx={{ display: "grid", gridTemplateColumns: "1fr 1fr", px: 2, pb: 1.5, gap: 1 }}>
+                        {/* Wallet de Cobros */}
+                        <Box>
+                          <Typography variant="caption" color="text.secondary" display="block">Wallet de Cobros</Typography>
+                          <Typography
+                            variant="body2"
+                            fontWeight={700}
+                            color={collectorBalance > 0 ? "success.main" : collectorBalance < 0 ? "error.main" : "text.secondary"}
+                          >
+                            ${collectorBalance.toLocaleString("es-AR")}
+                          </Typography>
+                        </Box>
+                        {/* Caja Fuerte */}
+                        <Box>
+                          <Typography variant="caption" color="text.secondary" display="block">Caja Fuerte</Typography>
+                          {isLoadingSafe ? (
+                            <CircularProgress size={14} />
+                          ) : (
                             <Typography
                               variant="body2"
-                              sx={{ fontWeight: 500 }}
-                            >
-                              {cobrador.fullName}
-                            </Typography>
-                            <Typography
-                              variant="caption"
-                              color="text.secondary"
-                            >
-                              {cobrador.email}
-                            </Typography>
-                          </TableCell>
-                          <TableCell align="center">
-                            <Typography variant="body2">
-                              {cobrador.usedClientQuota ?? 0}/
-                              {cobrador.clientQuota ?? 0}
-                            </Typography>
-                          </TableCell>
-                          <TableCell align="right">
-                            <Chip
-                              label={`$${collectorBalance.toLocaleString(
-                                "es"
-                              )}`}
-                              color={
-                                collectorBalance > 0 ? "success" : "default"
-                              }
-                              size="small"
-                              sx={{ fontWeight: 600, minWidth: 100 }}
-                            />
-                          </TableCell>
-                          <TableCell align="right">
-                            {isLoadingSafe ? (
-                              <CircularProgress size={16} />
-                            ) : (
-                              <Typography
-                                variant="body2"
-                                sx={{
-                                  fontWeight: 600,
-                                  color: safeBalance < 0 ? "error.main" : safeBalance > 0 ? "success.main" : "text.secondary",
-                                  cursor: "pointer",
-                                  textDecoration: "underline",
-                                  "&:hover": {
-                                    color: safeBalance < 0 ? "error.dark" : safeBalance > 0 ? "success.dark" : "primary.main",
-                                  },
-                                }}
-                                onClick={() => {
-                                  setSelectedManagerForSafe(cobrador);
-                                  setSafeModalOpen(true);
-                                }}
-                              >
-                                ${safeBalance.toLocaleString("es-AR")}
-                              </Typography>
-                            )}
-                          </TableCell>
-                          <TableCell align="center">
-                            <Box
+                              fontWeight={700}
                               sx={{
-                                display: "flex",
-                                gap: 0.5,
-                                justifyContent: "center",
+                                color: safeBalance < 0 ? "error.main" : safeBalance > 0 ? "success.main" : "text.secondary",
+                                cursor: "pointer",
+                                textDecoration: "underline",
                               }}
+                              onClick={() => { setSelectedManagerForSafe(cobrador); setSafeModalOpen(true); }}
                             >
-                              <Tooltip title="Editar cobrador" arrow>
-                                <IconButton
-                                  size="small"
-                                  color="primary"
-                                  onClick={() => handleEditUser(cobrador)}
-                                >
-                                  <Edit fontSize="small" />
-                                </IconButton>
-                              </Tooltip>
+                              ${safeBalance.toLocaleString("es-AR")}
+                            </Typography>
+                          )}
+                        </Box>
+                        {/* Dinero en Calle */}
+                        <Box>
+                          <Typography variant="caption" color="text.secondary" display="block">En Calle</Typography>
+                          <Typography
+                            variant="body2"
+                            fontWeight={700}
+                            color="info.main"
+                            sx={{ cursor: "pointer", textDecoration: "underline" }}
+                            onClick={() => { setSelectedManagerForLoans(cobrador); setManagerLoansModalOpen(true); }}
+                          >
+                            ${dineroEnCalle !== undefined ? dineroEnCalle.toLocaleString("es-AR") : "0"}
+                          </Typography>
+                        </Box>
+                        {/* Neto Prestado */}
+                        <Box>
+                          <Typography variant="caption" color="text.secondary" display="block">Neto Prest.</Typography>
+                          <Typography variant="body2" fontWeight={700} color="text.primary">
+                            ${dineroPrestado !== undefined ? dineroPrestado.toLocaleString("es-AR") : "0"}
+                          </Typography>
+                        </Box>
+                      </Box>
 
-                              {/* <Tooltip title="Ver diario" arrow>
-                                <IconButton
-                                  size="small"
-                                  color="info"
-                                  onClick={() => {
-                                    setSelectedCobrador(cobrador);
-                                    setDailySummaryModalOpen(true);
+                      {/* Actions + Liquidación */}
+                      <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", px: 2, py: 1, borderTop: "1px solid", borderColor: "divider" }}>
+                        <Box sx={{ display: "flex", gap: 0.5 }}>
+                          <Tooltip title="Editar" arrow>
+                            <IconButton size="small" color="primary" onClick={() => handleEditUser(cobrador)}>
+                              <Edit fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
+                          <Tooltip title="Retirar de wallet" arrow>
+                            <span>
+                              <IconButton size="small" color="warning" disabled={collectorBalance <= 0} onClick={() => { setSelectedCobrador(cobrador); setWithdrawCollectorModalOpen(true); }}>
+                                <AccountBalanceWallet fontSize="small" />
+                              </IconButton>
+                            </span>
+                          </Tooltip>
+                          <Tooltip title="Ajustar caja" arrow>
+                            <IconButton size="small" color="success" onClick={() => { setSelectedCobrador(cobrador); setCashAdjustmentModalOpen(true); }}>
+                              <TrendingUp fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
+                          <Tooltip title="Eliminar" arrow>
+                            <IconButton size="small" color="error" onClick={() => handleDeleteUser(cobrador)}>
+                              <Delete fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
+                        </Box>
+                        <Button
+                          size="small"
+                          variant="outlined"
+                          color="primary"
+                          sx={{ borderRadius: '20px', textTransform: 'none', fontSize: '0.75rem' }}
+                          onClick={() => { setSelectedManagerForLiquidation(cobrador); setLiquidationModalOpen(true); }}
+                        >
+                          Liquidación
+                        </Button>
+                      </Box>
+                    </Paper>
+                  );
+                })
+              )}
+            </Box>
+          ) : (
+            /* Desktop: Table */
+            <Paper elevation={1}>
+              <TableContainer>
+                <Table>
+                  <TableHead sx={{ bgcolor: "success.lighter" }}>
+                    <TableRow>
+                      <TableCell sx={{ fontWeight: 600 }}>Cobrador</TableCell>
+                      <TableCell align="center" sx={{ fontWeight: 600 }}>Cuota de Clientes</TableCell>
+                      <TableCell align="right" sx={{ fontWeight: 600 }}>Wallet de Cobros</TableCell>
+                      <TableCell align="right" sx={{ fontWeight: 600 }}>Caja Fuerte</TableCell>
+                      <TableCell align="center" sx={{ fontWeight: 600 }}>Acciones</TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {cobradores.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={5} sx={{ textAlign: "center", py: 4 }}>
+                          <Typography color="text.secondary">No hay cobradores registrados aun</Typography>
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      cobradores.map((cobrador) => {
+                        const collectorBalance = collectorBalances[cobrador.id] || 0;
+                        const safeBalance = safeBalances[cobrador.id] ?? 0;
+                        const isLoadingSafe = loadingSafeBalances[cobrador.id];
+                        return (
+                          <TableRow key={`collector-${cobrador.id}`} hover>
+                            <TableCell>
+                              <Typography variant="body2" sx={{ fontWeight: 500 }}>{cobrador.fullName}</Typography>
+                              <Typography variant="caption" color="text.secondary">{cobrador.email}</Typography>
+                            </TableCell>
+                            <TableCell align="center">
+                              <Typography variant="body2">{cobrador.usedClientQuota ?? 0}/{cobrador.clientQuota ?? 0}</Typography>
+                            </TableCell>
+                            <TableCell align="right">
+                              <Chip
+                                label={`$${collectorBalance.toLocaleString("es")}`}
+                                color={collectorBalance > 0 ? "success" : "default"}
+                                size="small"
+                                sx={{ fontWeight: 600, minWidth: 100 }}
+                              />
+                            </TableCell>
+                            <TableCell align="right">
+                              {isLoadingSafe ? (
+                                <CircularProgress size={16} />
+                              ) : (
+                                <Typography
+                                  variant="body2"
+                                  sx={{
+                                    fontWeight: 600,
+                                    color: safeBalance < 0 ? "error.main" : safeBalance > 0 ? "success.main" : "text.secondary",
+                                    cursor: "pointer",
+                                    textDecoration: "underline",
+                                    "&:hover": { color: safeBalance < 0 ? "error.dark" : safeBalance > 0 ? "success.dark" : "primary.main" },
                                   }}
+                                  onClick={() => { setSelectedManagerForSafe(cobrador); setSafeModalOpen(true); }}
                                 >
-                                  <Visibility fontSize="small" />
-                                </IconButton>
-                              </Tooltip> */}
-
-                              <Tooltip title="Retirar de wallet" arrow>
-                                <span>
-                                  <IconButton
-                                    size="small"
-                                    color="warning"
-                                    disabled={collectorBalance <= 0}
-                                    onClick={() => {
-                                      setSelectedCobrador(cobrador);
-                                      setWithdrawCollectorModalOpen(true);
-                                    }}
-                                  >
-                                    <AccountBalanceWallet fontSize="small" />
+                                  ${safeBalance.toLocaleString("es-AR")}
+                                </Typography>
+                              )}
+                            </TableCell>
+                            <TableCell align="center">
+                              <Box sx={{ display: "flex", gap: 0.5, justifyContent: "center" }}>
+                                <Tooltip title="Editar cobrador" arrow>
+                                  <IconButton size="small" color="primary" onClick={() => handleEditUser(cobrador)}>
+                                    <Edit fontSize="small" />
                                   </IconButton>
-                                </span>
-                              </Tooltip>
-
-                              <Tooltip 
-                                title="Ajustar caja (retira de la caja fuerte)"
-                                arrow
-                              >
-                                <IconButton
-                                  size="small"
-                                  color="success"
-                                  onClick={() => {
-                                    setSelectedCobrador(cobrador);
-                                    setCashAdjustmentModalOpen(true);
-                                  }}
-                                >
-                                  <TrendingUp fontSize="small" />
-                                </IconButton>
-                              </Tooltip>
-
-                              <Tooltip title="Eliminar cobrador" arrow>
-                                <IconButton
-                                  size="small"
-                                  color="error"
-                                  onClick={() => handleDeleteUser(cobrador)}
-                                >
-                                  <Delete fontSize="small" />
-                                </IconButton>
-                              </Tooltip>
-                            </Box>
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })
-                  )}
-                </TableBody>
-              </Table>
-            </TableContainer>
-          </Paper>
-        )}
+                                </Tooltip>
+                                <Tooltip title="Retirar de wallet" arrow>
+                                  <span>
+                                    <IconButton size="small" color="warning" disabled={collectorBalance <= 0} onClick={() => { setSelectedCobrador(cobrador); setWithdrawCollectorModalOpen(true); }}>
+                                      <AccountBalanceWallet fontSize="small" />
+                                    </IconButton>
+                                  </span>
+                                </Tooltip>
+                                <Tooltip title="Ajustar caja" arrow>
+                                  <IconButton size="small" color="success" onClick={() => { setSelectedCobrador(cobrador); setCashAdjustmentModalOpen(true); }}>
+                                    <TrendingUp fontSize="small" />
+                                  </IconButton>
+                                </Tooltip>
+                                <Tooltip title="Eliminar cobrador" arrow>
+                                  <IconButton size="small" color="error" onClick={() => handleDeleteUser(cobrador)}>
+                                    <Delete fontSize="small" />
+                                  </IconButton>
+                                </Tooltip>
+                              </Box>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })
+                    )}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            </Paper>
+          )}
       </Box>
 
       {/* Desktop Table View */}
@@ -887,152 +846,6 @@ export default function OperativoSubadminPage() {
             </Table>
           </TableContainer>
         </Paper>
-      )}
-
-      {/* Mobile Card View */}
-      {isMobile && (
-        <Box>
-          <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
-            📊 Estado de Préstamos por Manager
-          </Typography>
-          {cobradores.length === 0 ? (
-            <Paper sx={{ p: 3, textAlign: "center" }}>
-              <Typography color="text.secondary">
-                No hay cobradores registrados aún
-              </Typography>
-            </Paper>
-          ) : (
-            <Grid container spacing={2}>
-              {cobradores.map((cobrador) => {
-                const dineroEnCalle = managersDineroEnCalle[cobrador.id];
-                const dineroPrestado = managersDineroPrestado[cobrador.id];
-                const isLoading = loadingDineroEnCalle[cobrador.id];
-                return (
-                  <Grid size={{ xs: 12 }} key={cobrador.id}>
-                    <Card sx={{ bgcolor: "background.paper" }}>
-                      <CardContent>
-                        {/* Header */}
-                        <Box sx={{ mb: 2 }}>
-                          <Typography
-                            variant="subtitle1"
-                            sx={{ fontWeight: 600 }}
-                          >
-                            {cobrador.fullName}
-                          </Typography>
-                          <Typography variant="caption" color="text.secondary">
-                            {cobrador.email}
-                          </Typography>
-                        </Box>
-
-                        {/* Metrics Grid */}
-                        <Grid container spacing={2} sx={{ mb: 2, mt: 2 }}>
-                          <Grid size={{ xs: 6 }}>
-                            <Typography
-                              variant="caption"
-                              color="text.secondary"
-                              display="block"
-                            >
-                              Cuota de Clientes
-                            </Typography>
-                            <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                              {cobrador.usedClientQuota ?? 0}/
-                              {cobrador.clientQuota ?? 0}
-                            </Typography>
-                          </Grid>
-                          <Grid size={{ xs: 6 }}>
-                            <Typography
-                              variant="caption"
-                              color="text.secondary"
-                              display="block"
-                            >
-                              Clientes Actuales
-                            </Typography>
-                            <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                              {cobrador.usedClientQuota ?? 0}
-                            </Typography>
-                          </Grid>
-                        </Grid>
-
-                        {/* Dinero en Calle */}
-                        <Box sx={{ mt: 2, mb: 2 }}>
-                          <Typography
-                            variant="caption"
-                            color="text.secondary"
-                            display="block"
-                            sx={{ mb: 0.5 }}
-                          >
-                            Dinero en Calle
-                          </Typography>
-                          {isLoading ? (
-                            <CircularProgress size={16} />
-                          ) : (
-                            <Typography
-                              variant="body1"
-                              sx={{
-                                fontWeight: 600,
-                                color: "info.main",
-                                cursor: "pointer",
-                                textDecoration: "underline",
-                                "&:hover": {
-                                  color: "info.dark",
-                                },
-                              }}
-                              onClick={() => {
-                                setSelectedManagerForLoans(cobrador);
-                                setManagerLoansModalOpen(true);
-                              }}
-                            >
-                              ${dineroEnCalle !== undefined ? dineroEnCalle.toLocaleString("es-AR") : "0"}
-                            </Typography>
-                          )}
-                        </Box>
-
-                        {/* Neto en Calle */}
-                        <Box sx={{ mt: 2, mb: 2 }}>
-                          <Typography
-                            variant="caption"
-                            color="text.secondary"
-                            display="block"
-                            sx={{ mb: 0.5 }}
-                          >
-                            Neto en Calle
-                          </Typography>
-                          {isLoading ? (
-                            <CircularProgress size={16} />
-                          ) : (
-                            <Typography
-                              variant="body1"
-                              sx={{
-                                fontWeight: 600,
-                                color: "success.main",
-                              }}
-                            >
-                              ${dineroPrestado !== undefined ? dineroPrestado.toLocaleString("es-AR") : "0"}
-                            </Typography>
-                          )}
-                        </Box>
-
-                        {/* Botón Calcular Liquidación */}
-                        <Button
-                          size="small"
-                          variant="outlined"
-                          color="primary"
-                          fullWidth
-                          onClick={() => {
-                            setSelectedManagerForLiquidation(cobrador);
-                            setLiquidationModalOpen(true);
-                          }}
-                        >
-                          Calcular Liquidación
-                        </Button>
-                      </CardContent>
-                    </Card>
-                  </Grid>
-                );
-              })}
-            </Grid>
-          )}
-        </Box>
       )}
 
       {/* Modals */}
@@ -1143,28 +956,14 @@ export default function OperativoSubadminPage() {
         PaperProps={{
           sx: {
             borderRadius: 3,
-            background: "linear-gradient(to bottom, #fff, #fff)",
           },
         }}
       >
-        <DialogTitle sx={{ pb: 2 }}>
+        <DialogTitle sx={{ pb: 2, borderBottom: '1px solid', borderColor: 'divider' }}>
           <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-            <Box
-              sx={{
-                width: 56,
-                height: 56,
-                borderRadius: "50%",
-                background: "linear-gradient(135deg, #f44336 0%, #c62828 100%)",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                boxShadow: "0 4px 12px rgba(244, 67, 54, 0.3)",
-              }}
-            >
-              <Warning sx={{ fontSize: 32, color: "white" }} />
-            </Box>
+            <Warning sx={{ fontSize: 28, color: "error.main" }} />
             <Box>
-              <Typography variant="h5" fontWeight={700} color="error.main">
+              <Typography variant="h6" component="div" fontWeight={700} color="error.main">
                 Eliminar Cobrador
               </Typography>
               <Typography variant="caption" color="text.secondary">
@@ -1269,20 +1068,7 @@ export default function OperativoSubadminPage() {
             color="error"
             size="large"
             startIcon={<Delete />}
-            sx={{
-              borderRadius: 2,
-              minWidth: 150,
-              background:
-                deleteConfirmText.toLowerCase() === "eliminar"
-                  ? "linear-gradient(135deg, #f44336 0%, #c62828 100%)"
-                  : undefined,
-              "&:hover": {
-                background:
-                  deleteConfirmText.toLowerCase() === "eliminar"
-                    ? "linear-gradient(135deg, #d32f2f 0%, #b71c1c 100%)"
-                    : undefined,
-              },
-            }}
+            sx={{ borderRadius: 2, minWidth: 150 }}
           >
             Eliminar Cobrador
           </Button>
@@ -1292,14 +1078,20 @@ export default function OperativoSubadminPage() {
       {/* Toast Snackbar */}
       <Snackbar
         open={toast.open}
-        autoHideDuration={4000}
+        autoHideDuration={5000}
         onClose={closeToast}
-        anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+        anchorOrigin={{ vertical: "bottom", horizontal: isMobile ? "center" : "right" }}
+        sx={{
+          '& .MuiSnackbarContent-root': { minWidth: 'auto' },
+          maxWidth: { xs: '90vw', sm: 'auto' },
+          left: { xs: '5vw', sm: 'auto' },
+          right: { xs: '5vw', sm: 24 },
+        }}
       >
         <Alert
           onClose={closeToast}
           severity={toast.severity}
-          sx={{ width: "100%" }}
+          sx={{ width: "100%", fontSize: { xs: '0.8rem', sm: '0.875rem' } }}
         >
           {toast.message}
         </Alert>

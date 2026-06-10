@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { ThemeProvider } from "@/lib/ThemeProvider";
 import DolarBlueProvider from "@/components/providers/DolarBlueProvider";
@@ -23,6 +23,12 @@ export const metadata: Metadata = {
   title: "Crediasociados - Gestión de Préstamos",
   description: "Plataforma moderna para gestionar préstamos y clientes de forma simple y profesional",
   manifest: "/site.webmanifest",
+};
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  viewportFit: 'cover',
 };
 
 export default function RootLayout({

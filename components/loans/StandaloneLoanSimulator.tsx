@@ -18,9 +18,14 @@ import {
   TableHead,
   TableRow,
   Divider,
-  Alert,
   IconButton,
   Tooltip,
+  List,
+  ListItem,
+  ListItemIcon,
+  ListItemText,
+  alpha,
+  useTheme,
 } from '@mui/material';
 import { Calculate, TrendingUp, KeyboardArrowUp, KeyboardArrowDown } from '@mui/icons-material';
 import {
@@ -43,6 +48,7 @@ interface SimulationResult {
 }
 
 export function StandaloneLoanSimulator() {
+  const theme = useTheme();
   const [amount, setAmount] = useState('');
   const [totalPayments, setTotalPayments] = useState('');
   const [baseInterestRate, setBaseInterestRate] = useState('10');
@@ -138,61 +144,19 @@ export function StandaloneLoanSimulator() {
   return (
     <Paper
       sx={{
-        p: 4,
-        backgroundColor: 'primary.main',
-        color: 'primary.contrastText',
-        borderRadius: 3,
-        boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
-        '& .MuiInputLabel-root': {
-          color: 'rgba(255,255,255,0.9)',
-          fontWeight: 500,
-        },
-        '& .MuiInputLabel-root.Mui-focused': {
-          color: 'common.white',
-        },
-        '& .MuiInputBase-root': {
-          color: 'common.white',
-          backgroundColor: 'rgba(255,255,255,0.1)',
-          borderRadius: 2,
-        },
-        '& .MuiOutlinedInput-notchedOutline': {
-          borderColor: 'rgba(255,255,255,0.3)',
-        },
-        '& .MuiOutlinedInput-root:hover .MuiOutlinedInput-notchedOutline': {
-          borderColor: 'rgba(255,255,255,0.6)',
-        },
-        '& .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline':
-          {
-            borderColor: 'common.white',
-            borderWidth: 2,
-          },
-        '& .MuiInputBase-input': {
-          color: 'common.white',
-        },
-        '& .MuiSelect-icon': {
-          color: 'rgba(255,255,255,0.8)',
-        },
-        '& .MuiButton-root': {
-          color: 'primary.contrastText',
-          fontWeight: 600,
-        },
-        '& .MuiButton-outlined': {
-          borderColor: 'rgba(255,255,255,0.7)',
-          '&:hover': {
-            borderColor: 'common.white',
-            backgroundColor: 'rgba(255,255,255,0.15)',
-          },
-        },
+        p: { xs: 2, sm: 3 },
+        bgcolor: '#FFFFFF',
+        borderRadius: 2,
       }}
     >
       <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
-        <Calculate sx={{ mr: 2, color: '#ffffff' }} />
-        <Typography variant='h6'>Simulador de Préstamos</Typography>
+        <Calculate sx={{ mr: 2, color: 'primary.main' }} />
+        <Typography variant='h6' fontWeight={600}>Simulador de Préstamos</Typography>
       </Box>
 
       <Typography
         variant='body2'
-        color='text.primary'
+        color='text.secondary'
         sx={{ mb: 3 }}
       >
         Calcula cuotas y términos sin necesidad de seleccionar cliente
@@ -207,7 +171,7 @@ export function StandaloneLoanSimulator() {
             sm: 'repeat(2, 1fr)',
             md: 'repeat(4, 1fr)',
           },
-          gap: 3,
+          gap: 2,
           mb: 3,
         }}
       >
@@ -229,24 +193,18 @@ export function StandaloneLoanSimulator() {
           fullWidth
         />
 
-        <Box sx={{ display: 'flex', alignItems: 'flex-end', gap: 0.5 }}>
+        <Box sx={{ display: 'flex', gap: 1, alignItems: 'flex-end' }}>
           <TextField
-            label='Tasa de Interés (%)'
+            label='Tasa (%)'
             type='number'
             value={baseInterestRate}
             onChange={(e) => setBaseInterestRate(e.target.value)}
             size='small'
             fullWidth
             sx={{
-              '& input[type=number]::-webkit-inner-spin-button': {
-                display: 'none',
-              },
-              '& input[type=number]::-webkit-outer-spin-button': {
-                display: 'none',
-              },
-              '& input[type=number]': {
-                MozAppearance: 'textfield',
-              },
+              '& input[type=number]::-webkit-inner-spin-button': { display: 'none' },
+              '& input[type=number]::-webkit-outer-spin-button': { display: 'none' },
+              '& input[type=number]': { MozAppearance: 'textfield' },
             }}
           />
           <Tooltip title='Redondear cuota hacia arriba'>
@@ -267,18 +225,11 @@ export function StandaloneLoanSimulator() {
                 }}
                 disabled={!amount || !totalPayments || !baseInterestRate}
                 sx={{
-                  bgcolor: 'rgba(255,255,255,0.2)',
-                  border: '2px solid rgba(255,255,255,0.5)',
-                  color: 'white',
+                  bgcolor: alpha(theme.palette.primary.main, 0.08),
+                  color: 'primary.main',
                   borderRadius: 1,
                   '&:hover': {
-                    bgcolor: 'rgba(255,255,255,0.3)',
-                    borderColor: 'white',
-                  },
-                  '&:disabled': {
-                    bgcolor: 'rgba(255,255,255,0.1)',
-                    borderColor: 'rgba(255,255,255,0.2)',
-                    color: 'rgba(255,255,255,0.5)',
+                    bgcolor: alpha(theme.palette.primary.main, 0.12),
                   },
                 }}
               >
@@ -304,18 +255,11 @@ export function StandaloneLoanSimulator() {
                 }}
                 disabled={!amount || !totalPayments || !baseInterestRate}
                 sx={{
-                  bgcolor: 'rgba(255,255,255,0.2)',
-                  border: '2px solid rgba(255,255,255,0.5)',
-                  color: 'white',
+                  bgcolor: alpha(theme.palette.primary.main, 0.08),
+                  color: 'primary.main',
                   borderRadius: 1,
                   '&:hover': {
-                    bgcolor: 'rgba(255,255,255,0.3)',
-                    borderColor: 'white',
-                  },
-                  '&:disabled': {
-                    bgcolor: 'rgba(255,255,255,0.1)',
-                    borderColor: 'rgba(255,255,255,0.2)',
-                    color: 'rgba(255,255,255,0.5)',
+                    bgcolor: alpha(theme.palette.primary.main, 0.12),
                   },
                 }}
               >
@@ -325,18 +269,11 @@ export function StandaloneLoanSimulator() {
           </Tooltip>
         </Box>
 
-        <FormControl
-          size='small'
-          fullWidth
-        >
+        <FormControl size='small' fullWidth>
           <InputLabel>Frecuencia</InputLabel>
           <Select
             value={paymentFrequency}
-            onChange={(e) =>
-              setPaymentFrequency(
-                e.target.value as 'DAILY' | 'WEEKLY' | 'MONTHLY'
-              )
-            }
+            onChange={(e) => setPaymentFrequency(e.target.value as 'DAILY' | 'WEEKLY' | 'MONTHLY')}
             label='Frecuencia'
           >
             <MenuItem value='DAILY'>Diario</MenuItem>
@@ -348,171 +285,68 @@ export function StandaloneLoanSimulator() {
 
       {/* Resumen en tiempo real */}
       {amount && baseInterestRate && (
-        <Box
-          sx={{
-            p: 2,
-            bgcolor: 'rgba(255,255,255,0.1)',
-            borderRadius: 2,
-            border: '1px solid rgba(255,255,255,0.2)',
-            mb: 3,
-          }}
-        >
-          <Typography
-            variant='subtitle2'
-            sx={{ fontWeight: 600, mb: 1, color: '#ffffff' }}
-          >
+        <Paper sx={{ p: 2, bgcolor: alpha(theme.palette.primary.main, 0.06), mb: 3, border: `1px solid ${theme.palette.divider}` }}>
+          <Typography variant='subtitle2' sx={{ fontWeight: 600, mb: 2 }}>
             Resumen del Préstamo
           </Typography>
-          <Box
-            sx={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-            }}
-          >
-            <Typography
-              variant='body2'
-              sx={{ color: 'rgba(255,255,255,0.85)' }}
-            >
-              Monto base:
-            </Typography>
-            <Typography
-              variant='body2'
-              sx={{ fontWeight: 500, color: '#ffffff' }}
-            >
-              $
-              {parseFloat(unformatAmount(amount) || '0').toLocaleString(
-                'es-AR'
-              )}
-            </Typography>
-          </Box>
-          <Box
-            sx={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-            }}
-          >
-            <Typography
-              variant='body2'
-              sx={{ color: 'rgba(255,255,255,0.85)' }}
-            >
-              Interés ({baseInterestRate}%):
-            </Typography>
-            <Typography
-              variant='body2'
-              sx={{ fontWeight: 500, color: '#ffffff' }}
-            >
-              $
-              {(
-                (parseFloat(unformatAmount(amount) || '0') *
-                  parseFloat(baseInterestRate || '0')) /
-                100
-              ).toLocaleString('es-AR')}
-            </Typography>
-          </Box>
-          <Box
-            sx={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              mt: 1,
-              pt: 1,
-              borderTop: '1px solid rgba(255,255,255,0.2)',
-            }}
-          >
-            <Typography
-              variant='subtitle1'
-              sx={{ fontWeight: 600, color: '#ffffff' }}
-            >
-              Total a prestar:
-            </Typography>
-            <Typography
-              variant='h6'
-              sx={{ fontWeight: 700, color: '#ffffff' }}
-            >
-              ${realtimeTotal.toLocaleString('es-AR')}
-            </Typography>
-          </Box>
-          {totalPayments && (
-            <>
-              <Box
-                sx={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  mt: 1,
-                  pt: 1,
-                  borderTop: '1px solid rgba(255,255,255,0.2)',
-                }}
-              >
-                <Typography
-                  variant='body2'
-                  sx={{ color: 'rgba(255,255,255,0.85)' }}
-                >
-                  Valor por cuota:
-                </Typography>
+          <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1.5 }}>
+            <Box>
+              <Typography variant='caption' color='text.secondary'>Monto base</Typography>
+              <Typography variant='body2' fontWeight={500}>
+                ${parseFloat(unformatAmount(amount) || '0').toLocaleString('es-AR')}
+              </Typography>
+            </Box>
+            <Box>
+              <Typography variant='caption' color='text.secondary'>Interés ({baseInterestRate}%)</Typography>
+              <Typography variant='body2' fontWeight={500}>
+                $
+                {(
+                  (parseFloat(unformatAmount(amount) || '0') *
+                    parseFloat(baseInterestRate || '0')) /
+                  100
+                ).toLocaleString('es-AR')}
+              </Typography>
+            </Box>
+            <Box sx={{ gridColumn: '1 / -1' }}>
+              <Typography variant='caption' color='text.secondary'>Total a prestar</Typography>
+              <Typography variant='h6' fontWeight={700} color='primary.main'>
+                ${realtimeTotal.toLocaleString('es-AR')}
+              </Typography>
+            </Box>
+            {totalPayments && (
+              <Box sx={{ gridColumn: '1 / -1' }}>
+                <Typography variant='caption' color='text.secondary'>Valor por cuota</Typography>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                   <Typography
-                    variant='h6'
-                    sx={{ fontWeight: 700, color: isNiceRoundNumber(realtimeTotal / parseInt(totalPayments)) ? '#4ade80' : '#ffffff' }}
+                    variant='body2'
+                    fontWeight={700}
+                    color={isNiceRoundNumber(realtimeTotal / parseInt(totalPayments)) ? 'success.main' : 'text.primary'}
                   >
-                    $
-                    {(realtimeTotal / parseInt(totalPayments)).toLocaleString(
-                      'es-AR',
-                      { minimumFractionDigits: 0, maximumFractionDigits: 0 }
-                    )}
+                    ${(realtimeTotal / parseInt(totalPayments)).toLocaleString('es-AR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
                   </Typography>
                   {isNiceRoundNumber(realtimeTotal / parseInt(totalPayments)) && (
-                    <Typography
-                      variant='caption'
-                      sx={{ color: '#4ade80', fontWeight: 600 }}
-                    >
-                      ✓
-                    </Typography>
+                    <Typography variant='caption' color='success.main' fontWeight={600}>✓</Typography>
                   )}
                 </Box>
               </Box>
-            </>
-          )}
-        </Box>
+            )}
+          </Box>
+        </Paper>
       )}
 
       {/* Botones */}
-      <Box
-        sx={{
-          display: 'flex',
-          gap: 2,
-          mb: 3,
-          justifyContent: { xs: 'center', sm: 'flex-start' },
-          flexWrap: 'wrap',
-        }}
-      >
+      <Box sx={{ display: 'flex', gap: 2, mb: 3, flexWrap: 'wrap' }}>
         <Button
-          variant='outlined'
+          variant='contained'
+          color='primary'
           onClick={handleSimulate}
-          sx={{
-            borderColor: 'rgba(255,255,255,0.85)',
-            '&:hover': {
-              borderColor: '#ffffff',
-              backgroundColor: 'rgba(255,255,255,0.1)',
-            },
-          }}
-          startIcon={<TrendingUp sx={{ color: '#ffffff' }} />}
-          disabled={
-            !amount ||
-            !totalPayments ||
-            parseFloat(unformatAmount(amount)) <= 0 ||
-            parseInt(totalPayments) <= 0
-          }
+          startIcon={<TrendingUp />}
+          disabled={!amount || !totalPayments || parseFloat(unformatAmount(amount)) <= 0 || parseInt(totalPayments) <= 0}
         >
           Simular
         </Button>
         {isCalculated && (
-          <Button
-            variant='outlined'
-            onClick={handleClear}
-          >
+          <Button variant='outlined' onClick={handleClear}>
             Limpiar
           </Button>
         )}
@@ -523,111 +357,79 @@ export function StandaloneLoanSimulator() {
         <>
           <Divider sx={{ mb: 3 }} />
 
-          {/* Resumen Financiero */}
-          <Box
-            sx={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-              gap: 2,
-              mb: 3,
-            }}
-          >
-            <Alert
-              severity='info'
-              sx={{ display: 'flex', alignItems: 'center' }}
-            >
-              <Box>
-                <Typography variant='subtitle2'>Capital Prestado</Typography>
-                <Typography variant='h6'>
+          {/* Resumen Financiero - Grouped List */}
+          <Paper sx={{ mb: 3, bgcolor: '#F2F2F7', overflow: 'hidden' }}>
+            <List disablePadding>
+              <ListItem sx={{ py: 1.25, px: 2 }}>
+                <ListItemIcon sx={{ minWidth: 36 }}>
+                  <Box sx={{ color: 'primary.main', display: 'flex' }}>
+                    <TrendingUp sx={{ fontSize: 20 }} />
+                  </Box>
+                </ListItemIcon>
+                <ListItemText
+                  primary='Capital Prestado'
+                  primaryTypographyProps={{ variant: 'body2', fontWeight: 500 }}
+                />
+                <Typography variant='body1' fontWeight={700} color='primary.main'>
                   ${totalPrincipal.toLocaleString()}
                 </Typography>
-              </Box>
-            </Alert>
-
-            <Alert
-              severity='warning'
-              sx={{ display: 'flex', alignItems: 'center' }}
-            >
-              <Box>
-                <Typography variant='subtitle2'>Intereses Generados</Typography>
-                <Typography variant='h6'>
+              </ListItem>
+              <Divider component='li' />
+              <ListItem sx={{ py: 1.25, px: 2 }}>
+                <ListItemIcon sx={{ minWidth: 36 }}>
+                  <Box sx={{ color: 'warning.main', display: 'flex' }}>
+                    <KeyboardArrowUp sx={{ fontSize: 20 }} />
+                  </Box>
+                </ListItemIcon>
+                <ListItemText
+                  primary='Intereses Generados'
+                  primaryTypographyProps={{ variant: 'body2', fontWeight: 500 }}
+                />
+                <Typography variant='body1' fontWeight={700} color='warning.main'>
                   ${totalInterest.toLocaleString()}
                 </Typography>
-              </Box>
-            </Alert>
-
-            <Alert
-              severity='success'
-              sx={{ display: 'flex', alignItems: 'center' }}
-            >
-              <Box>
-                <Typography variant='subtitle2'>Total a Cobrar</Typography>
-                <Typography variant='h6'>
+              </ListItem>
+              <Divider component='li' />
+              <ListItem sx={{ py: 1.25, px: 2 }}>
+                <ListItemIcon sx={{ minWidth: 36 }}>
+                  <Box sx={{ color: 'success.main', display: 'flex' }}>
+                    <TrendingUp sx={{ fontSize: 20 }} />
+                  </Box>
+                </ListItemIcon>
+                <ListItemText
+                  primary='Total a Cobrar'
+                  primaryTypographyProps={{ variant: 'body2', fontWeight: 500 }}
+                />
+                <Typography variant='body1' fontWeight={700} color='success.main'>
                   ${totalWithInterest.toLocaleString()}
                 </Typography>
-              </Box>
-            </Alert>
-          </Box>
+              </ListItem>
+            </List>
+          </Paper>
 
           {/* Tabla de Cuotas - Desktop */}
           <Box sx={{ display: { xs: 'none', md: 'block' } }}>
-            <TableContainer>
-              <Table
-                size='small'
-                sx={{
-                  '& th, & td': {
-                    color: '#ffffff',
-                    borderColor: 'rgba(255,255,255,0.2)',
-                  },
-                  '& thead th': { color: '#ffffff' },
-                  '& tbody tr:nth-of-type(odd)': {
-                    backgroundColor: 'rgba(255,255,255,0.06)',
-                  },
-                }}
-              >
+            <TableContainer component={Paper}>
+              <Table size='small'>
                 <TableHead>
-                  <TableRow>
-                    <TableCell>
-                      <strong>Cuota #</strong>
-                    </TableCell>
-                    <TableCell align='right'>
-                      <strong>Capital</strong>
-                    </TableCell>
-                    <TableCell align='right'>
-                      <strong>Interés</strong>
-                    </TableCell>
-                    <TableCell align='right'>
-                      <strong>Total</strong>
-                    </TableCell>
-                    <TableCell align='center'>
-                      <strong>Fecha Venc.</strong>
-                    </TableCell>
+                  <TableRow sx={{ bgcolor: alpha(theme.palette.primary.main, 0.08) }}>
+                    <TableCell sx={{ fontWeight: 600 }}>Cuota #</TableCell>
+                    <TableCell align='right' sx={{ fontWeight: 600 }}>Capital</TableCell>
+                    <TableCell align='right' sx={{ fontWeight: 600 }}>Interés</TableCell>
+                    <TableCell align='right' sx={{ fontWeight: 600 }}>Total</TableCell>
+                    <TableCell align='center' sx={{ fontWeight: 600 }}>Fecha Venc.</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
                   {results.map((payment, index) => (
-                    <TableRow
-                      key={index}
-                      sx={{ '&:nth-of-type(odd)': { bgcolor: 'action.hover' } }}
-                    >
+                    <TableRow key={index} hover>
                       <TableCell>#{payment.paymentNumber}</TableCell>
+                      <TableCell align='right'>${payment.amount.toLocaleString()}</TableCell>
+                      <TableCell align='right'>${(payment.totalAmount - payment.amount).toLocaleString()}</TableCell>
                       <TableCell align='right'>
-                        ${payment.amount.toLocaleString()}
+                        <Typography fontWeight={600}>${payment.totalAmount.toLocaleString()}</Typography>
                       </TableCell>
-                      <TableCell align='right'>
-                        $
-                        {(
-                          payment.totalAmount - payment.amount
-                        ).toLocaleString()}
-                      </TableCell>
-                      <TableCell align='right'>
-                        <Typography fontWeight='bold'>
-                          ${payment.totalAmount.toLocaleString()}
-                        </Typography>
-                      </TableCell>
-                      <TableCell align='center'>
-                        {payment.dueDate.toLocaleDateString('es-AR')}
-                      </TableCell>
+                      <TableCell align='center'>{payment.dueDate.toLocaleDateString('es-AR')}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -636,63 +438,55 @@ export function StandaloneLoanSimulator() {
           </Box>
 
           {/* Cards Mobile */}
-          <Box
-            sx={{
-              display: { xs: 'block', md: 'none' },
-              '& > *:not(:last-child)': { mb: 2 },
-            }}
-          >
-            {results.slice(0, 5).map((payment, index) => (
+          <Box sx={{ display: { xs: 'flex', flexDirection: 'column', gap: 1.5, md: 'none' } }}>
+            {results.map((payment, index) => (
               <Paper
                 key={index}
-                variant='outlined'
-                sx={{ p: 2, bgcolor: 'background.paper' }}
+                elevation={0}
+                sx={{
+                  p: 2,
+                  border: `1px solid ${theme.palette.divider}`,
+                  borderRadius: 2,
+                  borderLeft: 3,
+                  borderLeftColor: 'primary.main',
+                }}
               >
-                <Box
-                  sx={{
-                    display: 'grid',
-                    gridTemplateColumns: '1fr 1fr',
-                    gap: 2,
-                  }}
-                >
+                <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1 }}>
                   <Box>
-                    <Typography
-                      variant='caption'
-                      color='text.secondary'
-                    >
+                    <Typography variant='caption' color='text.secondary' display='block'>
                       Cuota #{payment.paymentNumber}
                     </Typography>
-                    <Typography
-                      variant='body2'
-                      fontWeight='bold'
-                    >
+                    <Typography variant='body2' fontWeight={600}>
                       ${payment.totalAmount.toLocaleString()}
                     </Typography>
                   </Box>
                   <Box>
-                    <Typography
-                      variant='caption'
-                      color='text.secondary'
-                    >
-                      Fecha Vencimiento
+                    <Typography variant='caption' color='text.secondary' display='block'>
+                      Fecha Venc.
                     </Typography>
                     <Typography variant='body2'>
                       {payment.dueDate.toLocaleDateString('es-AR')}
                     </Typography>
                   </Box>
+                  <Box>
+                    <Typography variant='caption' color='text.secondary' display='block'>
+                      Capital
+                    </Typography>
+                    <Typography variant='body2' fontWeight={500}>
+                      ${payment.amount.toLocaleString()}
+                    </Typography>
+                  </Box>
+                  <Box>
+                    <Typography variant='caption' color='text.secondary' display='block'>
+                      Interés
+                    </Typography>
+                    <Typography variant='body2' fontWeight={500}>
+                      ${(payment.totalAmount - payment.amount).toLocaleString()}
+                    </Typography>
+                  </Box>
                 </Box>
               </Paper>
             ))}
-            {results.length > 5 && (
-              <Typography
-                variant='caption'
-                color='text.primary'
-                sx={{ textAlign: 'center', display: 'block', mt: 2 }}
-              >
-                ... y {results.length - 5} cuotas más. Ver en desktop para tabla
-                completa.
-              </Typography>
-            )}
           </Box>
 
           <Typography

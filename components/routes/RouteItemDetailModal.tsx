@@ -21,6 +21,7 @@ import {
   Notes,
 } from '@mui/icons-material';
 import { CollectionRouteItem } from '@/services/collection-routes.service';
+import PhoneChip from '@/components/ui/PhoneChip';
 import { DateTime } from 'luxon';
 
 interface RouteItemDetailModalProps {
@@ -81,6 +82,8 @@ export function RouteItemDetailModal({
     }
   };
 
+  if (!item?.subLoan) return null;
+
   const pendingAmount = item.subLoan.totalAmount - item.subLoan.paidAmount;
   const isPaid = item.subLoan.status === 'PAID';
 
@@ -100,7 +103,10 @@ export function RouteItemDetailModal({
       PaperProps={{
         sx: {
           borderRadius: { xs: 2, sm: 3 },
+          maxHeight: { xs: 'calc(100dvh - 96px)', sm: '90vh' },
           m: { xs: 1, sm: 2 },
+          mt: { xs: 'auto', sm: 2 },
+          width: { xs: '100%', sm: 'auto' },
         },
       }}
     >
@@ -117,7 +123,7 @@ export function RouteItemDetailModal({
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
           <Person />
           <Box sx={{ flex: 1 }}>
-            <Typography variant="h6" sx={{ fontWeight: 600 }}>
+            <Typography variant="h6" component="div" sx={{ fontWeight: 600 }}>
               {item.clientName}
             </Typography>
             <Typography variant="body2" sx={{ opacity: 0.9 }}>
@@ -142,9 +148,9 @@ export function RouteItemDetailModal({
           </Typography>
           <Box sx={{ pl: 3.5 }}>
             {item.clientPhone ? (
-              <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
-                {item.clientPhone}
-              </Typography>
+              <Box sx={{ mb: 0.5 }}>
+                <PhoneChip phone={item.clientPhone} size="medium" showIcon={false} />
+              </Box>
             ) : (
               <Typography variant="body2" color="text.disabled" sx={{ mb: 0.5 }}>
                 Sin teléfono registrado

@@ -14,9 +14,9 @@ import {
 } from '@mui/icons-material'
 import { useAuthStore } from '@/stores/auth'
 
-const VERSION_KEY = 'version_notification_1.3.7'
+const VERSION_KEY = 'version_notification_1.5'
 const MAX_SHOW_COUNT = 10
-const VERSION_MESSAGE = 'Nueva versión 1.3.7: Dinero Neto en calle en subadmin operativa. Manejo de calles para Brasil.'
+const VERSION_MESSAGE = 'Nueva versión 1.5: Cobradores pueden reprogramar y reajustar cuotas desde la ruta. Nuevo simulador de préstamos y vista de morosos. Acceso rápido a WhatsApp y navegación móvil renovada.'
 
 export function VersionNotification() {
   const [open, setOpen] = useState(false)
@@ -32,12 +32,10 @@ export function VersionNotification() {
     
     // Only show if we haven't reached the max count
     if (showCount < MAX_SHOW_COUNT) {
-      // Small delay to ensure smooth appearance after login
-      const timer = setTimeout(() => {
-        setOpen(true)
-      }, 800)
-      
-      return () => clearTimeout(timer)
+      const showTimer = setTimeout(() => setOpen(true), 800)
+      // Auto-dismiss after 5 seconds
+      const hideTimer = setTimeout(() => handleClose(), 6000)
+      return () => { clearTimeout(showTimer); clearTimeout(hideTimer) }
     }
   }, [isAuthenticated])
 
@@ -61,8 +59,9 @@ export function VersionNotification() {
           top: 80,
           right: 16,
           zIndex: 1400,
-          maxWidth: 420,
-          minWidth: 320,
+          maxWidth: { xs: 'calc(100vw - 32px)', sm: 420 },
+          minWidth: { xs: 'auto', sm: 320 },
+          left: { xs: 16, sm: 'auto' },
           background: 'linear-gradient(135deg, #667eea 0%, #4facfe 100%)',
           borderRadius: 3,
           boxShadow: '0 8px 24px rgba(102, 126, 234, 0.4)',

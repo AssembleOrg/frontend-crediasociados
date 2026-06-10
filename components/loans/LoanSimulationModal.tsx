@@ -107,7 +107,19 @@ export function LoanSimulationModal({
                 ? (formData.paymentDay as 'MONDAY' | 'TUESDAY' | 'WEDNESDAY' | 'THURSDAY' | 'FRIDAY' | 'SATURDAY')
                 : undefined),
         totalPayments: parseInt(formData.totalPayments),
-        firstDueDate: formData.firstDueDate?.toISOString(),
+        // Always send firstDueDate: use user selection or calculate automatic date
+        // This prevents the backend from using its own default which may not match monthly frequency
+        firstDueDate: (() => {
+          if (formData.firstDueDate) return formData.firstDueDate.toISOString()
+          // Calculate automatic date same way as CreateLoanModal
+          const today = new Date()
+          if (formData.paymentFrequency === 'MONTHLY') {
+            const nextMonth = new Date(today)
+            nextMonth.setMonth(nextMonth.getMonth() + 1)
+            return nextMonth.toISOString()
+          }
+          return undefined
+        })(),
         description: formData.description || undefined,
         notes: undefined, // Optional field - backend will handle if needed
         loanTrack: undefined // Optional field - backend will auto-generate
@@ -156,11 +168,19 @@ export function LoanSimulationModal({
 
   if (success) {
     return (
-      <Dialog 
-        open={open} 
-        maxWidth="sm" 
+      <Dialog
+        open={open}
+        maxWidth="sm"
         fullWidth
-        fullScreen={isMobile}
+        PaperProps={{
+          sx: {
+            borderRadius: { xs: 2, sm: 3 },
+            maxHeight: { xs: 'calc(100dvh - 96px)', sm: '90vh' },
+            m: { xs: 1, sm: 2 },
+            mt: { xs: 'auto', sm: 2 },
+            width: { xs: '100%', sm: 'auto' },
+          }
+        }}
       >
         <DialogTitle sx={{ position: 'relative', textAlign: 'right', pb: 0 }}>
           <IconButton
@@ -225,12 +245,14 @@ export function LoanSimulationModal({
       onClose={onClose}
       maxWidth="lg"
       fullWidth
-      fullScreen={isMobile}
       PaperProps={{
-        sx: { 
-          minHeight: isMobile ? '100vh' : '80vh',
-          m: isMobile ? 0 : 2,
-          mt: isMobile ? 0 : 3
+        sx: {
+          borderRadius: { xs: 2, sm: 3 },
+          minHeight: { xs: 'auto', sm: '80vh' },
+          maxHeight: { xs: 'calc(100dvh - 96px)', sm: '90vh' },
+          m: { xs: 1, sm: 2 },
+          mt: { xs: 'auto', sm: 2 },
+          width: { xs: '100%', sm: 'auto' },
         }
       }}
     >

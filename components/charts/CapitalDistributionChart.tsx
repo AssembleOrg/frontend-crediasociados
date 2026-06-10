@@ -108,14 +108,14 @@ const CapitalDistributionChart = memo(function CapitalDistributionChart({
         Total: ${totalCapital.toLocaleString('es-AR')}
       </Typography>
 
-      <ResponsiveContainer width="100%" height="80%">
+      <ResponsiveContainer width="100%" height={300}>
         <PieChart>
           <Pie
             data={chartData}
             cx="50%"
             cy="50%"
             labelLine={false}
-            label={({ name, percentage }) => `${name}: ${percentage}%`}
+            label={(entry: any) => `${entry.name}: ${entry.percentage}%`}
             outerRadius={window.innerWidth < 600 ? 80 : 100}
             fill="#8884d8"
             dataKey="value"

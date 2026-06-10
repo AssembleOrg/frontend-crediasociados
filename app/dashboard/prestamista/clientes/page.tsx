@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import {
   Box,
   Paper,
@@ -24,12 +24,16 @@ import {
   Button,
   CircularProgress,
   Snackbar,
+  InputBase,
 } from '@mui/material'
 import {
   Add,
   Edit,
   Delete,
   Description,
+  Search,
+  Clear,
+  InfoOutlined,
 } from '@mui/icons-material'
 import { clientsService } from '@/services/clients.service'
 import { loansService } from '@/services/loans.service'
@@ -39,6 +43,7 @@ import { DeleteClientConfirmDialog } from '@/components/clients/DeleteClientConf
 import { ClientCard } from '@/components/clients/ClientCard'
 import { TableSkeleton } from '@/components/ui/TableSkeleton'
 import PageHeader from '@/components/ui/PageHeader'
+import PhoneChip from '@/components/ui/PhoneChip'
 import type { Client } from '@/types/auth'
 
 export default function ClientesPage() {
@@ -51,6 +56,32 @@ export default function ClientesPage() {
     deleteClient,
     clearError
   } = useClients()
+
+  const [nameSearch, setNameSearch] = useState('')
+  const [searchResults, setSearchResults] = useState<Client[] | null>(null)
+  const [isSearchLoading, setIsSearchLoading] = useState(false)
+
+  useEffect(() => {
+    const trimmed = nameSearch.trim()
+    if (trimmed.length < 2) {
+      setSearchResults(null)
+      return
+    }
+    const timer = setTimeout(async () => {
+      setIsSearchLoading(true)
+      try {
+        const results = await clientsService.searchClients(trimmed, 50)
+        setSearchResults(results as unknown as Client[])
+      } catch {
+        setSearchResults([])
+      } finally {
+        setIsSearchLoading(false)
+      }
+    }, 300)
+    return () => clearTimeout(timer)
+  }, [nameSearch])
+
+  const displayedClients = searchResults !== null ? searchResults : clients
 
   const [createModalOpen, setCreateModalOpen] = useState(false)
   const [editModalOpen, setEditModalOpen] = useState(false)
@@ -74,7 +105,7 @@ export default function ClientesPage() {
     setLoadingNotes(client.id)
     try {
       const fullClient = await clientsService.getClientById(client.id)
-      const activeLoan = fullClient.loans?.find((l: { status: string }) => l.status === 'ACTIVE')
+      const activeLoan = (fullClient as any).loans?.find((l: { status: string }) => l.status === 'ACTIVE')
 
       if (activeLoan) {
         setCurrentLoanId(activeLoan.id)
@@ -124,7 +155,7 @@ export default function ClientesPage() {
 
   // Use server-side pagination from the store
   const page = (pagination?.page || 1) - 1 // MUI uses 0-based indexing
-  const rowsPerPage = pagination?.limit || 10
+  const rowsPerPage = pagination?.limit || 25
   const totalClients = pagination?.total || 0
 
   const handleChangePage = (event: unknown, newPage: number) => {
@@ -159,7 +190,7 @@ export default function ClientesPage() {
   }, [fetchClients])
 
   return (
-    <Box sx={{ p: 3 }}>
+    <Box sx={{ p: { xs: 1, sm: 2, md: 3 } }}>
       {/* Header */}
       <PageHeader
         title="Gestión de Clientes"
@@ -176,17 +207,69 @@ export default function ClientesPage() {
 
       {/* Error Alert */}
       {error && (
-        <Alert 
-          severity="error" 
-          onClose={clearError}
-          sx={{ mb: 3 }}
-        >
+        <Alert severity="error" onClose={clearError} sx={{ mb: 3 }}>
           {error}
         </Alert>
       )}
 
+      {/* Search */}
+      <Box sx={{ mb: 2, position: 'relative' }}>
+        <Box
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 1,
+            px: 1.5,
+            py: 0.75,
+            bgcolor: 'background.paper',
+            borderRadius: nameSearch.trim().length === 1 ? '12px 12px 0 0' : 3,
+            border: `0.5px solid`,
+            borderColor: nameSearch.trim().length === 1 ? 'grey.400' : 'grey.300',
+            borderBottom: nameSearch.trim().length === 1 ? 'none' : undefined,
+          }}
+        >
+          {isSearchLoading
+            ? <CircularProgress size={14} sx={{ flexShrink: 0 }} />
+            : <Search sx={{ fontSize: 18, color: 'text.disabled', flexShrink: 0 }} />
+          }
+          <InputBase
+            value={nameSearch}
+            onChange={(e) => setNameSearch(e.target.value)}
+            placeholder="Buscar por nombre, DNI o email..."
+            fullWidth
+            sx={{ fontSize: '0.9375rem' }}
+          />
+          {nameSearch && (
+            <IconButton size="small" onClick={() => setNameSearch('')}>
+              <Clear sx={{ fontSize: 16 }} />
+            </IconButton>
+          )}
+        </Box>
+        {nameSearch.trim().length === 1 && (
+          <Box
+            sx={{
+              border: `0.5px solid`,
+              borderColor: 'grey.300',
+              borderTop: 'none',
+              borderRadius: '0 0 12px 12px',
+              bgcolor: 'background.paper',
+              px: 1.5,
+              py: 1,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 0.75,
+            }}
+          >
+            <InfoOutlined sx={{ fontSize: 13, color: 'text.disabled' }} />
+            <Typography variant="caption" color="text.disabled">
+              Escribí al menos 2 letras para buscar en todos los clientes
+            </Typography>
+          </Box>
+        )}
+      </Box>
+
       {/* Clients - Responsive Layout */}
-      <Paper sx={{ overflow: 'hidden' }}>
+      <Paper sx={{ overflow: 'hidden', mx: { xs: -1, sm: 0 }, borderRadius: { xs: 0, sm: 1 } }}>
         {/* Desktop Table - lg+ */}
         <Box sx={{ display: { xs: 'none', lg: 'block' } }}>
           <TableContainer>
@@ -206,7 +289,7 @@ export default function ClientesPage() {
                 {isLoading ? (
                   <TableSkeleton columns={7} />
                 ) : (
-                  clients.map((client) => (
+                  displayedClients.map((client) => (
                     <TableRow key={client.id} hover>
                       <TableCell>
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -249,14 +332,7 @@ export default function ClientesPage() {
                         </Typography>
                       </TableCell>
                       <TableCell>
-                        <Typography 
-                          sx={{ 
-                            color: client.verified === false ? 'text.disabled' : 'text.primary',
-                            opacity: client.verified === false ? 0.6 : 1
-                          }}
-                        >
-                          {client.phone || 'N/A'}
-                        </Typography>
+                        <PhoneChip phone={client.phone} size="medium" showIcon={false} />
                       </TableCell>
                       <TableCell>
                         <Typography 
@@ -323,7 +399,7 @@ export default function ClientesPage() {
         </Box>
 
         {/* Mobile Cards - xs to lg */}
-        <Box sx={{ display: { xs: 'block', lg: 'none' }, p: 2 }}>
+        <Box sx={{ display: { xs: 'block', lg: 'none' }, px: { xs: 0.5, sm: 2 }, py: 1 }}>
           {isLoading ? (
             // Loading skeleton for mobile
             <Box>
@@ -338,7 +414,7 @@ export default function ClientesPage() {
               ))}
             </Box>
           ) : (
-            clients.map((client) => (
+            displayedClients.map((client) => (
               <ClientCard
                 key={client.id}
                 client={client}
@@ -349,19 +425,28 @@ export default function ClientesPage() {
           )}
         </Box>
 
-        {/* Pagination - Shared for both layouts */}
-        <TablePagination
-          component="div"
-          count={totalClients}
-          page={page}
-          onPageChange={handleChangePage}
-          rowsPerPage={rowsPerPage}
-          onRowsPerPageChange={handleChangeRowsPerPage}
-          labelRowsPerPage="Filas por página:"
-          labelDisplayedRows={({ from, to, count }) =>
-            `${from}-${to} de ${count !== -1 ? count : `más de ${to}`}`
-          }
-        />
+        {/* Pagination - hidden when searching */}
+        {searchResults === null && (
+          <TablePagination
+            component="div"
+            count={totalClients}
+            page={page}
+            onPageChange={handleChangePage}
+            rowsPerPage={rowsPerPage}
+            onRowsPerPageChange={handleChangeRowsPerPage}
+            labelRowsPerPage="Filas por página:"
+            labelDisplayedRows={({ from, to, count }) =>
+              `${from}-${to} de ${count !== -1 ? count : `más de ${to}`}`
+            }
+          />
+        )}
+        {searchResults !== null && (
+          <Box sx={{ px: 2, py: 1.5, borderTop: 1, borderColor: 'divider' }}>
+            <Typography variant="caption" color="text.secondary">
+              {displayedClients.length} resultado{displayedClients.length !== 1 ? 's' : ''} encontrado{displayedClients.length !== 1 ? 's' : ''}
+            </Typography>
+          </Box>
+        )}
       </Paper>
 
       {/* Modals */}

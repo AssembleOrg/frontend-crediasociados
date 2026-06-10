@@ -65,17 +65,13 @@ export interface CollectorPeriodReport {
     commissionAmount: number
   }
   summary: {
-    totalCollections: number
-    totalWithdrawals: number
-    totalExpenses: number
-    netBeforeCommission: number
+    cobrado: number
+    gastado: number
+    prestado: number
+    retirado: number
+    ajusteCaja: number
+    neto: number
     commission: number
-    netAfterCommission: number
-    cobrado?: number
-    gastado?: number
-    prestado?: number
-    retirado?: number
-    neto?: number
   }
   loans?: {
     total: number

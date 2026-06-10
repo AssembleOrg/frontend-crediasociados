@@ -1,9 +1,8 @@
-import api, { setAuthToken } from './api'
+import api from './api'
 import type { components } from '@/types/api-generated'
 import type { LoginResponse, RefreshResponse, ChangePasswordDto } from '@/types/auth'
 
 type LoginRequest = components['schemas']['LoginDto']
-type RefreshRequest = components['schemas']['RefreshTokenDto']
 
 /**
  * THE MESSENGER - Auth Service
@@ -17,41 +16,22 @@ class AuthService {
     const backendData = response.data.data
     
     const loginResponse: LoginResponse = {
-      user: backendData.user,
-      token: backendData.accessToken,
-      refreshToken: backendData.refreshToken
+      user: backendData.user
     }
-    setAuthToken(loginResponse.token)
     
     return loginResponse
   }
 
-  async refresh(refreshData: RefreshRequest): Promise<RefreshResponse> {
-    const response = await api.post('/auth/refresh', refreshData)
-    const backendData = response.data.data
-    
-    const refreshResponse: RefreshResponse = {
-      token: backendData.accessToken,
-      refreshToken: backendData.refreshToken
-    }
-    setAuthToken(refreshResponse.token)
-    
-    return refreshResponse
+  async refresh(): Promise<RefreshResponse> {
+    await api.post('/auth/refresh')
+    return { ok: true }
   }
 
-  async logout(refreshToken?: string): Promise<void> {
-    try {
-      if (refreshToken) {
-        await api.post('/auth/logout', { refreshToken })
-      }
-    } finally {
-      setAuthToken(null)
-    }
+  async logout(): Promise<void> {
+    await api.post('/auth/logout')
   }
 
-  clearAuth(): void {
-    setAuthToken(null)
-  }
+  clearAuth(): void {}
 
   async changePassword(changePasswordData: ChangePasswordDto): Promise<void> {
     await api.post('/auth/change-password', changePasswordData)

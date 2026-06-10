@@ -38,17 +38,17 @@ interface ClientOption {
 export function CobrosFilterPanel({ variant = 'expanded', onClose }: CobrosFilterPanelProps) {
   const {
     filters,
-    filterStats,
+    globalStats,
     hasActiveFilters,
     statusFilterOptions,
-    clientOptions: baseClientOptions,
     updateFilter,
     clearAllFilters
   } = useCobrosFilters()
   const [clientSearchQuery, setClientSearchQuery] = useState('')
   const [selectedClient, setSelectedClient] = useState<ClientOption | null>(null)
-  const [clientOptions, setClientOptions] = useState<ClientOption[]>(baseClientOptions)
+  const [clientOptions, setClientOptions] = useState<ClientOption[]>([])
   const [isSearchingClients, setIsSearchingClients] = useState(false)
+  const baseClientOptions: ClientOption[] = []
 
   const handleClearFilters = () => {
     clearAllFilters()
@@ -58,12 +58,12 @@ export function CobrosFilterPanel({ variant = 'expanded', onClose }: CobrosFilte
     onClose?.()
   }
 
-  const handleStatusFilter = (status: 'OVERDUE' | 'TODAY' | 'SOON' | 'UPCOMING' | 'NOTIFIED' | 'ALL' | null) => {
-    updateFilter('status', status || undefined)
+  const handleStatusFilter = (status: 'overdue' | 'today' | 'soon' | 'future' | 'all' | null) => {
+    updateFilter('urgency', status || undefined)
   }
 
-  const handlePaymentStatusFilter = (paymentStatus: 'PENDING' | 'PARTIAL' | 'PAID' | 'ALL' | null) => {
-    updateFilter('paymentStatus', paymentStatus || undefined)
+  const handlePaymentStatusFilter = (paymentStatus: 'PENDING' | 'PARTIAL' | 'PAID' | 'OVERDUE' | 'ALL' | null) => {
+    updateFilter('paymentStatus', (paymentStatus === 'ALL' ? undefined : paymentStatus) || undefined)
   }
 
   const searchClients = useCallback(async (query: string) => {
@@ -117,25 +117,25 @@ export function CobrosFilterPanel({ variant = 'expanded', onClose }: CobrosFilte
       key: 'ALL',
       label: 'Todos',
       color: 'default',
-      count: filterStats.paymentStatus?.all || 0
+      count: 0
     },
     {
       key: 'PENDING',
       label: 'Pendiente',
       color: 'default',
-      count: filterStats.paymentStatus?.pending || 0
+      count: 0
     },
     {
       key: 'PARTIAL',
       label: 'Pago Parcial',
       color: 'info',
-      count: filterStats.paymentStatus?.partial || 0
+      count: 0
     },
     {
       key: 'PAID',
       label: 'Pagado',
       color: 'success',
-      count: filterStats.paymentStatus?.paid || 0
+      count: 0
     }
   ]
 
@@ -149,10 +149,10 @@ export function CobrosFilterPanel({ variant = 'expanded', onClose }: CobrosFilte
               Filtros de Cobros
             </Typography>
             {hasActiveFilters && (
-              <Chip 
-                label={`${filterStats.total} resultados`}
-                color="primary" 
-                size="small" 
+              <Chip
+                label={`${globalStats.total} resultados`}
+                color="primary"
+                size="small"
                 sx={{ ml: 2 }}
               />
             )}
@@ -165,7 +165,7 @@ export function CobrosFilterPanel({ variant = 'expanded', onClose }: CobrosFilte
             Estados
           </Typography>
           <ToggleButtonGroup
-            value={filters.status || ''}
+            value={filters.urgency || ''}
             exclusive
             onChange={(_, value) => handleStatusFilter(value)}
             size="small"
@@ -182,21 +182,21 @@ export function CobrosFilterPanel({ variant = 'expanded', onClose }: CobrosFilte
             }}
           >
             {statusFilterOptions.map((option) => (
-              <ToggleButton 
+              <ToggleButton
                 key={option.key}
                 value={option.key}
                 sx={{
-                  color: 'customColor' in option ? option.customColor : `${option.color}.main`,
-                  borderColor: 'customColor' in option ? option.customColor : `${option.color}.main`,
+                  color: option.color,
+                  borderColor: option.color,
                   '&.Mui-selected': {
-                    backgroundColor: 'customColor' in option ? option.customColor : `${option.color}.main`,
+                    backgroundColor: option.color,
                     color: 'white',
                     '&:hover': {
-                      backgroundColor: 'customColor' in option ? option.customColor : `${option.color}.dark`,
+                      backgroundColor: option.color,
                     }
                   },
                   '&:hover': {
-                    backgroundColor: 'customColor' in option ? `${option.customColor}20` : `${option.color}.light`,
+                    backgroundColor: `${option.color}20`,
                   }
                 }}
               >
@@ -344,19 +344,13 @@ export function CobrosFilterPanel({ variant = 'expanded', onClose }: CobrosFilte
         </Box>
 
         {/* Filter Summary */}
-        {(hasActiveFilters || filterStats.notifiedCount > 0) && variant === 'expanded' && (
+        {hasActiveFilters && variant === 'expanded' && (
           <Box sx={{ mt: 2, pt: 2, borderTop: 1, borderColor: 'divider' }}>
             <Typography variant="body2" color="text.secondary">
-              <strong>{filterStats.total}</strong> clientes encontrados • 
-              Monto total: <strong>${filterStats.totalAmount.toLocaleString('es-AR')}</strong> •
-              Vencidas: <strong>{filterStats.byStatus.overdue}</strong> •
-              Hoy: <strong>{filterStats.byStatus.today}</strong> •
-              Pronto: <strong>{filterStats.byStatus.soon}</strong>
-              {filterStats.notifiedCount > 0 && (
-                <span style={{ fontWeight: 'bold', color: '#4caf50' }}>
-                  {' • '}{filterStats.notifiedCount} notificado{filterStats.notifiedCount !== 1 ? 's' : ''}
-                </span>
-              )}
+              <strong>{globalStats.total}</strong> clientes encontrados •
+              Vencidas: <strong>{globalStats.overdue}</strong> •
+              Hoy: <strong>{globalStats.today}</strong> •
+              Pronto: <strong>{globalStats.soon}</strong>
             </Typography>
           </Box>
         )}

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import {
   Box,
   Button,
@@ -13,8 +13,6 @@ import {
   Chip,
   Skeleton,
   Snackbar,
-  FormControlLabel,
-  Switch,
   Dialog,
   DialogTitle,
   DialogContent,
@@ -60,9 +58,13 @@ import { PaymentModal } from '@/components/loans/PaymentModal';
 import { RouteExpenseModal } from '@/components/routes/RouteExpenseModal';
 import { RouteDatePicker } from '@/components/routes/RouteDatePicker';
 import { RouteItemDetailModal } from '@/components/routes/RouteItemDetailModal';
+import { RouteItemBottomSheet } from '@/components/routes/RouteItemBottomSheet';
 import { CollectionRouteItem } from '@/services/collection-routes.service';
+import collectionRoutesService from '@/services/collection-routes.service';
+import RescheduleDateDialog from '@/components/loans/RescheduleDateDialog';
 import { paymentsService } from '@/services/payments.service';
 import { collectorWalletService } from '@/services/collector-wallet.service';
+import { subLoansService, type OverdueClientEntry } from '@/services/sub-loans.service';
 import { DateTime } from 'luxon';
 import { AccountBalanceWallet } from '@mui/icons-material';
 
@@ -72,6 +74,7 @@ import { AccountBalanceWallet } from '@mui/icons-material';
 interface SortableRouteItemProps {
   item: CollectionRouteItem;
   index: number;
+  overdueCount: number;
   onPayment?: (item: CollectionRouteItem) => void;
   onReset?: (item: CollectionRouteItem) => void;
   onCardClick?: (item: CollectionRouteItem) => void;
@@ -79,7 +82,7 @@ interface SortableRouteItemProps {
   isRouteClosed?: boolean;
 }
 
-function SortableRouteItem({ item, index, onPayment, onReset, onCardClick, resettingSubloanId, isRouteClosed }: SortableRouteItemProps) {
+function SortableRouteItem({ item, index, overdueCount, onPayment, onReset, onCardClick, resettingSubloanId, isRouteClosed }: SortableRouteItemProps) {
   const {
     listeners,
     setNodeRef,
@@ -108,6 +111,7 @@ function SortableRouteItem({ item, index, onPayment, onReset, onCardClick, reset
       <RouteItemCard
         item={item}
         index={index}
+        overdueCount={overdueCount}
         onPayment={onPayment}
         onReset={onReset}
         onCardClick={onCardClick}
@@ -144,26 +148,31 @@ export default function RutasPage() {
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
   const [expenseModalOpen, setExpenseModalOpen] = useState(false);
   const [detailModalOpen, setDetailModalOpen] = useState(false);
+  const [bottomSheetOpen, setBottomSheetOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState<CollectionRouteItem | null>(null);
   const [selectedDetailItem, setSelectedDetailItem] = useState<CollectionRouteItem | null>(null);
+  // Search & filter state (iOS filter bar)
+  const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'paid' | 'debt'>('pending');
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [resetConfirmModalOpen, setResetConfirmModalOpen] = useState(false);
   const [itemToReset, setItemToReset] = useState<CollectionRouteItem | null>(null);
   const [resettingSubloanId, setResettingSubloanId] = useState<string | null>(null);
   const [resetError, setResetError] = useState<string | null>(null);
+  const [rescheduleItem, setRescheduleItem] = useState<CollectionRouteItem | null>(null);
   
   // Drag & Drop State
   const [isReorderMode, setIsReorderMode] = useState(false);
   const [reorderedItems, setReorderedItems] = useState<CollectionRouteItem[]>([]);
   const [isSavingOrder, setIsSavingOrder] = useState(false);
   
-  // Filter State - Show only pending by default
-  const [showOnlyPending, setShowOnlyPending] = useState(true);
-
   // Wallet Balance State
   const [walletBalance, setWalletBalance] = useState<number | null>(null);
   const [loadingWalletBalance, setLoadingWalletBalance] = useState(false);
   const [walletDayLabel, setWalletDayLabel] = useState<string>('');
+
+  // Overdue map: loanTrack → count of overdue installments (single fetch, no N+1)
+  const [overdueClients, setOverdueClients] = useState<OverdueClientEntry[]>([]);
 
   // Fetch route on mount and when pathname changes
   useEffect(() => {
@@ -190,6 +199,24 @@ export default function RutasPage() {
   useEffect(() => {
     fetchWalletBalance();
   }, []);
+
+  // Single fetch for overdue data — builds loanTrack → overdueCount map (no N+1)
+  useEffect(() => {
+    subLoansService.getOverdueClients()
+      .then((res) => setOverdueClients(res?.clients ?? []))
+      .catch(() => { /* graceful degradation — cards show 0 badge */ });
+  }, []);
+
+  // O(1) lookup per card: loanTrack → total overdue installment count
+  const overdueMap = useMemo<Record<string, number>>(() => {
+    const map: Record<string, number> = {};
+    for (const entry of overdueClients) {
+      for (const loan of entry.loans) {
+        map[loan.loanTrack] = (map[loan.loanTrack] ?? 0) + loan.overdueInstallments.length;
+      }
+    }
+    return map;
+  }, [overdueClients]);
 
   // Avoid hydration mismatches by computing "today" label only on client
   useEffect(() => {
@@ -241,11 +268,14 @@ export default function RutasPage() {
 
   const handleOpenDetailModal = (item: CollectionRouteItem) => {
     setSelectedDetailItem(item);
-    setDetailModalOpen(true);
+    // Use BottomSheet on mobile — the old Dialog stays as desktop fallback
+    setBottomSheetOpen(true);
+    setDetailModalOpen(false);
   };
 
   const handleCloseDetailModal = () => {
     setDetailModalOpen(false);
+    setBottomSheetOpen(false);
     setSelectedDetailItem(null);
   };
 
@@ -262,6 +292,29 @@ export default function RutasPage() {
     // Refresh loans and subloans to update progress (e.g., "6 de 10" -> "9 de 10")
     fetchLoans();
     fetchAllSubLoansWithClientInfo();
+  };
+
+  const handleReschedule = (item: CollectionRouteItem) => {
+    setRescheduleItem(item);
+  };
+
+  const handleRescheduleSave = async (isoDate: string, amount: number) => {
+    if (!rescheduleItem) return;
+    const result = await collectionRoutesService.rescheduleRouteItem(
+      rescheduleItem.id,
+      isoDate + 'T12:00:00.000Z',
+      amount,
+    );
+    setRescheduleItem(null);
+    setSuccessMessage(
+      result.amountDelta && result.amountDelta !== 0
+        ? `Cuota reprogramada con ${result.amountDelta > 0 ? 'recargo' : 'descuento'} aplicado`
+        : 'Cuota reprogramada y eliminada de la ruta',
+    );
+    // Refresh route data + loans (loan total may have changed via recargo/descuento)
+    fetchTodayRoute();
+    fetchAllSubLoansWithClientInfo();
+    fetchLoans();
   };
 
   const handleResetPayments = (item: CollectionRouteItem) => {
@@ -286,7 +339,7 @@ export default function RutasPage() {
       // Refresh loans and subloans to update progress after reset
       fetchLoans();
       fetchAllSubLoansWithClientInfo();
-      setSuccessMessage('✅ Pagos reseteados exitosamente');
+      setSuccessMessage('Pagos reseteados exitosamente');
       setItemToReset(null);
     } catch (error: any) {
       const errorMessage = error?.response?.data?.message || error?.message || 'Error al resetear los pagos';
@@ -375,12 +428,12 @@ export default function RutasPage() {
         })),
       };
       await updateRouteOrder(currentRoute.id, orderData);
-      setSuccessMessage('✅ Orden actualizado exitosamente');
+      setSuccessMessage('Orden actualizado exitosamente');
       setIsReorderMode(false);
       await fetchTodayRoute(); // Refresh to confirm
     } catch (err) {
       // Error saving order
-      setSuccessMessage('❌ Error al guardar el orden');
+      setSuccessMessage('Error al guardar el orden');
     } finally {
       setIsSavingOrder(false);
     }
@@ -403,19 +456,41 @@ export default function RutasPage() {
   const isViewingToday = !selectedDate;
   const currentRoute = isViewingToday ? todayRoute : selectedRoute;
 
-  // Filter items based on toggle - Purely visual filter
-  // Also filter out items without subLoan (items with subLoanId: null)
+  // Filter items with the new iOS filter bar logic
   const getFilteredItems = (items: CollectionRouteItem[]) => {
-    // First, filter out items without subLoan
-    const itemsWithSubLoan = items.filter(item => item.subLoan != null);
-    
-    if (!showOnlyPending) return itemsWithSubLoan;
-    return itemsWithSubLoan.filter(item => item.subLoan?.status === 'PENDING');
+    let result = items.filter(item => item.subLoan != null);
+
+    // Search by client name
+    if (searchQuery.trim()) {
+      const q = searchQuery.trim().toLowerCase();
+      result = result.filter(item => item.clientName.toLowerCase().includes(q));
+    }
+
+    // Status filter
+    switch (statusFilter) {
+      case 'pending':
+        result = result.filter(item => item.subLoan?.status === 'PENDING' || item.subLoan?.status === 'PARTIAL' || item.subLoan?.status === 'OVERDUE');
+        break;
+      case 'paid':
+        result = result.filter(item => item.subLoan?.status === 'PAID');
+        break;
+      case 'debt':
+        // Items that are OVERDUE themselves
+        result = result.filter(item => item.subLoan?.status === 'OVERDUE');
+        break;
+      default:
+        break;
+    }
+
+    return result;
   };
 
+  // Keep showOnlyPending as a derived value for backward compat with reorder mode
+  const showOnlyPending = statusFilter === 'pending';
+
   const filteredItems = currentRoute?.items ? getFilteredItems(currentRoute.items) : [];
-  const filteredReorderedItems = showOnlyPending 
-    ? reorderedItems.filter(item => item.subLoan != null && item.subLoan?.status === 'PENDING')
+  const filteredReorderedItems = showOnlyPending
+    ? reorderedItems.filter(item => item.subLoan != null && (item.subLoan?.status === 'PENDING' || item.subLoan?.status === 'PARTIAL' || item.subLoan?.status === 'OVERDUE'))
     : reorderedItems.filter(item => item.subLoan != null);
 
   // No route for selected date
@@ -470,7 +545,7 @@ export default function RutasPage() {
     : '';
 
   return (
-    <Box sx={{ p: { xs: 1, sm: 3 }, maxWidth: 1200, mx: 'auto', pb: { xs: 10, sm: 3 } }}>
+    <Box sx={{ p: { xs: 0.5, sm: 2, md: 3 }, maxWidth: 1200, mx: 'auto', pb: { xs: 10, sm: 3 }, bgcolor: '#F2F2F7', minHeight: '100dvh' }}>
       {/* Header - Mobile Optimized */}
       <Box sx={{ mb: 2 }}>
         {/* Title and Date Picker Row */}
@@ -608,21 +683,20 @@ export default function RutasPage() {
         <Card
           elevation={0}
           sx={{
-            p: 2,
+            p: { xs: 1.5, sm: 2 },
             display: 'flex',
             alignItems: 'center',
-            gap: 2,
+            gap: { xs: 1.5, sm: 2 },
             borderRadius: 1.5,
             bgcolor: 'background.paper',
             border: '1px solid',
             borderColor: 'divider',
-            minHeight: { xs: 80, sm: 90 },
           }}
         >
           <Box
             sx={{
               color: 'primary.main',
-              display: 'flex',
+              display: { xs: 'none', sm: 'flex' },
               alignItems: 'center',
               justifyContent: 'center',
               width: 48,
@@ -708,101 +782,172 @@ export default function RutasPage() {
       {/* Items Header - Mobile Optimized */}
       {currentRoute && currentRoute.items.length > 0 && (
         <Box sx={{ mb: { xs: 1.5, sm: 2 } }}>
-          {/* Title and Toggle Row */}
-        <Box
-          sx={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
+          {/* Fila 1: Título + botón Reordenar (solo cuando no está en modo reorder) */}
+          <Box
+            sx={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
               mb: 1,
-            gap: 1,
-              flexWrap: 'wrap',
-          }}
-        >
-          <Typography 
-            variant="h6" 
-            sx={{ 
-              fontSize: { xs: '0.938rem', sm: '1.25rem' },
-              fontWeight: { xs: 600, sm: 500 }
+              gap: 1,
             }}
           >
+            <Typography
+              variant="h6"
+              sx={{
+                fontSize: { xs: '0.938rem', sm: '1.25rem' },
+                fontWeight: { xs: 600, sm: 500 },
+              }}
+            >
               Clientes del Día ({showOnlyPending ? filteredItems.length : currentRoute?.items.length || 0})
             </Typography>
-            
-            {/* Filter Toggle */}
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-              <FormControlLabel
-                control={
-                  <Switch
-                    checked={showOnlyPending}
-                    onChange={(e) => setShowOnlyPending(e.target.checked)}
-                    size="small"
-                    color="primary"
-                  />
-                }
-                label={
-                  <Typography variant="caption" sx={{ fontSize: { xs: '0.75rem', sm: '0.813rem' } }}>
-                    Solo Pendientes
-          </Typography>
-                }
-                sx={{ m: 0 }}
-              />
-            </Box>
+
+            {!isRouteClosed && !isReorderMode && (
+              <Button
+                variant="outlined"
+                size="small"
+                startIcon={<SwapVert sx={{ fontSize: { xs: 16, sm: 18 } }} />}
+                onClick={handleToggleReorderMode}
+                sx={{
+                  fontSize: { xs: '0.75rem', sm: '0.813rem' },
+                  px: { xs: 1.5, sm: 1.5 },
+                  py: { xs: 0.5, sm: 0.75 },
+                  flexShrink: 0,
+                }}
+              >
+                Reordenar
+              </Button>
+            )}
           </Box>
 
-          {/* Action Buttons Row */}
-          {!isRouteClosed && (
-            <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 0.5 }}>
-              {isReorderMode ? (
-                <>
-                  <Button
-                    variant="outlined"
-                    size="small"
-                    startIcon={<CloseIcon sx={{ fontSize: { xs: 16, sm: 18 } }} />}
-                    onClick={handleToggleReorderMode}
-                    disabled={isSavingOrder}
-                    sx={{
-                      fontSize: { xs: '0.688rem', sm: '0.813rem' },
-                      px: { xs: 1, sm: 1.5 },
-                      py: { xs: 0.5, sm: 0.75 }
-                    }}
-                  >
-                    <Box component="span" sx={{ display: { xs: 'none', sm: 'inline' } }}>Cancelar</Box>
-                  </Button>
-                  <Button
-                    variant="contained"
-                    size="small"
-                    startIcon={isSavingOrder ? <CircularProgress size={14} /> : <Save sx={{ fontSize: { xs: 16, sm: 18 } }} />}
-                    onClick={handleSaveOrder}
-                    disabled={isSavingOrder}
-                    sx={{
-                      fontSize: { xs: '0.688rem', sm: '0.813rem' },
-                      px: { xs: 1, sm: 1.5 },
-                      py: { xs: 0.5, sm: 0.75 }
-                    }}
-                  >
-                    {isSavingOrder ? (
-                      <Box component="span" sx={{ display: { xs: 'none', sm: 'inline' } }}>Guardando...</Box>
-                    ) : (
-                      <Box component="span" sx={{ display: { xs: 'none', sm: 'inline' } }}>Guardar</Box>
-                    )}
-                  </Button>
-                </>
-              ) : (
-                <Button
-                  variant="outlined"
+          {/* Fila 2: Filter chips con scroll horizontal en mobile */}
+          <Box
+            sx={{
+              display: 'flex',
+              gap: 0.5,
+              overflowX: 'auto',
+              pb: 0.5,
+              '&::-webkit-scrollbar': { display: 'none' },
+              scrollbarWidth: 'none',
+            }}
+          >
+            {(['all', 'pending', 'paid', 'debt'] as const).map((f) => {
+              const labels = { all: 'Todos', pending: 'Pendientes', paid: 'Pagados', debt: 'Vencidos' };
+              return (
+                <Chip
+                  key={f}
+                  label={labels[f]}
                   size="small"
-                  startIcon={<SwapVert sx={{ fontSize: { xs: 16, sm: 18 } }} />}
+                  onClick={() => setStatusFilter(f)}
+                  variant={statusFilter === f ? 'filled' : 'outlined'}
+                  color={statusFilter === f ? 'primary' : 'default'}
+                  sx={{ minHeight: 32, fontWeight: statusFilter === f ? 700 : 500, flexShrink: 0 }}
+                />
+              );
+            })}
+          </Box>
+
+          {/* Banner de modo reorder activo */}
+          {!isRouteClosed && isReorderMode && (
+            <Box
+              sx={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                px: 2,
+                py: 1.25,
+                mt: 1,
+                bgcolor: 'primary.main',
+                borderRadius: 2,
+                color: 'white',
+              }}
+            >
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <SwapVert sx={{ fontSize: 18 }} />
+                <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                  Arrastrá para reordenar
+                </Typography>
+              </Box>
+              <Box sx={{ display: 'flex', gap: 1 }}>
+                <Button
+                  size="small"
+                  variant="outlined"
+                  color="inherit"
                   onClick={handleToggleReorderMode}
+                  disabled={isSavingOrder}
+                  sx={{ borderColor: 'rgba(255,255,255,0.6)', fontSize: '0.75rem' }}
+                >
+                  Cancelar
+                </Button>
+                <Button
+                  size="small"
+                  variant="contained"
+                  onClick={handleSaveOrder}
+                  disabled={isSavingOrder}
+                  startIcon={isSavingOrder ? <CircularProgress size={14} color="inherit" /> : <Save sx={{ fontSize: 16 }} />}
                   sx={{
-                    fontSize: { xs: '0.688rem', sm: '0.813rem' },
-                    px: { xs: 1, sm: 1.5 },
-                    py: { xs: 0.5, sm: 0.75 }
+                    bgcolor: 'white',
+                    color: 'primary.main',
+                    fontSize: '0.75rem',
+                    '&:hover': { bgcolor: 'grey.100' },
+                    '&.Mui-disabled': { bgcolor: 'rgba(255,255,255,0.5)' },
                   }}
                 >
-                  <Box component="span" sx={{ display: { xs: 'none', sm: 'inline' } }}>Reordenar</Box>
+                  {isSavingOrder ? 'Guardando...' : 'Guardar'}
                 </Button>
-              )}
+              </Box>
+            </Box>
+          )}
+        </Box>
+      )}
+
+      {/* iOS Search Bar */}
+      {currentRoute && currentRoute.items.length > 0 && (
+        <Box
+          sx={{
+            mb: 1.5,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 1,
+            px: 1,
+            py: 0.75,
+            bgcolor: 'background.paper',
+            borderRadius: 3,
+            border: '0.5px solid',
+            borderColor: 'divider',
+          }}
+        >
+          <Info sx={{ fontSize: 18, color: 'text.disabled', flexShrink: 0 }} />
+          <input
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Buscar cliente..."
+            style={{
+              border: 'none',
+              outline: 'none',
+              background: 'transparent',
+              flex: 1,
+              fontSize: '1rem',
+              fontFamily: 'inherit',
+              color: 'inherit',
+              minWidth: 0,
+            }}
+          />
+          {searchQuery && (
+            <Box
+              component="button"
+              onClick={() => setSearchQuery('')}
+              sx={{
+                border: 'none',
+                background: 'transparent',
+                cursor: 'pointer',
+                p: 0,
+                display: 'flex',
+                alignItems: 'center',
+                color: 'text.disabled',
+              }}
+            >
+              <CloseIcon sx={{ fontSize: 18 }} />
             </Box>
           )}
         </Box>
@@ -862,6 +1007,7 @@ export default function RutasPage() {
                     key={item.id}
                     item={item}
                     index={index}
+                    overdueCount={overdueMap[item.subLoan?.loan?.loanTrack ?? ''] ?? 0}
                     onPayment={!isRouteClosed ? handleOpenPaymentModal : undefined}
                     onReset={!isRouteClosed ? handleResetPayments : undefined}
                     onCardClick={handleOpenDetailModal}
@@ -881,8 +1027,10 @@ export default function RutasPage() {
                 key={item.id}
                 item={item}
                 index={index}
+                overdueCount={overdueMap[item.subLoan?.loan?.loanTrack ?? ''] ?? 0}
                 onPayment={!isRouteClosed ? handleOpenPaymentModal : undefined}
                 onReset={!isRouteClosed ? handleResetPayments : undefined}
+                onReschedule={!isRouteClosed ? handleReschedule : undefined}
                 onCardClick={handleOpenDetailModal}
                 isActive={!isRouteClosed}
                 resettingSubloanId={resettingSubloanId}
@@ -936,6 +1084,8 @@ export default function RutasPage() {
           onClose={handleClosePaymentModal}
           subloan={{
             id: selectedItem.subLoanId,
+            loanId: selectedItem.subLoan.loan?.id,
+            loanTrack: selectedItem.subLoan.loan?.loanTrack,
             paymentNumber: selectedItem.subLoan.paymentNumber,
             amount: selectedItem.subLoan.amount,
             totalAmount: selectedItem.subLoan.totalAmount,
@@ -944,6 +1094,7 @@ export default function RutasPage() {
             dueDate: selectedItem.subLoan.dueDate,
             outstandingBalance: selectedItem.subLoan.outstandingBalance,
             clientName: selectedItem.clientName,
+            loanTotalPayments: selectedItem.subLoan.loan?.totalPayments,
           }}
           clientName={selectedItem.clientName}
           mode="single"
@@ -966,7 +1117,19 @@ export default function RutasPage() {
         />
       )}
 
-      {/* Detail Modal */}
+      {/* Detail BottomSheet (iOS-style) — replaces old Dialog on all screen sizes */}
+      <RouteItemBottomSheet
+        open={bottomSheetOpen}
+        onClose={handleCloseDetailModal}
+        item={selectedDetailItem}
+        isRouteClosed={isRouteClosed}
+        onPayment={!isRouteClosed ? handlePaymentFromDetail : undefined}
+        onReschedule={!isRouteClosed ? (item) => { handleCloseDetailModal(); handleReschedule(item); } : undefined}
+        onReset={!isRouteClosed ? (item) => { handleCloseDetailModal(); handleResetPayments(item); } : undefined}
+        resettingSubloanId={resettingSubloanId}
+      />
+
+      {/* Legacy Detail Modal — kept for desktop fallback, normally not opened */}
       <RouteItemDetailModal
         open={detailModalOpen}
         onClose={handleCloseDetailModal}
@@ -974,66 +1137,99 @@ export default function RutasPage() {
         onPayment={!isRouteClosed ? handlePaymentFromDetail : undefined}
       />
 
+      {/* Reschedule Date Dialog */}
+      <RescheduleDateDialog
+        open={!!rescheduleItem}
+        onClose={() => setRescheduleItem(null)}
+        onSave={handleRescheduleSave}
+        title={`Reprogramar Cuota #${rescheduleItem?.subLoan?.paymentNumber || ''} - ${rescheduleItem?.clientName || ''}`}
+        currentDueDate={rescheduleItem?.subLoan?.dueDate}
+        currentAmount={rescheduleItem?.subLoan?.totalAmount}
+        paidAmount={rescheduleItem?.subLoan?.paidAmount}
+      />
+
       {/* Reset Confirmation Modal */}
       <Dialog
         open={resetConfirmModalOpen}
         onClose={handleCancelReset}
-        maxWidth="sm"
+        maxWidth="xs"
         fullWidth
+        PaperProps={{
+          sx: {
+            borderRadius: { xs: 2, sm: 3 },
+            m: { xs: 1, sm: 2 },
+            mt: { xs: 'auto', sm: 2 },
+            width: { xs: '100%', sm: 'auto' }
+          }
+        }}
+        sx={{ '& .MuiDialog-container': { alignItems: { xs: 'flex-end', sm: 'center' } } }}
       >
-        <DialogTitle sx={{ pb: 2 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-            <Warning color="warning" sx={{ fontSize: 28 }} />
-            <Typography variant="h6" fontWeight="bold">
-              Confirmar Reseteo de Pagos
+        <DialogTitle
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 1.5,
+            pb: 1.5,
+            pt: 2,
+            px: 2,
+            borderBottom: 1,
+            borderColor: 'divider',
+            bgcolor: 'background.paper'
+          }}
+        >
+          <Warning sx={{ color: 'warning.main', fontSize: 22, flexShrink: 0 }} />
+          <Box sx={{ minWidth: 0 }}>
+            <Typography variant="subtitle1" fontWeight={700} lineHeight={1.2}>
+              Resetear cuota #{itemToReset?.subLoan?.paymentNumber}
+            </Typography>
+            <Typography variant="caption" color="text.secondary">
+              Esta acción no se puede deshacer
             </Typography>
           </Box>
         </DialogTitle>
-        <DialogContent>
-          <Typography variant="body1" gutterBottom sx={{ mb: 2 }}>
-            ¿Está seguro de resetear todos los pagos de la cuota #{itemToReset?.subLoan?.paymentNumber}?
-          </Typography>
-          
-          <Alert severity="warning" sx={{ mb: 2 }}>
-            <Typography variant="body2" fontWeight="bold" gutterBottom>
-              Esta acción eliminará:
-            </Typography>
-            <Typography variant="body2" component="ul" sx={{ pl: 2, mb: 0 }}>
-              <li>Todos los pagos registrados de esta cuota</li>
-              <li>Los efectos en las wallets (se revertirán los créditos)</li>
-              <li>Los registros de la ruta del día (si aplica)</li>
-            </Typography>
-          </Alert>
 
-          <Alert severity="info" sx={{ mb: 2 }}>
-            <Typography variant="body2">
-              <strong>Importante:</strong> Solo se puede resetear si el último pago fue realizado en las últimas 24 horas.
+        <DialogContent sx={{ px: 2, pt: 2, pb: 1 }}>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+            {[
+              'Todos los pagos registrados de esta cuota',
+              'Los efectos en las wallets (créditos revertidos)',
+              'Los registros de ruta del día, si aplica',
+            ].map((item) => (
+              <Box
+                key={item}
+                sx={{ pl: 1.5, py: 0.5, borderLeft: '3px solid', borderColor: 'warning.main' }}
+              >
+                <Typography variant="body2" color="text.secondary">{item}</Typography>
+              </Box>
+            ))}
+            <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5 }}>
+              Solo disponible si el último pago fue en las últimas 24 horas.
             </Typography>
-          </Alert>
-
-          <Alert severity="error">
-            <Typography variant="body2" fontWeight="bold">
-              ⚠️ Esta acción no se puede deshacer.
-            </Typography>
-          </Alert>
+          </Box>
         </DialogContent>
-        <DialogActions sx={{ p: 3, pt: 2 }}>
-          <Button 
-            onClick={handleCancelReset}
-            variant="outlined"
-            sx={{ minWidth: 120 }}
-          >
+
+        <DialogActions
+          sx={{
+            px: 2,
+            pt: 1,
+            pb: 'calc(16px + env(safe-area-inset-bottom))',
+            gap: 1,
+            borderTop: 1,
+            borderColor: 'divider'
+          }}
+        >
+          <Button onClick={handleCancelReset} variant="outlined" fullWidth>
             Cancelar
           </Button>
           <Button
             onClick={handleConfirmReset}
             variant="contained"
             color="warning"
+            fullWidth
             startIcon={<Refresh />}
             disabled={resettingSubloanId === itemToReset?.subLoanId}
-            sx={{ minWidth: 120 }}
           >
-            {resettingSubloanId === itemToReset?.subLoanId ? 'Reseteando...' : 'Resetear Pagos'}
+            {resettingSubloanId === itemToReset?.subLoanId ? 'Reseteando...' : 'Resetear'}
           </Button>
         </DialogActions>
       </Dialog>

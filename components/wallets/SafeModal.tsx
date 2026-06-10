@@ -14,6 +14,8 @@ import {
   CircularProgress,
   Alert,
   Chip,
+  Card,
+  CardContent,
   alpha,
   useTheme,
   useMediaQuery,
@@ -664,46 +666,38 @@ export default function SafeModal({
       onClose={handleClose}
       maxWidth="md"
       fullWidth
-      fullScreen={isMobile}
       PaperProps={{
         sx: {
-          borderRadius: isMobile ? 0 : 3,
-          maxHeight: isMobile ? '100vh' : '90vh',
-          m: { xs: 0, sm: 2 },
-          mt: { xs: 0, sm: 3 }
+          borderRadius: { xs: 2, sm: 3 },
+          maxHeight: { xs: 'calc(100dvh - 96px)', sm: '90vh' },
+          m: { xs: 1, sm: 2 },
+          mt: { xs: 'auto', sm: 2 },
+          width: { xs: '100%', sm: 'auto' },
         }
       }}
     >
-      <DialogTitle sx={{ 
+      <DialogTitle sx={{
         pb: 2,
         pt: 3,
         px: 3,
-        display: 'flex', 
-        alignItems: 'center', 
+        display: 'flex',
+        alignItems: 'center',
         justifyContent: 'space-between',
-        background: 'linear-gradient(135deg, #8B4513 0%, #A0522D 100%)',
-        color: 'white'
+        borderBottom: '1px solid',
+        borderColor: 'divider',
       }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-          <AccountBalance sx={{ fontSize: 28 }} />
+          <AccountBalance sx={{ fontSize: 28, color: 'primary.main' }} />
           <Box>
             <Typography variant="h6" component="div" fontWeight={600}>
-              Caja Fuerte - {managerName}
+              Caja Fuerte — {managerName}
             </Typography>
-            <Typography variant="caption" component="div" sx={{ opacity: 0.9, display: 'block', mt: 0.5 }}>
+            <Typography variant="caption" component="div" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
               Gestión de fondos y gastos
             </Typography>
           </Box>
         </Box>
-        <IconButton
-          onClick={handleClose}
-          sx={{ 
-            color: 'white',
-            '&:hover': {
-              bgcolor: 'rgba(255,255,255,0.1)'
-            }
-          }}
-        >
+        <IconButton onClick={handleClose} size="small">
           <Close />
         </IconButton>
       </DialogTitle>
@@ -1308,26 +1302,21 @@ export default function SafeModal({
               </Paper>
             ) : (
               <>
-                <TableContainer component={Paper} elevation={0} sx={{ border: `1px solid ${theme.palette.divider}`, borderRadius: 1 }}>
-                  <Table size="small">
-                    <TableHead>
-                      <TableRow sx={{ bgcolor: alpha(theme.palette.primary.main, 0.05) }}>
-                        <TableCell sx={{ fontWeight: 600 }}>Fecha</TableCell>
-                        <TableCell sx={{ fontWeight: 600 }}>Tipo</TableCell>
-                        <TableCell align="right" sx={{ fontWeight: 600 }}>Monto</TableCell>
-                        <TableCell sx={{ fontWeight: 600 }}>Descripción</TableCell>
-                        <TableCell align="right" sx={{ fontWeight: 600 }}>Saldo</TableCell>
-                      </TableRow>
-                    </TableHead>
-                    <TableBody>
-                      {transactions.map((transaction) => (
-                        <TableRow key={transaction.id} hover>
-                          <TableCell>
-                            <Typography variant="body2">
-                              {formatDate(transaction.createdAt)}
-                            </Typography>
-                          </TableCell>
-                          <TableCell>
+                {isMobile ? (
+                  /* Mobile: Cards */
+                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                    {transactions.map((transaction) => {
+                      const positive = isPositiveTransaction(transaction.type)
+                      return (
+                        <Card
+                          key={transaction.id}
+                          variant="outlined"
+                          sx={{
+                            borderLeft: 4,
+                            borderLeftColor: positive ? 'success.main' : 'error.main',
+                          }}
+                        >
+                          <CardContent sx={{ px: 1.5, py: 1.25, '&:last-child': { pb: 1.25 } }}>
                             <Chip
                               icon={getTransactionIcon(transaction.type)}
                               label={getTransactionLabel(transaction.type, transaction)}
@@ -1335,53 +1324,112 @@ export default function SafeModal({
                               sx={{
                                 bgcolor: alpha(getTransactionColor(transaction.type), 0.1),
                                 color: getTransactionColor(transaction.type),
-                                fontWeight: 600
+                                fontWeight: 600,
+                                mb: 0.5
                               }}
                             />
-                          </TableCell>
-                          <TableCell align="right">
-                            <Typography 
-                              variant="body2" 
-                              fontWeight={600}
-                              color={isPositiveTransaction(transaction.type) ? 'success.main' : 'error.main'}
+                            <Typography
+                              variant="h6"
+                              fontWeight={700}
+                              color={positive ? 'success.main' : 'error.main'}
+                              sx={{ fontSize: '1.25rem', mb: 0.5 }}
                             >
-                              {isPositiveTransaction(transaction.type) ? '+' : '-'}{formatCurrency(Math.abs(transaction.amount))}
+                              {positive ? '+' : '-'}{formatCurrency(Math.abs(transaction.amount))}
                             </Typography>
-                          </TableCell>
-                          <TableCell>
-                            <Box>
-                              {transaction.type === 'EXPENSE' && transaction.expense?.name && (
-                                <Typography variant="body2" fontWeight={600} color="primary.main" gutterBottom>
-                                  {transaction.expense.name}
-                                </Typography>
-                              )}
-                              {(transaction.type === 'TRANSFER_TO_SAFE' || transaction.type === 'TRANSFER_FROM_SAFE') && (
-                                <Typography variant="body2" fontWeight={600} color="info.main" gutterBottom>
-                                  {transaction.type === 'TRANSFER_TO_SAFE' 
-                                    ? `A: ${getRelatedUserName(transaction) || 'Usuario desconocido'}`
-                                    : `De: ${getRelatedUserName(transaction) || 'Usuario desconocido'}`
-                                  }
-                                </Typography>
-                              )}
-                              <Typography variant="body2" color="text.secondary">
-                                {transaction.description}
+                            {transaction.type === 'EXPENSE' && transaction.expense?.name && (
+                              <Typography variant="body2" fontWeight={600} color="primary.main">
+                                {transaction.expense.name}
                               </Typography>
-                            </Box>
-                          </TableCell>
-                          <TableCell align="right">
-                            <Typography 
-                              variant="body2"
-                              color={transaction.balanceAfter < 0 ? 'error.main' : 'text.primary'}
-                              fontWeight={500}
-                            >
-                              {formatCurrency(transaction.balanceAfter)}
+                            )}
+                            {(transaction.type === 'TRANSFER_TO_SAFE' || transaction.type === 'TRANSFER_FROM_SAFE') && (
+                              <Typography variant="body2" fontWeight={600} color="info.main">
+                                {transaction.type === 'TRANSFER_TO_SAFE'
+                                  ? `A: ${getRelatedUserName(transaction) || 'Usuario desconocido'}`
+                                  : `De: ${getRelatedUserName(transaction) || 'Usuario desconocido'}`
+                                }
+                              </Typography>
+                            )}
+                            <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
+                              {transaction.description}
                             </Typography>
-                          </TableCell>
+                            <Typography variant="caption" color="text.disabled" display="block" sx={{ mb: 0.5 }}>
+                              {formatDate(transaction.createdAt)}
+                            </Typography>
+                            <Typography
+                              variant="caption"
+                              fontWeight={500}
+                              color={transaction.balanceAfter < 0 ? 'error.main' : 'text.secondary'}
+                            >
+                              Saldo: {formatCurrency(transaction.balanceAfter)}
+                            </Typography>
+                          </CardContent>
+                        </Card>
+                      )
+                    })}
+                  </Box>
+                ) : (
+                  /* Desktop: Table */
+                  <TableContainer component={Paper} elevation={0} sx={{ border: `1px solid ${theme.palette.divider}`, borderRadius: 1 }}>
+                    <Table size="small">
+                      <TableHead>
+                        <TableRow sx={{ bgcolor: alpha(theme.palette.primary.main, 0.05) }}>
+                          <TableCell sx={{ fontWeight: 600 }}>Fecha</TableCell>
+                          <TableCell sx={{ fontWeight: 600 }}>Tipo</TableCell>
+                          <TableCell align="right" sx={{ fontWeight: 600 }}>Monto</TableCell>
+                          <TableCell sx={{ fontWeight: 600 }}>Descripcion</TableCell>
+                          <TableCell align="right" sx={{ fontWeight: 600 }}>Saldo</TableCell>
                         </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </TableContainer>
+                      </TableHead>
+                      <TableBody>
+                        {transactions.map((transaction) => (
+                          <TableRow key={transaction.id} hover>
+                            <TableCell>
+                              <Typography variant="body2">{formatDate(transaction.createdAt)}</Typography>
+                            </TableCell>
+                            <TableCell>
+                              <Chip
+                                icon={getTransactionIcon(transaction.type)}
+                                label={getTransactionLabel(transaction.type, transaction)}
+                                size="small"
+                                sx={{
+                                  bgcolor: alpha(getTransactionColor(transaction.type), 0.1),
+                                  color: getTransactionColor(transaction.type),
+                                  fontWeight: 600
+                                }}
+                              />
+                            </TableCell>
+                            <TableCell align="right">
+                              <Typography variant="body2" fontWeight={600} color={isPositiveTransaction(transaction.type) ? 'success.main' : 'error.main'}>
+                                {isPositiveTransaction(transaction.type) ? '+' : '-'}{formatCurrency(Math.abs(transaction.amount))}
+                              </Typography>
+                            </TableCell>
+                            <TableCell>
+                              <Box>
+                                {transaction.type === 'EXPENSE' && transaction.expense?.name && (
+                                  <Typography variant="body2" fontWeight={600} color="primary.main" gutterBottom>{transaction.expense.name}</Typography>
+                                )}
+                                {(transaction.type === 'TRANSFER_TO_SAFE' || transaction.type === 'TRANSFER_FROM_SAFE') && (
+                                  <Typography variant="body2" fontWeight={600} color="info.main" gutterBottom>
+                                    {transaction.type === 'TRANSFER_TO_SAFE'
+                                      ? `A: ${getRelatedUserName(transaction) || 'Usuario desconocido'}`
+                                      : `De: ${getRelatedUserName(transaction) || 'Usuario desconocido'}`
+                                    }
+                                  </Typography>
+                                )}
+                                <Typography variant="body2" color="text.secondary">{transaction.description}</Typography>
+                              </Box>
+                            </TableCell>
+                            <TableCell align="right">
+                              <Typography variant="body2" color={transaction.balanceAfter < 0 ? 'error.main' : 'text.primary'} fontWeight={500}>
+                                {formatCurrency(transaction.balanceAfter)}
+                              </Typography>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </TableContainer>
+                )}
                 <TablePagination
                   component="div"
                   count={historyTotal}
@@ -1389,11 +1437,22 @@ export default function SafeModal({
                   onPageChange={handleHistoryPageChange}
                   rowsPerPage={historyRowsPerPage}
                   onRowsPerPageChange={handleHistoryRowsPerPageChange}
-                  rowsPerPageOptions={[10, 25, 50]}
-                  labelRowsPerPage="Filas por página:"
-                  labelDisplayedRows={({ from, to, count }) => 
-                    `${from}-${to} de ${count !== -1 ? count : `más de ${to}`}`
+                  rowsPerPageOptions={[25, 50, 100]}
+                  labelRowsPerPage={isMobile ? "Por pag:" : "Filas por pagina:"}
+                  labelDisplayedRows={({ from, to, count }) =>
+                    `${from}-${to} de ${count !== -1 ? count : `mas de ${to}`}`
                   }
+                  sx={{
+                    '& .MuiTablePagination-toolbar': {
+                      flexDirection: { xs: 'column', sm: 'row' },
+                      gap: { xs: 0.5, sm: 0 },
+                      minHeight: { xs: 'auto', sm: 52 },
+                      py: { xs: 1, sm: 0 },
+                    },
+                    '& .MuiTablePagination-spacer': {
+                      display: { xs: 'none', sm: 'flex' }
+                    }
+                  }}
                 />
               </>
             )}

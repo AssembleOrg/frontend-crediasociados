@@ -1,9 +1,9 @@
 'use client'
 
-import { useEffect, useState, useRef } from 'react'
-import { Box, Button, Alert, CircularProgress } from '@mui/material'
-import { Add} from '@mui/icons-material'
-import { useRouter, usePathname } from 'next/navigation'
+import { useState, useEffect, useRef } from 'react'
+import { Box, Alert, CircularProgress } from '@mui/material'
+import { Add } from '@mui/icons-material'
+import { useRouter } from 'next/navigation'
 import { useLoans } from '@/hooks/useLoans'
 import { useSubLoans } from '@/hooks/useSubLoans'
 import { useManagerDashboard } from '@/hooks/useManagerDashboard'
@@ -11,55 +11,74 @@ import { LoansTable } from '@/components/loans/LoansTable'
 import { ExportButtons } from '@/components/export/ExportButtons'
 import { LoansFilterPanel } from '@/components/filters/LoansFilterPanel'
 import { useLoansFilters } from '@/hooks/useLoansFilters'
-import { ManagerDashboardCards } from '@/components/dashboard/ManagerDashboardCards'
-
-// New reusable components
 import PageHeader from '@/components/ui/PageHeader'
 import LoanDetailsModal from '@/components/loans/modals/LoanDetailsModal'
+import { loansService } from '@/services/loans.service'
+import type { SubLoanWithClientInfo } from '@/services/subloans-lookup.service'
 
-// Utilities
-import { calculateLoanStats } from '@/lib/loans/loanCalculations'
 
 export default function PrestamosAnalyticsPage() {
   const router = useRouter()
-  const pathname = usePathname()
   const { loans, error, isLoading, fetchLoans } = useLoans()
-  const { allSubLoansWithClient, isLoading: subLoansLoading, fetchAllSubLoansWithClientInfo } = useSubLoans()
-  const { filteredLoans, filterStats, hasActiveFilters, isLoading: filtersLoading, error: filtersError } = useLoansFilters()
+  const { fetchAllSubLoansWithClientInfo } = useSubLoans()
+  const { filteredLoans, hasActiveFilters, isLoading: filtersLoading, error: filtersError } = useLoansFilters()
   const { refetch: refetchManagerData } = useManagerDashboard()
   
-  // Prevent double fetch in StrictMode
+  // Load loans + subloans when this page mounts
   const hasFetched = useRef(false)
-
-  // Fetch loans ONLY on mount - client names come from API response
   useEffect(() => {
     if (hasFetched.current) return
     hasFetched.current = true
     fetchLoans()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    fetchAllSubLoansWithClientInfo()
   }, [])
 
   // Modal states
   const [selectedLoanId, setSelectedLoanId] = useState<string | null>(null)
   const [timelineModalOpen, setTimelineModalOpen] = useState(false)
+  const [directSubLoans, setDirectSubLoans] = useState<SubLoanWithClientInfo[]>([])
+  const [directSubLoansLoading, setDirectSubLoansLoading] = useState(false)
+  const [directSubLoansError, setDirectSubLoansError] = useState<string | null>(null)
+
+  // Siempre fetch via getLoanById: el store global solo trae la primera pagina
+  // de loans → los COMPLETED viejos quedan fuera y antes se mostraba "no hay cuotas"
+  // cuando en realidad la carga fallaba en silencio.
+  useEffect(() => {
+    if (!selectedLoanId || !timelineModalOpen) return
+    setDirectSubLoansLoading(true)
+    setDirectSubLoansError(null)
+    loansService.getLoanById(selectedLoanId)
+      .then(loan => {
+        const subLoans = (loan as any).subLoans ?? []
+        const mapped: SubLoanWithClientInfo[] = subLoans.map((sl: any) => ({
+          ...sl,
+          clientId: (loan as any).clientId,
+          clientName: (loan as any).client?.fullName ?? '',
+          clientDni: (loan as any).client?.dni ?? '',
+        }))
+        setDirectSubLoans(mapped)
+      })
+      .catch((err) => {
+        console.error('Error cargando cuotas del prestamo', selectedLoanId, err)
+        setDirectSubLoans([])
+        setDirectSubLoansError(
+          err?.response?.data?.message || err?.message || 'Error cargando cuotas',
+        )
+      })
+      .finally(() => setDirectSubLoansLoading(false))
+  }, [selectedLoanId, timelineModalOpen])
 
   // Use filtered data for display when filters are active
   const displayLoans = hasActiveFilters ? filteredLoans : loans
-  const displayStats = hasActiveFilters ? filterStats : calculateLoanStats(loans)
 
   const handleCreateLoan = () => {
     router.push('/dashboard/prestamista/prestamos/nuevo')
   }
 
-  const handleGoToCobros = () => {
-    router.push('/dashboard/prestamista/cobros')
-  }
-
   const handleViewDetails = (loanId: string) => {
     setSelectedLoanId(loanId)
+    setDirectSubLoans([])
     setTimelineModalOpen(true)
-    // Load subloans only when modal opens (lazy loading)
-    fetchAllSubLoansWithClientInfo()
   }
 
   const handleGoToCobrosForClient = () => {
@@ -71,12 +90,10 @@ export default function PrestamosAnalyticsPage() {
   // Search in filtered loans if filters are active, otherwise in all loans
   const loansToSearch = hasActiveFilters ? filteredLoans : loans
   const selectedLoan = selectedLoanId ? loansToSearch.find(loan => loan.id === selectedLoanId) || null : null
-  const selectedLoanSubLoans = selectedLoanId 
-    ? allSubLoansWithClient.filter(subloan => subloan.loanId === selectedLoanId)
-    : []
+  const selectedLoanSubLoans = directSubLoans
 
   return (
-    <Box sx={{ p: 3 }}>
+    <Box sx={{ p: { xs: 1, sm: 2, md: 3 } }}>
       {/* Header */}
       <PageHeader
         title="Análisis de Cartera"
@@ -89,14 +106,7 @@ export default function PrestamosAnalyticsPage() {
             color: 'secondary',
             startIcon: <Add />,
             size: 'small'
-          },
-          // {
-          //   label: 'Ir a Cobros', 
-          //   onClick: handleGoToCobros,
-          //   variant: 'contained',
-          //   color: 'primary',
-          //   size: 'small'
-          // }
+          }
         ]}
       />
 
@@ -114,12 +124,9 @@ export default function PrestamosAnalyticsPage() {
         </Box>
       )}
 
-      {/* Tu Cartera Stats - Manager Dashboard Cards */}
-      {!isLoading && !filtersLoading && <ManagerDashboardCards />}
-
       {/* Filter Panel */}
       {!isLoading && (
-        <Box sx={{ mb: 3 }}>
+        <Box sx={{ mb: 1.5 }}>
           <LoansFilterPanel variant="expanded" />
         </Box>
       )}
@@ -127,31 +134,14 @@ export default function PrestamosAnalyticsPage() {
       {/* Loans Table */}
       {!isLoading && !filtersLoading && (
         <Box>
-          <Box
-            sx={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              mb: 3,
-            }}
-          >
-            <Box sx={{ typography: 'h6' }}>Tu Cartera de Préstamos</Box>
-            <Box sx={{ display: 'flex', gap: 2 }}>
-              <ExportButtons 
-                filteredLoans={hasActiveFilters ? filteredLoans : undefined}
-              />
-              <Button
-                variant="contained"
-                startIcon={<Add />}
-                onClick={handleCreateLoan}
-              >
-                Nuevo Préstamo
-              </Button>
-            </Box>
+          <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 1 }}>
+            <ExportButtons
+              filteredLoans={hasActiveFilters ? filteredLoans : undefined}
+            />
           </Box>
 
           {error && (
-            <Alert severity="error" sx={{ mb: 3 }}>
+            <Alert severity="error" sx={{ mb: 2 }}>
               {error}
             </Alert>
           )}
@@ -161,26 +151,6 @@ export default function PrestamosAnalyticsPage() {
             onViewDetails={handleViewDetails}
             onLoanDeleted={refetchManagerData}
           />
-
-          {/* Quick Actions */}
-          {displayStats.total > 0 && (
-            <Box
-              sx={{ mt: 3, display: 'flex', gap: 2, justifyContent: 'center' }}
-            >
-              <Button
-                variant="outlined"
-                onClick={() => router.push('/dashboard/prestamista/cobros')}
-              >
-                Ver Cobros del Día
-              </Button>
-              <Button
-                variant="outlined"
-                onClick={() => router.push('/dashboard/prestamista/clientes')}
-              >
-                Gestionar Clientes
-              </Button>
-            </Box>
-          )}
         </Box>
       )}
 
@@ -190,13 +160,27 @@ export default function PrestamosAnalyticsPage() {
         onClose={() => setTimelineModalOpen(false)}
         loan={selectedLoan}
         subLoans={selectedLoanSubLoans}
-        isLoading={subLoansLoading}
+        isLoading={directSubLoansLoading}
+        loadError={directSubLoansError}
         onGoToCobros={handleGoToCobrosForClient}
         onPaymentSuccess={() => {
           // Refrescar los datos después de un pago exitoso
           fetchAllSubLoansWithClientInfo()
           // Refrescar préstamos para mantener el resumen/estado actualizado
           fetchLoans()
+          // Refrescar las cuotas del modal
+          if (selectedLoanId) {
+            loansService.getLoanById(selectedLoanId).then(loan => {
+              const subLoans = (loan as any).subLoans ?? []
+              const mapped: SubLoanWithClientInfo[] = subLoans.map((sl: any) => ({
+                ...sl,
+                clientId: (loan as any).clientId,
+                clientName: (loan as any).client?.fullName ?? '',
+                clientDni: (loan as any).client?.dni ?? '',
+              }))
+              setDirectSubLoans(mapped)
+            }).catch(() => {})
+          }
         }}
       />
     </Box>

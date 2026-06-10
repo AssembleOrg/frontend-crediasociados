@@ -1,36 +1,44 @@
 'use client'
 
+/**
+ * PaymentModal — Container/Orchestrator.
+ * On mobile (xs/sm): renders PaymentForm inside a SwipeableDrawer.
+ * On desktop (md+):  renders PaymentForm inside a Dialog.
+ * All form logic lives in PaymentForm.
+ */
+
 import { useState, useEffect, useMemo } from 'react'
 import { createPortal } from 'react-dom'
 import {
   Dialog,
   DialogTitle,
-  DialogContent,
-  DialogActions,
-  Button,
+  SwipeableDrawer,
   Box,
   Typography,
-  TextField,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
+  CircularProgress,
+  useMediaQuery,
+  useTheme,
+  Button,
+  DialogActions,
+  DialogContent,
   Divider,
-  InputAdornment,
-  Checkbox,
-  FormControlLabel,
   Alert,
-  Chip,
-  CircularProgress
+  IconButton,
 } from '@mui/material'
-import { Payment, AttachMoney, PictureAsPdf, Info, Warning } from '@mui/icons-material'
+import { Payment, AttachMoney, PictureAsPdf, Info, Warning, Autorenew, Close, TaskAlt } from '@mui/icons-material'
 import { formatAmount, unformatAmount, formatCurrencyDisplay, numberToFormattedAmount } from '@/lib/formatters'
 import { generatePaymentPDF, type PaymentReceiptData } from '@/utils/pdf/paymentReceipt'
 import { useOperativa } from '@/hooks/useOperativa'
 import { paymentsService } from '@/services/payments.service'
+import { subLoansService } from '@/services/sub-loans.service'
+import { loansService, type RenewLoanRequest } from '@/services/loans.service'
 import { PaymentErrorModal } from './PaymentErrorModal'
 import { PaymentSuccessModal } from './PaymentSuccessModal'
+import { PaymentForm } from './PaymentForm'
+import { useBottomSheet } from '@/hooks/useBottomSheet'
+import { iosColors } from '@/lib/theme'
 import type { SubLoanWithClientInfo } from '@/services/subloans-lookup.service'
+import type { LoanResponseDto } from '@/types/auth'
 
 interface PaymentModalProps {
   open: boolean
@@ -39,7 +47,7 @@ interface PaymentModalProps {
   subloans?: SubLoanWithClientInfo[]
   clientName: string
   mode?: 'single' | 'selector'
-  onPaymentSuccess?: () => void // Callback to refetch data after successful payment
+  onPaymentSuccess?: () => void
 }
 
 export const PaymentModal: React.FC<PaymentModalProps> = ({
@@ -49,171 +57,420 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
   subloans = [],
   clientName,
   mode = 'single',
-  onPaymentSuccess
+  onPaymentSuccess,
 }) => {
+  const theme = useTheme()
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'))
+
   const { createIngresoFromPago } = useOperativa()
 
+  // ── Form state ─────────────────────────────────────────────────────────────
   const [selectedSubloanId, setSelectedSubloanId] = useState<string>('')
-  const [paymentAmount, setPaymentAmount] = useState<string>('')
-  const [paymentDate, setPaymentDate] = useState<string>(new Date().toISOString().split('T')[0])
-  const [notes, setNotes] = useState<string>('')
-  const [generatePDF, setGeneratePDF] = useState<boolean>(false) // Default: do not generate PDF
-  const [isRegistering, setIsRegistering] = useState<boolean>(false) // ✅ Loading state for button
-  const [hasUserEdited, setHasUserEdited] = useState<boolean>(false) // ✅ Track if user manually edited the amount
-  const [paymentPreview, setPaymentPreview] = useState<{
+  const [paymentAmount, setPaymentAmount]           = useState<string>('')
+  const [notes, setNotes]                           = useState<string>('')
+  const [generatePDF, setGeneratePDF]               = useState<boolean>(false)
+  const [isRegistering, setIsRegistering]           = useState<boolean>(false)
+  const [hasUserEdited, setHasUserEdited]           = useState<boolean>(false)
+  const [adjustEnabled, setAdjustEnabled]           = useState<boolean>(false)
+  const [adjustedAmount, setAdjustedAmount]         = useState<string>('')
+  const [distributeOverflow, setDistributeOverflow] = useState<boolean>(true)
+  const [finishLoan, setFinishLoan]                 = useState<boolean>(false)
+  const [paymentPreview, setPaymentPreview]         = useState<{
     remainingAfterPayment: number
     status: 'PARTIAL' | 'PAID'
     isPartial: boolean
   } | null>(null)
+  const [nextDueDate, setNextDueDate]               = useState<string>('')
 
-  // Modal states for error and success feedback
-  const [errorModalOpen, setErrorModalOpen] = useState(false)
-  const [errorMessage, setErrorMessage] = useState('')
-  const [successModalOpen, setSuccessModalOpen] = useState(false)
+  // ── Feedback state ─────────────────────────────────────────────────────────
+  const [errorModalOpen, setErrorModalOpen]                 = useState(false)
+  const [errorMessage, setErrorMessage]                     = useState('')
+  const [successModalOpen, setSuccessModalOpen]             = useState(false)
   const [multiPaymentConfirmOpen, setMultiPaymentConfirmOpen] = useState(false)
-  const [successData, setSuccessData] = useState<{
-    clientName: string
-    paymentNumber: number
-    amount: number
-    paymentDate: Date
-    status: 'PARTIAL' | 'PAID'
-    remainingAmount: number
-    notes?: string
-    pdfGenerated: boolean
+  const [finishLoanConfirmOpen, setFinishLoanConfirmOpen]     = useState(false)
+  const [successData, setSuccessData]                       = useState<{
+    clientName: string; paymentNumber: number; amount: number; paymentDate: Date
+    status: 'PARTIAL' | 'PAID'; remainingAmount: number; notes?: string; pdfGenerated: boolean
   } | null>(null)
   const [receiptData, setReceiptData] = useState<PaymentReceiptData | null>(null)
 
-  const currentSubloan = useMemo(() => {
-    return mode === 'single' ? subloan : subloans.find(s => s.id === selectedSubloanId)
-  }, [mode, subloan, subloans, selectedSubloanId])
+  // Renewal mode state
+  const [renewMode, setRenewMode] = useState<boolean>(false)
+  const [renewLoading, setRenewLoading] = useState<boolean>(false)
+  const [loanDetails, setLoanDetails] = useState<LoanResponseDto | null>(null)
+  const [loanLoading, setLoanLoading] = useState<boolean>(false)
+  const [renewAmount, setRenewAmount] = useState<string>('')
+  const [renewInterestPct, setRenewInterestPct] = useState<string>('')
+  const [renewPenaltyPct, setRenewPenaltyPct] = useState<string>('')
+  const [renewFrequency, setRenewFrequency] = useState<'DAILY' | 'WEEKLY' | 'BIWEEKLY' | 'MONTHLY'>('DAILY')
+  const [renewPaymentDay, setRenewPaymentDay] = useState<'MONDAY' | 'TUESDAY' | 'WEDNESDAY' | 'THURSDAY' | 'FRIDAY' | 'SATURDAY' | ''>('')
+  const [renewTotalPayments, setRenewTotalPayments] = useState<string>('')
+  const [renewFirstDueDate, setRenewFirstDueDate] = useState<string>('')
 
+  // ── Derived ────────────────────────────────────────────────────────────────
+  const currentSubloan = useMemo(
+    () => (mode === 'single' ? subloan : subloans.find((s) => s.id === selectedSubloanId)),
+    [mode, subloan, subloans, selectedSubloanId],
+  )
 
-  // Reset form ONLY when modal opens. Avoid depending on object props to prevent unwanted resets.
+  const effectiveTotalAmount = adjustEnabled && adjustedAmount
+    ? (parseFloat(unformatAmount(adjustedAmount)) || 0)
+    : (currentSubloan?.totalAmount ?? 0)
+
+  const pendingSubloans = subloans.filter((s) => s.status !== 'PAID')
+
+  // ── Derivados para el confirm de "Terminar préstamo" ───────────────────────
+  const finishAmount = parseFloat(unformatAmount(paymentAmount)) || 0
+  const finishOutstanding = currentSubloan
+    ? (currentSubloan.outstandingBalance ?? ((currentSubloan.totalAmount ?? 0) - (currentSubloan.paidAmount || 0)))
+    : 0
+  const finishForgiven = Math.max(0, finishOutstanding - finishAmount)
+  const finishOverpaid = Math.max(0, finishAmount - finishOutstanding)
+
+  // ── Bottom sheet hook (for mobile SwipeableDrawer) ─────────────────────────
+  const { handleOpen: sheetOpen, handleClose: sheetClose } = useBottomSheet(open, (v) => {
+    if (!v) onClose()
+  })
+
+  // ── Reset form on open ─────────────────────────────────────────────────────
   useEffect(() => {
     if (!open) {
-      // Reset receipt data when payment modal closes
       setReceiptData(null)
+      setRenewMode(false)
+      setLoanDetails(null)
+      setRenewAmount('')
+      setRenewInterestPct('')
+      setRenewPenaltyPct('')
+      setRenewTotalPayments('')
+      setRenewFirstDueDate('')
+      setRenewPaymentDay('')
       return
     }
-    setHasUserEdited(false) // Reset edit flag when modal opens
+    setHasUserEdited(false)
+    setAdjustEnabled(false)
+    setAdjustedAmount('')
+    setDistributeOverflow(true)
+    setFinishLoan(false)
     if (mode === 'single' && subloan) {
       setSelectedSubloanId(subloan.id ?? '')
-      // Auto-fill with pending amount (partial payments allowed)
-      const pendingAmount = (subloan.totalAmount ?? 0) - (subloan.paidAmount || 0)
-      setPaymentAmount(pendingAmount > 0 ? numberToFormattedAmount(pendingAmount) : '')
+      const pending = (subloan.totalAmount ?? 0) - (subloan.paidAmount || 0)
+      setPaymentAmount(pending > 0 ? numberToFormattedAmount(pending) : '')
     } else if (mode === 'selector' && subloans.length > 0) {
-      // Solo permitir seleccionar subpréstamos no pagados
-      const firstPending = subloans.find(s => s.status !== 'PAID')
-      if (firstPending) {
-        setSelectedSubloanId(firstPending.id ?? '')
-        const pendingAmount = (firstPending.totalAmount ?? 0) - (firstPending.paidAmount || 0)
-        setPaymentAmount(pendingAmount > 0 ? numberToFormattedAmount(pendingAmount) : '')
+      const first = subloans.find((s) => s.status !== 'PAID')
+      if (first) {
+        setSelectedSubloanId(first.id ?? '')
+        const pending = (first.totalAmount ?? 0) - (first.paidAmount || 0)
+        setPaymentAmount(pending > 0 ? numberToFormattedAmount(pending) : '')
       } else {
         setPaymentAmount('')
       }
     }
-    setPaymentDate(new Date().toISOString().split('T')[0])
     setNotes('')
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, mode])
 
-
-  // Auto-fill payment amount when subloan selection changes in selector mode
-  // BUT only if user hasn't manually edited the amount
+  // Auto-fill when subloan selection changes
   useEffect(() => {
     if (open && mode === 'selector' && selectedSubloanId && currentSubloan && !hasUserEdited) {
-      const pendingAmount = (currentSubloan.totalAmount ?? 0) - (currentSubloan.paidAmount || 0)
-      setPaymentAmount(pendingAmount > 0 ? numberToFormattedAmount(pendingAmount) : '')
+      const pending = (currentSubloan.totalAmount ?? 0) - (currentSubloan.paidAmount || 0)
+      setPaymentAmount(pending > 0 ? numberToFormattedAmount(pending) : '')
     }
   }, [selectedSubloanId, open, mode, hasUserEdited, currentSubloan])
 
-  // Calculate payment preview (status changes)
+  // Auto-fill when adjusted amount changes
+  useEffect(() => {
+    if (adjustEnabled && currentSubloan && !hasUserEdited && adjustedAmount) {
+      const newTotal = parseFloat(unformatAmount(adjustedAmount)) || 0
+      const pending = newTotal - (currentSubloan.paidAmount || 0)
+      setPaymentAmount(pending > 0 ? numberToFormattedAmount(pending) : '')
+    }
+  }, [adjustedAmount, adjustEnabled])
+
+  // Payment preview
   useEffect(() => {
     if (currentSubloan && paymentAmount) {
-      // Convert formatted string to number (handles both "23.130,43" and "23130,43" formats)
-      const amountValue = parseFloat(unformatAmount(paymentAmount)) || 0
-      const currentPaidAmount = currentSubloan.paidAmount || 0
-      const currentTotalAmount = currentSubloan.totalAmount ?? 0
-      const newPaidAmount = currentPaidAmount + amountValue
-      // Use a small epsilon to handle floating point precision issues
-      const remainingAfterPayment = Math.max(0, currentTotalAmount - newPaidAmount)
-      // Consider it paid if remaining is less than 0.01 (1 centavo)
-      const isPartial = newPaidAmount > 0 && remainingAfterPayment >= 0.01
-      const status = remainingAfterPayment < 0.01 ? 'PAID' : 'PARTIAL'
-
+      const amount = parseFloat(unformatAmount(paymentAmount)) || 0
+      const newPaid = (currentSubloan.paidAmount || 0) + amount
+      const remaining = Math.max(0, effectiveTotalAmount - newPaid)
       setPaymentPreview({
-        remainingAfterPayment,
-        status,
-        isPartial
+        remainingAfterPayment: remaining,
+        status: remaining < 0.01 ? 'PAID' : 'PARTIAL',
+        isPartial: newPaid > 0 && remaining >= 0.01,
       })
     } else {
       setPaymentPreview(null)
     }
-  }, [currentSubloan, paymentAmount])
+  }, [currentSubloan, paymentAmount, effectiveTotalAmount])
+
+  // Fetch loan details and prefill renewal form when renewMode is activated
+  useEffect(() => {
+    if (!renewMode || !currentSubloan?.loanId) return
+    // Already loaded for this loan
+    if (loanDetails?.id === currentSubloan.loanId) return
+
+    let cancelled = false
+    setLoanLoading(true)
+    loansService
+      .getLoanById(currentSubloan.loanId)
+      .then((loan) => {
+        if (cancelled) return
+        setLoanDetails(loan)
+        const capital = Number(loan.originalAmount ?? loan.amount ?? 0)
+        setRenewAmount(capital > 0 ? numberToFormattedAmount(capital) : '')
+        setRenewInterestPct(
+          loan.baseInterestRate != null
+            ? (Number(loan.baseInterestRate) * 100).toString()
+            : ''
+        )
+        setRenewPenaltyPct(
+          loan.penaltyInterestRate != null
+            ? (Number(loan.penaltyInterestRate) * 100).toString()
+            : ''
+        )
+        setRenewFrequency(
+          (loan.paymentFrequency as 'DAILY' | 'WEEKLY' | 'BIWEEKLY' | 'MONTHLY') || 'DAILY'
+        )
+        setRenewPaymentDay(
+          (loan.paymentDay as typeof renewPaymentDay) || ''
+        )
+        setRenewTotalPayments(
+          loan.totalPayments != null ? String(loan.totalPayments) : ''
+        )
+      })
+      .catch((err) => {
+        if (cancelled) return
+        const errObj = err as Record<string, unknown>
+        setErrorMessage(
+          String(errObj?.message || 'No se pudieron cargar los datos del préstamo')
+        )
+        setErrorModalOpen(true)
+        setRenewMode(false)
+      })
+      .finally(() => {
+        if (!cancelled) setLoanLoading(false)
+      })
+
+    return () => {
+      cancelled = true
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [renewMode, currentSubloan?.loanId])
+
+  // Fetch loan totalPayments when not available in subloan (e.g. from Rutas endpoint)
+  useEffect(() => {
+    if (!open || !currentSubloan?.loanId || currentSubloan.loanTotalPayments != null) return
+    if (loanDetails?.id === currentSubloan.loanId) return
+
+    let cancelled = false
+    loansService.getLoanById(currentSubloan.loanId).then((loan) => {
+      if (cancelled) return
+      setLoanDetails(loan)
+    }).catch(() => {})
+
+    return () => { cancelled = true }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, currentSubloan?.loanId, currentSubloan?.loanTotalPayments])
+
+  const downloadPdfFromBase64 = (base64: string, filename: string) => {
+    try {
+      const binaryString = atob(base64)
+      const bytes = new Uint8Array(binaryString.length)
+      for (let i = 0; i < binaryString.length; i++) {
+        bytes[i] = binaryString.charCodeAt(i)
+      }
+      const blob = new Blob([bytes], { type: 'application/pdf' })
+      const url = window.URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = filename
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      window.URL.revokeObjectURL(url)
+    } catch (err) {
+      console.error('Error al descargar PDF del préstamo:', err)
+    }
+  }
+
+  const canRenew = useMemo(() => {
+    if (!renewMode || !currentSubloan?.loanId) return false
+    const amt = parseFloat(unformatAmount(renewAmount)) || 0
+    const interest = parseFloat(renewInterestPct.replace(',', '.'))
+    const penalty = parseFloat(renewPenaltyPct.replace(',', '.'))
+    const cuotas = parseInt(renewTotalPayments, 10)
+    const needsPaymentDay = renewFrequency !== 'DAILY' && renewFrequency !== 'MONTHLY'
+    return (
+      amt > 0 &&
+      !isNaN(interest) &&
+      interest >= 0 &&
+      !isNaN(penalty) &&
+      penalty >= 0 &&
+      !isNaN(cuotas) &&
+      cuotas > 0 &&
+      !!renewFirstDueDate &&
+      (!needsPaymentDay || !!renewPaymentDay)
+    )
+  }, [
+    renewMode,
+    currentSubloan?.loanId,
+    renewAmount,
+    renewInterestPct,
+    renewPenaltyPct,
+    renewTotalPayments,
+    renewFirstDueDate,
+    renewFrequency,
+    renewPaymentDay,
+  ])
+
+  const handleRenewLoan = async () => {
+    if (!currentSubloan?.loanId || !canRenew) return
+    setRenewLoading(true)
+    try {
+      const payload: RenewLoanRequest = {
+        amount: parseFloat(unformatAmount(renewAmount)),
+        baseInterestRate:
+          parseFloat(renewInterestPct.replace(',', '.')) / 100,
+        penaltyInterestRate:
+          parseFloat(renewPenaltyPct.replace(',', '.')) / 100,
+        paymentFrequency: renewFrequency,
+        paymentDay:
+          renewFrequency === 'DAILY' || renewFrequency === 'MONTHLY'
+            ? undefined
+            : (renewPaymentDay as RenewLoanRequest['paymentDay']),
+        totalPayments: parseInt(renewTotalPayments, 10),
+        firstDueDate: renewFirstDueDate,
+        description: notes || undefined,
+      }
+
+      const result = await loansService.renewLoan(
+        currentSubloan.loanId,
+        payload
+      )
+
+      // Éxito: primero cerrar el modal, después descargar el PDF
+      onClose()
+      if (result.pdfBase64) {
+        downloadPdfFromBase64(
+          result.pdfBase64,
+          result.pdfFilename || `prestamo-${result.newLoan?.loanTrack || 'nuevo'}.pdf`
+        )
+      }
+      if (onPaymentSuccess) onPaymentSuccess()
+    } catch (error) {
+      const errObj = error as Record<string, unknown>
+      const responseData = (errObj?.response as Record<string, unknown>)?.data as
+        | Record<string, unknown>
+        | undefined
+      const errorMsg =
+        responseData?.message ||
+        errObj?.message ||
+        'Error al renovar el préstamo. Por favor intenta nuevamente.'
+      setErrorMessage(String(errorMsg))
+      setErrorModalOpen(true)
+    } finally {
+      setRenewLoading(false)
+    }
+  }
+
+  // ── Handlers ───────────────────────────────────────────────────────────────
+  const handleAmountChange = (raw: string) => {
+    setHasUserEdited(true)
+    setPaymentAmount(raw)
+  }
+
+  const handleAdjustEnabledChange = (checked: boolean) => {
+    setAdjustEnabled(checked)
+    if (!checked) {
+      setAdjustedAmount('')
+      if (currentSubloan && !hasUserEdited) {
+        const pending = (currentSubloan.totalAmount ?? 0) - (currentSubloan.paidAmount || 0)
+        setPaymentAmount(pending > 0 ? numberToFormattedAmount(pending) : '')
+      }
+    } else if (currentSubloan) {
+      setAdjustedAmount(numberToFormattedAmount(currentSubloan.totalAmount ?? 0))
+    }
+  }
+
+
+  // Activar "Terminar préstamo" anula el ajuste de cuota (no aplica al condonar).
+  const handleFinishLoanChange = (checked: boolean) => {
+    setFinishLoan(checked)
+    if (checked) {
+      setAdjustEnabled(false)
+      setAdjustedAmount('')
+    }
+  }
 
   const handleRegisterPayment = async () => {
     if (!currentSubloan) return
-
-    const amountValue = parseFloat(unformatAmount(paymentAmount)) || 0
-    const pendingAmount = (currentSubloan.totalAmount ?? 0) - (currentSubloan.paidAmount || 0)
-
-    // Check if payment amount exceeds pending amount (will pay multiple installments)
-    if (amountValue > pendingAmount) {
+    const amount = parseFloat(unformatAmount(paymentAmount)) || 0
+    const pending = effectiveTotalAmount - (currentSubloan.paidAmount || 0)
+    // Al terminar el préstamo siempre pedimos confirmación: el préstamo se cierra
+    // condonando (o cobrando de más) el resto del saldo.
+    if (finishLoan) {
+      setFinishLoanConfirmOpen(true)
+      return
+    }
+    // En el resto de los casos solo abrimos el confirm cuando va a haber
+    // distribución automática (si la distribución está apagada el botón ya está
+    // deshabilitado y el backend además rechazaría).
+    if (amount > pending && distributeOverflow) {
       setMultiPaymentConfirmOpen(true)
       return
     }
-
-    // Proceed with payment registration
-    await executePayment(amountValue)
+    await executePayment(amount)
   }
 
   const executePayment = async (amountValue: number) => {
     if (!currentSubloan) return
-
-    // ✅ Set loading state to disable button
     setIsRegistering(true)
-
     try {
-
-      // Register payment using the real payments service endpoint
-      // This updates the SubLoan status and creates the payment record
       const paymentResult = await paymentsService.registerPayment({
         subLoanId: currentSubloan.id ?? '',
         amount: amountValue,
         currency: 'ARS',
-        paymentDate: paymentDate,
-        description: notes || undefined
+        paymentDate: new Date().toISOString().split('T')[0],
+        description: notes || undefined,
+        distributeOverflow,
+        ...(finishLoan ? { finishLoan: true } : {}),
+        ...(adjustEnabled && adjustedAmount ? { adjustedTotalAmount: parseFloat(unformatAmount(adjustedAmount)) || undefined } : {}),
       })
 
       if (paymentResult) {
-        // Also create ingreso in operativa system for financial tracking
         try {
           await createIngresoFromPago(
             currentSubloan.id ?? '',
             amountValue,
             clientName,
             currentSubloan.paymentNumber ?? 0,
-            new Date(paymentDate)
+            new Date(),
           )
-        } catch (operativaError) {
-          // Payment registered but Operativa entry failed
-          // Don't block - payment is already registered
+        } catch {
+          // Payment registered — operativa entry is supplemental
         }
 
-        // Determine if this was a PARTIAL or PAID payment
-        const remainingAfterPayment = Math.max(0, ((currentSubloan.totalAmount ?? 0) - (currentSubloan.paidAmount || 0)) - amountValue)
-        const newStatus = remainingAfterPayment === 0 ? 'PAID' : 'PARTIAL'
+        // Al terminar el préstamo, la cuota/préstamo queda saldado (condonando el resto).
+        const remaining = finishLoan
+          ? 0
+          : Math.max(0, ((currentSubloan.totalAmount ?? 0) - (currentSubloan.paidAmount || 0)) - amountValue)
+        const newStatus = remaining === 0 ? 'PAID' : 'PARTIAL'
 
-        // Prepare receipt data if we have the new extended response format
+        if (newStatus === 'PARTIAL' && nextDueDate) {
+          try {
+            await subLoansService.updateDueDate(currentSubloan.id ?? '', nextDueDate)
+          } catch {
+            // Date update is best-effort — payment is already registered
+          }
+        }
+
         let receiptDataToShow: PaymentReceiptData | null = null
-        
         if (paymentResult.loan && paymentResult.loanSummary && paymentResult.subLoans) {
           receiptDataToShow = {
             payment: {
               id: paymentResult.payment.id,
               amount: paymentResult.payment.amount,
               paymentDate: new Date(paymentResult.payment.paymentDate),
-              description: paymentResult.payment.description || undefined
+              description: paymentResult.payment.description || undefined,
             },
             subLoan: {
               id: paymentResult.subLoan.id,
@@ -221,7 +478,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
               totalAmount: paymentResult.subLoan.totalAmount,
               status: paymentResult.subLoan.status,
               paidAmount: paymentResult.subLoan.paidAmount,
-              pendingAmount: paymentResult.subLoan.remainingAmount
+              pendingAmount: paymentResult.subLoan.remainingAmount,
             },
             loan: {
               id: paymentResult.loan.id,
@@ -233,11 +490,11 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
                 id: paymentResult.loan.client.id,
                 fullName: paymentResult.loan.client.fullName,
                 dni: paymentResult.loan.client.dni,
-                cuit: paymentResult.loan.client.cuit
-              }
+                cuit: paymentResult.loan.client.cuit,
+              },
             },
             loanSummary: paymentResult.loanSummary,
-            subLoans: paymentResult.subLoans.map(sl => ({
+            subLoans: paymentResult.subLoans.map((sl) => ({
               id: sl.id,
               paymentNumber: sl.paymentNumber,
               amount: sl.amount,
@@ -247,91 +504,53 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
               paidDate: sl.paidDate ? new Date(sl.paidDate) : null,
               paidAmount: sl.paidAmount,
               pendingAmount: sl.pendingAmount,
-              daysOverdue: sl.daysOverdue
+              daysOverdue: sl.daysOverdue,
             })),
-            notes: notes || undefined
-          }
-        } else {
-          console.log('Missing data for receipt modal, using fallback')
-        }
-
-        // Generate receipt PDF if requested
-        if (generatePDF && receiptDataToShow) {
-          try {
-            generatePaymentPDF(receiptDataToShow)
-          } catch (error) {
-            console.error('Error generating PDF:', error)
-          }
-        } else if (generatePDF) {
-          // Fallback to legacy format
-          try {
-            generatePaymentPDF({
-              clientName,
-              paymentNumber: paymentResult.subLoan.paymentNumber || (currentSubloan.paymentNumber ?? 0),
-              amount: amountValue,
-              paymentDate: new Date(paymentDate),
-              loanTrack: 'N/A',
-              status: newStatus,
-              remainingAmount: remainingAfterPayment,
-              notes: notes || undefined
-            })
-          } catch (error) {
-            console.error('Error generating PDF:', error)
-          }
-        }
-
-        // Prepare success modal data and open it
-        // DON'T close payment modal yet - keep it open so state persists
-        if (receiptDataToShow) {
-          // Show success modal with full receipt data
-          setSuccessData({
-            clientName,
-            paymentNumber: paymentResult.subLoan.paymentNumber || (currentSubloan.paymentNumber ?? 0),
-            amount: amountValue,
-            paymentDate: new Date(paymentDate),
-            status: newStatus,
-            remainingAmount: remainingAfterPayment,
             notes: notes || undefined,
-            pdfGenerated: generatePDF
-          })
-          // Store receipt data separately to pass to success modal
-          setReceiptData(receiptDataToShow)
-          setSuccessModalOpen(true)
-        } else {
-          // Fallback to simple success modal
-          setSuccessData({
-            clientName,
-            paymentNumber: paymentResult.subLoan.paymentNumber || (currentSubloan.paymentNumber ?? 0),
-            amount: amountValue,
-            paymentDate: new Date(paymentDate),
-            status: newStatus,
-            remainingAmount: remainingAfterPayment,
-            notes: notes || undefined,
-            pdfGenerated: generatePDF
-          })
-          setSuccessModalOpen(true)
+          }
         }
-        
-        // DON'T close payment modal - let success modal close it when user closes it
 
-        // ✅ Trigger refetch callback after successful payment
-        if (onPaymentSuccess) {
-          onPaymentSuccess()
+        if (generatePDF) {
+          try {
+            generatePaymentPDF(
+              receiptDataToShow ?? {
+                clientName,
+                paymentNumber: paymentResult.subLoan.paymentNumber || (currentSubloan.paymentNumber ?? 0),
+                amount: amountValue,
+                paymentDate: new Date(),
+                loanTrack: 'N/A',
+                status: newStatus,
+                remainingAmount: remaining,
+                notes: notes || undefined,
+              },
+            )
+          } catch {
+            // PDF generation is best-effort
+          }
         }
+
+        setReceiptData(receiptDataToShow)
+        setSuccessData({
+          clientName,
+          paymentNumber: paymentResult.subLoan.paymentNumber || (currentSubloan.paymentNumber ?? 0),
+          amount: amountValue,
+          paymentDate: new Date(),
+          status: newStatus,
+          remainingAmount: remaining,
+          notes: notes || undefined,
+          pdfGenerated: generatePDF,
+        })
+        setSuccessModalOpen(true)
+
+        onPaymentSuccess?.()
       }
     } catch (error) {
-      // Payment registration error
-
-      // Extract error message for better UX
       const errObj = error as Record<string, unknown>
       const responseData = (errObj?.response as Record<string, unknown>)?.data as Record<string, unknown> | undefined
-      const errorMsg = responseData?.message ||
-                       errObj?.message ||
-                       'Error al registrar el pago. Por favor intenta nuevamente.'
-      setErrorMessage(String(errorMsg))
+      const msg = responseData?.message || errObj?.message || 'Error al registrar el pago. Por favor intenta nuevamente.'
+      setErrorMessage(String(msg))
       setErrorModalOpen(true)
     } finally {
-      // ✅ Always reset loading state
       setIsRegistering(false)
     }
   }
@@ -342,372 +561,336 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
     onClose()
   }
 
-
-  const handleErrorRetry = () => {
-    setErrorModalOpen(false)
-    setErrorMessage('')
+  // ── Form props ─────────────────────────────────────────────────────────────
+  const formProps = {
+    clientName,
+    mode,
+    currentSubloan,
+    pendingSubloans,
+    selectedSubloanId,
+    paymentAmount,
+    notes,
+    generatePDF,
+    adjustEnabled,
+    adjustedAmount,
+    effectiveTotalAmount,
+    paymentPreview,
+    isRegistering,
+    distributeOverflow,
+    finishLoan,
+    onSubloanChange: setSelectedSubloanId,
+    onAmountChange:  handleAmountChange,
+    onNotesChange:   setNotes,
+    onGeneratePDFChange: setGeneratePDF,
+    onAdjustEnabledChange: handleAdjustEnabledChange,
+    onAdjustedAmountChange: setAdjustedAmount,
+    onDistributeOverflowChange: setDistributeOverflow,
+    onFinishLoanChange: handleFinishLoanChange,
+    onRegister: handleRegisterPayment,
+    onCancel:   onClose,
+    onNextDueDateChange: setNextDueDate,
+    // Renewal mode
+    renewMode,
+    onRenewModeChange: setRenewMode,
+    loanLoading,
+    renewAmount,
+    renewInterestPct,
+    renewPenaltyPct,
+    renewFrequency,
+    renewPaymentDay,
+    renewTotalPayments,
+    renewFirstDueDate,
+    onRenewAmountChange: setRenewAmount,
+    onRenewInterestPctChange: setRenewInterestPct,
+    onRenewPenaltyPctChange: setRenewPenaltyPct,
+    onRenewFrequencyChange: setRenewFrequency,
+    onRenewPaymentDayChange: setRenewPaymentDay,
+    onRenewTotalPaymentsChange: setRenewTotalPayments,
+    onRenewFirstDueDateChange: setRenewFirstDueDate,
+    canRenew,
+    renewLoading,
+    onRenew: handleRenewLoan,
+    totalPayments: currentSubloan?.loanTotalPayments ?? (loanDetails?.id === currentSubloan?.loanId ? loanDetails?.totalPayments ?? undefined : undefined),
   }
 
-  // Use the shared formatter from lib/formatters
-  const formatCurrency = formatCurrencyDisplay
+  // Guard: no subloan in single mode → render nothing
+  if (!currentSubloan && mode === 'single') return null
 
-  const formatDate = (dateString?: string) => {
-    if (!dateString) return 'N/A'
-    return new Date(dateString).toLocaleDateString('es-AR')
-  }
-
-  const pendingSubloans = subloans.filter(s => s.status !== 'PAID')
-  const canRegister = currentSubloan && paymentAmount && parseFloat(paymentAmount) > 0
-
-  if (!currentSubloan && mode === 'single') {
-    return null
-  }
+  // ── Shared header ──────────────────────────────────────────────────────────
+  const header = (
+    <Box
+      sx={{
+        pb: 2,
+        pt: 3,
+        px: 3,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        borderBottom: '1px solid',
+        borderColor: 'divider',
+        flexShrink: 0,
+      }}
+    >
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+        <Payment sx={{ fontSize: 24, color: 'primary.main' }} />
+        <Box>
+          <Typography variant="h6" fontWeight={600}>
+            Registrar Pago
+          </Typography>
+          {mode === 'selector' && (
+            <Typography variant="caption" color="text.secondary">
+              Seleccioná la cuota a pagar
+            </Typography>
+          )}
+        </Box>
+      </Box>
+      <IconButton onClick={onClose} size="small">
+        <Close />
+      </IconButton>
+    </Box>
+  )
 
   return (
     <>
-    <Dialog
-      open={open && !successModalOpen}
-      onClose={onClose}
-      maxWidth="md"
-      fullWidth
-      scroll="paper"
-      PaperProps={{
-        sx: {
-          borderRadius: { xs: 0, sm: 3 },
-          maxHeight: { xs: '100vh', sm: '90vh' },
-          m: { xs: 0, sm: 2 },
-          mt: { xs: 0, sm: 3 },
-          width: { xs: '100%', sm: 'auto' }
-        }
-      }}
-    >
-      <DialogTitle
-        sx={{
-          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-          color: 'white',
-          p: { xs: 2, sm: 3 },
-          pt: { xs: 3, sm: 3.5 }
+      {/* ── Mobile: SwipeableDrawer ── */}
+      {isMobile ? (
+        <SwipeableDrawer
+          anchor="bottom"
+          open={open && !successModalOpen}
+          onClose={sheetClose}
+          onOpen={sheetOpen}
+          disableSwipeToOpen
+          sx={{ zIndex: 1400 }}
+          PaperProps={{
+            sx: {
+              borderRadius:  '20px 20px 0 0',
+              maxHeight:     '95dvh',
+              overflow:      'hidden',
+              display:       'flex',
+              flexDirection: 'column',
+            },
+          }}
+        >
+          {/* Handle */}
+          <Box sx={{ display: 'flex', justifyContent: 'center', pt: 1.5, pb: 0.5, flexShrink: 0 }}>
+            <Box sx={{ width: 36, height: 4, borderRadius: 2, bgcolor: iosColors.gray3 }} />
+          </Box>
+          {header}
+          <PaymentForm {...formProps} />
+        </SwipeableDrawer>
+      ) : (
+        /* ── Desktop: Dialog ── */
+        <Dialog
+          open={open && !successModalOpen}
+          onClose={onClose}
+          maxWidth="md"
+          fullWidth
+          scroll="paper"
+          sx={{ zIndex: 1400 }}
+          PaperProps={{
+            sx: {
+              borderRadius: { xs: 0, sm: 3 },
+              maxHeight: { xs: '100vh', sm: '90vh' },
+              m: { xs: 0, sm: 2 },
+              mt: { xs: 0, sm: 3 },
+              width: { xs: '100%', sm: 'auto' },
+              display: 'flex',
+              flexDirection: 'column',
+            },
+          }}
+        >
+          <DialogTitle sx={{ p: 0 }}>{header}</DialogTitle>
+          <PaymentForm {...formProps} />
+        </Dialog>
+      )}
+
+      {/* Multi-Payment Confirmation Modal */}
+      {/* ── Multi-payment confirmation (shared) ── */}
+      <Dialog
+        open={multiPaymentConfirmOpen}
+        onClose={() => setMultiPaymentConfirmOpen(false)}
+        maxWidth="sm"
+        fullWidth
+        sx={{ zIndex: 1500 }}
+        PaperProps={{
+          sx: {
+            borderRadius: { xs: '16px 16px 0 0', sm: 3 },
+            m: 0,
+            mt: 'auto',
+            mx: { sm: 2 },
+            mb: { sm: 2 },
+            width: '100%',
+          },
         }}
       >
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-          <Payment sx={{ fontSize: { xs: '1.5rem', sm: '2rem' } }} />
-          <Box>
-            <Typography 
-              variant="h6" 
-              sx={{ 
-                fontWeight: 600,
-                fontSize: { xs: '1.1rem', sm: '1.25rem' }
-              }}
-            >
-              Registrar Pago
-            </Typography>
-            {mode === 'selector' && (
-              <Typography 
-                variant="caption" 
-                sx={{ 
-                  opacity: 0.9,
-                  fontSize: { xs: '0.75rem', sm: '0.8125rem' }
-                }}
-              >
-                Selecciona la cuota a pagar
+        <DialogTitle sx={{ pt: 3, pb: 0, px: 3, fontWeight: 600 }}>
+          El monto supera el saldo pendiente
+        </DialogTitle>
+        <DialogContent sx={{ px: 3, pt: 2, pb: 1 }}>
+          {currentSubloan && (
+            <>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+                El excedente se aplicará a cuotas anteriores con saldo parcial, no a cuotas futuras.
               </Typography>
-            )}
-          </Box>
-        </Box>
-      </DialogTitle>
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <Typography variant="body2" color="text.secondary">
+                    Saldo pendiente cuota #{currentSubloan.paymentNumber}
+                  </Typography>
+                  <Typography variant="body2" fontWeight={600} color="text.primary">
+                    {`$${formatAmount(String((currentSubloan.totalAmount ?? 0) - (currentSubloan.paidAmount || 0)))}`}
+                  </Typography>
+                </Box>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <Typography variant="body2" color="text.secondary">Monto a registrar</Typography>
+                  <Typography variant="body2" fontWeight={600} color="text.primary">
+                    ${formatAmount(paymentAmount)}
+                  </Typography>
+                </Box>
+              </Box>
+            </>
+          )}
+        </DialogContent>
+        <DialogActions
+          sx={{
+            flexDirection: 'column',
+            gap: 1,
+            p: 3,
+            pt: 2,
+            paddingBottom: 'max(env(safe-area-inset-bottom), 24px)',
+          }}
+        >
+          <Button
+            onClick={async () => {
+              setMultiPaymentConfirmOpen(false)
+              await executePayment(parseFloat(unformatAmount(paymentAmount)))
+            }}
+            variant="contained"
+            color="primary"
+            fullWidth
+            sx={{ minHeight: 44, borderRadius: 2 }}
+          >
+            Confirmar pago
+          </Button>
+          <Button
+            onClick={() => setMultiPaymentConfirmOpen(false)}
+            variant="text"
+            color="inherit"
+            fullWidth
+            sx={{ minHeight: 44, borderRadius: 2, color: 'text.secondary' }}
+          >
+            Cancelar
+          </Button>
+        </DialogActions>
+      </Dialog>
 
-      <DialogContent sx={{ p: { xs: 2, sm: 3 } }}>
-        <Box sx={{ mb: 3 }}>
-          <Typography variant="h6" gutterBottom>
-            Cliente: {clientName}
-          </Typography>
-        </Box>
-
-        {/* Cuota Selector (only in selector mode) */}
-        {mode === 'selector' && (
-          <FormControl fullWidth sx={{ mb: 3 }}>
-            <InputLabel>Seleccionar Cuota</InputLabel>
-            <Select
-              value={selectedSubloanId}
-              onChange={(e) => setSelectedSubloanId(e.target.value)}
-              label="Seleccionar Cuota"
-            >
-              {pendingSubloans.map((s) => {
-                const pendingAmount = (s.totalAmount ?? 0) - (s.paidAmount || 0)
-                return (
-                  <MenuItem key={s.id ?? ''} value={s.id ?? ''}>
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', width: '100%' }}>
-                      <Typography>
-                        Cuota #{s.paymentNumber ?? '?'} - Vence: {formatDate(s.dueDate)}
-                      </Typography>
-                      <Typography color="primary" fontWeight="bold">
-                        {formatCurrency(pendingAmount)}
-                      </Typography>
-                    </Box>
-                  </MenuItem>
-                )
-              })}
-            </Select>
-          </FormControl>
-        )}
-
-        {/* Cuota Details */}
-        {currentSubloan && (
-          <>
-            <Box
-              sx={{
-                p: { xs: 2, sm: 2.5 },
-                background: 'linear-gradient(135deg, #667eea15 0%, #764ba215 100%)',
-                borderRadius: 2,
-                border: '2px solid',
-                borderColor: 'primary.main',
-                mb: 3
-              }}
-            >
-              <Typography 
-                variant="subtitle1" 
-                sx={{ 
-                  fontWeight: 600, 
-                  mb: 2,
-                  fontSize: { xs: '1rem', sm: '1.1rem' }
-                }}
-              >
-                Cuota #{currentSubloan.paymentNumber ?? '?'}
+      {/* ── Confirmación: Terminar préstamo ── */}
+      <Dialog
+        open={finishLoanConfirmOpen}
+        onClose={() => setFinishLoanConfirmOpen(false)}
+        maxWidth="sm"
+        fullWidth
+        sx={{ zIndex: 1500 }}
+        PaperProps={{
+          sx: {
+            borderRadius: { xs: '16px 16px 0 0', sm: 3 },
+            m: 0,
+            mt: 'auto',
+            mx: { sm: 2 },
+            mb: { sm: 2 },
+            width: '100%',
+          },
+        }}
+      >
+        <DialogTitle sx={{ pt: 3, pb: 0, px: 3, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 1 }}>
+          <TaskAlt color="warning" />
+          Terminar préstamo
+        </DialogTitle>
+        <DialogContent sx={{ px: 3, pt: 2, pb: 1 }}>
+          {currentSubloan && (
+            <>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+                Vas a dar por terminado el préstamo con este pago. Las cuotas restantes se
+                marcarán como pagadas y {finishForgiven > 0
+                  ? 'la diferencia se condonará'
+                  : 'el préstamo quedará saldado'}. Esta acción no se puede deshacer.
               </Typography>
-              <Box sx={{ display: 'grid', gridTemplateColumns: { xs: 'repeat(2, 1fr)', sm: 'repeat(4, 1fr)' }, gap: { xs: 1.5, sm: 2 } }}>
-                <Box sx={{ textAlign: 'center', p: { xs: 1.5, sm: 2 }, bgcolor: 'white', borderRadius: 2 }}>
-                  <Typography 
-                    variant="caption" 
-                    color="text.secondary"
-                    sx={{ fontSize: { xs: '0.7rem', sm: '0.75rem' } }}
-                  >
-                    Monto Total
-                  </Typography>
-                  <Typography 
-                    variant="h6" 
-                    fontWeight="bold"
-                    sx={{ fontSize: { xs: '1rem', sm: '1.25rem' } }}
-                  >
-                    {formatCurrencyDisplay(currentSubloan.totalAmount ?? 0)}
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <Typography variant="body2" color="text.secondary">Saldo a finalizar</Typography>
+                  <Typography variant="body2" fontWeight={600} color="text.primary">
+                    {formatCurrencyDisplay(finishOutstanding)}
                   </Typography>
                 </Box>
-                <Box sx={{ textAlign: 'center', p: { xs: 1.5, sm: 2 }, bgcolor: 'white', borderRadius: 2 }}>
-                  <Typography 
-                    variant="caption" 
-                    color="text.secondary"
-                    sx={{ fontSize: { xs: '0.7rem', sm: '0.75rem' } }}
-                  >
-                    Monto Pagado
-                  </Typography>
-                  <Typography 
-                    variant="h6" 
-                    fontWeight="bold" 
-                    color="success.main"
-                    sx={{ fontSize: { xs: '1rem', sm: '1.25rem' } }}
-                  >
-                    {formatCurrencyDisplay(currentSubloan.paidAmount || 0)}
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <Typography variant="body2" color="text.secondary">Monto a registrar</Typography>
+                  <Typography variant="body2" fontWeight={600} color="text.primary">
+                    {formatCurrencyDisplay(finishAmount)}
                   </Typography>
                 </Box>
-                <Box sx={{ textAlign: 'center', p: { xs: 1.5, sm: 2 }, bgcolor: 'white', borderRadius: 2 }}>
-                  <Typography 
-                    variant="caption" 
-                    color="text.secondary"
-                    sx={{ fontSize: { xs: '0.7rem', sm: '0.75rem' } }}
-                  >
-                    Saldo Pendiente
-                  </Typography>
-                  <Typography 
-                    variant="h6" 
-                    fontWeight="bold" 
-                    color="error.main"
-                    sx={{ fontSize: { xs: '1rem', sm: '1.25rem' } }}
-                  >
-                    {formatCurrency((currentSubloan.totalAmount ?? 0) - (currentSubloan.paidAmount || 0))}
-                  </Typography>
-                </Box>
-                {currentSubloan.outstandingBalance !== undefined && (
-                  <Box sx={{ textAlign: 'center', p: { xs: 1.5, sm: 2 }, bgcolor: 'white', borderRadius: 2, border: '1px solid', borderColor: 'warning.main' }}>
-                    <Typography 
-                      variant="caption" 
-                      color="text.secondary"
-                      sx={{ fontSize: { xs: '0.7rem', sm: '0.75rem' } }}
-                    >
-                      Saldo a finalizar
+                {finishForgiven > 0 && (
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <Typography variant="body2" color="text.secondary">Se condonará</Typography>
+                    <Typography variant="body2" fontWeight={700} color="warning.main">
+                      {formatCurrencyDisplay(finishForgiven)}
                     </Typography>
-                    <Typography 
-                      variant="h6" 
-                      fontWeight="bold" 
-                      color="warning.main"
-                      sx={{ fontSize: { xs: '1rem', sm: '1.25rem' } }}
-                    >
-                      {formatCurrencyDisplay(currentSubloan.outstandingBalance ?? 0)}
+                  </Box>
+                )}
+                {finishOverpaid > 0 && (
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <Typography variant="body2" color="text.secondary">Cobro por encima del saldo</Typography>
+                    <Typography variant="body2" fontWeight={700} color="success.main">
+                      {formatCurrencyDisplay(finishOverpaid)}
                     </Typography>
                   </Box>
                 )}
               </Box>
-            </Box>
-
-            {/* Payment Form */}
-            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: { xs: 2, sm: 2 }, mb: 3 }}>
-              {/* <TextField
-                label="Fecha de Pago"
-                type="date"
-                value={paymentDate}
-                onChange={(e) => setPaymentDate(e.target.value)}
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <CalendarToday sx={{ fontSize: { xs: '1.1rem', sm: '1.25rem' } }} />
-                    </InputAdornment>
-                  ),
-                  sx: {
-                    borderRadius: 2,
-                  }
-                }}
-                InputLabelProps={{
-                  shrink: true,
-                }}
-                fullWidth
-              /> */}
-              <TextField
-                label="Monto a Registrar"
-                type="text"
-                value={formatAmount(paymentAmount)}
-                onChange={(e) => {
-                  setHasUserEdited(true) // Mark as edited
-                  const raw = unformatAmount(e.target.value)
-                  setPaymentAmount(raw)
-                }}
-                inputMode="numeric"
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <AttachMoney />
-                    </InputAdornment>
-                  ),
-                  sx: {
-                    borderRadius: 2,
-                  }
-                }}
-                helperText={`Pendiente: ${formatCurrency((currentSubloan.totalAmount ?? 0) - (currentSubloan.paidAmount || 0))} - Puedes pagar parcialmente`}
-                fullWidth
-              />
-            </Box>
-
-            {/* Payment Preview - Status Display */}
-            {paymentPreview && (
-              <Alert
-                icon={<Info />}
-                severity={paymentPreview.isPartial ? 'warning' : 'success'}
-                sx={{ mb: 3 }}
-              >
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, justifyContent: 'space-between' }}>
-                  <Typography variant="body2">
-                    {paymentPreview.isPartial
-                      ? `⚠️ Este será un pago PARCIAL`
-                      : `✅ Este completará el pago (PAGADO)`}
-                  </Typography>
-                  <Box sx={{ display: 'flex', gap: 1 }}>
-                    <Chip
-                      label={paymentPreview.status}
-                      color={paymentPreview.status === 'PAID' ? 'success' : 'warning'}
-                      size="small"
-                      variant="outlined"
-                    />
-                    {paymentPreview.remainingAfterPayment > 0 && (
-                      <Typography variant="caption" sx={{ color: 'warning.main', fontWeight: 600 }}>
-                        Restará: {formatCurrencyDisplay(paymentPreview.remainingAfterPayment)}
-                      </Typography>
-                    )}
-                  </Box>
-                </Box>
-              </Alert>
-            )}
-
-            <TextField
-              label="Notas (opcional)"
-              multiline
-              rows={3}
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              fullWidth
-              sx={{ mb: 2 }}
-              placeholder="Agregar observaciones sobre el pago..."
-            />
-
-            {/* PDF Generation Option */}
-            <FormControlLabel
-              control={
-                <Checkbox
-                  checked={generatePDF}
-                  onChange={(e) => setGeneratePDF(e.target.checked)}
-                  color="primary"
-                />
-              }
-              label={
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <PictureAsPdf fontSize="small" />
-                  <Typography variant="body2">
-                    Generar comprobante de pago (recomendado)
-                  </Typography>
-                </Box>
-              }
-            />
-
-          </>
-        )}
-      </DialogContent>
-
-      <Divider />
-      
-      <DialogActions sx={{ 
-        p: { xs: 2, sm: 3 }, 
-        gap: { xs: 1.5, sm: 2 },
-        flexDirection: { xs: 'column', sm: 'row' }
-      }}>
-        <Button 
-          onClick={onClose} 
-          variant="outlined"
-          fullWidth
+            </>
+          )}
+        </DialogContent>
+        <DialogActions
           sx={{
-            borderRadius: 2,
-            py: { xs: 1.25, sm: 1.5 },
-            order: { xs: 2, sm: 1 },
-            minWidth: { xs: '100%', sm: 'auto' }
+            flexDirection: 'column',
+            gap: 1,
+            p: 3,
+            pt: 2,
+            paddingBottom: 'max(env(safe-area-inset-bottom), 24px)',
           }}
         >
-          Cancelar
-        </Button>
-        <Button
-          onClick={handleRegisterPayment}
-          variant="contained"
-          disabled={!canRegister || isRegistering}
-          startIcon={isRegistering ? <CircularProgress size={20} color="inherit" /> : <Payment />}
-          fullWidth
-          sx={{
-            borderRadius: 2,
-            py: { xs: 1.25, sm: 1.5 },
-            order: { xs: 1, sm: 2 },
-            minWidth: { xs: '100%', sm: 'auto' },
-            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-            '&:hover': {
-              background: 'linear-gradient(135deg, #5a6fd8 0%, #6a4292 100%)',
-            }
-          }}
-        >
-          {isRegistering ? 'Registrando...' : 'Registrar Pago'}
-        </Button>
-      </DialogActions>
+          <Button
+            onClick={async () => {
+              setFinishLoanConfirmOpen(false)
+              await executePayment(finishAmount)
+            }}
+            variant="contained"
+            color="warning"
+            fullWidth
+            startIcon={<TaskAlt />}
+            sx={{ minHeight: 44, borderRadius: 2 }}
+          >
+            Terminar préstamo
+          </Button>
+          <Button
+            onClick={() => setFinishLoanConfirmOpen(false)}
+            variant="text"
+            color="inherit"
+            fullWidth
+            sx={{ minHeight: 44, borderRadius: 2, color: 'text.secondary' }}
+          >
+            Cancelar
+          </Button>
+        </DialogActions>
+      </Dialog>
 
-      {/* Error Modal */}
+      {/* ── Error modal ── */}
       <PaymentErrorModal
         open={errorModalOpen}
         onClose={() => setErrorModalOpen(false)}
         errorMessage={errorMessage}
-        onRetry={handleErrorRetry}
+        onRetry={() => { setErrorModalOpen(false); setErrorMessage('') }}
       />
 
-      {/* Success Modal - Rendered via Portal to appear above everything, even when PaymentModal closes */}
+      {/* ── Success modal (portal) ── */}
       {successData && typeof document !== 'undefined' && createPortal(
         <PaymentSuccessModal
           open={successModalOpen}
@@ -720,116 +903,10 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
           remainingAmount={successData.remainingAmount}
           notes={successData.notes}
           pdfGenerated={successData.pdfGenerated}
-          receiptData={receiptData} // Pass full receipt data if available
+          receiptData={receiptData}
         />,
-        document.body
+        document.body,
       )}
-
-      {/* Multi-Payment Confirmation Modal */}
-      <Dialog
-        open={multiPaymentConfirmOpen}
-        onClose={() => setMultiPaymentConfirmOpen(false)}
-        maxWidth="sm"
-        fullWidth
-        PaperProps={{
-          sx: {
-            borderRadius: 2,
-          }
-        }}
-      >
-        <DialogTitle sx={{ pb: 2 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-            <Warning color="warning" sx={{ fontSize: 28 }} />
-            <Typography variant="h6" fontWeight="bold">
-              Confirmar Pago de Múltiples Cuotas
-            </Typography>
-          </Box>
-        </DialogTitle>
-        <DialogContent>
-          {currentSubloan && (
-            <>
-              <Typography variant="body1" gutterBottom sx={{ mb: 2 }}>
-                El monto a pagar es mayor al saldo pendiente de la cuota actual.
-              </Typography>
-              
-              <Box sx={{ mb: 2, p: 2, bgcolor: 'grey.50', borderRadius: 1 }}>
-                <Typography variant="body2" color="text.secondary" gutterBottom>
-                  Detalles del pago:
-                </Typography>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                  <Typography variant="body2" fontWeight={500}>
-                    Saldo pendiente de la cuota #{currentSubloan.paymentNumber}:
-                  </Typography>
-                  <Typography variant="body2" fontWeight={600} color="error.main">
-                    {formatCurrency((currentSubloan.totalAmount ?? 0) - (currentSubloan.paidAmount || 0))}
-                  </Typography>
-                </Box>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <Typography variant="body2" fontWeight={500}>
-                    Monto a pagar:
-                  </Typography>
-                  <Typography variant="body2" fontWeight={600} color="primary.main">
-                    ${formatAmount(paymentAmount)}
-                  </Typography>
-                </Box>
-              </Box>
-
-              <Alert severity="info" sx={{ mb: 2 }}>
-                <Typography variant="body2" fontWeight={600} gutterBottom>
-                  ⚠️ Importante:
-                </Typography>
-                <Typography variant="body2">
-                  Este pago completará la cuota actual y se aplicará el excedente a las siguientes cuotas pendientes.
-                </Typography>
-              </Alert>
-
-              <Typography variant="body2" color="text.secondary">
-                ¿Deseas continuar con el registro del pago?
-              </Typography>
-            </>
-          )}
-        </DialogContent>
-        <DialogActions sx={{ p: 3, pt: 2, gap: 2 }}>
-          <Button
-            onClick={() => setMultiPaymentConfirmOpen(false)}
-            variant="outlined"
-            sx={{ minWidth: 120 }}
-          >
-            Cancelar
-          </Button>
-          <Button
-            onClick={async () => {
-              setMultiPaymentConfirmOpen(false)
-              const amountValue = parseFloat(paymentAmount)
-              await executePayment(amountValue)
-            }}
-            variant="contained"
-            color="primary"
-            sx={{ minWidth: 120 }}
-          >
-            Aceptar
-          </Button>
-        </DialogActions>
-      </Dialog>
-    </Dialog>
-    
-    {/* Success Modal - Rendered via Portal to appear above everything */}
-    {successData && typeof document !== 'undefined' && createPortal(
-      <PaymentSuccessModal
-        open={successModalOpen}
-        onClose={handleSuccessClose}
-        clientName={successData.clientName}
-        paymentNumber={successData.paymentNumber}
-        amount={successData.amount}
-        paymentDate={successData.paymentDate}
-        status={successData.status}
-        remainingAmount={successData.remainingAmount}
-        notes={successData.notes}
-        pdfGenerated={successData.pdfGenerated}
-        receiptData={receiptData} // Pass full receipt data if available
-      />,
-      document.body
-    )}
     </>
   )
 }

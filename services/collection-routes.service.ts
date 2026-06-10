@@ -28,10 +28,12 @@ export interface CollectionRouteItem {
     dueDate: string;
     outstandingBalance?: number; // Optional - may not always be present
     loan: {
+      id: string;
       loanTrack: string;
       amount: number;
       currency: string;
       notes?: string;
+      totalPayments?: number;
     };
   };
   expenseDetails?: Array<{
@@ -245,6 +247,25 @@ class CollectionRoutesService {
    */
   async getTodayExpenses(): Promise<TodayExpensesResponse> {
     const response = await api.get('/collection-routes/today/expenses');
+    return response.data.data || response.data;
+  }
+  /**
+   * Reschedule a route item: change subloan due date and remove from today's route.
+   * Optionally pass a new amount to apply a recargo/descuento — propagates to the loan total.
+   */
+  async rescheduleRouteItem(itemId: string, dueDate: string, amount?: number): Promise<{
+    message: string;
+    subLoanId: string;
+    newDueDate: string;
+    removedItemId: string | null;
+    newAmount: number | null;
+    amountDelta: number;
+  }> {
+    const body: { dueDate: string; amount?: number } = { dueDate };
+    if (typeof amount === 'number' && Number.isFinite(amount)) {
+      body.amount = amount;
+    }
+    const response = await api.post(`/collection-routes/items/${itemId}/reschedule`, body);
     return response.data.data || response.data;
   }
 }

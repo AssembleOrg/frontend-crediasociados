@@ -6,11 +6,8 @@ import {
   DialogContent,
   DialogActions,
   Button,
-  Box,
   Typography,
-  Alert
 } from '@mui/material'
-import { Error as ErrorIcon } from '@mui/icons-material'
 
 interface PaymentErrorModalProps {
   open: boolean
@@ -23,46 +20,34 @@ export const PaymentErrorModal: React.FC<PaymentErrorModalProps> = ({
   open,
   onClose,
   errorMessage = 'Error al registrar el pago. Por favor intenta nuevamente.',
-  onRetry
+  onRetry,
 }) => {
-  const handleRetry = () => {
-    onRetry?.()
-  }
-
-  // Extract specific error message if it's a 403 access error
   const getDetailedMessage = () => {
     if (errorMessage?.includes('403') || errorMessage?.includes('acceso')) {
       return {
         title: 'Acceso denegado',
-        message: 'No tienes acceso a este préstamo o cuota. Verifica que el préstamo pertenezca a tu cuenta y que tenga el estado correcto para registrar el pago.',
-        severity: 'error' as const
+        message: 'No tenés acceso a este préstamo o cuota. Verificá que pertenezca a tu cuenta y que esté en estado correcto.',
       }
     }
-
     if (errorMessage?.includes('404') || errorMessage?.includes('no encontrad')) {
       return {
         title: 'Cuota no encontrada',
-        message: 'La cuota que intentas pagar no existe. Por favor, recarga la página e intenta nuevamente.',
-        severity: 'error' as const
+        message: 'La cuota que intentás pagar no existe. Recargá la página e intentá nuevamente.',
       }
     }
-
     if (errorMessage?.includes('400') || errorMessage?.includes('inválid')) {
       return {
         title: 'Datos inválidos',
-        message: 'Los datos ingresados no son válidos. Verifica el monto, la fecha y que la cuota no esté completamente pagada.',
-        severity: 'warning' as const
+        message: 'Verificá el monto y que la cuota no esté completamente pagada.',
       }
     }
-
     return {
-      title: 'Error al registrar el pago',
+      title: 'No se pudo registrar el pago',
       message: errorMessage,
-      severity: 'error' as const
     }
   }
 
-  const { title, message, severity } = getDetailedMessage()
+  const { title, message } = getDetailedMessage()
 
   return (
     <Dialog
@@ -70,97 +55,57 @@ export const PaymentErrorModal: React.FC<PaymentErrorModalProps> = ({
       onClose={onClose}
       maxWidth="sm"
       fullWidth
+      sx={{ zIndex: 1500 }}
       PaperProps={{
         sx: {
-          borderRadius: 2,
-          boxShadow: 3
-        }
+          borderRadius: { xs: '16px 16px 0 0', sm: 3 },
+          m: 0,
+          mt: 'auto',
+          mx: { sm: 2 },
+          mb: { sm: 2 },
+          width: '100%',
+        },
       }}
     >
-      <DialogTitle
-        sx={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 1.5,
-          pb: 1,
-          pt: 2.5,
-          px: 3,
-          borderBottom: 1,
-          borderColor: 'divider'
-        }}
-      >
-        <ErrorIcon
-          sx={{
-            color: severity === 'error' ? 'error.main' : 'warning.main',
-            fontSize: 28
-          }}
-        />
-        <Typography variant="h6" sx={{ fontWeight: 600 }}>
-          {title}
-        </Typography>
+      <DialogTitle sx={{ pt: 3, pb: 0, px: 3, fontWeight: 600 }}>
+        {title}
       </DialogTitle>
 
-      <DialogContent sx={{ pt: 3 }}>
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-          <Alert
-            severity={severity}
-            variant="outlined"
-            sx={{ borderRadius: 1 }}
-          >
-            <Typography variant="body2" sx={{ lineHeight: 1.6 }}>
-              {message}
-            </Typography>
-          </Alert>
-
-          {errorMessage && errorMessage !== message && (
-            <Box
-              sx={{
-                p: 2,
-                bgcolor: 'grey.50',
-                border: 1,
-                borderColor: 'grey.200',
-                borderRadius: 1
-              }}
-            >
-              <Typography variant="caption" color="text.secondary">
-                Detalles técnicos:
-              </Typography>
-              <Typography
-                variant="caption"
-                sx={{
-                  display: 'block',
-                  mt: 0.5,
-                  fontFamily: 'monospace',
-                  wordBreak: 'break-word',
-                  color: 'text.secondary'
-                }}
-              >
-                {errorMessage}
-              </Typography>
-            </Box>
-          )}
-        </Box>
+      <DialogContent sx={{ px: 3, pt: 2, pb: 1 }}>
+        <Typography variant="body2" color="text.secondary" sx={{ lineHeight: 1.6 }}>
+          {message}
+        </Typography>
       </DialogContent>
 
-      <DialogActions sx={{ p: 2.5, gap: 1.5 }}>
-        <Button
-          onClick={onClose}
-          variant="outlined"
-          color="inherit"
-          sx={{ minWidth: 100 }}
-        >
-          Cerrar
-        </Button>
+      <DialogActions
+        sx={{
+          flexDirection: 'column',
+          gap: 1,
+          p: 3,
+          pt: 2,
+          paddingBottom: 'max(env(safe-area-inset-bottom), 24px)',
+        }}
+      >
         {onRetry && (
           <Button
-            onClick={handleRetry}
+            onClick={onRetry}
             variant="contained"
             color="primary"
-            sx={{ minWidth: 100 }}
+            fullWidth
+            sx={{ minHeight: 44, borderRadius: 2 }}
           >
             Reintentar
           </Button>
         )}
+        <Button
+          onClick={onClose}
+          variant="text"
+          color="inherit"
+          fullWidth
+          sx={{ minHeight: 44, borderRadius: 2, color: 'text.secondary' }}
+        >
+          Cerrar
+        </Button>
       </DialogActions>
     </Dialog>
   )

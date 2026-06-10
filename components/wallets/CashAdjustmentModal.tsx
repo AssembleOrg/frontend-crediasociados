@@ -115,12 +115,12 @@ export function CashAdjustmentModal({
         display: 'flex',
         alignItems: 'center',
         gap: 1.5,
-        background: `linear-gradient(135deg, #4caf50 0%, #388e3c 100%)`,
-        color: 'white',
+        borderBottom: '1px solid',
+        borderColor: 'divider',
         p: 2.5,
         pt: 3
       }}>
-        <TrendingUp sx={{ fontSize: 24 }} />
+        <TrendingUp sx={{ fontSize: 24, color: 'success.main' }} />
         <Typography variant="h6" component="div" sx={{ fontWeight: 600 }}>
           Ajuste de Caja
         </Typography>

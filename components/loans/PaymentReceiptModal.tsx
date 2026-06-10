@@ -108,15 +108,16 @@ export const PaymentReceiptModal: React.FC<PaymentReceiptModalProps> = ({
       onClose={onClose}
       maxWidth="lg"
       fullWidth
-      fullScreen={isMobile}
       sx={{
         zIndex: 1400 // Higher than default Modal (1300) to appear above other modals
       }}
       PaperProps={{
         sx: {
-          borderRadius: isMobile ? 0 : 2,
-          maxHeight: isMobile ? '100vh' : '90vh',
-          m: { xs: 0, sm: 2 },
+          borderRadius: { xs: 2, sm: 3 },
+          maxHeight: { xs: 'calc(100dvh - 96px)', sm: '90vh' },
+          m: { xs: 1, sm: 2 },
+          mt: { xs: 'auto', sm: 2 },
+          width: { xs: '100%', sm: 'auto' },
           zIndex: 1400
         }
       }}
@@ -170,7 +171,7 @@ export const PaymentReceiptModal: React.FC<PaymentReceiptModalProps> = ({
             }}
           >
             <Grid container spacing={2}>
-              <Grid item xs={12} md={6}>
+              <Grid xs={12} md={6}>
                 <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, display: 'block', mb: 0.5 }}>
                   CLIENTE
                 </Typography>
@@ -185,7 +186,7 @@ export const PaymentReceiptModal: React.FC<PaymentReceiptModalProps> = ({
                   </Typography>
                 )}
               </Grid>
-              <Grid item xs={12} md={6}>
+              <Grid xs={12} md={6}>
                 <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, display: 'block', mb: 0.5 }}>
                   PRÉSTAMO
                 </Typography>
@@ -211,7 +212,7 @@ export const PaymentReceiptModal: React.FC<PaymentReceiptModalProps> = ({
             }}
           >
             <Grid container spacing={3}>
-              <Grid item xs={12} sm={6}>
+              <Grid xs={12} sm={6}>
                 <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, display: 'block', mb: 1 }}>
                   MONTO ABONADO
                 </Typography>
@@ -223,7 +224,7 @@ export const PaymentReceiptModal: React.FC<PaymentReceiptModalProps> = ({
                   {formatCurrencyDisplay(data.payment.amount)}
                 </Typography>
               </Grid>
-              <Grid item xs={12} sm={6}>
+              <Grid xs={12} sm={6}>
                 <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, display: 'block', mb: 1 }}>
                   FECHA DE PAGO
                 </Typography>
@@ -238,7 +239,7 @@ export const PaymentReceiptModal: React.FC<PaymentReceiptModalProps> = ({
                   })}
                 </Typography>
               </Grid>
-              <Grid item xs={12} sm={6}>
+              <Grid xs={12} sm={6}>
                 <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, display: 'block', mb: 1 }}>
                   ESTADO CUOTA
                 </Typography>
@@ -250,7 +251,7 @@ export const PaymentReceiptModal: React.FC<PaymentReceiptModalProps> = ({
                 />
               </Grid>
               {data.subLoan.pendingAmount > 0 && (
-                <Grid item xs={12} sm={6}>
+                <Grid xs={12} sm={6}>
                   <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, display: 'block', mb: 1 }}>
                     SALDO PENDIENTE DE ESTA CUOTA
                   </Typography>
@@ -305,7 +306,7 @@ export const PaymentReceiptModal: React.FC<PaymentReceiptModalProps> = ({
               RESUMEN DEL PRÉSTAMO
             </Typography>
             <Grid container spacing={2}>
-              <Grid item xs={6} sm={3}>
+              <Grid xs={6} sm={3}>
                 <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, display: 'block' }}>
                   MONTO PRESTADO
                 </Typography>
@@ -313,7 +314,7 @@ export const PaymentReceiptModal: React.FC<PaymentReceiptModalProps> = ({
                   {formatCurrencyDisplay(data.loanSummary.montoPrestado)}
                 </Typography>
               </Grid>
-              <Grid item xs={6} sm={3}>
+              <Grid xs={6} sm={3}>
                 <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, display: 'block' }}>
                   TOTAL A DEVOLVER
                 </Typography>
@@ -321,7 +322,7 @@ export const PaymentReceiptModal: React.FC<PaymentReceiptModalProps> = ({
                   {formatCurrencyDisplay(data.loanSummary.totalADevolver)}
                 </Typography>
               </Grid>
-              <Grid item xs={6} sm={3}>
+              <Grid xs={6} sm={3}>
                 <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, display: 'block' }}>
                   TOTAL PAGADO
                 </Typography>
@@ -329,7 +330,7 @@ export const PaymentReceiptModal: React.FC<PaymentReceiptModalProps> = ({
                   {formatCurrencyDisplay(data.loanSummary.saldoPagadoTotal)}
                 </Typography>
               </Grid>
-              <Grid item xs={6} sm={3}>
+              <Grid xs={6} sm={3}>
                 <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, display: 'block' }}>
                   SALDO PENDIENTE
                 </Typography>
@@ -464,7 +465,7 @@ export const PaymentReceiptModal: React.FC<PaymentReceiptModalProps> = ({
               RESUMEN DE CUOTAS
             </Typography>
             <Grid container spacing={2}>
-              <Grid item xs={6} sm={3}>
+              <Grid xs={6} sm={3}>
                 <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, display: 'block' }}>
                   TOTAL CUOTAS
                 </Typography>
@@ -472,7 +473,7 @@ export const PaymentReceiptModal: React.FC<PaymentReceiptModalProps> = ({
                   {data.loanSummary.totalCuotas}
                 </Typography>
               </Grid>
-              <Grid item xs={6} sm={3}>
+              <Grid xs={6} sm={3}>
                 <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, display: 'block' }}>
                   PAGADAS
                 </Typography>
@@ -480,7 +481,7 @@ export const PaymentReceiptModal: React.FC<PaymentReceiptModalProps> = ({
                   {data.loanSummary.cuotasPagadasTotales}
                 </Typography>
               </Grid>
-              <Grid item xs={6} sm={3}>
+              <Grid xs={6} sm={3}>
                 <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, display: 'block' }}>
                   PARCIALES
                 </Typography>
@@ -493,7 +494,7 @@ export const PaymentReceiptModal: React.FC<PaymentReceiptModalProps> = ({
                   {data.loanSummary.cuotasPagadasParciales}
                 </Typography>
               </Grid>
-              <Grid item xs={6} sm={3}>
+              <Grid xs={6} sm={3}>
                 <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, display: 'block' }}>
                   PENDIENTES
                 </Typography>

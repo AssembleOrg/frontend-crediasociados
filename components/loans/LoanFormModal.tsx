@@ -24,6 +24,7 @@ import { useBuenosAiresDate } from '@/hooks/useBuenosAiresDate'
 import { formatAmount, unformatAmount } from '@/lib/formatters'
 import { ValidationUtils } from '@/lib/validation-utils'
 import type { components } from '@/types/api-generated'
+import PhoneChip from '@/components/ui/PhoneChip'
 
 type CreateLoanDto = components['schemas']['CreateLoanDto']
 // TODO: Define UpdateLoanDto type when backend supports loan updates
@@ -385,9 +386,12 @@ export function LoanFormModal({
                   </Typography>
                 )}
                 {selectedClient.phone && (
-                  <Typography variant="body2">
-                    Teléfono: {selectedClient.phone}
-                  </Typography>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                    <Typography variant="body2" component="span">
+                      Teléfono:
+                    </Typography>
+                    <PhoneChip phone={selectedClient.phone} size="medium" showIcon={false} />
+                  </Box>
                 )}
               </Box>
             )}
