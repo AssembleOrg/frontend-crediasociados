@@ -296,7 +296,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
     if (!renewMode || !currentSubloan?.loanId) return false
     const amt = parseFloat(unformatAmount(renewAmount)) || 0
     const interest = parseFloat(renewInterestPct.replace(',', '.'))
-    const penalty = parseFloat(renewPenaltyPct.replace(',', '.'))
+    const penalty = renewPenaltyPct.trim() === '' ? 0 : parseFloat(renewPenaltyPct.replace(',', '.'))
     const cuotas = parseInt(renewTotalPayments, 10)
     const needsPaymentDay = renewFrequency !== 'DAILY' && renewFrequency !== 'MONTHLY'
     return (
@@ -331,7 +331,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
         baseInterestRate:
           parseFloat(renewInterestPct.replace(',', '.')) / 100,
         penaltyInterestRate:
-          parseFloat(renewPenaltyPct.replace(',', '.')) / 100,
+          (renewPenaltyPct.trim() === '' ? 0 : parseFloat(renewPenaltyPct.replace(',', '.'))) / 100,
         paymentFrequency: renewFrequency,
         paymentDay:
           renewFrequency === 'DAILY' || renewFrequency === 'MONTHLY'
