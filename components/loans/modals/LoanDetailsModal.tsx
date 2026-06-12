@@ -334,7 +334,7 @@ export default function LoanDetailsModal({
                 compact={false}
                 onPaymentClick={handlePaymentClick}
                 onResetClick={handleResetPayments}
-                resettingSubloanId={resettingSubloanId}
+resettingSubloanId={resettingSubloanId}
                 onDateUpdated={onPaymentSuccess}
               />
             )}
