@@ -33,14 +33,12 @@ export interface LoanSummary {
 }
 
 export interface PaymentReceiptData {
-  // Payment info
   payment: {
     id: string
     amount: number
     paymentDate: Date
     description?: string
   }
-  // SubLoan where payment was applied
   subLoan: {
     id: string
     paymentNumber: number
@@ -49,7 +47,6 @@ export interface PaymentReceiptData {
     paidAmount: number
     pendingAmount: number
   }
-  // Loan info
   loan: {
     id: string
     loanTrack: string
@@ -63,12 +60,14 @@ export interface PaymentReceiptData {
       cuit: string | null
     }
   }
-  // Summary
   loanSummary: LoanSummary
-  // All subloans
   subLoans: SubLoanInfo[]
-  // Notes
   notes?: string
+  distributedPayments?: {
+    subLoanPaymentNumber: number
+    distributedAmount: number
+    newStatus: 'PARTIAL' | 'PAID'
+  }[]
 }
 
 // Legacy interface for backwards compatibility
@@ -84,622 +83,565 @@ export interface LegacyPaymentReceiptData {
 }
 
 // ============ COLORS ============
-const COLORS = {
-  primary: { r: 26, g: 64, b: 137 },      // #1A4089 - Crediasociados blue
-  primaryLight: { r: 41, g: 98, b: 186 }, // Lighter blue
-  success: { r: 34, g: 139, b: 34 },      // Forest green
-  warning: { r: 255, g: 152, b: 0 },      // Orange
-  danger: { r: 211, g: 47, b: 47 },       // Red
-  text: { r: 33, g: 37, b: 41 },          // Dark gray
-  textMuted: { r: 108, g: 117, b: 125 },  // Muted gray
-  border: { r: 222, g: 226, b: 230 },     // Light border
-  background: { r: 248, g: 249, b: 250 }, // Light background
-  white: { r: 255, g: 255, b: 255 },
+const C = {
+  primary:   [26,  64,  137] as const,
+  success:   [34,  163,  90] as const,
+  warning:   [224, 120,   0] as const,
+  danger:    [200,  40,  40] as const,
+  text:      [22,   22,  30] as const,
+  muted:     [108, 118, 130] as const,
+  border:    [218, 222, 228] as const,
+  bg:        [245, 246, 248] as const,
+  bgDark:    [235, 237, 242] as const,
+  white:     [255, 255, 255] as const,
 }
+
+type RGB = readonly [number, number, number]
 
 // ============ HELPERS ============
-const formatCurrency = (amount: number): string => {
-  return `$${amount.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+const fc = (amount: number): string => {
+  const fixed = Math.abs(amount).toFixed(2)
+  const [intPart, decPart] = fixed.split('.')
+  const withDots = intPart.replace(/\B(?=(\d{3})+(?!\d))/g, '.')
+  return `$${withDots},${decPart}`
 }
 
-const formatDate = (date: Date): string => {
-  return new Date(date).toLocaleDateString('es-AR', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric'
+const fd = (date: Date) =>
+  new Date(date).toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' })
+
+const fdLong = (date: Date) =>
+  new Date(date).toLocaleDateString('es-AR', { day: 'numeric', month: 'long', year: 'numeric' })
+
+const fdt = (date: Date) =>
+  new Date(date).toLocaleString('es-AR', {
+    day: '2-digit', month: '2-digit', year: 'numeric',
+    hour: '2-digit', minute: '2-digit', hour12: false,
   })
-}
 
-const formatDateLong = (date: Date): string => {
-  return new Date(date).toLocaleDateString('es-AR', {
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric'
-  })
-}
+const statusLabel = (s: string) =>
+  ({ PAID: 'Pagada', PARTIAL: 'Parcial', PENDING: 'Pendiente', OVERDUE: 'Vencida' })[s] ?? s
 
-const formatDateTime24h = (date: Date): string => {
-  return new Date(date).toLocaleString('es-AR', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: false // Formato 24 horas
-  })
-}
+const statusColor = (s: string): RGB =>
+  s === 'PAID' ? C.success : s === 'PARTIAL' ? C.warning : s === 'OVERDUE' ? C.danger : C.muted
 
-const getStatusLabel = (status: string): string => {
-  switch (status) {
-    case 'PAID': return 'Pagada'
-    case 'PARTIAL': return 'Parcial'
-    case 'PENDING': return 'Pendiente'
-    case 'OVERDUE': return 'Vencida'
-    default: return status
-  }
-}
+// Helpers to set colors without destructuring each time
+const setFill  = (doc: jsPDF, c: RGB) => doc.setFillColor(c[0], c[1], c[2])
+const setStroke= (doc: jsPDF, c: RGB) => doc.setDrawColor(c[0], c[1], c[2])
+const setTxt   = (doc: jsPDF, c: RGB) => doc.setTextColor(c[0], c[1], c[2])
 
 // ============ MAIN PDF GENERATOR ============
 export const generatePaymentPDF = (data: PaymentReceiptData | LegacyPaymentReceiptData) => {
-  // Check if it's legacy format
-  if ('clientName' in data) {
-    return generateLegacyPDF(data)
-  }
-  
+  if ('clientName' in data) return generateLegacyPDF(data)
   return generateNewPDF(data)
 }
 
 // ============ NEW PDF FORMAT ============
 const generateNewPDF = (data: PaymentReceiptData) => {
-  const doc = new jsPDF({
-    orientation: 'portrait',
-    unit: 'mm',
-    format: 'a4'
-  })
+  const doc  = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' })
+  const W    = doc.internal.pageSize.getWidth()   // 210
+  const H    = doc.internal.pageSize.getHeight()  // 297
+  const M    = 16          // margin
+  const CW   = W - 2 * M  // content width
+  let y      = 0
 
-  const pageWidth = doc.internal.pageSize.getWidth()
-  const pageHeight = doc.internal.pageSize.getHeight()
-  const margin = 15
-  const contentWidth = pageWidth - 2 * margin
-  let y = margin
+  const { payment, subLoan, loan, loanSummary } = data
+  const cuota    = subLoan.paymentNumber
+  const total    = loanSummary.totalCuotas
+  const pagadas  = loanSummary.cuotasPagadasTotales
+  const restan   = loanSummary.cuotasNoPagadas
+  const sColor   = statusColor(subLoan.status)
+  const hasPend  = loanSummary.totalPendiente > 0
+  const hasOver  = data.subLoans.some(s => s.status === 'OVERDUE')
+  const recNum   = `REC-${Date.now().toString().slice(-8)}`
 
-  // Check if client has pending debt
-  const hasPendingDebt = data.loanSummary.totalPendiente > 0
-  const hasOverduePayments = data.subLoans.some(s => s.status === 'OVERDUE')
+  // ─── HEADER BAR ────────────────────────────────────────────────────────────
+  setFill(doc, C.primary)
+  doc.rect(0, 0, W, 18, 'F')
 
-  // ============ HEADER ============
-  // Top accent line
-  doc.setFillColor(COLORS.primary.r, COLORS.primary.g, COLORS.primary.b)
-  doc.rect(0, 0, pageWidth, 4, 'F')
+  // Thin accent line below header
+  setFill(doc, [16, 45, 100])
+  doc.rect(0, 18, W, 1, 'F')
 
-  // Company name
-  doc.setFontSize(20)
+  doc.setFontSize(14)
   doc.setFont('helvetica', 'bold')
-  doc.setTextColor(COLORS.primary.r, COLORS.primary.g, COLORS.primary.b)
-  doc.text('CREDIASOCIADOS', margin, y + 12)
+  setTxt(doc, C.white)
+  doc.text('CREDIASOCIADOS', M, 12)
 
-  // Receipt number and date on right
   doc.setFontSize(8)
   doc.setFont('helvetica', 'normal')
-  doc.setTextColor(COLORS.textMuted.r, COLORS.textMuted.g, COLORS.textMuted.b)
-  const receiptNumber = `REC-${Date.now().toString().slice(-8)}`
-  doc.text(`Comprobante: ${receiptNumber}`, pageWidth - margin, y + 8, { align: 'right' })
-  doc.text(`Emisión: ${formatDateLong(new Date())}`, pageWidth - margin, y + 12, { align: 'right' })
+  setTxt(doc, [180, 200, 235])
+  doc.text('COMPROBANTE DE PAGO', W - M, 12, { align: 'right' })
 
-  y += 20
+  y = 28
 
-  // Separator
-  doc.setDrawColor(COLORS.border.r, COLORS.border.g, COLORS.border.b)
-  doc.setLineWidth(0.3)
-  doc.line(margin, y, pageWidth - margin, y)
-
-  y += 8
-
-  // ============ TITLE ============
-  doc.setFontSize(16)
+  // ─── CLIENTE + PRÉSTAMO (dos columnas) ─────────────────────────────────────
+  // Left: cliente
+  doc.setFontSize(7)
   doc.setFont('helvetica', 'bold')
-  doc.setTextColor(COLORS.text.r, COLORS.text.g, COLORS.text.b)
-  doc.text('COMPROBANTE DE PAGO', pageWidth / 2, y, { align: 'center' })
+  setTxt(doc, C.muted)
+  doc.text('CLIENTE', M, y)
 
+  doc.setFontSize(12)
+  doc.setFont('helvetica', 'bold')
+  setTxt(doc, C.text)
+  doc.text(loan.client.fullName, M, y + 7)
+
+  const clientId = loan.client.dni
+    ? `DNI ${loan.client.dni}`
+    : loan.client.cuit ? `CUIT ${loan.client.cuit}` : ''
+  if (clientId) {
+    doc.setFontSize(8)
+    doc.setFont('helvetica', 'normal')
+    setTxt(doc, C.muted)
+    doc.text(clientId, M, y + 13)
+  }
+
+  // Right: préstamo
+  const RX = W / 2 + 8
+  doc.setFontSize(7)
+  doc.setFont('helvetica', 'bold')
+  setTxt(doc, C.muted)
+  doc.text('PRÉSTAMO', RX, y)
+
+  doc.setFontSize(12)
+  doc.setFont('helvetica', 'bold')
+  setTxt(doc, C.primary)
+  doc.text(loan.loanTrack, RX, y + 7)
+
+  doc.setFontSize(8)
+  doc.setFont('helvetica', 'normal')
+  setTxt(doc, C.muted)
+  doc.text(fdLong(payment.paymentDate), RX, y + 13)
+
+  y += 22
+
+  // ─── DIVIDER ───────────────────────────────────────────────────────────────
+  setStroke(doc, C.border)
+  doc.setLineWidth(0.25)
+  doc.line(M, y, W - M, y)
   y += 10
 
-  // ============ CLIENT & LOAN INFO ============
-  // Background box
-  doc.setFillColor(COLORS.background.r, COLORS.background.g, COLORS.background.b)
-  doc.roundedRect(margin, y, contentWidth, 28, 2, 2, 'F')
+  // ─── SECCIÓN CUOTA (caja destacada) ────────────────────────────────────────
+  const CBOX_H = 34
+  setFill(doc, C.bg)
+  // Borde izquierdo azul como acento
+  setFill(doc, C.primary)
+  doc.rect(M, y, 3, CBOX_H, 'F')
+  setFill(doc, C.bg)
+  doc.rect(M + 3, y, CW - 3, CBOX_H, 'F')
 
-  // Left column - Client
-  doc.setFontSize(8)
-  doc.setFont('helvetica', 'normal')
-  doc.setTextColor(COLORS.textMuted.r, COLORS.textMuted.g, COLORS.textMuted.b)
-  doc.text('CLIENTE', margin + 4, y + 6)
-  
-  doc.setFontSize(11)
+  // Label "CUOTA ACTUAL"
+  doc.setFontSize(7)
   doc.setFont('helvetica', 'bold')
-  doc.setTextColor(COLORS.text.r, COLORS.text.g, COLORS.text.b)
-  doc.text(data.loan.client.fullName, margin + 4, y + 12)
+  setTxt(doc, C.muted)
+  doc.text('CUOTA ACTUAL', M + 9, y + 7)
 
-  doc.setFontSize(8)
+  // Número grande (32pt) + "/ total" (13pt) en la MISMA baseline
+  const baseY = y + 25
+  doc.setFontSize(32)
+  doc.setFont('helvetica', 'bold')
+  setTxt(doc, C.primary)
+  doc.text(`${cuota}`, M + 9, baseY)
+
+  const numW = doc.getTextWidth(`${cuota}`)
+  doc.setFontSize(13)
   doc.setFont('helvetica', 'normal')
-  doc.setTextColor(COLORS.textMuted.r, COLORS.textMuted.g, COLORS.textMuted.b)
-  const clientId = data.loan.client.dni 
-    ? `DNI: ${data.loan.client.dni}` 
-    : data.loan.client.cuit 
-      ? `CUIT: ${data.loan.client.cuit}` 
-      : ''
-  if (clientId) {
-    doc.text(clientId, margin + 4, y + 17)
+  setTxt(doc, C.muted)
+  doc.text(`/ ${total}`, M + 9 + numW + 2, baseY)
+
+  // Barra de progreso (fina, debajo del número)
+  const barX = M + 9
+  const barY = y + CBOX_H - 5
+  const barW = CW / 2 - 16
+  const pct  = total > 0 ? Math.min(pagadas / total, 1) : 0
+
+  setFill(doc, C.border)
+  doc.roundedRect(barX, barY, barW, 2.5, 1, 1, 'F')
+  if (pct > 0) {
+    setFill(doc, C.primary)
+    doc.roundedRect(barX, barY, barW * pct, 2.5, 1, 1, 'F')
   }
 
-  // Right column - Loan
-  const rightCol = pageWidth / 2 + 10
-  doc.setFontSize(8)
-  doc.setTextColor(COLORS.textMuted.r, COLORS.textMuted.g, COLORS.textMuted.b)
-  doc.text('PRÉSTAMO', rightCol, y + 6)
-  
-  doc.setFontSize(11)
-  doc.setFont('helvetica', 'bold')
-  doc.setTextColor(COLORS.primary.r, COLORS.primary.g, COLORS.primary.b)
-  doc.text(data.loan.loanTrack, rightCol, y + 12)
-
-  doc.setFontSize(8)
-  doc.setFont('helvetica', 'normal')
-  doc.setTextColor(COLORS.textMuted.r, COLORS.textMuted.g, COLORS.textMuted.b)
-  doc.text(`Cuota abonada: #${data.subLoan.paymentNumber} de ${data.loanSummary.totalCuotas}`, rightCol, y + 17)
-
-  y += 34
-
-  // ============ PAYMENT DETAILS ============
-  // Main payment box with accent border
-  const paymentBoxHeight = 35
-  doc.setDrawColor(COLORS.primary.r, COLORS.primary.g, COLORS.primary.b)
-  doc.setLineWidth(1)
-  doc.roundedRect(margin, y, contentWidth, paymentBoxHeight, 2, 2, 'S')
-
-  // Payment amount
-  doc.setFontSize(8)
-  doc.setFont('helvetica', 'normal')
-  doc.setTextColor(COLORS.textMuted.r, COLORS.textMuted.g, COLORS.textMuted.b)
-  doc.text('MONTO ABONADO', margin + 6, y + 8)
-
-  doc.setFontSize(22)
-  doc.setFont('helvetica', 'bold')
-  doc.setTextColor(COLORS.success.r, COLORS.success.g, COLORS.success.b)
-  doc.text(formatCurrency(data.payment.amount), margin + 6, y + 20)
-
-  // Payment date
-  doc.setFontSize(8)
-  doc.setFont('helvetica', 'normal')
-  doc.setTextColor(COLORS.textMuted.r, COLORS.textMuted.g, COLORS.textMuted.b)
-  doc.text('FECHA DE PAGO', rightCol, y + 8)
-
-  doc.setFontSize(11)
-  doc.setFont('helvetica', 'bold')
-  doc.setTextColor(COLORS.text.r, COLORS.text.g, COLORS.text.b)
-  doc.text(formatDateLong(data.payment.paymentDate), rightCol, y + 15)
-
-  // Payment status
-  doc.setFontSize(8)
-  doc.setFont('helvetica', 'normal')
-  doc.setTextColor(COLORS.textMuted.r, COLORS.textMuted.g, COLORS.textMuted.b)
-  doc.text('ESTADO CUOTA', rightCol, y + 23)
-
-  const statusColor = data.subLoan.status === 'PAID' ? COLORS.success : 
-                      data.subLoan.status === 'PARTIAL' ? COLORS.warning : COLORS.danger
-  doc.setFontSize(10)
-  doc.setFont('helvetica', 'bold')
-  doc.setTextColor(statusColor.r, statusColor.g, statusColor.b)
-  doc.text(getStatusLabel(data.subLoan.status).toUpperCase(), rightCol, y + 29)
-
-  y += paymentBoxHeight + 8
-
-  // ============ PENDING DEBT ALERT ============
-  if (hasPendingDebt) {
-    const alertHeight = hasOverduePayments ? 24 : 20
-    const alertColor = hasOverduePayments ? COLORS.danger : COLORS.warning
-    
-    // Alert background
-    doc.setFillColor(alertColor.r, alertColor.g, alertColor.b)
-    doc.roundedRect(margin, y, contentWidth, alertHeight, 2, 2, 'F')
-
-    // Alert icon and text
-    doc.setFontSize(10)
-    doc.setFont('helvetica', 'bold')
-    doc.setTextColor(255, 255, 255)
-    
-    const alertIcon = hasOverduePayments ? '!' : '!'
-    doc.text(alertIcon, margin + 6, y + (alertHeight / 2) + 1)
-    
-    const alertTitle = hasOverduePayments 
-      ? 'ATENCIÓN: CLIENTE CON CUOTAS VENCIDAS'
-      : 'DEUDA PENDIENTE'
-    doc.text(alertTitle, margin + 14, y + 8)
-
-    doc.setFontSize(9)
-    doc.setFont('helvetica', 'normal')
-    doc.text(`Saldo pendiente del préstamo: ${formatCurrency(data.loanSummary.totalPendiente)}`, margin + 14, y + 15)
-
-    if (hasOverduePayments) {
-      const overdueCount = data.subLoans.filter(s => s.status === 'OVERDUE').length
-      doc.text(`Cuotas vencidas: ${overdueCount}`, margin + 14, y + 21)
-    }
-
-    y += alertHeight + 8
-  }
-
-  // ============ LOAN SUMMARY ============
-  doc.setFontSize(10)
-  doc.setFont('helvetica', 'bold')
-  doc.setTextColor(COLORS.text.r, COLORS.text.g, COLORS.text.b)
-  doc.text('RESUMEN DEL PRÉSTAMO', margin, y + 4)
-
-  y += 8
-
-  // Summary grid
-  const colWidth = contentWidth / 4
-  const summaryItems = [
-    { label: 'Monto Prestado', value: formatCurrency(data.loanSummary.montoPrestado) },
-    { label: 'Total a Devolver', value: formatCurrency(data.loanSummary.totalADevolver) },
-    { label: 'Total Pagado', value: formatCurrency(data.loanSummary.saldoPagadoTotal), color: COLORS.success },
-    { label: 'Saldo Pendiente', value: formatCurrency(data.loanSummary.totalPendiente), color: data.loanSummary.totalPendiente > 0 ? COLORS.danger : COLORS.success },
-  ]
-
-  doc.setFillColor(COLORS.background.r, COLORS.background.g, COLORS.background.b)
-  doc.roundedRect(margin, y, contentWidth, 22, 2, 2, 'F')
-
-  summaryItems.forEach((item, index) => {
-    const x = margin + (colWidth * index) + 4
-    
-    doc.setFontSize(7)
-    doc.setFont('helvetica', 'normal')
-    doc.setTextColor(COLORS.textMuted.r, COLORS.textMuted.g, COLORS.textMuted.b)
-    doc.text(item.label.toUpperCase(), x, y + 6)
-
-    doc.setFontSize(10)
-    doc.setFont('helvetica', 'bold')
-    const valueColor = item.color || COLORS.text
-    doc.setTextColor(valueColor.r, valueColor.g, valueColor.b)
-    doc.text(item.value, x, y + 14)
-  })
-
-  y += 28
-
-  // ============ INSTALLMENTS TABLE ============
-  doc.setFontSize(10)
-  doc.setFont('helvetica', 'bold')
-  doc.setTextColor(COLORS.text.r, COLORS.text.g, COLORS.text.b)
-  doc.text('DETALLE DE CUOTAS', margin, y + 4)
-
-  y += 8
-
-  // Table header
-  const tableHeaders = ['#', 'Vencimiento', 'Monto', 'Pagado', 'Pendiente', 'Estado']
-  const tableColWidths = [10, 30, 35, 35, 35, 30]
-  
-  doc.setFillColor(COLORS.primary.r, COLORS.primary.g, COLORS.primary.b)
-  doc.rect(margin, y, contentWidth, 7, 'F')
+  // Resumen derecha: "Pagadas X · Restan Y"
+  const statX = W - M - 52
+  const statY = y + 7
 
   doc.setFontSize(7)
   doc.setFont('helvetica', 'bold')
-  doc.setTextColor(255, 255, 255)
+  setTxt(doc, C.muted)
+  doc.text('PAGADAS', statX, statY)
+  doc.text('RESTAN', statX + 30, statY)
 
-  let xPos = margin + 2
-  tableHeaders.forEach((header, index) => {
-    const align = index > 1 && index < 5 ? 'right' : 'left'
-    const textX = align === 'right' ? xPos + tableColWidths[index] - 4 : xPos
-    doc.text(header, textX, y + 5, { align: align as any })
-    xPos += tableColWidths[index]
-  })
+  doc.setFontSize(20)
+  doc.setFont('helvetica', 'bold')
+  setTxt(doc, C.success)
+  doc.text(`${pagadas}`, statX, statY + 14)
 
-  y += 7
+  setTxt(doc, restan > 0 ? C.warning : C.success)
+  doc.text(`${restan}`, statX + 30, statY + 14)
 
-  // Table rows
-  const rowHeight = 6
-  const maxRows = Math.min(data.subLoans.length, 12) // Limit rows to fit page
+  // Separador vertical entre los dos bloques de stat
+  setStroke(doc, C.border)
+  doc.setLineWidth(0.2)
+  doc.line(statX - 5, y + 5, statX - 5, y + CBOX_H - 4)
 
-  data.subLoans.slice(0, maxRows).forEach((subLoan, index) => {
-    const isCurrentPayment = subLoan.id === data.subLoan.id
-    const isOverdue = subLoan.status === 'OVERDUE'
-    
-    // Row background
-    if (isCurrentPayment) {
-      doc.setFillColor(230, 244, 255) // Light blue highlight
-      doc.rect(margin, y, contentWidth, rowHeight, 'F')
-    } else if (index % 2 === 0) {
-      doc.setFillColor(COLORS.background.r, COLORS.background.g, COLORS.background.b)
-      doc.rect(margin, y, contentWidth, rowHeight, 'F')
-    }
+  y += CBOX_H + 10
 
-    // Row border
-    doc.setDrawColor(COLORS.border.r, COLORS.border.g, COLORS.border.b)
-    doc.setLineWidth(0.1)
-    doc.line(margin, y + rowHeight, pageWidth - margin, y + rowHeight)
+  // ─── MONTO ABONADO ─────────────────────────────────────────────────────────
+  const MBOX_H = 30
+  setStroke(doc, sColor)
+  doc.setLineWidth(0.7)
+  doc.roundedRect(M, y, CW, MBOX_H, 2, 2, 'S')
 
+  // Accent line top inside box
+  setFill(doc, sColor)
+  doc.roundedRect(M, y, CW, 3, 2, 2, 'F')
+  // Cover bottom corners of accent
+  doc.rect(M, y + 1.5, CW, 1.5, 'F')
+
+  // Label
+  doc.setFontSize(7)
+  doc.setFont('helvetica', 'normal')
+  setTxt(doc, C.muted)
+  doc.text('MONTO ABONADO', M + 6, y + 11)
+
+  // Amount
+  doc.setFontSize(24)
+  doc.setFont('helvetica', 'bold')
+  setTxt(doc, sColor)
+  doc.text(fc(payment.amount), M + 6, y + 24)
+
+  // Right: estado + fecha
+  doc.setFontSize(7)
+  doc.setFont('helvetica', 'normal')
+  setTxt(doc, C.muted)
+  doc.text('ESTADO', RX, y + 11)
+
+  doc.setFontSize(13)
+  doc.setFont('helvetica', 'bold')
+  setTxt(doc, sColor)
+  doc.text(statusLabel(subLoan.status).toUpperCase(), RX, y + 19)
+
+  doc.setFontSize(8)
+  doc.setFont('helvetica', 'normal')
+  setTxt(doc, C.muted)
+  doc.text(fd(payment.paymentDate), RX, y + 26)
+
+  // Saldo pendiente de esta cuota
+  if (subLoan.pendingAmount > 0) {
+    const px = RX + 38
     doc.setFontSize(7)
-    doc.setFont('helvetica', 'normal')
-    
-    xPos = margin + 2
-    const rowData = [
-      subLoan.paymentNumber.toString(),
-      formatDate(subLoan.dueDate),
-      formatCurrency(subLoan.totalAmount),
-      formatCurrency(subLoan.paidAmount),
-      formatCurrency(subLoan.pendingAmount),
-      getStatusLabel(subLoan.status)
-    ]
-
-    rowData.forEach((cell, cellIndex) => {
-      const align = cellIndex > 1 && cellIndex < 5 ? 'right' : 'left'
-      const textX = align === 'right' ? xPos + tableColWidths[cellIndex] - 4 : xPos
-
-      // Color based on status for last column
-      if (cellIndex === 5) {
-        const statusColor = subLoan.status === 'PAID' ? COLORS.success :
-                           subLoan.status === 'PARTIAL' ? COLORS.warning :
-                           subLoan.status === 'OVERDUE' ? COLORS.danger : COLORS.textMuted
-        doc.setTextColor(statusColor.r, statusColor.g, statusColor.b)
-        doc.setFont('helvetica', 'bold')
-      } else if (cellIndex === 4 && subLoan.pendingAmount > 0) {
-        // Pending amount in red if > 0
-        doc.setTextColor(COLORS.danger.r, COLORS.danger.g, COLORS.danger.b)
-      } else {
-        doc.setTextColor(COLORS.text.r, COLORS.text.g, COLORS.text.b)
-        doc.setFont('helvetica', 'normal')
-      }
-
-      doc.text(cell, textX, y + 4, { align: align as any })
-      xPos += tableColWidths[cellIndex]
-    })
-
-    y += rowHeight
-  })
-
-  // Show "..." if more rows
-  if (data.subLoans.length > maxRows) {
-    doc.setFontSize(7)
-    doc.setFont('helvetica', 'italic')
-    doc.setTextColor(COLORS.textMuted.r, COLORS.textMuted.g, COLORS.textMuted.b)
-    doc.text(`... y ${data.subLoans.length - maxRows} cuotas más`, margin + 4, y + 4)
-    y += 6
-  }
-
-  y += 6
-
-  // ============ INSTALLMENTS SUMMARY ============
-  doc.setFillColor(COLORS.background.r, COLORS.background.g, COLORS.background.b)
-  doc.roundedRect(margin, y, contentWidth, 14, 2, 2, 'F')
-
-  const cuotaSummaryItems = [
-    { label: 'Total Cuotas', value: data.loanSummary.totalCuotas.toString() },
-    { label: 'Pagadas', value: data.loanSummary.cuotasPagadasTotales.toString(), color: COLORS.success },
-    { label: 'Parciales', value: data.loanSummary.cuotasPagadasParciales.toString(), color: data.loanSummary.cuotasPagadasParciales > 0 ? COLORS.warning : COLORS.textMuted },
-    { label: 'Pendientes', value: data.loanSummary.cuotasNoPagadas.toString(), color: data.loanSummary.cuotasNoPagadas > 0 ? COLORS.danger : COLORS.success },
-  ]
-
-  const cuotaColWidth = contentWidth / 4
-  cuotaSummaryItems.forEach((item, index) => {
-    const x = margin + (cuotaColWidth * index) + 4
-    
-    doc.setFontSize(6)
-    doc.setFont('helvetica', 'normal')
-    doc.setTextColor(COLORS.textMuted.r, COLORS.textMuted.g, COLORS.textMuted.b)
-    doc.text(item.label.toUpperCase(), x, y + 5)
-
+    setTxt(doc, C.muted)
+    doc.text('PENDIENTE CUOTA', px, y + 11)
     doc.setFontSize(10)
     doc.setFont('helvetica', 'bold')
-    const valueColor = item.color || COLORS.text
-    doc.setTextColor(valueColor.r, valueColor.g, valueColor.b)
-    doc.text(item.value, x, y + 11)
-  })
+    setTxt(doc, C.danger)
+    doc.text(fc(subLoan.pendingAmount), px, y + 19)
+  }
 
-  y += 20
+  y += MBOX_H + 8
 
-  // ============ NOTES ============
-  if (data.notes || data.payment.description) {
-    const noteText = data.payment.description || data.notes || ''
-    
+  // ─── ALERTA DEUDA / VENCIDAS ────────────────────────────────────────────────
+  if (hasPend) {
+    const aC = hasOver ? C.danger : C.warning
+    setFill(doc, aC)
+    doc.roundedRect(M, y, CW, 12, 2, 2, 'F')
+
+    doc.setFontSize(8.5)
+    doc.setFont('helvetica', 'bold')
+    setTxt(doc, C.white)
+    const alertMsg = hasOver
+      ? `Cuotas vencidas · Saldo pendiente: ${fc(loanSummary.totalPendiente)}`
+      : `Deuda pendiente del préstamo: ${fc(loanSummary.totalPendiente)}`
+    doc.text(alertMsg, M + 5, y + 8)
+    y += 19
+  }
+
+  // ─── EXCEDENTE / DISTRIBUCIÓN ──────────────────────────────────────────────
+  if (data.distributedPayments && data.distributedPayments.length > 0) {
+    const rowH = 7
+    const boxH = 10 + data.distributedPayments.length * rowH + 4
+    setFill(doc, [255, 244, 229])
+    doc.roundedRect(M, y, CW, boxH, 2, 2, 'F')
+    setStroke(doc, C.warning)
+    doc.setLineWidth(0.4)
+    doc.roundedRect(M, y, CW, boxH, 2, 2, 'S')
+
     doc.setFontSize(8)
     doc.setFont('helvetica', 'bold')
-    doc.setTextColor(COLORS.textMuted.r, COLORS.textMuted.g, COLORS.textMuted.b)
-    doc.text('OBSERVACIONES', margin, y + 4)
+    setTxt(doc, C.warning)
+    doc.text('PAGO CON EXCEDENTE — SE APLICÓ A:', M + 5, y + 8)
 
-    doc.setFont('helvetica', 'normal')
-    doc.setTextColor(COLORS.text.r, COLORS.text.g, COLORS.text.b)
-    const noteLines = doc.splitTextToSize(noteText, contentWidth - 8)
-    doc.text(noteLines, margin, y + 10)
+    data.distributedPayments.forEach((dp, i) => {
+      const rowY = y + 13 + i * rowH
+      const dColor: RGB = dp.newStatus === 'PAID' ? C.success : C.warning
+      doc.setFontSize(7.5)
+      doc.setFont('helvetica', 'normal')
+      setTxt(doc, C.text)
+      doc.text(`• Cuota #${dp.subLoanPaymentNumber}`, M + 7, rowY)
+      doc.text(`→  ${fc(dp.distributedAmount)}`, M + 50, rowY)
+      doc.setFont('helvetica', 'bold')
+      setTxt(doc, dColor)
+      doc.text(dp.newStatus === 'PAID' ? 'PAGADA' : 'PARCIAL', M + 110, rowY)
+    })
 
-    y += 10 + (noteLines.length * 4)
+    y += boxH + 8
   }
 
-  // ============ FOOTER ============
-  const footerY = pageHeight - 25
-
-  // Separator
-  doc.setDrawColor(COLORS.border.r, COLORS.border.g, COLORS.border.b)
-  doc.setLineWidth(0.3)
-  doc.line(margin, footerY, pageWidth - margin, footerY)
-
-  // Footer content
-  doc.setFontSize(7)
-  doc.setFont('helvetica', 'normal')
-  doc.setTextColor(COLORS.textMuted.r, COLORS.textMuted.g, COLORS.textMuted.b)
-
-  doc.text('Este comprobante es válido como constancia de pago.', margin, footerY + 6)
-  doc.text(`Generado el ${formatDateTime24h(new Date())}`, margin, footerY + 10)
-  
-  // Company info on right
+  // ─── RESUMEN FINANCIERO ─────────────────────────────────────────────────────
+  doc.setFontSize(8)
   doc.setFont('helvetica', 'bold')
-  doc.setTextColor(COLORS.primary.r, COLORS.primary.g, COLORS.primary.b)
-  doc.text('CREDIASOCIADOS', pageWidth - margin, footerY + 6, { align: 'right' })
+  setTxt(doc, C.text)
+  doc.text('RESUMEN DEL PRÉSTAMO', M, y + 4)
+  y += 9
+
+  setFill(doc, C.bg)
+  doc.roundedRect(M, y, CW, 20, 2, 2, 'F')
+  // Thin top border on summary
+  setFill(doc, C.bgDark)
+  doc.roundedRect(M, y, CW, 2, 2, 2, 'F')
+  doc.rect(M, y + 1, CW, 1, 'F')
+
+  const finItems: [string, number, RGB][] = [
+    ['PRESTADO',       loanSummary.montoPrestado,    C.text],
+    ['A DEVOLVER',     loanSummary.totalADevolver,   C.text],
+    ['YA PAGADO',      loanSummary.saldoPagadoTotal, C.success],
+    ['SALDO PEND.',    loanSummary.totalPendiente,   loanSummary.totalPendiente > 0 ? C.danger : C.success],
+  ]
+
+  const colW = CW / 4
+  finItems.forEach(([label, value, color], i) => {
+    const x = M + colW * i + 5
+    doc.setFontSize(6.5)
+    doc.setFont('helvetica', 'normal')
+    setTxt(doc, C.muted)
+    doc.text(label, x, y + 9)
+
+    doc.setFontSize(8.5)
+    doc.setFont('helvetica', 'bold')
+    setTxt(doc, color)
+    doc.text(fc(value), x, y + 16)
+  })
+
+  y += 27
+
+  // ─── OBSERVACIONES ─────────────────────────────────────────────────────────
+  const noteText = payment.description || data.notes
+  if (noteText) {
+    doc.setFontSize(7.5)
+    doc.setFont('helvetica', 'bold')
+    setTxt(doc, C.muted)
+    doc.text('OBSERVACIONES', M, y)
+
+    doc.setFontSize(8)
+    doc.setFont('helvetica', 'normal')
+    setTxt(doc, C.text)
+    const lines = doc.splitTextToSize(noteText, CW)
+    doc.text(lines, M, y + 7)
+    y += 7 + lines.length * 4 + 4
+  }
+
+  // ─── WATERMARK ─────────────────────────────────────────────────────────────
+  doc.saveGraphicsState()
+  doc.setGState(new (doc as any).GState({ opacity: 0.07 }))
+  doc.setFontSize(52)
+  doc.setFont('helvetica', 'bold')
+  setTxt(doc, C.primary)
+  doc.text('CREDIASOCIADOS', W / 2, H / 2, { align: 'center', angle: 45 })
+  doc.restoreGraphicsState()
+
+  // ─── FOOTER ────────────────────────────────────────────────────────────────
+  const fY = H - 22
+  setStroke(doc, C.border)
+  doc.setLineWidth(0.2)
+  doc.line(M, fY, W - M, fY)
+
+  doc.setFontSize(6.5)
   doc.setFont('helvetica', 'normal')
-  doc.setTextColor(COLORS.textMuted.r, COLORS.textMuted.g, COLORS.textMuted.b)
-  doc.text('Sistema de Gestión de Préstamos', pageWidth - margin, footerY + 10, { align: 'right' })
+  setTxt(doc, C.muted)
+  doc.text(`${recNum}  ·  ${fdt(new Date())}`, M, fY + 5)
+  doc.text('Comprobante válido como constancia de pago · CREDIASOCIADOS', W - M, fY + 5, { align: 'right' })
 
-  // Bottom accent line
-  doc.setFillColor(COLORS.primary.r, COLORS.primary.g, COLORS.primary.b)
-  doc.rect(0, pageHeight - 4, pageWidth, 4, 'F')
+  // Pistech credit
+  doc.setFontSize(5.5)
+  setTxt(doc, [180, 185, 195])
+  doc.text('Desarrollado por Pistech', W / 2, fY + 10, { align: 'center' })
 
-  // ============ DOWNLOAD ============
-  const clientNameClean = data.loan.client.fullName.replace(/\s+/g, '-').substring(0, 20)
-  const fileName = `comprobante-${data.loan.loanTrack}-${clientNameClean}-${receiptNumber}.pdf`
-  doc.save(fileName)
+  // Bottom bar
+  setFill(doc, C.primary)
+  doc.rect(0, H - 3.5, W, 3.5, 'F')
+
+  // ─── SAVE ──────────────────────────────────────────────────────────────────
+  const name = loan.client.fullName.replace(/\s+/g, '-').substring(0, 20)
+  doc.save(`comprobante-${loan.loanTrack}-${name}.pdf`)
 }
 
 // ============ LEGACY PDF FORMAT (backwards compatibility) ============
 const generateLegacyPDF = (data: LegacyPaymentReceiptData) => {
-  const doc = new jsPDF({
-    orientation: 'portrait',
-    unit: 'mm',
-    format: 'a4'
-  })
+  const doc  = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' })
+  const W    = doc.internal.pageSize.getWidth()
+  const H    = doc.internal.pageSize.getHeight()
+  const M    = 16
+  const CW   = W - 2 * M
+  let y      = 0
 
-  const pageWidth = doc.internal.pageSize.getWidth()
-  const pageHeight = doc.internal.pageSize.getHeight()
-  const margin = 15
-  const contentWidth = pageWidth - 2 * margin
-  let y = margin
+  const recNum = `REC-${Date.now().toString().slice(-8)}`
+  const sColor: RGB = data.status === 'PAID' ? C.success : C.warning
 
-  // ============ HEADER ============
-  doc.setFillColor(COLORS.primary.r, COLORS.primary.g, COLORS.primary.b)
-  doc.rect(0, 0, pageWidth, 4, 'F')
+  // Header
+  setFill(doc, C.primary)
+  doc.rect(0, 0, W, 18, 'F')
+  setFill(doc, [16, 45, 100])
+  doc.rect(0, 18, W, 1, 'F')
 
-  doc.setFontSize(20)
+  doc.setFontSize(14)
   doc.setFont('helvetica', 'bold')
-  doc.setTextColor(COLORS.primary.r, COLORS.primary.g, COLORS.primary.b)
-  doc.text('CREDIASOCIADOS', margin, y + 12)
+  setTxt(doc, C.white)
+  doc.text('CREDIASOCIADOS', M, 12)
 
-  const receiptNumber = `REC-${Date.now().toString().slice(-8)}`
   doc.setFontSize(8)
   doc.setFont('helvetica', 'normal')
-  doc.setTextColor(COLORS.textMuted.r, COLORS.textMuted.g, COLORS.textMuted.b)
-  doc.text(`Comprobante: ${receiptNumber}`, pageWidth - margin, y + 8, { align: 'right' })
-  doc.text(`Emisión: ${formatDateLong(new Date())}`, pageWidth - margin, y + 12, { align: 'right' })
+  setTxt(doc, [180, 200, 235])
+  doc.text('COMPROBANTE DE PAGO', W - M, 12, { align: 'right' })
 
-  y += 20
+  y = 28
 
-  doc.setDrawColor(COLORS.border.r, COLORS.border.g, COLORS.border.b)
-  doc.setLineWidth(0.3)
-  doc.line(margin, y, pageWidth - margin, y)
-
-  y += 8
-
-  // Title
-  doc.setFontSize(16)
+  // Cliente
+  doc.setFontSize(7)
   doc.setFont('helvetica', 'bold')
-  doc.setTextColor(COLORS.text.r, COLORS.text.g, COLORS.text.b)
-  doc.text('COMPROBANTE DE PAGO', pageWidth / 2, y, { align: 'center' })
+  setTxt(doc, C.muted)
+  doc.text('CLIENTE', M, y)
 
-  y += 12
-
-  // Client info
-  doc.setFillColor(COLORS.background.r, COLORS.background.g, COLORS.background.b)
-  doc.roundedRect(margin, y, contentWidth, 24, 2, 2, 'F')
-
-  doc.setFontSize(8)
-  doc.setTextColor(COLORS.textMuted.r, COLORS.textMuted.g, COLORS.textMuted.b)
-  doc.text('CLIENTE', margin + 4, y + 6)
-  
   doc.setFontSize(12)
   doc.setFont('helvetica', 'bold')
-  doc.setTextColor(COLORS.text.r, COLORS.text.g, COLORS.text.b)
-  doc.text(data.clientName, margin + 4, y + 14)
+  setTxt(doc, C.text)
+  doc.text(data.clientName, M, y + 7)
 
   doc.setFontSize(8)
   doc.setFont('helvetica', 'normal')
-  doc.setTextColor(COLORS.textMuted.r, COLORS.textMuted.g, COLORS.textMuted.b)
-  doc.text(`Préstamo: ${data.loanTrack || 'N/A'}  •  Cuota #${data.paymentNumber}`, margin + 4, y + 20)
+  setTxt(doc, C.muted)
+  doc.text(`Préstamo: ${data.loanTrack || 'N/A'}`, M, y + 13)
 
-  y += 30
+  y += 22
 
-  // Payment details
-  const statusColor = data.status === 'PAID' ? COLORS.success : COLORS.warning
-  doc.setDrawColor(statusColor.r, statusColor.g, statusColor.b)
-  doc.setLineWidth(1)
-  doc.roundedRect(margin, y, contentWidth, 32, 2, 2, 'S')
+  setStroke(doc, C.border)
+  doc.setLineWidth(0.25)
+  doc.line(M, y, W - M, y)
+  y += 10
 
-  doc.setFontSize(8)
-  doc.setTextColor(COLORS.textMuted.r, COLORS.textMuted.g, COLORS.textMuted.b)
-  doc.text('MONTO ABONADO', margin + 6, y + 8)
+  // Cuota grande
+  const CBOX_H = 32
+  setFill(doc, C.primary)
+  doc.rect(M, y, 3, CBOX_H, 'F')
+  setFill(doc, C.bg)
+  doc.rect(M + 3, y, CW - 3, CBOX_H, 'F')
 
-  doc.setFontSize(24)
+  doc.setFontSize(7)
   doc.setFont('helvetica', 'bold')
-  doc.setTextColor(statusColor.r, statusColor.g, statusColor.b)
-  doc.text(formatCurrency(data.amount), margin + 6, y + 22)
+  setTxt(doc, C.muted)
+  doc.text('CUOTA ACTUAL', M + 9, y + 7)
 
-  doc.setFontSize(8)
-  doc.setTextColor(COLORS.textMuted.r, COLORS.textMuted.g, COLORS.textMuted.b)
-  doc.text('FECHA DE PAGO', pageWidth / 2 + 10, y + 8)
+  const baseY = y + 24
+  doc.setFontSize(30)
+  doc.setFont('helvetica', 'bold')
+  setTxt(doc, C.primary)
+  doc.text(`${data.paymentNumber}`, M + 9, baseY)
 
+  const numW = doc.getTextWidth(`${data.paymentNumber}`)
   doc.setFontSize(11)
-  doc.setFont('helvetica', 'bold')
-  doc.setTextColor(COLORS.text.r, COLORS.text.g, COLORS.text.b)
-  doc.text(formatDateLong(data.paymentDate), pageWidth / 2 + 10, y + 15)
+  doc.setFont('helvetica', 'normal')
+  setTxt(doc, C.muted)
+  doc.text('de préstamo', M + 9 + numW + 3, baseY)
 
-  doc.setFontSize(8)
-  doc.setTextColor(COLORS.textMuted.r, COLORS.textMuted.g, COLORS.textMuted.b)
-  doc.text('ESTADO', pageWidth / 2 + 10, y + 22)
+  y += CBOX_H + 10
 
-  doc.setFontSize(10)
-  doc.setFont('helvetica', 'bold')
-  doc.setTextColor(statusColor.r, statusColor.g, statusColor.b)
-  doc.text(data.status === 'PAID' ? 'PAGO COMPLETO' : 'PAGO PARCIAL', pageWidth / 2 + 10, y + 28)
-
-  y += 40
-
-  // Remaining amount for partial
-  if (data.status === 'PARTIAL' && data.remainingAmount && data.remainingAmount > 0) {
-    doc.setFillColor(COLORS.warning.r, COLORS.warning.g, COLORS.warning.b)
-    doc.roundedRect(margin, y, contentWidth, 18, 2, 2, 'F')
-
-    doc.setFontSize(9)
-    doc.setFont('helvetica', 'bold')
-    doc.setTextColor(255, 255, 255)
-    doc.text('SALDO PENDIENTE DE ESTA CUOTA', margin + 6, y + 7)
-
-    doc.setFontSize(12)
-    doc.text(formatCurrency(data.remainingAmount), margin + 6, y + 14)
-
-    y += 24
-  }
-
-  // Notes
-  if (data.notes) {
-    doc.setFontSize(8)
-    doc.setFont('helvetica', 'bold')
-    doc.setTextColor(COLORS.textMuted.r, COLORS.textMuted.g, COLORS.textMuted.b)
-    doc.text('OBSERVACIONES', margin, y + 4)
-
-    doc.setFont('helvetica', 'normal')
-    doc.setTextColor(COLORS.text.r, COLORS.text.g, COLORS.text.b)
-    const noteLines = doc.splitTextToSize(data.notes, contentWidth - 8)
-    doc.text(noteLines, margin, y + 10)
-  }
-
-  // Footer
-  const footerY = pageHeight - 25
-  doc.setDrawColor(COLORS.border.r, COLORS.border.g, COLORS.border.b)
-  doc.setLineWidth(0.3)
-  doc.line(margin, footerY, pageWidth - margin, footerY)
+  // Monto
+  setStroke(doc, sColor)
+  doc.setLineWidth(0.7)
+  doc.roundedRect(M, y, CW, 28, 2, 2, 'S')
+  setFill(doc, sColor)
+  doc.roundedRect(M, y, CW, 3, 2, 2, 'F')
+  doc.rect(M, y + 1.5, CW, 1.5, 'F')
 
   doc.setFontSize(7)
   doc.setFont('helvetica', 'normal')
-  doc.setTextColor(COLORS.textMuted.r, COLORS.textMuted.g, COLORS.textMuted.b)
-  doc.text('Este comprobante es válido como constancia de pago.', margin, footerY + 6)
-  doc.text(`Generado el ${formatDateTime24h(new Date())}`, margin, footerY + 10)
+  setTxt(doc, C.muted)
+  doc.text('MONTO ABONADO', M + 6, y + 11)
 
+  doc.setFontSize(22)
   doc.setFont('helvetica', 'bold')
-  doc.setTextColor(COLORS.primary.r, COLORS.primary.g, COLORS.primary.b)
-  doc.text('CREDIASOCIADOS', pageWidth - margin, footerY + 6, { align: 'right' })
+  setTxt(doc, sColor)
+  doc.text(fc(data.amount), M + 6, y + 23)
+
+  const RX = W / 2 + 8
+  doc.setFontSize(7)
+  setTxt(doc, C.muted)
+  doc.text('ESTADO', RX, y + 11)
+
+  doc.setFontSize(11)
+  doc.setFont('helvetica', 'bold')
+  setTxt(doc, sColor)
+  doc.text(data.status === 'PAID' ? 'PAGADA' : 'PARCIAL', RX, y + 19)
+
+  doc.setFontSize(8)
   doc.setFont('helvetica', 'normal')
-  doc.setTextColor(COLORS.textMuted.r, COLORS.textMuted.g, COLORS.textMuted.b)
-  doc.text('Sistema de Gestión de Préstamos', pageWidth - margin, footerY + 10, { align: 'right' })
+  setTxt(doc, C.muted)
+  doc.text(fdLong(data.paymentDate), RX, y + 25)
 
-  doc.setFillColor(COLORS.primary.r, COLORS.primary.g, COLORS.primary.b)
-  doc.rect(0, pageHeight - 4, pageWidth, 4, 'F')
+  y += 36
 
-  const clientNameClean = data.clientName.replace(/\s+/g, '-').substring(0, 20)
-  const fileName = `comprobante-${data.loanTrack || 'pago'}-${clientNameClean}-${receiptNumber}.pdf`
-  doc.save(fileName)
+  if (data.status === 'PARTIAL' && data.remainingAmount && data.remainingAmount > 0) {
+    setFill(doc, C.warning)
+    doc.roundedRect(M, y, CW, 12, 2, 2, 'F')
+    doc.setFontSize(8.5)
+    doc.setFont('helvetica', 'bold')
+    setTxt(doc, C.white)
+    doc.text(`Saldo pendiente: ${fc(data.remainingAmount)}`, M + 5, y + 8)
+    y += 18
+  }
+
+  if (data.notes) {
+    doc.setFontSize(7.5)
+    doc.setFont('helvetica', 'bold')
+    setTxt(doc, C.muted)
+    doc.text('OBSERVACIONES', M, y)
+    doc.setFontSize(8)
+    doc.setFont('helvetica', 'normal')
+    setTxt(doc, C.text)
+    const lines = doc.splitTextToSize(data.notes, CW)
+    doc.text(lines, M, y + 7)
+  }
+
+  // Watermark
+  doc.saveGraphicsState()
+  doc.setGState(new (doc as any).GState({ opacity: 0.07 }))
+  doc.setFontSize(52)
+  doc.setFont('helvetica', 'bold')
+  setTxt(doc, C.primary)
+  doc.text('CREDIASOCIADOS', W / 2, H / 2, { align: 'center', angle: 45 })
+  doc.restoreGraphicsState()
+
+  // Footer
+  const fY = H - 22
+  setStroke(doc, C.border)
+  doc.setLineWidth(0.2)
+  doc.line(M, fY, W - M, fY)
+
+  doc.setFontSize(6.5)
+  doc.setFont('helvetica', 'normal')
+  setTxt(doc, C.muted)
+  doc.text(`${recNum}  ·  ${fdt(new Date())}`, M, fY + 5)
+  doc.text('Comprobante válido · CREDIASOCIADOS', W - M, fY + 5, { align: 'right' })
+
+  doc.setFontSize(5.5)
+  setTxt(doc, [180, 185, 195])
+  doc.text('Desarrollado por Pistech', W / 2, fY + 10, { align: 'center' })
+
+  setFill(doc, C.primary)
+  doc.rect(0, H - 3.5, W, 3.5, 'F')
+
+  const name = data.clientName.replace(/\s+/g, '-').substring(0, 20)
+  doc.save(`comprobante-${data.loanTrack || 'pago'}-${name}.pdf`)
 }
 
 export default generatePaymentPDF

@@ -260,35 +260,39 @@ const TimelineNode: React.FC<TimelineNodeProps> = ({
           {canInteract && showActions ? (
             <Box sx={{ display: 'flex', gap: 0.5, mb: 0.5, justifyContent: 'center' }}>
               {onPaymentClick && (
+                <Tooltip title="Registrar pago">
+                  <IconButton
+                    size="small"
+                    onClick={handlePayClick}
+                    sx={{
+                      width: compact ? 28 : 36,
+                      height: compact ? 28 : 36,
+                      bgcolor: '#4caf50',
+                      color: 'white',
+                      boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
+                      '&:hover': { bgcolor: '#388e3c' },
+                    }}
+                  >
+                    <AttachMoney sx={{ fontSize: compact ? 16 : 20 }} />
+                  </IconButton>
+                </Tooltip>
+              )}
+              <Tooltip title="Cambiar fecha">
                 <IconButton
                   size="small"
-                  onClick={handlePayClick}
+                  onClick={handleEditDateClick}
                   sx={{
                     width: compact ? 28 : 36,
                     height: compact ? 28 : 36,
-                    bgcolor: '#4caf50',
+                    bgcolor: '#1976d2',
                     color: 'white',
                     boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
-                    '&:hover': { bgcolor: '#388e3c' },
+                    '&:hover': { bgcolor: '#1565c0' },
                   }}
                 >
-                  <AttachMoney sx={{ fontSize: compact ? 16 : 20 }} />
+                  <Edit sx={{ fontSize: compact ? 14 : 18 }} />
                 </IconButton>
-              )}
-              <IconButton
-                size="small"
-                onClick={handleEditDateClick}
-                sx={{
-                  width: compact ? 28 : 36,
-                  height: compact ? 28 : 36,
-                  bgcolor: '#1976d2',
-                  color: 'white',
-                  boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
-                  '&:hover': { bgcolor: '#1565c0' },
-                }}
-              >
-                <Edit sx={{ fontSize: compact ? 14 : 18 }} />
-              </IconButton>
+              </Tooltip>
             </Box>
           ) : (
             // Spacer to keep consistent height when actions not shown

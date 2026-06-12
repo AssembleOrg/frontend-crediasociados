@@ -507,6 +507,20 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
               daysOverdue: sl.daysOverdue,
             })),
             notes: notes || undefined,
+            distributedPayments: (() => {
+              const others = (paymentResult.distributedPayments ?? [])
+                .filter((dp) => dp.subLoanId !== paymentResult.subLoan.id)
+                .map((dp) => {
+                  const matchedSl = paymentResult.subLoans?.find((sl: any) => sl.id === dp.subLoanId)
+                  return {
+                    subLoanPaymentNumber: matchedSl?.paymentNumber ?? 0,
+                    distributedAmount: dp.distributedAmount,
+                    newStatus: dp.newStatus as 'PARTIAL' | 'PAID',
+                  }
+                })
+                .filter((dp) => dp.subLoanPaymentNumber > 0)
+              return others.length > 0 ? others : undefined
+            })(),
           }
         }
 

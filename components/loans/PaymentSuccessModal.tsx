@@ -19,9 +19,9 @@ import {
   useMediaQuery,
   IconButton
 } from '@mui/material'
-import { CheckCircle as SuccessIcon, Warning, Receipt, Close, ExpandMore, ExpandLess } from '@mui/icons-material'
+import { CheckCircle as SuccessIcon, Warning, Receipt, Close, ExpandMore, ExpandLess, Download } from '@mui/icons-material'
 import { formatCurrencyDisplay } from '@/lib/formatters'
-import type { PaymentReceiptData } from '@/utils/pdf/paymentReceipt'
+import { generatePaymentPDF, type PaymentReceiptData } from '@/utils/pdf/paymentReceipt'
 
 interface PaymentSuccessModalProps {
   open: boolean
@@ -176,7 +176,7 @@ export const PaymentSuccessModal: React.FC<PaymentSuccessModalProps> = ({
             overflowX: 'hidden'
           }}
         >
-          {/* Success Alert */}
+          Success Alert
           <Alert
             severity="success"
             variant="outlined"
@@ -381,9 +381,26 @@ export const PaymentSuccessModal: React.FC<PaymentSuccessModalProps> = ({
           position: 'sticky',
           bottom: 0,
           bgcolor: 'background.paper',
-          zIndex: 1
+          zIndex: 1,
+          gap: 1,
+          flexDirection: { xs: 'column', sm: 'row' },
         }}
       >
+        {receiptData && (
+          <Button
+            onClick={() => generatePaymentPDF(receiptData)}
+            variant="outlined"
+            color="primary"
+            startIcon={<Download />}
+            fullWidth={isMobile}
+            sx={{
+              minWidth: { xs: '100%', sm: 160 },
+              py: { xs: 1.5, sm: 1 }
+            }}
+          >
+            Descargar comprobante
+          </Button>
+        )}
         <Button
           onClick={onClose}
           variant="contained"
