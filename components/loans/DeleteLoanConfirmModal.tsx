@@ -110,7 +110,7 @@ export function DeleteLoanConfirmModal({
       <DialogContent sx={{ pt: 3, px: { xs: 2, sm: 3 } }}>
         <Alert severity="error" sx={{ mb: 3 }}>
           <Typography variant="body2" fontWeight="bold" gutterBottom>
-            ⚠️ ADVERTENCIA: Esta acción es irreversible
+            ADVERTENCIA: Esta acción es irreversible
           </Typography>
           <Typography variant="body2">
             El préstamo será eliminado permanentemente del sistema y el monto será devuelto a tu billetera.

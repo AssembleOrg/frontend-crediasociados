@@ -119,28 +119,32 @@ class ExportService {
     // Check if this is a simulation (presupuesto)
     const isSimulation = loan.loanTrack === 'PRESUPUESTO' || loan.id === 'simulation';
 
-    // Calculate totals from actual subloan data
-    const totalAmount = subLoans.reduce((sum, s) => sum + (s.totalAmount || 0), 0);
-    const totalPrincipal = subLoans.reduce((sum, s) => sum + (s.amount || 0), 0);
+    // Calculate totals — Number() guards against string values from JSON, Math.round avoids float noise
+    const totalAmount = Math.round(subLoans.reduce((sum, s) => sum + Number(s.totalAmount || 0), 0)) || loan.amount;
+    const totalPrincipal = Math.round(subLoans.reduce((sum, s) => sum + Number(s.amount || 0), 0)) || (loan.originalAmount ?? loan.amount);
     const totalInterest = totalAmount - totalPrincipal;
 
-    // Calculate remaining balance
-    const totalPaid = subLoans.reduce((sum, s) => {
-      if (s.status === 'PAID') return sum + (s.totalAmount || 0)
-      if (s.status === 'PARTIAL') return sum + (s.paidAmount || 0)
+    // Calculate remaining balance and paid count
+    const totalPaid = Math.round(subLoans.reduce((sum, s) => {
+      if (s.status === 'PAID') return sum + Number(s.totalAmount || 0)
+      if (s.status === 'PARTIAL') return sum + Number(s.paidAmount || 0)
       return sum
-    }, 0)
-    const remainingBalance = totalAmount - totalPaid
+    }, 0))
+    const remainingBalance = Math.max(0, totalAmount - totalPaid)
+    const paidCount = subLoans.filter(s => s.status === 'PAID').length
+
+    // Capital original prestado (sin interés)
+    const originalAmount = loan.originalAmount ?? loan.amount;
 
     return {
       // Loan Information
       loanId: loan.id,
       loanTrack: loan.loanTrack,
-      amount: loan.amount,
-      baseInterestRate: isSimulation ? (loan.baseInterestRate || 0) : 0,
+      amount: originalAmount,
+      baseInterestRate: loan.baseInterestRate || 0,
       totalAmount: isSimulation ? totalAmount : loan.amount,
       paymentFrequency: loan.paymentFrequency,
-      numberOfInstallments: loan.totalPayments,
+      numberOfInstallments: loan.totalPayments || subLoans.length,
       startDate: new Date(loan.firstDueDate || loan.createdAt).toLocaleDateString('es-AR'),
       description: loan.description,
 
@@ -153,25 +157,30 @@ class ExportService {
       clientAddress: client.address,
 
       // Payment Schedule - Use actual subloan data
-      paymentSchedule: subLoans.map((subLoan, idx) => ({
-        paymentNumber: subLoan.paymentNumber ?? (idx + 1),
-        dueDate: new Date(subLoan.dueDate).toLocaleDateString('es-AR'),
-        principalAmount: subLoan.amount,
-        totalAmount: subLoan.totalAmount || subLoan.amount,
-        status: subLoan.status
-      })),
+      paymentSchedule: subLoans
+        .slice()
+        .sort((a, b) => (a.paymentNumber ?? 0) - (b.paymentNumber ?? 0))
+        .map((subLoan, idx) => ({
+          paymentNumber: subLoan.paymentNumber ?? (idx + 1),
+          dueDate: new Date(subLoan.dueDate).toLocaleDateString('es-AR'),
+          principalAmount: subLoan.amount,
+          totalAmount: subLoan.totalAmount || subLoan.amount,
+          status: subLoan.status
+        })),
 
       // Summary - Use calculated totals
       summary: {
         totalPrincipal: totalPrincipal,
         totalInterest: isSimulation ? totalInterest : 0,
         totalAmount: isSimulation ? totalAmount : loan.amount,
-        numberOfPayments: loan.totalPayments,
+        numberOfPayments: loan.totalPayments || subLoans.length,
+        paidCount,
         frequency: getFrequencyLabel(loan.paymentFrequency),
         remainingBalance
       },
 
       // Metadata
+      loanStatus: loan.status,
       generatedAt: new Date().toLocaleString('es-AR'),
       generatedBy: 'Crediasociados - Sistema de Gestión de Préstamos'
     };
@@ -213,194 +222,322 @@ class ExportService {
    * Create PDF Document React component
    */
   private createLoanPDFDocument(data: LoanPDFData) {
+    const isSimulation = data.loanTrack === 'PRESUPUESTO' || data.loanId === 'simulation';
+
+    const getStatusText = (status: string) => {
+      switch (status) {
+        case 'PAID': return 'Pagada';
+        case 'OVERDUE': return 'Vencida';
+        case 'PARTIAL': return 'Parcial';
+        default: return 'Pendiente';
+      }
+    };
+
+    const getStatusColor = (status: string) => {
+      switch (status) {
+        case 'PAID': return '#4caf50';
+        case 'OVERDUE': return '#f44336';
+        case 'PARTIAL': return '#ff9800';
+        default: return '#9e9e9e';
+      }
+    };
+
+    const getLoanStatusText = (status?: string) => {
+      switch (status) {
+        case 'ACTIVE': return 'Activo';
+        case 'COMPLETED': return 'Completado';
+        case 'DEFAULTED': return 'En mora';
+        case 'PENDING': return 'Pendiente';
+        case 'APPROVED': return 'Aprobado';
+        default: return status ?? '';
+      }
+    };
+
     const styles = StyleSheet.create({
       page: {
         flexDirection: 'column',
         backgroundColor: '#ffffff',
         padding: 30,
+        paddingBottom: 50,
         fontFamily: 'Helvetica'
       },
       header: {
-        marginBottom: 20,
+        marginBottom: 14,
         borderBottom: 2,
         borderBottomColor: '#4facfe',
         paddingBottom: 10
       },
       title: {
-        fontSize: 24,
+        fontSize: 20,
         fontWeight: 'bold',
         color: '#333333',
-        marginBottom: 5
+        marginBottom: 3
       },
       subtitle: {
-        fontSize: 12,
+        fontSize: 10,
         color: '#666666'
       },
-      section: {
-        marginVertical: 10,
-        paddingVertical: 10
-      },
-      sectionTitle: {
-        fontSize: 16,
-        fontWeight: 'bold',
-        marginBottom: 10,
-        color: '#4facfe'
-      },
-      row: {
+      // Two-column layout for client info + loan details
+      twoColContainer: {
         flexDirection: 'row',
-        marginBottom: 5
+        marginVertical: 8,
+        gap: 14,
       },
-      label: {
-        width: 150,
-        fontSize: 10,
+      col: {
+        flex: 1,
+      },
+      colSectionTitle: {
+        fontSize: 11,
+        fontWeight: 'bold',
+        marginBottom: 6,
+        color: '#4facfe',
+        borderBottom: 1,
+        borderBottomColor: '#e0e0e0',
+        paddingBottom: 3,
+      },
+      colRow: {
+        marginBottom: 4,
+      },
+      colLabel: {
+        fontSize: 8,
+        fontWeight: 'bold',
+        color: '#777777',
+      },
+      colValue: {
+        fontSize: 9,
+        color: '#333333',
+      },
+      summaryBox: {
+        backgroundColor: '#f0f4ff',
+        borderRadius: 4,
+        padding: 10,
+        marginVertical: 8,
+        flexDirection: 'row',
+      },
+      summaryItem: {
+        flex: 1,
+      },
+      summaryLabel: {
+        fontSize: 8,
+        color: '#6688aa',
+        marginBottom: 2,
+      },
+      summaryValue: {
+        fontSize: 13,
         fontWeight: 'bold',
         color: '#333333'
       },
-      value: {
-        flex: 1,
-        fontSize: 10,
-        color: '#555555'
+      summaryValueHighlight: {
+        fontSize: 13,
+        fontWeight: 'bold',
+        color: '#4facfe'
       },
       table: {
-        marginTop: 10
+        marginTop: 6
       },
       tableHeader: {
         flexDirection: 'row',
-        borderBottomWidth: 1,
-        borderBottomColor: '#cccccc',
-        paddingBottom: 5,
-        marginBottom: 5
+        backgroundColor: '#4facfe',
+        paddingVertical: 5,
+        paddingHorizontal: 4,
+        marginBottom: 0,
       },
       tableRow: {
         flexDirection: 'row',
-        marginBottom: 3
+        paddingVertical: 4,
+        paddingHorizontal: 4,
+        borderBottomWidth: 1,
+        borderBottomColor: '#eeeeee'
       },
-      tableCell: {
-        flex: 1,
-        fontSize: 9,
-        paddingHorizontal: 5
+      tableRowAlt: {
+        flexDirection: 'row',
+        paddingVertical: 4,
+        paddingHorizontal: 4,
+        backgroundColor: '#f7f9ff',
+        borderBottomWidth: 1,
+        borderBottomColor: '#eeeeee'
       },
-      tableCellHeader: {
-        flex: 1,
-        fontSize: 9,
+      colNum: { width: 36, fontSize: 9, color: '#555' },
+      colDate: { flex: 2, fontSize: 9, color: '#555' },
+      colAmount: { flex: 2, fontSize: 9, color: '#555', textAlign: 'right' },
+      colStatus: { flex: 2, fontSize: 9, textAlign: 'center' },
+      colNumHeader: { width: 36, fontSize: 9, fontWeight: 'bold', color: '#ffffff' },
+      colDateHeader: { flex: 2, fontSize: 9, fontWeight: 'bold', color: '#ffffff' },
+      colAmountHeader: { flex: 2, fontSize: 9, fontWeight: 'bold', color: '#ffffff', textAlign: 'right' },
+      colStatusHeader: { flex: 2, fontSize: 9, fontWeight: 'bold', color: '#ffffff', textAlign: 'center' },
+      sectionTitle: {
+        fontSize: 11,
         fontWeight: 'bold',
-        paddingHorizontal: 5,
-        color: '#333333'
+        marginBottom: 6,
+        marginTop: 8,
+        color: '#4facfe',
       },
       footer: {
         position: 'absolute',
-        bottom: 30,
+        bottom: 16,
         left: 30,
         right: 30,
         borderTop: 1,
-        borderTopColor: '#cccccc',
-        paddingTop: 10,
+        borderTopColor: '#dddddd',
+        paddingTop: 6,
         fontSize: 8,
-        color: '#666666',
+        color: '#aaaaaa',
         textAlign: 'center'
       }
     });
-    
+
+    const fmt = (n: number) => `$${Math.round(n).toLocaleString('es-AR')}`;
+
     return (
       <Document>
         <Page size="A4" style={styles.page}>
           {/* Header */}
           <View style={styles.header}>
-            <Text style={styles.title}>Presupuesto de Préstamo</Text>
+            <Text style={styles.title}>
+              {isSimulation ? 'Presupuesto de Préstamo' : 'Reporte de Préstamo'}
+            </Text>
             <Text style={styles.subtitle}>
               Generado el {data.generatedAt}
+              {!isSimulation && data.loanStatus ? `  ·  Estado: ${getLoanStatusText(data.loanStatus)}` : ''}
+              {data.loanTrack && data.loanTrack !== 'PRESUPUESTO' ? `  ·  Código: ${data.loanTrack}` : ''}
             </Text>
           </View>
-          
-          {/* Client Information */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Información del Cliente</Text>
-            <View style={styles.row}>
-              <Text style={styles.label}>Nombre Completo:</Text>
-              <Text style={styles.value}>{data.clientName}</Text>
+
+          {/* Two-column: Client Info + Loan Details */}
+          <View style={styles.twoColContainer}>
+            {/* Column 1 — Cliente */}
+            <View style={styles.col}>
+              <Text style={styles.colSectionTitle}>Información del Cliente</Text>
+              <View style={styles.colRow}>
+                <Text style={styles.colLabel}>Nombre</Text>
+                <Text style={styles.colValue}>{data.clientName}</Text>
+              </View>
+              {data.clientDNI && (
+                <View style={styles.colRow}>
+                  <Text style={styles.colLabel}>DNI</Text>
+                  <Text style={styles.colValue}>{data.clientDNI}</Text>
+                </View>
+              )}
+              {data.clientCUIT && (
+                <View style={styles.colRow}>
+                  <Text style={styles.colLabel}>CUIT</Text>
+                  <Text style={styles.colValue}>{data.clientCUIT}</Text>
+                </View>
+              )}
+              {data.clientPhone && (
+                <View style={styles.colRow}>
+                  <Text style={styles.colLabel}>Teléfono</Text>
+                  <Text style={styles.colValue}>{data.clientPhone}</Text>
+                </View>
+              )}
+              {data.clientEmail && (
+                <View style={styles.colRow}>
+                  <Text style={styles.colLabel}>Email</Text>
+                  <Text style={styles.colValue}>{data.clientEmail}</Text>
+                </View>
+              )}
+              {data.clientAddress && (
+                <View style={styles.colRow}>
+                  <Text style={styles.colLabel}>Dirección</Text>
+                  <Text style={styles.colValue}>{data.clientAddress}</Text>
+                </View>
+              )}
             </View>
-            {data.clientDNI && (
-              <View style={styles.row}>
-                <Text style={styles.label}>DNI:</Text>
-                <Text style={styles.value}>{data.clientDNI}</Text>
+
+            {/* Column 2 — Préstamo */}
+            <View style={styles.col}>
+              <Text style={styles.colSectionTitle}>Detalles del Préstamo</Text>
+              <View style={styles.colRow}>
+                <Text style={styles.colLabel}>Capital prestado</Text>
+                <Text style={styles.colValue}>{fmt(data.amount)}</Text>
               </View>
-            )}
-            {data.clientCUIT && (
-              <View style={styles.row}>
-                <Text style={styles.label}>CUIT:</Text>
-                <Text style={styles.value}>{data.clientCUIT}</Text>
+              {data.baseInterestRate > 0 && (
+                <View style={styles.colRow}>
+                  <Text style={styles.colLabel}>Tasa de interés</Text>
+                  <Text style={styles.colValue}>
+                    {data.baseInterestRate > 1 ? data.baseInterestRate : Number((data.baseInterestRate * 100).toFixed(2))}%
+                  </Text>
+                </View>
+              )}
+              <View style={styles.colRow}>
+                <Text style={styles.colLabel}>Frecuencia de pago</Text>
+                <Text style={styles.colValue}>{data.summary.frequency}</Text>
               </View>
-            )}
-            {data.clientPhone && (
-              <View style={styles.row}>
-                <Text style={styles.label}>Teléfono:</Text>
-                <Text style={styles.value}>{data.clientPhone}</Text>
+              <View style={styles.colRow}>
+                <Text style={styles.colLabel}>Total de cuotas</Text>
+                <Text style={styles.colValue}>{data.numberOfInstallments}</Text>
               </View>
-            )}
-            {data.clientEmail && (
-              <View style={styles.row}>
-                <Text style={styles.label}>Email:</Text>
-                <Text style={styles.value}>{data.clientEmail}</Text>
+              <View style={styles.colRow}>
+                <Text style={styles.colLabel}>Fecha de inicio</Text>
+                <Text style={styles.colValue}>{data.startDate}</Text>
               </View>
-            )}
+              {data.description && (
+                <View style={styles.colRow}>
+                  <Text style={styles.colLabel}>Descripción</Text>
+                  <Text style={styles.colValue}>{data.description}</Text>
+                </View>
+              )}
+            </View>
           </View>
-          
-          {/* Loan Details */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Detalles del Préstamo</Text>
-            {data.loanTrack && data.loanTrack !== 'PRESUPUESTO' && (
-              <View style={styles.row}>
-                <Text style={styles.label}>Código de Seguimiento:</Text>
-                <Text style={styles.value}>{data.loanTrack}</Text>
-              </View>
-            )}
-            <View style={styles.row}>
-              <Text style={styles.label}>Monto Solicitado:</Text>
-              <Text style={styles.value}>${data.amount.toLocaleString('es-AR')}</Text>
+
+          {/* Summary Box */}
+          <View style={styles.summaryBox}>
+            <View style={styles.summaryItem}>
+              <Text style={styles.summaryLabel}>Cuotas pagadas</Text>
+              <Text style={styles.summaryValueHighlight}>
+                {data.summary.paidCount} / {data.summary.numberOfPayments}
+              </Text>
             </View>
-            <View style={styles.row}>
-              <Text style={styles.label}>Monto Total a Devolver:</Text>
-              <Text style={styles.value}>${data.totalAmount.toLocaleString('es-AR')}</Text>
-            </View>
-            <View style={styles.row}>
-              <Text style={styles.label}>Frecuencia de Pago:</Text>
-              <Text style={styles.value}>{data.summary.frequency}</Text>
-            </View>
-            <View style={styles.row}>
-              <Text style={styles.label}>Número de Cuotas:</Text>
-              <Text style={styles.value}>{data.numberOfInstallments}</Text>
-            </View>
-            <View style={styles.row}>
-              <Text style={styles.label}>Fecha de Inicio:</Text>
-              <Text style={styles.value}>{data.startDate}</Text>
+            <View style={styles.summaryItem}>
+              <Text style={styles.summaryLabel}>Saldo pendiente</Text>
+              <Text style={styles.summaryValue}>{fmt(data.summary.remainingBalance)}</Text>
             </View>
           </View>
-          
+
           {/* Payment Schedule */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Cronograma de Pagos</Text>
-            <View style={styles.table}>
-              <View style={styles.tableHeader}>
-                <Text style={styles.tableCellHeader}>Cuota</Text>
-                <Text style={styles.tableCellHeader}>Fecha Pago</Text>
-                <Text style={styles.tableCellHeader}>Total a Pagar</Text>
-              </View>
-              {data.paymentSchedule.map((payment, index) => {
-                return (
-                  <View key={index} style={styles.tableRow}>
-                    <Text style={styles.tableCell}>#{payment.paymentNumber}</Text>
-                    <Text style={styles.tableCell}>{payment.dueDate}</Text>
-                    <Text style={styles.tableCell}>${payment.totalAmount.toLocaleString('es-AR')}</Text>
-                  </View>
-                );
-              })}
+          <Text style={styles.sectionTitle}>Cronograma de Pagos</Text>
+          <View style={styles.table}>
+            <View style={styles.tableHeader}>
+              <Text style={styles.colNumHeader}>#</Text>
+              <Text style={styles.colDateHeader}>Vencimiento</Text>
+              <Text style={styles.colAmountHeader}>Monto</Text>
+              <Text style={styles.colStatusHeader}>Estado</Text>
             </View>
+            {data.paymentSchedule.map((payment, index) => (
+              <View key={index} style={index % 2 === 0 ? styles.tableRow : styles.tableRowAlt}>
+                <Text style={styles.colNum}>{payment.paymentNumber}</Text>
+                <Text style={styles.colDate}>{payment.dueDate}</Text>
+                <Text style={styles.colAmount}>{fmt(payment.totalAmount)}</Text>
+                <Text style={{ ...styles.colStatus, color: getStatusColor(payment.status) }}>
+                  {getStatusText(payment.status)}
+                </Text>
+              </View>
+            ))}
           </View>
-          
+
           {/* Footer */}
-          <Text style={styles.footer}>
-            {data.generatedBy} | Este documento es un presupuesto informativo
+          <Text style={styles.footer} fixed>
+            Crediasociados - Sistema de Gestión de Préstamos  |  Desarrollado por Pistech
           </Text>
+
+          {/* Watermark — rendered last so it paints on top of content */}
+          <View
+            fixed
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              justifyContent: 'center',
+              alignItems: 'center',
+              opacity: 0.07,
+            }}
+          >
+            <Text style={{ fontSize: 62, fontWeight: 'bold', color: '#1565c0', transform: 'rotate(-35deg)' }}>
+              CREDIASOCIADOS
+            </Text>
+          </View>
         </Page>
       </Document>
     );

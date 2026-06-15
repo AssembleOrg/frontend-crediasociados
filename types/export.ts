@@ -64,11 +64,13 @@ export interface LoanPDFData {
     totalInterest: number;
     totalAmount: number;
     numberOfPayments: number;
+    paidCount: number;
     frequency: string;
     remainingBalance: number;
   };
 
   // Metadata
+  loanStatus?: string;
   generatedAt: string;
   generatedBy: string;
 }

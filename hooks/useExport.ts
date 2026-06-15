@@ -2,6 +2,7 @@ import { useState, useCallback } from 'react';
 import { useLoans } from '@/hooks/useLoans';
 import { useClients } from '@/hooks/useClients';
 import { useSubLoans } from '@/hooks/useSubLoans';
+import { loansService } from '@/services/loans.service';
 import type { ExportLoanData, ExportStatus } from '@/types/export';
 
 /**
@@ -23,56 +24,54 @@ export function useExport() {
   const { allSubLoans } = useSubLoans();
 
   /**
-   * Export single loan as PDF presupuesto
-   * Lazy loads export service and PDF libraries only when needed
+   * Export single loan as PDF reporte
+   * Fetches full loan data directly (including embedded subLoans and client)
+   * to avoid depending on the global store which may be incomplete.
    */
   const exportLoanToPDF = useCallback(async (loanId: string, filename?: string): Promise<boolean> => {
     try {
       setExportStatus('generating');
       setExportError(null);
 
-      // Orchestrate data gathering
-      const loan = getLoanById(loanId);
-      if (!loan) {
-        throw new Error('Préstamo no encontrado');
-      }
-      console.log('Loan found:', loan)
-      console.log('Clients:', clients)
-      console.log('Loan clientId:', loan.clientId)
-      const client = clients.find(c => c.id === loan.clientId);
-      if (!client) {
-        throw new Error('Cliente no encontrado');
+      // getLoanById retorna subLoans como objetos completos (el tipo generado dice string[] pero es incorrecto)
+      // Los campos numéricos pueden llegar como strings JSON ("8333.33"), por eso usamos Number()
+      const loanFull = await loansService.getLoanById(loanId);
+      const subLoans = (loanFull as any).subLoans ?? [];
+      const clientData = (loanFull as any).client;
+
+      if (!clientData) {
+        throw new Error('Cliente no encontrado en los datos del préstamo');
       }
 
-      const subLoans = allSubLoans.filter(sl => sl.loanId === loanId);
-      if (subLoans.length === 0) {
-        throw new Error('No se encontraron cuotas para este préstamo');
-      }
+      // Map client to expected Client shape
+      const client = {
+        id: clientData.id ?? loanFull.clientId,
+        fullName: clientData.fullName ?? clientData.name ?? 'Cliente',
+        dni: clientData.dni,
+        cuit: clientData.cuit,
+        phone: clientData.phone,
+        email: clientData.email,
+        address: clientData.address,
+        createdAt: clientData.createdAt ? new Date(clientData.createdAt) : new Date(),
+        updatedAt: clientData.updatedAt ? new Date(clientData.updatedAt) : new Date(),
+      };
 
-      // Use same logic as simulator and modal: amount * (1 + rate)
-      // Get the real interest rate from the loan data (already fixed in transforms.ts)
-      const baseRate = loan.baseInterestRate && loan.baseInterestRate > 0
-        ? (loan.baseInterestRate > 1 ? loan.baseInterestRate / 100 : loan.baseInterestRate)
-        : 0;
-
-      // Calculate total amount like simulator
-      const calculatedTotalAmount = loan.amount * (1 + baseRate);
-      const calculatedTotalInterest = calculatedTotalAmount - loan.amount;
-
-      // Use calculated values instead of subloans values
-      const totalAmount = calculatedTotalAmount;
-      const totalInterest = calculatedTotalInterest;
-
-      // Keep loan as-is, no need to modify baseInterestRate
-      const loanWithCorrectRate = loan;
+      // Number() convierte strings JSON a números para evitar concatenación ("8000" + "8000" = "80008000")
+      const totalPaid = subLoans.reduce((sum: number, s: any) => {
+        if (s.status === 'PAID') return sum + Number(s.totalAmount ?? 0);
+        if (s.status === 'PARTIAL') return sum + Number(s.paidAmount ?? 0);
+        return sum;
+      }, 0);
+      const totalAmount = subLoans.reduce((sum: number, s: any) => sum + Number(s.totalAmount ?? 0), 0) || loanFull.amount;
+      const totalInterest = totalAmount - loanFull.amount;
 
       const exportData: ExportLoanData = {
-        loan: loanWithCorrectRate,
-        client,
-        subLoans,
+        loan: loanFull as any,
+        client: client as any,
+        subLoans: subLoans,
         totalAmount,
         totalInterest,
-        totalPayments: subLoans.length
+        totalPayments: subLoans.length || loanFull.totalPayments,
       };
 
       setExportStatus('downloading');
@@ -84,7 +83,7 @@ export function useExport() {
       const pdfBlob = await exportService.generateLoanPDF(exportData);
 
       // Download file
-      const defaultFilename = `prestamo-${loan.loanTrack || loan.id}-presupuesto`;
+      const defaultFilename = `reporte-prestamo-${loanFull.loanTrack || loanId}`;
       exportService.downloadFile(pdfBlob, filename || defaultFilename, 'pdf');
 
       setExportStatus('completed');
@@ -94,10 +93,10 @@ export function useExport() {
       const errorMessage = error instanceof Error ? error.message : 'Error al generar PDF';
       setExportError(errorMessage);
       setExportStatus('error');
-      
+
       return false;
     }
-  }, [getLoanById, clients, allSubLoans]);
+  }, []);
 
   /**
    * Export multiple loans to Excel
@@ -332,15 +331,9 @@ export function useExport() {
    */
   const canExport = useCallback((loanId?: string): boolean => {
     if (!loanId) return allSubLoans.length > 0 && clients.length > 0;
-    
-    const loan = getLoanById(loanId);
-    if (!loan) return false;
-    
-    const client = clients.find(c => c.id === loan.clientId);
-    if (!client) return false;
-    
-    const subLoans = allSubLoans.filter(sl => sl.loanId === loanId);
-    return subLoans.length > 0;
+    // For individual loan PDF: just check the loan exists in the store.
+    // The actual fetch happens at export time via loansService.getLoanById.
+    return !!getLoanById(loanId);
   }, [getLoanById, clients, allSubLoans]);
 
   return {

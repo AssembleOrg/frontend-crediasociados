@@ -976,7 +976,7 @@ export default function OperativoSubadminPage() {
         <DialogContent sx={{ pt: 2 }}>
           <Alert severity="error" sx={{ mb: 3, borderRadius: 2 }}>
             <Typography variant="body2" fontWeight={600} gutterBottom>
-              ⚠️ Advertencia: Acción Permanente
+              Advertencia: Acción Permanente
             </Typography>
             <Typography variant="body2">
               Estás a punto de eliminar al cobrador{" "}
