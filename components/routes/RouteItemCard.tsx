@@ -75,7 +75,11 @@ export function RouteItemCard({
   const isPaid = item.subLoan.status === 'PAID';
   const isOverdue = item.subLoan.status === 'OVERDUE';
   const isPartial = item.subLoan.status === 'PARTIAL';
-  const hasDebt = overdueCount > 0;
+  // Deuda previa: preferir el dato autoritativo del backend (por cliente, con monto);
+  // fallback al overdueCount (por loanTrack) si no viene.
+  const debtCount = item.clientPreviousDebt?.count ?? overdueCount;
+  const debtAmount = item.clientPreviousDebt?.amount ?? 0;
+  const hasDebt = debtCount > 0;
   const isResetting = resettingSubloanId === item.subLoanId;
 
   // Border color: red if has prior debt, green if paid, primary if active
@@ -226,7 +230,8 @@ export function RouteItemCard({
                       variant="caption"
                       sx={{ color: iosColors.red, fontWeight: 700, fontSize: '0.75rem' }}
                     >
-                      {overdueCount} adeudada{overdueCount > 1 ? 's' : ''}
+                      {debtCount} adeudada{debtCount > 1 ? 's' : ''}
+                      {debtAmount > 0 ? ` · ${formatCurrency(debtAmount)}` : ''}
                     </Typography>
                   </Box>
                 </>

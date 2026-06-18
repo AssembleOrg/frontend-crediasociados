@@ -15,6 +15,8 @@ export interface CollectionRouteItem {
   amountCollected: number;
   amountSpent: number;
   netAmount: number;
+  // Deuda previa del cliente: cuotas impagas con vencimiento anterior al día de la ruta (informativo)
+  clientPreviousDebt?: { count: number; amount: number };
   notes?: string;
   createdAt: string;
   updatedAt: string;
@@ -58,6 +60,9 @@ export interface CollectionRoute {
   createdAt: string;
   updatedAt: string;
   items: CollectionRouteItem[];
+  // Norma 2: cuotas en arrastre (virtual). Cuotas viejas impagas cuyo weekday coincide con hoy.
+  // No persisten; se cobran con el flujo de pago normal.
+  carryOverItems?: CollectionRouteItem[];
   expenses?: RouteExpense[]; // New field for route expenses
   manager?: {
     id: string;

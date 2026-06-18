@@ -1070,6 +1070,34 @@ export default function RutasPage() {
         </Paper>
       )}
 
+      {/* ── Norma 2: Deudas pendientes de otros días (arrastre, virtual) ── */}
+      {currentRoute && (currentRoute.carryOverItems?.length ?? 0) > 0 && (
+        <Box sx={{ px: { xs: 0, sm: 0 }, mt: 3 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, px: { xs: 1.5, sm: 0 }, mb: 0.5 }}>
+            <Warning sx={{ fontSize: 18, color: 'error.main' }} />
+            <Typography variant="subtitle2" sx={{ fontWeight: 700, color: 'error.main' }}>
+              Deudas pendientes de otros días
+            </Typography>
+            <Typography variant="caption" color="text.secondary">
+              ({currentRoute.carryOverItems!.length})
+            </Typography>
+          </Box>
+          <Typography variant="caption" color="text.secondary" sx={{ px: { xs: 1.5, sm: 0 }, display: 'block', mb: 1 }}>
+            Cuotas vencidas que se cobraban este día de la semana. Cobrá como siempre.
+          </Typography>
+          {currentRoute.carryOverItems!.map((item, index) => (
+            <RouteItemCard
+              key={item.id}
+              item={item}
+              index={index}
+              onPayment={!isRouteClosed ? handleOpenPaymentModal : undefined}
+              onCardClick={handleOpenDetailModal}
+              isActive={!isRouteClosed}
+            />
+          ))}
+        </Box>
+      )}
+
       {/* Modals */}
       <CloseRouteModal
         open={closeModalOpen}
