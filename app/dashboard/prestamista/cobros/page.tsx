@@ -14,12 +14,18 @@ import {
   Divider,
   alpha,
   Snackbar,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Button,
 } from '@mui/material'
 import { Payment, Clear, Search, Warning, CheckCircle, InfoOutlined } from '@mui/icons-material'
 
 import type { SubLoanWithClientInfo } from '@/services/subloans-lookup.service'
 import type { CobrosClient, OverdueClientEntry } from '@/services/sub-loans.service'
 import { subLoansService } from '@/services/sub-loans.service'
+import { paymentsService } from '@/services/payments.service'
 import { useCobrosFilters } from '@/hooks/useCobrosFilters'
 import { getUrgencyColor } from '@/lib/cobros/urgencyHelpers'
 import { iosColors } from '@/lib/theme'
@@ -282,6 +288,8 @@ export default function CobrosPage() {
   const [paymentModalMode, setPaymentModalMode]         = useState<'single' | 'selector'>('single')
   const [selectedPaymentSubloan, setSelectedPaymentSubloan] = useState<SubLoanWithClientInfo | null>(null)
   const [successSnack, setSuccessSnack]                 = useState<string | null>(null)
+  const [resettingSubloanId, setResettingSubloanId]     = useState<string | null>(null)
+  const [subloanToReset, setSubloanToReset]             = useState<SubLoanWithClientInfo | null>(null)
 
   const handleViewClientDetails = (c: CobrosClient) => {
     setSelectedClientData(c)
@@ -298,6 +306,27 @@ export default function CobrosPage() {
     if (!selectedClientData) return
     setPaymentModalMode('selector')
     setPaymentModalOpen(true)
+  }
+
+  const handleResetClick = (subloan: SubLoanWithClientInfo) => {
+    setSubloanToReset(subloan)
+  }
+
+  const handleConfirmReset = async () => {
+    if (!subloanToReset?.id) return
+    const subLoanId = subloanToReset.id
+    setResettingSubloanId(subLoanId)
+    setSubloanToReset(null)
+    try {
+      await paymentsService.resetPayments(subLoanId)
+      setSuccessSnack('Pagos reseteados exitosamente')
+      refresh()
+    } catch (error: any) {
+      const msg = error?.response?.data?.message || error?.message || 'Error al resetear los pagos'
+      setSuccessSnack(`❌ ${msg}`)
+    } finally {
+      setResettingSubloanId(null)
+    }
   }
 
   const currentClientSummary = selectedClientData ? toClientSummary(selectedClientData) : null
@@ -544,8 +573,25 @@ export default function CobrosPage() {
         clientSummary={currentClientSummary}
         onPaymentClick={handlePaymentClick}
         onRegisterPaymentClick={handleRegisterPaymentClick}
+        onResetClick={handleResetClick}
+        resettingSubloanId={resettingSubloanId}
         onDateUpdated={refresh}
       />
+
+      <Dialog open={!!subloanToReset} onClose={() => setSubloanToReset(null)} maxWidth="xs" fullWidth>
+        <DialogTitle>Resetear pagos</DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" color="text.secondary">
+            Se eliminarán todos los pagos de esta cuota y se revertirá el saldo de la billetera. Esta acción no se puede deshacer.
+          </Typography>
+        </DialogContent>
+        <DialogActions sx={{ p: 2 }}>
+          <Button onClick={() => setSubloanToReset(null)}>Cancelar</Button>
+          <Button variant="contained" color="warning" onClick={handleConfirmReset}>
+            Resetear
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       <PaymentModal
         open={paymentModalOpen}

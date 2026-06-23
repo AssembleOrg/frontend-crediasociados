@@ -26,6 +26,8 @@ interface ClientTimelineModalProps {
   clientSummary: ClientSummary | null
   onPaymentClick: (subloan: SubLoanWithClientInfo) => void
   onRegisterPaymentClick: (clientSummary: ClientSummary) => void
+  onResetClick?: (subloan: SubLoanWithClientInfo) => void
+  resettingSubloanId?: string | null
   onDateUpdated?: () => void
 }
 
@@ -35,6 +37,8 @@ export default function ClientTimelineModal({
   clientSummary,
   onPaymentClick,
   onRegisterPaymentClick,
+  onResetClick,
+  resettingSubloanId,
   onDateUpdated
 }: ClientTimelineModalProps) {
   const [showClientInfo, setShowClientInfo] = useState<string | null>(null)
@@ -202,6 +206,8 @@ export default function ClientTimelineModal({
                   subLoans={loanGroup.subLoans}
                   compact={false}
                   onPaymentClick={onPaymentClick}
+                  onResetClick={onResetClick}
+                  resettingSubloanId={resettingSubloanId}
                   onDateUpdated={onDateUpdated}
                 />
               </Box>
