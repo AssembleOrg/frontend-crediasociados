@@ -28,7 +28,7 @@ export function useExport() {
    * Fetches full loan data directly (including embedded subLoans and client)
    * to avoid depending on the global store which may be incomplete.
    */
-  const exportLoanToPDF = useCallback(async (loanId: string, filename?: string): Promise<boolean> => {
+  const exportLoanToPDF = useCallback(async (loanId: string, filename?: string, opts: { reduced?: boolean } = {}): Promise<boolean> => {
     try {
       setExportStatus('generating');
       setExportError(null);
@@ -80,10 +80,12 @@ export function useExport() {
       const { exportService } = await import('@/services/export.service');
 
       // Generate PDF
-      const pdfBlob = await exportService.generateLoanPDF(exportData);
+      const pdfBlob = await exportService.generateLoanPDF(exportData, { reduced: opts.reduced });
 
       // Download file
-      const defaultFilename = `reporte-prestamo-${loanFull.loanTrack || loanId}`;
+      const defaultFilename = opts.reduced
+        ? `situacion-prestamo-${loanFull.loanTrack || loanId}`
+        : `reporte-prestamo-${loanFull.loanTrack || loanId}`;
       exportService.downloadFile(pdfBlob, filename || defaultFilename, 'pdf');
 
       setExportStatus('completed');

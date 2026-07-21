@@ -170,6 +170,7 @@ export function LoanSimulationModal({
     return (
       <Dialog
         open={open}
+        onClose={handleCloseAfterSuccess}
         maxWidth="sm"
         fullWidth
         PaperProps={{
@@ -235,6 +236,16 @@ export function LoanSimulationModal({
             Puedes usar este número para probar la consulta pública
           </Typography>
         </DialogContent>
+        <DialogActions sx={{ p: { xs: 2, sm: 3 }, pt: 0 }}>
+          <Button
+            onClick={handleCloseAfterSuccess}
+            variant="contained"
+            fullWidth
+            size="large"
+          >
+            Cerrar
+          </Button>
+        </DialogActions>
       </Dialog>
     )
   }

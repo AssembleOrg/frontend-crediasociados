@@ -15,7 +15,9 @@ import {
   IconButton,
   Paper,
 } from '@mui/material'
-import { Payment, Refresh, Warning, Close } from '@mui/icons-material'
+import { Payment, Refresh, Warning, Close, PictureAsPdf } from '@mui/icons-material'
+import { CircularProgress } from '@mui/material'
+import { useExport } from '@/hooks/useExport'
 import LoanTimeline from '@/components/loans/LoanTimeline'
 import { PaymentModal } from '@/components/loans/PaymentModal'
 import { 
@@ -58,6 +60,13 @@ export default function LoanDetailsModal({
   const [resetError, setResetError] = useState<string | null>(null)
   const [resetConfirmModalOpen, setResetConfirmModalOpen] = useState(false)
   const [subloanToReset, setSubloanToReset] = useState<SubLoanWithClientInfo | null>(null)
+  const { exportLoanToPDF, isExporting } = useExport()
+
+  const handleDownloadPdf = async () => {
+    if (!loan) return
+    // reduced = vista pública: sin tasa de interés ni datos de contacto
+    await exportLoanToPDF(loan.id, undefined, { reduced: true })
+  }
   if (!loan) return null
 
   const clientName = subLoans.length > 0 
@@ -344,7 +353,16 @@ resettingSubloanId={resettingSubloanId}
         )}
       </DialogContent>
       
-      <DialogActions sx={{ p: { xs: 2, sm: 3 } }}>
+      <DialogActions sx={{ p: { xs: 2, sm: 3 }, flexDirection: { xs: 'column', sm: 'row' }, gap: 1 }}>
+        <Button
+          onClick={handleDownloadPdf}
+          disabled={isExporting || !loan}
+          variant="outlined"
+          startIcon={isExporting ? <CircularProgress size={16} /> : <PictureAsPdf />}
+          sx={{ width: { xs: '100%', sm: 'auto' }, mr: { sm: 'auto' } }}
+        >
+          {isExporting ? 'Generando...' : 'Descargar PDF'}
+        </Button>
         <Button onClick={onClose} sx={{ width: { xs: '100%', sm: 'auto' } }}>
           Cerrar
         </Button>

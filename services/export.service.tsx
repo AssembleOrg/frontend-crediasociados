@@ -28,12 +28,12 @@ class ExportService {
   /**
    * Generate PDF document for loan presupuesto
    */
-  async generateLoanPDF(loanData: ExportLoanData): Promise<Blob> {
-    const pdfData = this.transformLoanToPDFData(loanData);
-    
+  async generateLoanPDF(loanData: ExportLoanData, opts: { reduced?: boolean } = {}): Promise<Blob> {
+    const pdfData = this.transformLoanToPDFData(loanData, opts.reduced);
+
     // Create PDF Document component
-    const LoanPDFDocument = this.createLoanPDFDocument(pdfData);
-    
+    const LoanPDFDocument = this.createLoanPDFDocument(pdfData, opts.reduced);
+
     // Generate PDF blob
     const blob = await pdf(LoanPDFDocument).toBlob();
     return blob;
@@ -113,7 +113,7 @@ class ExportService {
   /**
    * Transform loan data to PDF structure
    */
-  private transformLoanToPDFData(loanData: ExportLoanData): LoanPDFData {
+  private transformLoanToPDFData(loanData: ExportLoanData, reduced = false): LoanPDFData {
     const { loan, client, subLoans } = loanData;
 
     // Check if this is a simulation (presupuesto)
@@ -141,7 +141,8 @@ class ExportService {
       loanId: loan.id,
       loanTrack: loan.loanTrack,
       amount: originalAmount,
-      baseInterestRate: loan.baseInterestRate || 0,
+      // reduced = vista pública: nunca mostrar tasa de interés
+      baseInterestRate: reduced ? 0 : (loan.baseInterestRate || 0),
       totalAmount: isSimulation ? totalAmount : loan.amount,
       paymentFrequency: loan.paymentFrequency,
       numberOfInstallments: loan.totalPayments || subLoans.length,
@@ -221,7 +222,7 @@ class ExportService {
   /**
    * Create PDF Document React component
    */
-  private createLoanPDFDocument(data: LoanPDFData) {
+  private createLoanPDFDocument(data: LoanPDFData, reduced = false) {
     const isSimulation = data.loanTrack === 'PRESUPUESTO' || data.loanId === 'simulation';
 
     const getStatusText = (status: string) => {
@@ -394,7 +395,7 @@ class ExportService {
           {/* Header */}
           <View style={styles.header}>
             <Text style={styles.title}>
-              {isSimulation ? 'Presupuesto de Préstamo' : 'Reporte de Préstamo'}
+              {isSimulation ? 'Presupuesto de Préstamo' : reduced ? 'Situación Actual del Préstamo' : 'Reporte de Préstamo'}
             </Text>
             <Text style={styles.subtitle}>
               Generado el {data.generatedAt}
@@ -424,19 +425,19 @@ class ExportService {
                   <Text style={styles.colValue}>{data.clientCUIT}</Text>
                 </View>
               )}
-              {data.clientPhone && (
+              {!reduced && data.clientPhone && (
                 <View style={styles.colRow}>
                   <Text style={styles.colLabel}>Teléfono</Text>
                   <Text style={styles.colValue}>{data.clientPhone}</Text>
                 </View>
               )}
-              {data.clientEmail && (
+              {!reduced && data.clientEmail && (
                 <View style={styles.colRow}>
                   <Text style={styles.colLabel}>Email</Text>
                   <Text style={styles.colValue}>{data.clientEmail}</Text>
                 </View>
               )}
-              {data.clientAddress && (
+              {!reduced && data.clientAddress && (
                 <View style={styles.colRow}>
                   <Text style={styles.colLabel}>Dirección</Text>
                   <Text style={styles.colValue}>{data.clientAddress}</Text>
