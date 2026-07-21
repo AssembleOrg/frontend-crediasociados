@@ -1,4 +1,4 @@
-import { Document, Page, Text, View, StyleSheet, Font, pdf } from '@react-pdf/renderer';
+import { Document, Page, Text, View, Image, StyleSheet, Font, pdf } from '@react-pdf/renderer';
 import * as XLSX from 'xlsx';
 import { saveAs } from 'file-saver';
 import { getFrequencyLabel, getStatusLabel, formatInterestRate } from '@/lib/formatters';
@@ -266,7 +266,17 @@ class ExportService {
         marginBottom: 14,
         borderBottom: 2,
         borderBottomColor: '#4facfe',
-        paddingBottom: 10
+        paddingBottom: 10,
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 12,
+      },
+      headerLogo: {
+        width: 48,
+        height: 48,
+      },
+      headerText: {
+        flex: 1,
       },
       title: {
         fontSize: 20,
@@ -394,14 +404,18 @@ class ExportService {
         <Page size="A4" style={styles.page}>
           {/* Header */}
           <View style={styles.header}>
-            <Text style={styles.title}>
-              {isSimulation ? 'Presupuesto de Préstamo' : reduced ? 'Situación Actual del Préstamo' : 'Reporte de Préstamo'}
-            </Text>
-            <Text style={styles.subtitle}>
-              Generado el {data.generatedAt}
-              {!isSimulation && data.loanStatus ? `  ·  Estado: ${getLoanStatusText(data.loanStatus)}` : ''}
-              {data.loanTrack && data.loanTrack !== 'PRESUPUESTO' ? `  ·  Código: ${data.loanTrack}` : ''}
-            </Text>
+            {/* eslint-disable-next-line jsx-a11y/alt-text */}
+            <Image style={styles.headerLogo} src="/crediasociados-logo.png" />
+            <View style={styles.headerText}>
+              <Text style={styles.title}>
+                {isSimulation ? 'Presupuesto de Préstamo' : reduced ? 'Situación Actual del Préstamo' : 'Reporte de Préstamo'}
+              </Text>
+              <Text style={styles.subtitle}>
+                Generado el {data.generatedAt}
+                {!isSimulation && data.loanStatus ? `  ·  Estado: ${getLoanStatusText(data.loanStatus)}` : ''}
+                {data.loanTrack && data.loanTrack !== 'PRESUPUESTO' ? `  ·  Código: ${data.loanTrack}` : ''}
+              </Text>
+            </View>
           </View>
 
           {/* Two-column: Client Info + Loan Details */}
