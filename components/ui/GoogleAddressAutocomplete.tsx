@@ -59,13 +59,11 @@ export function GoogleAddressAutocomplete({
     }
   }, [apiKey])
 
-  // Sync inputValue with value when value changes externally (but not when user is typing)
+  // Sync inputValue with value when value changes externally.
+  // Safe because every keystroke propagates to the parent, so value === inputValue
+  // while the user types and this effect becomes a no-op.
   useEffect(() => {
-    // Only sync if inputValue is empty or matches value exactly
-    // This prevents interference when user is typing
-    if (value && (inputValue === '' || inputValue === value)) {
-      setInputValue(value)
-    }
+    setInputValue(value ?? '')
   }, [value])
 
   // Initialize Google Places services and Geocoder
@@ -111,7 +109,6 @@ export function GoogleAddressAutocomplete({
                 description: p.description,
                 place_id: p.place_id
               }))
-              console.log('Autocomplete results:', formattedOptions)
               setOptions(formattedOptions)
               setLoading(false)
               return
@@ -129,7 +126,7 @@ export function GoogleAddressAutocomplete({
                 {
                   address: input,
                   componentRestrictions: {
-                    country: 'ar' // Argentina
+                    country: 'ar' // Argentina (Geocoder acepta un solo país)
                   }
                 },
                 (results, geocodeStatus) => {
@@ -197,16 +194,24 @@ export function GoogleAddressAutocomplete({
       if (reason === 'clear' || newInputValue === '') {
         setOptions([])
       }
+      // Propagate typed text to the parent. Without this the address is only
+      // saved when a suggestion is picked (or Enter is pressed), so typing the
+      // address and hitting "Guardar" would discard it.
+      // 'reset' comes from MUI when the value prop changes, so it is ignored.
+      if (reason === 'input' || reason === 'clear') {
+        onChange(newInputValue)
+      }
     },
-    []
+    [onChange]
   )
 
   // Handle input change for plain TextField (fallback)
   const handleTextFieldChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
       setInputValue(e.target.value)
+      onChange(e.target.value)
     },
-    []
+    [onChange]
   )
 
   // Handle selection
@@ -233,7 +238,7 @@ export function GoogleAddressAutocomplete({
           fullWidth={fullWidth}
           label={label}
           placeholder={placeholder}
-          value={value}
+          value={inputValue}
           onChange={handleTextFieldChange}
           error={error}
           helperText={helperText || 'API key de Google Maps no configurada. Escribe la dirección manualmente.'}
@@ -271,7 +276,7 @@ export function GoogleAddressAutocomplete({
           fullWidth={fullWidth}
           label={label}
           placeholder={placeholder}
-          value={value}
+          value={inputValue}
           onChange={handleTextFieldChange}
           error={error}
           helperText={helperText || 'Error al cargar Google Maps. Escribe la dirección manualmente.'}
@@ -301,14 +306,20 @@ export function GoogleAddressAutocomplete({
     )
   }
 
-  // Show loading state while script loads
+  // Show loading state while script loads.
+  // The field stays editable: if Google Maps never loads (adblock, CSP, slow
+  // network) the address can still be typed and saved.
   if (!isLoaded) {
     return (
       <TextField
         fullWidth={fullWidth}
         label={label}
-        placeholder="Cargando..."
-        disabled
+        placeholder={placeholder}
+        helperText={helperText || 'Cargando sugerencias de Google Maps...'}
+        value={inputValue}
+        onChange={handleTextFieldChange}
+        error={error}
+        required={required}
         InputProps={{
           startAdornment: (
             <InputAdornment position="start">
