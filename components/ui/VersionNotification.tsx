@@ -14,9 +14,15 @@ import {
 } from '@mui/icons-material'
 import { useAuthStore } from '@/stores/auth'
 
-const VERSION_KEY = 'version_notification_1.5'
+const VERSION_KEY = 'version_notification_1.6'
 const MAX_SHOW_COUNT = 10
-const VERSION_MESSAGE = 'Nueva versión 1.5: Cobradores pueden reprogramar y reajustar cuotas desde la ruta. Nuevo simulador de préstamos y vista de morosos. Acceso rápido a WhatsApp y navegación móvil renovada.'
+const VERSION_TITLE = 'Nueva versión 1.6'
+const VERSION_ITEMS = [
+  'Corregidos los montos de "En Calle" y capital + intereses en Operativa.',
+  '"Préstamos con Deuda" ahora cuenta solo los préstamos que realmente deben.',
+  'PDF de préstamos más claro y compacto.',
+  'Los clientes eliminados durante una búsqueda ya no quedan visibles hasta refrescar.',
+]
 
 export function VersionNotification() {
   const [open, setOpen] = useState(false)
@@ -33,8 +39,8 @@ export function VersionNotification() {
     // Only show if we haven't reached the max count
     if (showCount < MAX_SHOW_COUNT) {
       const showTimer = setTimeout(() => setOpen(true), 800)
-      // Auto-dismiss after 5 seconds
-      const hideTimer = setTimeout(() => handleClose(), 6000)
+      // Auto-dismiss after 8 seconds (más items = más tiempo de lectura)
+      const hideTimer = setTimeout(() => handleClose(), 8000)
       return () => { clearTimeout(showTimer); clearTimeout(hideTimer) }
     }
   }, [isAuthenticated])
@@ -109,22 +115,33 @@ export function VersionNotification() {
               sx={{
                 color: 'white',
                 fontWeight: 700,
-                mb: 0.5,
+                mb: 1,
                 fontSize: '0.95rem',
               }}
             >
-              Actualización Disponible
+              {VERSION_TITLE}
             </Typography>
-            <Typography
-              variant="body2"
-              sx={{
-                color: 'rgba(255, 255, 255, 0.95)',
-                lineHeight: 1.5,
-                fontSize: '0.875rem',
-              }}
-            >
-              {VERSION_MESSAGE}
-            </Typography>
+            {VERSION_ITEMS.map((item, index) => (
+              <Box key={index} sx={{ display: 'flex', gap: 0.75, mb: 0.5 }}>
+                <Typography
+                  variant="body2"
+                  sx={{ color: 'rgba(255, 255, 255, 0.95)', fontSize: '0.875rem', lineHeight: 1.4 }}
+                >
+                  •
+                </Typography>
+                <Typography
+                  variant="body2"
+                  sx={{
+                    color: 'rgba(255, 255, 255, 0.95)',
+                    lineHeight: 1.4,
+                    fontSize: '0.875rem',
+                    flex: 1,
+                  }}
+                >
+                  {item}
+                </Typography>
+              </Box>
+            ))}
           </Box>
 
           {/* Close Button */}

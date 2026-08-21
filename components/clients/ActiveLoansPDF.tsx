@@ -10,14 +10,14 @@ import { Document, Page, Text, View, StyleSheet, Image, Font } from '@react-pdf/
 // Define styles
 const styles = StyleSheet.create({
   page: {
-    padding: 40,
+    padding: 28,
     backgroundColor: '#FFFFFF',
     fontFamily: 'Helvetica',
   },
   header: {
-    marginBottom: 30,
-    paddingBottom: 20,
-    borderBottomWidth: 3,
+    marginBottom: 16,
+    paddingBottom: 12,
+    borderBottomWidth: 2,
     borderBottomColor: '#1976d2',
   },
   headerRow: {
@@ -36,15 +36,15 @@ const styles = StyleSheet.create({
     marginLeft: 20,
   },
   title: {
-    fontSize: 24,
+    fontSize: 18,
     fontWeight: 'bold',
     color: '#1976d2',
-    marginBottom: 5,
+    marginBottom: 4,
   },
   subtitle: {
-    fontSize: 12,
+    fontSize: 10,
     color: '#666666',
-    marginTop: 5,
+    marginTop: 4,
   },
   dateInfo: {
     fontSize: 10,
@@ -53,15 +53,15 @@ const styles = StyleSheet.create({
   },
   managerInfo: {
     backgroundColor: '#E3F2FD',
-    padding: 15,
+    padding: 10,
     borderRadius: 5,
-    marginBottom: 25,
+    marginBottom: 14,
   },
   managerName: {
-    fontSize: 16,
+    fontSize: 13,
     fontWeight: 'bold',
     color: '#1976d2',
-    marginBottom: 5,
+    marginBottom: 3,
   },
   managerEmail: {
     fontSize: 11,
@@ -70,36 +70,34 @@ const styles = StyleSheet.create({
   summarySection: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 25,
-    gap: 15,
+    marginBottom: 14,
+    gap: 12,
   },
   summaryCard: {
     flex: 1,
     backgroundColor: '#F5F5F5',
-    padding: 15,
+    padding: 10,
     borderRadius: 5,
-    borderLeftWidth: 4,
-    borderLeftColor: '#1976d2',
   },
   summaryLabel: {
-    fontSize: 10,
+    fontSize: 9,
     color: '#666666',
-    marginBottom: 5,
+    marginBottom: 4,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
   summaryValue: {
-    fontSize: 20,
+    fontSize: 16,
     fontWeight: 'bold',
     color: '#1976d2',
   },
   table: {
-    marginTop: 20,
+    marginTop: 10,
   },
   tableHeader: {
     flexDirection: 'row',
     backgroundColor: '#1976d2',
-    padding: 10,
+    padding: 6,
     borderRadius: 3,
   },
   tableHeaderText: {
@@ -110,7 +108,7 @@ const styles = StyleSheet.create({
   },
   tableRow: {
     flexDirection: 'row',
-    padding: 10,
+    padding: 6,
     borderBottomWidth: 1,
     borderBottomColor: '#E0E0E0',
   },
@@ -134,8 +132,8 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   footer: {
-    marginTop: 30,
-    paddingTop: 15,
+    marginTop: 16,
+    paddingTop: 12,
     borderTopWidth: 1,
     borderTopColor: '#E0E0E0',
     flexDirection: 'row',
@@ -205,6 +203,8 @@ interface ActiveLoansPDFProps {
       }
     }>
   }
+  capitalEnCalle: number
+  withDebt: number
   searchQuery?: string
 }
 
@@ -226,7 +226,7 @@ const formatDate = (dateString: string): string => {
   })
 }
 
-export const ActiveLoansPDF: React.FC<ActiveLoansPDFProps> = ({ managerDetail, searchQuery }) => {
+export const ActiveLoansPDF: React.FC<ActiveLoansPDFProps> = ({ managerDetail, capitalEnCalle, withDebt, searchQuery }) => {
   const currentDate = new Date().toLocaleDateString('es-AR', {
     day: '2-digit',
     month: 'long',
@@ -278,15 +278,17 @@ export const ActiveLoansPDF: React.FC<ActiveLoansPDFProps> = ({ managerDetail, s
         {/* Summary Cards */}
         <View style={styles.summarySection}>
           <View style={styles.summaryCard}>
-            <Text style={styles.summaryLabel}>Total de Préstamos Activos</Text>
+            <Text style={styles.summaryLabel}>Préstamos con Deuda</Text>
             <Text style={styles.summaryValue}>
-              {searchQuery ? filteredLoans.length : managerDetail.totalLoans}
-              {searchQuery && ` de ${managerDetail.totalLoans}`}
+              {searchQuery
+                ? filteredLoans.filter((l) => l.stats.totalPending > 0).length
+                : withDebt}
             </Text>
           </View>
           <View style={styles.summaryCard}>
+            {/* ponytail: capitalEnCalle es total del manager; con búsqueda activa no se recalcula por filtro (el prop no trae subLoans) */}
             <Text style={styles.summaryLabel}>Dinero en Calle</Text>
-            <Text style={styles.summaryValue}>{formatCurrency(managerDetail.dineroEnCalle)}</Text>
+            <Text style={styles.summaryValue}>{formatCurrency(capitalEnCalle)}</Text>
           </View>
         </View>
 
