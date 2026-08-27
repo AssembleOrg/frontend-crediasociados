@@ -580,9 +580,9 @@ export default function OperativoSubadminPage() {
                             </Typography>
                           )}
                         </Box>
-                        {/* Dinero en Calle */}
+                        {/* En Calle: capital prestado */}
                         <Box>
-                          <Typography variant="caption" color="text.secondary" display="block">En Calle</Typography>
+                          <Typography variant="caption" color="text.secondary" display="block">Capital en Calle</Typography>
                           <Typography
                             variant="body2"
                             fontWeight={700}
@@ -590,14 +590,14 @@ export default function OperativoSubadminPage() {
                             sx={{ cursor: "pointer", textDecoration: "underline" }}
                             onClick={() => { setSelectedManagerForLoans(cobrador); setManagerLoansModalOpen(true); }}
                           >
-                            ${dineroEnCalle !== undefined ? dineroEnCalle.toLocaleString("es-AR") : "0"}
+                            ${dineroPrestado !== undefined ? dineroPrestado.toLocaleString("es-AR") : "0"}
                           </Typography>
                         </Box>
-                        {/* Neto Prestado */}
+                        {/* Capital Int.: capital + intereses pendiente */}
                         <Box>
-                          <Typography variant="caption" color="text.secondary" display="block">Neto Prest.</Typography>
-                          <Typography variant="body2" fontWeight={700} color="text.primary">
-                            ${dineroPrestado !== undefined ? dineroPrestado.toLocaleString("es-AR") : "0"}
+                          <Typography variant="caption" color="text.secondary" display="block">Capital Int.</Typography>
+                          <Typography variant="body2" fontWeight={700} color="warning.main">
+                            ${dineroEnCalle !== undefined ? dineroEnCalle.toLocaleString("es-AR") : "0"}
                           </Typography>
                         </Box>
                       </Box>

@@ -217,15 +217,21 @@ export default function ActiveLoansClientsModal({ open, onClose }: ActiveLoansCl
 
   // Counts por estado de deuda (sobre el total, no sobre el filtrado por search)
   const debtCounts = useMemo(() => {
-    if (!managerDetail?.loans) return { all: 0, withDebt: 0, paidUp: 0, totalDebt: 0 }
+    if (!managerDetail?.loans) return { all: 0, withDebt: 0, paidUp: 0, totalDebt: 0, capitalEnCalle: 0 }
     const withDebt = managerDetail.loans.filter((l) => l.stats.totalPending > 0)
     const paidUp = managerDetail.loans.filter((l) => l.stats.totalPending === 0)
     const totalDebt = withDebt.reduce((sum, l) => sum + l.stats.totalPending, 0)
+    // Capital pendiente (sin intereses): suma de subLoan.amount de cuotas no pagadas
+    const capitalEnCalle = managerDetail.loans.reduce(
+      (sum, l) => sum + l.subLoans.reduce((s, sl) => (sl.status !== 'PAID' ? s + sl.amount : s), 0),
+      0,
+    )
     return {
       all: managerDetail.loans.length,
       withDebt: withDebt.length,
       paidUp: paidUp.length,
       totalDebt,
+      capitalEnCalle,
     }
   }, [managerDetail])
 
@@ -368,12 +374,11 @@ export default function ActiveLoansClientsModal({ open, onClose }: ActiveLoansCl
                   </Box>
                 </ListItemIcon>
                 <ListItemText
-                  primary='Préstamos Activos'
+                  primary='Préstamos con Deuda'
                   primaryTypographyProps={{ variant: 'body2', color: 'text.secondary' }}
                 />
                 <Typography variant='body1' fontWeight={700} color='primary.main'>
-                  {searchQuery ? filteredLoans.length : managerDetail.totalLoans}
-                  {searchQuery && ` de ${managerDetail.totalLoans}`}
+                  {debtCounts.withDebt}
                 </Typography>
               </ListItem>
               <Divider component='li' />
@@ -388,7 +393,7 @@ export default function ActiveLoansClientsModal({ open, onClose }: ActiveLoansCl
                   primaryTypographyProps={{ variant: 'body2', color: 'text.secondary' }}
                 />
                 <Typography variant='body1' fontWeight={700} color='success.main'>
-                  {formatCurrencyCompact(managerDetail.dineroEnCalle)}
+                  {formatCurrencyCompact(debtCounts.capitalEnCalle)}
                 </Typography>
               </ListItem>
               <Divider component='li' />
@@ -525,7 +530,7 @@ export default function ActiveLoansClientsModal({ open, onClose }: ActiveLoansCl
                   />
                 )}
                 <PDFDownloadLink
-                  document={<ActiveLoansPDF managerDetail={managerDetail} searchQuery={searchQuery || undefined} />}
+                  document={<ActiveLoansPDF managerDetail={managerDetail} capitalEnCalle={debtCounts.capitalEnCalle} withDebt={debtCounts.withDebt} searchQuery={searchQuery || undefined} />}
                   fileName={`prestamos-activos-${managerDetail.manager.fullName.replace(/\s+/g, '-').toLowerCase()}-${new Date().toISOString().split('T')[0]}.pdf`}
                   style={{ textDecoration: 'none' }}
                 >

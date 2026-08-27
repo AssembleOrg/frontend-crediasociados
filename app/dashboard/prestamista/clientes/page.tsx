@@ -489,6 +489,7 @@ export default function ClientesPage() {
         onConfirm={async (id: string) => {
           const success = await deleteClient(id)
           if (success) {
+            setSearchResults(prev => prev ? prev.filter(c => c.id !== id) : prev)
             handleCloseModals()
           }
           return success
