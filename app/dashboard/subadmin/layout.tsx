@@ -34,11 +34,14 @@ const OverdueClientsModal = dynamic(
   () => import('@/components/clients/OverdueClientsModal'),
   { ssr: false }
 )
-// commented by july
-// const BlacklistModal = dynamic(
-//   () => import('@/components/clients/BlacklistModal'),
-//   { ssr: false }
-// )
+const BlacklistModal = dynamic(
+  () => import('@/components/clients/BlacklistModal'),
+  { ssr: false }
+)
+const ClientLossesModal = dynamic(
+  () => import('@/components/clients/ClientLossesModal'),
+  { ssr: false }
+)
 
 const subadminMenuItems = [
   { label: 'Dashboard',   icon: <Dashboard />,  path: '/dashboard/subadmin' },
@@ -62,8 +65,8 @@ export default function SubadminLayout({
   const [activeLoansOpen, setActiveLoansOpen] = useState(false)
   const [unverifiedOpen, setUnverifiedOpen]   = useState(false)
   const [overdueOpen, setOverdueOpen]         = useState(false)
-  // commented by july
-  // const [blacklistOpen, setBlacklistOpen]     = useState(false)
+  const [blacklistOpen, setBlacklistOpen]     = useState(false)
+  const [lossesOpen, setLossesOpen]           = useState(false)
 
   useEffect(() => {
     fetchUsers();
@@ -75,8 +78,8 @@ export default function SubadminLayout({
     if (pendingModal === 'unverified')  setUnverifiedOpen(true)
     if (pendingModal === 'inactive')    setInactiveOpen(true)
     if (pendingModal === 'overdue')     setOverdueOpen(true)
-    // commented by july
-    // if (pendingModal === 'blacklist')   setBlacklistOpen(true)
+    if (pendingModal === 'blacklist')   setBlacklistOpen(true)
+    if (pendingModal === 'losses')      setLossesOpen(true)
     if (pendingModal === 'activeloans') setActiveLoansOpen(true)
     setPendingModal(null)
   }, [pendingModal, setPendingModal]);
@@ -148,8 +151,8 @@ export default function SubadminLayout({
       <ActiveLoansClientsModal open={activeLoansOpen} onClose={() => setActiveLoansOpen(false)} />
       <UnverifiedClientsModal  open={unverifiedOpen}  onClose={() => setUnverifiedOpen(false)} />
       <OverdueClientsModal     open={overdueOpen}     onClose={() => setOverdueOpen(false)} />
-      {/* commented by july */}
-      {/* <BlacklistModal          open={blacklistOpen}   onClose={() => setBlacklistOpen(false)} /> */}
+      <BlacklistModal          open={blacklistOpen}   onClose={() => setBlacklistOpen(false)} />
+      <ClientLossesModal       open={lossesOpen}      onClose={() => setLossesOpen(false)} />
     </DashboardDataProvider>
   );
 }

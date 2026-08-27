@@ -28,7 +28,8 @@ import {
   Work,
   Description,
   LocationOn,
-  Numbers
+  Numbers,
+  MoneyOff
 } from '@mui/icons-material'
 import PhoneChip from '@/components/ui/PhoneChip'
 import type { Client } from '@/types/auth'
@@ -39,9 +40,10 @@ interface ClientCardProps {
   client: Client
   onEdit: (client: Client) => void
   onDelete: (client: Client) => void
+  onLoss?: (client: Client) => void
 }
 
-export function ClientCard({ client, onEdit, onDelete }: ClientCardProps) {
+export function ClientCard({ client, onEdit, onDelete, onLoss }: ClientCardProps) {
   const [notesDialogOpen, setNotesDialogOpen] = useState(false)
   const [notesValue, setNotesValue] = useState('')
   const [currentLoanId, setCurrentLoanId] = useState<string | null>(null)
@@ -203,6 +205,17 @@ export function ClientCard({ client, onEdit, onDelete }: ClientCardProps) {
           >
             <Edit fontSize="small" />
           </IconButton>
+          {onLoss && (
+            <Tooltip title="Dar de baja por pérdida">
+              <IconButton
+                size="small"
+                color="warning"
+                onClick={(e) => { e.stopPropagation(); onLoss(client) }}
+              >
+                <MoneyOff fontSize="small" />
+              </IconButton>
+            </Tooltip>
+          )}
           <IconButton
             size="small"
             color="error"

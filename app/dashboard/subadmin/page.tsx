@@ -3,7 +3,7 @@
 import React, { useState, useMemo, useEffect } from 'react'
 import dynamic from 'next/dynamic'
 import { Box, CircularProgress, Typography, Alert, Grid, Button, useMediaQuery, Dialog, DialogTitle, DialogContent, Paper, List, ListItem, ListItemIcon, ListItemText, Divider, IconButton } from '@mui/material'
-import { ExpandMore, ExpandLess, Calculate, PersonOff, AccountBalance, VerifiedUser, Warning, Block, ChevronRight, Close } from '@mui/icons-material'
+import { ExpandMore, ExpandLess, Calculate, PersonOff, AccountBalance, VerifiedUser, Warning, Block, ChevronRight, Close, MoneyOff } from '@mui/icons-material'
 import PageHeader from '@/components/ui/PageHeader'
 import { useSubadminStore } from '@/stores/subadmin'
 import { useSubadminDashboardData } from '@/hooks/useSubadminDashboardData'
@@ -159,13 +159,18 @@ export default function SubadminDashboard() {
       color: 'error.main' as const,
       onClick: () => setPendingModal('overdue'),
     },
-    // commented by july
-    // {
-    //   icon: <Block sx={{ fontSize: 20 }} />,
-    //   label: 'Lista Negra',
-    //   color: 'text.secondary' as const,
-    //   onClick: () => setPendingModal('blacklist'),
-    // },
+    {
+      icon: <Block sx={{ fontSize: 20 }} />,
+      label: 'Lista Negra',
+      color: 'text.secondary' as const,
+      onClick: () => setPendingModal('blacklist'),
+    },
+    {
+      icon: <MoneyOff sx={{ fontSize: 20 }} />,
+      label: 'Pérdidas',
+      color: 'error.main' as const,
+      onClick: () => setPendingModal('losses'),
+    },
     {
       icon: <AccountBalance sx={{ fontSize: 20 }} />,
       label: 'Clientes con Préstamos Activos',

@@ -21,6 +21,7 @@ import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { Logo } from '@/components/ui/Logo';
 import { RoleUtils, type UserRole } from '@/lib/role-utils';
 import { ChangePasswordModal } from '@/components/users/ChangePasswordModal';
+import { NotificationsBell } from '@/components/notifications/NotificationsBell';
 import api from '@/services/api';
 
 export function DashboardNav() {
@@ -155,6 +156,8 @@ export function DashboardNav() {
               {RoleUtils.getRoleDisplayName((user?.role || '') as UserRole)}
             </Typography>
           </Box>
+
+          <NotificationsBell role={user?.role} />
 
           <IconButton
             size='medium'

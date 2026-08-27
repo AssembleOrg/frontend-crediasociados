@@ -34,12 +34,14 @@ import {
   Search,
   Clear,
   InfoOutlined,
+  MoneyOff,
 } from '@mui/icons-material'
 import { clientsService } from '@/services/clients.service'
 import { loansService } from '@/services/loans.service'
 import { useClients } from '@/hooks/useClients'
 import { ClientFormModal } from '@/components/clients/ClientFormModal'
 import { DeleteClientConfirmDialog } from '@/components/clients/DeleteClientConfirmDialog'
+import { ClientLossDialog } from '@/components/clients/ClientLossDialog'
 import { ClientCard } from '@/components/clients/ClientCard'
 import { TableSkeleton } from '@/components/ui/TableSkeleton'
 import PageHeader from '@/components/ui/PageHeader'
@@ -86,6 +88,7 @@ export default function ClientesPage() {
   const [createModalOpen, setCreateModalOpen] = useState(false)
   const [editModalOpen, setEditModalOpen] = useState(false)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [lossDialogOpen, setLossDialogOpen] = useState(false)
   const [selectedClient, setSelectedClient] = useState<Client | null>(null)
 
   // Notes dialog state
@@ -179,10 +182,16 @@ export default function ClientesPage() {
     setDeleteDialogOpen(true)
   }
 
+  const handleLoss = (client: Client) => {
+    setSelectedClient(client)
+    setLossDialogOpen(true)
+  }
+
   const handleCloseModals = useCallback(async () => {
     setCreateModalOpen(false)
     setEditModalOpen(false)
     setDeleteDialogOpen(false)
+    setLossDialogOpen(false)
     setSelectedClient(null)
     
     // ✅ REHIDRATACIÓN: Refrescar datos después de cerrar modales
@@ -382,6 +391,15 @@ export default function ClientesPage() {
                         >
                           <Edit />
                         </IconButton>
+                        <Tooltip title="Dar de baja por pérdida">
+                          <IconButton
+                            size="small"
+                            onClick={() => handleLoss(client)}
+                            color="warning"
+                          >
+                            <MoneyOff />
+                          </IconButton>
+                        </Tooltip>
                         <IconButton
                           size="small"
                           onClick={() => handleDelete(client)}
@@ -420,6 +438,7 @@ export default function ClientesPage() {
                 client={client}
                 onEdit={handleEdit}
                 onDelete={handleDelete}
+                onLoss={handleLoss}
               />
             ))
           )}
@@ -474,6 +493,13 @@ export default function ClientesPage() {
           }
           return success
         }}
+      />
+
+      <ClientLossDialog
+        open={lossDialogOpen}
+        onClose={handleCloseModals}
+        client={selectedClient}
+        onSuccess={() => fetchClients()}
       />
 
       {/* Notes Dialog */}
