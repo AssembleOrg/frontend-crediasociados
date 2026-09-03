@@ -26,6 +26,7 @@ import type { SelectChangeEvent } from '@mui/material/Select'
 import { useClients } from '@/hooks/useClients'
 import { useCurrentUser } from '@/hooks/useCurrentUser'
 import { loansService } from '@/services/loans.service'
+import { blacklistService } from '@/services/blacklist.service'
 import { ClientValidation } from '@/lib/validation-utils'
 import { formatDNI, formatCUIT, unformatDNI, unformatCUIT, formatPhoneNumber } from '@/lib/formatters'
 import { LATIN_AMERICAN_COUNTRIES } from '@/lib/countries'
@@ -62,6 +63,8 @@ export function ClientFormModal({
   const currentUser = useCurrentUser()
 
   const [formData, setFormData] = useState(INITIAL_FORM_DATA)
+  const [blacklistError, setBlacklistError] = useState<string | null>(null)
+  const [checkingBlacklist, setCheckingBlacklist] = useState(false)
   const [formErrors, setFormErrors] = useState<Record<string, string>>({})
 
   // Loan description state (separate from client form)
@@ -165,6 +168,33 @@ export function ClientFormModal({
       return
     }
 
+    setBlacklistError(null)
+
+    const rawDni = formData.dni ? unformatDNI(formData.dni) : undefined
+    const rawCuit = formData.cuit ? unformatCUIT(formData.cuit) : undefined
+
+    // Pre-chequeo de lista negra (compartida) solo al crear. El backend
+    // rechaza igual, pero así el cobrador se entera antes de enviar.
+    if (mode === 'create' && (rawDni || rawCuit)) {
+      setCheckingBlacklist(true)
+      try {
+        const { isBlacklisted, entry } = await blacklistService.check({
+          dni: rawDni,
+          cuit: rawCuit,
+        })
+        if (isBlacklisted) {
+          setBlacklistError(
+            `Este cliente está en la lista negra${entry?.reason ? `: ${entry.reason}` : ''}. No se puede cargar.`,
+          )
+          return
+        }
+      } catch {
+        // Si el chequeo falla, dejamos que el backend valide al enviar
+      } finally {
+        setCheckingBlacklist(false)
+      }
+    }
+
     // Prepare data for submission
     const selectedCountry = LATIN_AMERICAN_COUNTRIES.find(c => c.code === formData.countryCode)
     const fullPhoneNumber = formData.phone && selectedCountry 
@@ -173,8 +203,8 @@ export function ClientFormModal({
 
     const clientData: Omit<Client, 'id' | 'createdAt' | 'updatedAt'> = {
       fullName: formData.fullName,
-      dni: formData.dni ? unformatDNI(formData.dni) : undefined,
-      cuit: formData.cuit ? unformatCUIT(formData.cuit) : undefined,
+      dni: rawDni,
+      cuit: rawCuit,
       phone: fullPhoneNumber,
       email: formData.email || undefined,
       address: formData.address || undefined,
@@ -201,6 +231,7 @@ export function ClientFormModal({
   const handleClose = () => {
     setFormData(INITIAL_FORM_DATA)
     setFormErrors({})
+    setBlacklistError(null)
     setLoanDescription('')
     setActiveLoanId(null)
     setDescriptionSaved(false)
@@ -288,6 +319,12 @@ export function ClientFormModal({
           {error && (
             <Alert severity="error" sx={{ m: 3, mb: 0 }}>
               {error}
+            </Alert>
+          )}
+
+          {blacklistError && (
+            <Alert severity="warning" icon={false} sx={{ m: 3, mb: 0 }}>
+              {blacklistError}
             </Alert>
           )}
 
@@ -619,7 +656,7 @@ export function ClientFormModal({
           <Button
             type="submit"
             variant="contained"
-            disabled={isLoading}
+            disabled={isLoading || checkingBlacklist}
             size="large"
             sx={{
               borderRadius: 2,
@@ -631,7 +668,7 @@ export function ClientFormModal({
               }
             }}
           >
-            {isLoading ? loadingText : submitText}
+            {checkingBlacklist ? 'Verificando...' : isLoading ? loadingText : submitText}
           </Button>
         </DialogActions>
       </form>

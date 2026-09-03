@@ -2,10 +2,13 @@ import api from './api';
 
 export interface BlacklistedClient {
   id: string;
-  dni: string;
+  dni: string | null;
+  cuit: string | null;
   fullName: string;
   reason: string;
   createdBy: string;
+  clientId: string | null;
+  clientLossId: string | null;
   createdAt: string;
 }
 
@@ -16,9 +19,11 @@ class BlacklistService {
   }
 
   async add(data: {
-    dni: string;
+    dni?: string;
+    cuit?: string;
     fullName: string;
     reason: string;
+    clientId?: string;
   }): Promise<BlacklistedClient> {
     const response = await api.post('/blacklist', data);
     return response.data?.data || response.data;
@@ -28,10 +33,12 @@ class BlacklistService {
     await api.delete(`/blacklist/${id}`);
   }
 
-  async checkDni(
-    dni: string
-  ): Promise<{ isBlacklisted: boolean; entry: BlacklistedClient | null }> {
-    const response = await api.get('/blacklist/check', { params: { dni } });
+  /** Chequea por DNI y/o CUIT contra la lista negra activa (compartida). */
+  async check(params: {
+    dni?: string;
+    cuit?: string;
+  }): Promise<{ isBlacklisted: boolean; entry: BlacklistedClient | null }> {
+    const response = await api.get('/blacklist/check', { params });
     return response.data?.data || response.data;
   }
 }

@@ -44,6 +44,7 @@ export default function BlacklistModal({ open, onClose }: BlacklistModalProps) {
   // Add form
   const [showAddForm, setShowAddForm] = useState(false)
   const [newDni, setNewDni] = useState('')
+  const [newCuit, setNewCuit] = useState('')
   const [newFullName, setNewFullName] = useState('')
   const [newReason, setNewReason] = useState('')
   const [adding, setAdding] = useState(false)
@@ -71,16 +72,19 @@ export default function BlacklistModal({ open, onClose }: BlacklistModalProps) {
   }
 
   const handleAdd = async () => {
-    if (!newDni.trim() || !newFullName.trim() || !newReason.trim()) return
+    // Requiere DNI o CUIT (al menos uno) + nombre + motivo
+    if ((!newDni.trim() && !newCuit.trim()) || !newFullName.trim() || !newReason.trim()) return
     setAdding(true)
     setAddError(null)
     try {
       await blacklistService.add({
-        dni: newDni.trim(),
+        dni: newDni.trim() || undefined,
+        cuit: newCuit.trim() || undefined,
         fullName: newFullName.trim(),
         reason: newReason.trim(),
       })
       setNewDni('')
+      setNewCuit('')
       setNewFullName('')
       setNewReason('')
       setShowAddForm(false)
@@ -106,7 +110,8 @@ export default function BlacklistModal({ open, onClose }: BlacklistModalProps) {
         const q = searchQuery.toLowerCase()
         return (
           e.fullName.toLowerCase().includes(q) ||
-          e.dni.toLowerCase().includes(q) ||
+          (e.dni?.toLowerCase().includes(q) ?? false) ||
+          (e.cuit?.toLowerCase().includes(q) ?? false) ||
           e.reason.toLowerCase().includes(q)
         )
       })
@@ -178,13 +183,21 @@ export default function BlacklistModal({ open, onClose }: BlacklistModalProps) {
             <Typography variant="subtitle2" fontWeight={600} sx={{ mb: 2 }}>
               Agregar a Lista Negra
             </Typography>
+            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1 }}>
+              Indicá DNI o CUIT (al menos uno).
+            </Typography>
             <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2, mb: 2 }}>
               <TextField
                 label="DNI"
                 value={newDni}
                 onChange={(e) => setNewDni(e.target.value)}
                 size="small"
-                required
+              />
+              <TextField
+                label="CUIT"
+                value={newCuit}
+                onChange={(e) => setNewCuit(e.target.value)}
+                size="small"
               />
               <TextField
                 label="Nombre completo"
@@ -192,6 +205,7 @@ export default function BlacklistModal({ open, onClose }: BlacklistModalProps) {
                 onChange={(e) => setNewFullName(e.target.value)}
                 size="small"
                 required
+                sx={{ gridColumn: { xs: 'auto', sm: '1 / -1' } }}
               />
             </Box>
             <TextField
@@ -214,7 +228,7 @@ export default function BlacklistModal({ open, onClose }: BlacklistModalProps) {
               variant="contained"
               color="error"
               onClick={handleAdd}
-              disabled={adding || !newDni.trim() || !newFullName.trim() || !newReason.trim()}
+              disabled={adding || (!newDni.trim() && !newCuit.trim()) || !newFullName.trim() || !newReason.trim()}
               startIcon={adding ? <CircularProgress size={16} /> : <Block />}
             >
               {adding ? 'Agregando...' : 'Agregar a Lista Negra'}
@@ -255,6 +269,7 @@ export default function BlacklistModal({ open, onClose }: BlacklistModalProps) {
                 <TableRow sx={{ bgcolor: alpha('#424242', 0.06) }}>
                   <TableCell sx={{ fontWeight: 600 }}>Nombre</TableCell>
                   <TableCell sx={{ fontWeight: 600 }}>DNI</TableCell>
+                  <TableCell sx={{ fontWeight: 600 }}>CUIT</TableCell>
                   <TableCell sx={{ fontWeight: 600 }}>Motivo</TableCell>
                   <TableCell align="center" sx={{ fontWeight: 600 }}>Fecha</TableCell>
                   <TableCell align="center" sx={{ fontWeight: 600 }}>Accion</TableCell>
@@ -269,7 +284,10 @@ export default function BlacklistModal({ open, onClose }: BlacklistModalProps) {
                       </Typography>
                     </TableCell>
                     <TableCell>
-                      <Typography variant="body2">{entry.dni}</Typography>
+                      <Typography variant="body2">{entry.dni || '—'}</Typography>
+                    </TableCell>
+                    <TableCell>
+                      <Typography variant="body2">{entry.cuit || '—'}</Typography>
                     </TableCell>
                     <TableCell>
                       <Typography variant="body2" color="text.secondary" sx={{ maxWidth: 300 }}>
