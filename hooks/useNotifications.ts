@@ -43,6 +43,9 @@ export function useNotifications(enabled: boolean) {
       transports: ['polling'],
       withCredentials: true,
       reconnectionDelayMax: 30000,
+      // Sin trailing slash: Next redirige /api/socket.io/ → /api/socket.io
+      // (308) y ese redirect rompía el handshake con un 404 en el backend.
+      addTrailingSlash: false,
     })
     socketRef.current = socket
 
