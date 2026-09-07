@@ -34,7 +34,7 @@ const ManagerPerformanceChart = dynamic(
   () => import('@/components/charts/ManagerPerformanceChart'),
   {
     ssr: false,
-    loading: () => <BarChartSkeleton title="Capital en Calle por Manager" />
+    loading: () => <BarChartSkeleton title="Capital Prestado por Manager" />
   }
 )
 

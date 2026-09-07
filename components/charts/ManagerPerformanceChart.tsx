@@ -7,13 +7,12 @@ import type { ManagerAnalytics } from '@/services/analytics.service'
 
 interface ManagerPerformanceData {
   name: string
-  /** Capital en calle (capital pendiente de cobro, sin interés) */
+  /** Capital prestado total (originalAmount, sin interés) */
   amount: number
-  /** Capital + interés pendiente */
-  amountWithInterest: number
+  /** Capital pendiente de cobro hoy (en calle) */
+  enCalle: number
   managerId: string
   clients: number
-  /** Préstamos con capital pendiente */
   loans: number
 }
 
@@ -40,13 +39,13 @@ const CustomTooltip = ({ active, payload, label }: TooltipProps) => {
           ${formatAmount(data.amount)}
         </Typography>
         <Typography variant="caption" color="text.secondary" display="block">
-          Capital en calle
+          Capital prestado
         </Typography>
-        <Typography variant="caption" color="warning.main" display="block">
-          Con interés: ${formatAmount(data.amountWithInterest)}
+        <Typography variant="caption" color="info.main" display="block">
+          En calle: ${formatAmount(data.enCalle)}
         </Typography>
         <Typography variant="caption" color="text.secondary" display="block">
-          {data.clients} clientes • {data.loans} préstamos activos
+          {data.clients} clientes • {data.loans} préstamos
         </Typography>
       </Paper>
     )
@@ -71,21 +70,21 @@ const ManagerPerformanceChart = memo(function ManagerPerformanceChart({ managers
   const containerHeight = { xs: 280, sm: 320, md: 420, lg: 480 }
 
   // Transform manager analytics data to chart format
-  // Muestra la actualidad: capital pendiente en calle, no el histórico prestado
+  // Barra = capital prestado (sin interés). Tooltip muestra además lo que queda en calle.
   const chartData: ManagerPerformanceData[] = managers.map(manager => ({
     name: manager.managerName,
-    amount: manager.capitalEnCalle ?? 0,
-    amountWithInterest: manager.capitalConInteres ?? 0,
+    amount: manager.totalAmountLent,
+    enCalle: manager.capitalEnCalle ?? 0,
     managerId: manager.managerId,
     clients: manager.totalClients,
-    loans: manager.activeLoans ?? 0
+    loans: manager.totalLoans
   }))
 
   if (isLoading) {
     return (
       <Paper elevation={1} sx={{ p: 3, height: chartHeight }}>
         <Typography variant="h6" gutterBottom>
-          Capital en Calle por Manager
+          Capital Prestado por Manager
         </Typography>
         <Box sx={{
           height: containerHeight,
@@ -104,7 +103,7 @@ const ManagerPerformanceChart = memo(function ManagerPerformanceChart({ managers
     return (
       <Paper elevation={1} sx={{ p: 3, height: chartHeight }}>
         <Typography variant="h6" gutterBottom>
-          Capital en Calle por Manager
+          Capital Prestado por Manager
         </Typography>
         <Box sx={{
           height: containerHeight,
@@ -122,12 +121,12 @@ const ManagerPerformanceChart = memo(function ManagerPerformanceChart({ managers
   // Sort data by amount (descending) for better visualization
   const sortedData = [...chartData].sort((a, b) => b.amount - a.amount)
   const totalAmount = chartData.reduce((sum, item) => sum + item.amount, 0)
-  const totalWithInterest = chartData.reduce((sum, item) => sum + item.amountWithInterest, 0)
+  const totalEnCalle = chartData.reduce((sum, item) => sum + item.enCalle, 0)
 
   return (
     <Paper elevation={1} sx={{ p: 3, height: chartHeight }}>
       <Typography variant="h6" gutterBottom>
-        Capital en Calle por Manager
+        Capital Prestado por Manager
       </Typography>
 
       <ResponsiveContainer width="100%" height={isMobile ? 260 : 300}>
@@ -167,7 +166,7 @@ const ManagerPerformanceChart = memo(function ManagerPerformanceChart({ managers
       {/* Summary with better spacing */}
       <Box sx={{ mt: 3, textAlign: 'center' }}>
         <Typography variant="body2" color="text.secondary">
-          Capital en calle: ${formatAmount(totalAmount)} • Con interés: ${formatAmount(totalWithInterest)}
+          Total prestado: ${formatAmount(totalAmount)} • En calle: ${formatAmount(totalEnCalle)}
         </Typography>
       </Box>
     </Paper>
