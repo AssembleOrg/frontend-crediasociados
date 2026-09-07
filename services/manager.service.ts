@@ -80,7 +80,14 @@ export interface SubadminManagerSummary {
   email: string
   totalClients: number
   totalLoans: number
+  /** Histórico: suma de amount de todos los préstamos */
   totalAmount: number
+  /** Actualidad: préstamos con capital pendiente */
+  activeLoans: number
+  /** Actualidad: capital pendiente (Capital en Calle) */
+  dineroPrestado: number
+  /** Actualidad: capital + interés pendiente (Capital Int.) */
+  dineroEnCalle: number
   clients: Array<{ createdAt: string }>
 }
 

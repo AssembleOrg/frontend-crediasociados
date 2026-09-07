@@ -16,6 +16,12 @@ export interface ManagerAnalytics {
   totalAmountPending: number
   collectionRate: number // Percentage of payments on time
   createdAt: string
+  /** Actualidad: préstamos con capital pendiente */
+  activeLoans?: number
+  /** Actualidad: capital pendiente (Capital en Calle) */
+  capitalEnCalle?: number
+  /** Actualidad: capital + interés pendiente (Capital Int.) */
+  capitalConInteres?: number
 }
 
 export interface SubadminAnalytics {

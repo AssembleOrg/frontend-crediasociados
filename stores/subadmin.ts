@@ -20,6 +20,9 @@ interface ManagerEnrichment {
   totalClients: number
   totalLoans: number
   totalAmount: number
+  activeLoans: number
+  dineroPrestado: number
+  dineroEnCalle: number
   clients: ClientChartDataDto[]
   loans: LoanChartDataDto[]
 }
@@ -53,7 +56,14 @@ interface SubadminStore {
   // Simple calculations only (Layer 3)
   isEnrichmentDataFresh: () => boolean
   hasEnrichmentData: () => boolean
-  getAggregatedTotals: () => { totalClients: number; totalAmount: number; totalLoans: number }
+  getAggregatedTotals: () => {
+    totalClients: number
+    totalAmount: number
+    totalLoans: number
+    activeLoans: number
+    dineroPrestado: number
+    dineroEnCalle: number
+  }
   getManagerOptions: (managers: Array<{ id: string; fullName: string }>) => Array<{ id: string; name: string }>
 
   // Clear methods
@@ -155,13 +165,16 @@ export const useSubadminStore = create<SubadminStore>()(
         const enrichments = Object.values(managerEnrichments)
 
         if (enrichments.length === 0) {
-          return { totalClients: 0, totalAmount: 0, totalLoans: 0 }
+          return { totalClients: 0, totalAmount: 0, totalLoans: 0, activeLoans: 0, dineroPrestado: 0, dineroEnCalle: 0 }
         }
 
         return {
           totalClients: enrichments.reduce((sum, enrichment) => sum + (enrichment.totalClients || 0), 0),
           totalAmount: enrichments.reduce((sum, enrichment) => sum + (enrichment.totalAmount || 0), 0),
-          totalLoans: enrichments.reduce((sum, enrichment) => sum + (enrichment.totalLoans || 0), 0)
+          totalLoans: enrichments.reduce((sum, enrichment) => sum + (enrichment.totalLoans || 0), 0),
+          activeLoans: enrichments.reduce((sum, enrichment) => sum + (enrichment.activeLoans || 0), 0),
+          dineroPrestado: enrichments.reduce((sum, enrichment) => sum + (enrichment.dineroPrestado || 0), 0),
+          dineroEnCalle: enrichments.reduce((sum, enrichment) => sum + (enrichment.dineroEnCalle || 0), 0)
         }
       },
 

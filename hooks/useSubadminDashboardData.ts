@@ -67,6 +67,9 @@ export const useSubadminDashboardData = () => {
             totalClients: summary.totalClients,
             totalLoans: summary.totalLoans,
             totalAmount: summary.totalAmount,
+            activeLoans: summary.activeLoans ?? 0,
+            dineroPrestado: summary.dineroPrestado ?? 0,
+            dineroEnCalle: summary.dineroEnCalle ?? 0,
             clients: summary.clients,
             loans: []
           }
@@ -79,6 +82,9 @@ export const useSubadminDashboardData = () => {
               totalClients: 0,
               totalLoans: 0,
               totalAmount: 0,
+              activeLoans: 0,
+              dineroPrestado: 0,
+              dineroEnCalle: 0,
               clients: [],
               loans: []
             }
@@ -128,6 +134,9 @@ export const useSubadminDashboardData = () => {
       totalClients: 0,
       totalLoans: 0,
       totalAmount: 0,
+      activeLoans: 0,
+      dineroPrestado: 0,
+      dineroEnCalle: 0,
       clients: [],
       loans: []
     })

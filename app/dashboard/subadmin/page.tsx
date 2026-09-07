@@ -34,7 +34,7 @@ const ManagerPerformanceChart = dynamic(
   () => import('@/components/charts/ManagerPerformanceChart'),
   {
     ssr: false,
-    loading: () => <BarChartSkeleton title="Rendimiento por Manager" />
+    loading: () => <BarChartSkeleton title="Capital en Calle por Manager" />
   }
 )
 
@@ -65,9 +65,12 @@ export default function SubadminDashboard() {
       totalClients: manager.totalClients,
       totalLoans: manager.totalLoans,
       totalAmountLent: manager.totalAmount,
-      totalAmountPending: 0,
+      totalAmountPending: manager.dineroEnCalle,
       collectionRate: 0,
-      createdAt: now
+      createdAt: now,
+      activeLoans: manager.activeLoans,
+      capitalEnCalle: manager.dineroPrestado,
+      capitalConInteres: manager.dineroEnCalle
     }))
   }, [detailedManagers])
 

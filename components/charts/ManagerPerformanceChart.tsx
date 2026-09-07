@@ -7,9 +7,13 @@ import type { ManagerAnalytics } from '@/services/analytics.service'
 
 interface ManagerPerformanceData {
   name: string
+  /** Capital en calle (capital pendiente de cobro, sin interés) */
   amount: number
+  /** Capital + interés pendiente */
+  amountWithInterest: number
   managerId: string
   clients: number
+  /** Préstamos con capital pendiente */
   loans: number
 }
 
@@ -33,13 +37,16 @@ const CustomTooltip = ({ active, payload, label }: TooltipProps) => {
           {label}
         </Typography>
         <Typography variant="body2" color="primary.main" fontWeight={600}>
-          ${data.amount.toLocaleString()}
+          ${formatAmount(data.amount)}
         </Typography>
         <Typography variant="caption" color="text.secondary" display="block">
-          {data.clients} clientes • {data.loans} préstamos
+          Capital en calle
         </Typography>
-        <Typography variant="caption" color="text.secondary">
-          Monto total prestado
+        <Typography variant="caption" color="warning.main" display="block">
+          Con interés: ${formatAmount(data.amountWithInterest)}
+        </Typography>
+        <Typography variant="caption" color="text.secondary" display="block">
+          {data.clients} clientes • {data.loans} préstamos activos
         </Typography>
       </Paper>
     )
@@ -47,9 +54,10 @@ const CustomTooltip = ({ active, payload, label }: TooltipProps) => {
   return null
 }
 
-const formatYAxis = (value: number) => {
-  return `$${new Intl.NumberFormat('es-AR', { maximumFractionDigits: 0 }).format(value)}`
-}
+const formatAmount = (value: number) =>
+  new Intl.NumberFormat('es-AR', { maximumFractionDigits: 0 }).format(value)
+
+const formatYAxis = (value: number) => `$${formatAmount(value)}`
 
 const formatXAxis = (value: string) => {
   // Truncate long names for better display
@@ -63,19 +71,21 @@ const ManagerPerformanceChart = memo(function ManagerPerformanceChart({ managers
   const containerHeight = { xs: 280, sm: 320, md: 420, lg: 480 }
 
   // Transform manager analytics data to chart format
+  // Muestra la actualidad: capital pendiente en calle, no el histórico prestado
   const chartData: ManagerPerformanceData[] = managers.map(manager => ({
     name: manager.managerName,
-    amount: manager.totalAmountLent,
+    amount: manager.capitalEnCalle ?? 0,
+    amountWithInterest: manager.capitalConInteres ?? 0,
     managerId: manager.managerId,
     clients: manager.totalClients,
-    loans: manager.totalLoans
+    loans: manager.activeLoans ?? 0
   }))
 
   if (isLoading) {
     return (
       <Paper elevation={1} sx={{ p: 3, height: chartHeight }}>
         <Typography variant="h6" gutterBottom>
-          Rendimiento por Manager
+          Capital en Calle por Manager
         </Typography>
         <Box sx={{
           height: containerHeight,
@@ -94,7 +104,7 @@ const ManagerPerformanceChart = memo(function ManagerPerformanceChart({ managers
     return (
       <Paper elevation={1} sx={{ p: 3, height: chartHeight }}>
         <Typography variant="h6" gutterBottom>
-          Rendimiento por Manager
+          Capital en Calle por Manager
         </Typography>
         <Box sx={{
           height: containerHeight,
@@ -112,11 +122,12 @@ const ManagerPerformanceChart = memo(function ManagerPerformanceChart({ managers
   // Sort data by amount (descending) for better visualization
   const sortedData = [...chartData].sort((a, b) => b.amount - a.amount)
   const totalAmount = chartData.reduce((sum, item) => sum + item.amount, 0)
+  const totalWithInterest = chartData.reduce((sum, item) => sum + item.amountWithInterest, 0)
 
   return (
     <Paper elevation={1} sx={{ p: 3, height: chartHeight }}>
       <Typography variant="h6" gutterBottom>
-        Rendimiento por Manager
+        Capital en Calle por Manager
       </Typography>
 
       <ResponsiveContainer width="100%" height={isMobile ? 260 : 300}>
@@ -156,7 +167,7 @@ const ManagerPerformanceChart = memo(function ManagerPerformanceChart({ managers
       {/* Summary with better spacing */}
       <Box sx={{ mt: 3, textAlign: 'center' }}>
         <Typography variant="body2" color="text.secondary">
-          Total prestado: ${totalAmount.toLocaleString()}
+          Capital en calle: ${formatAmount(totalAmount)} • Con interés: ${formatAmount(totalWithInterest)}
         </Typography>
       </Box>
     </Paper>
