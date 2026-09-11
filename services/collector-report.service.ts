@@ -116,6 +116,28 @@ class CollectorReportService {
   }
 
   /**
+   * Descarga el reporte del período como PDF (mismos filtros que getPeriodReport).
+   * Devuelve el PDF en base64 y el nombre de archivo sugerido por el backend.
+   */
+  async downloadPeriodReportPdf(
+    startDate?: string,
+    endDate?: string,
+    managerId?: string
+  ): Promise<{ pdfBase64: string; filename: string }> {
+    const params = new URLSearchParams()
+    if (startDate) params.append('startDate', startDate)
+    if (endDate) params.append('endDate', endDate)
+    if (managerId) params.append('managerId', managerId)
+
+    const queryString = params.toString()
+    const url = `/collector-wallet/period-report/pdf${queryString ? `?${queryString}` : ''}`
+
+    const response = await api.get(url)
+    const data = response.data?.data ?? response.data
+    return { pdfBase64: data.pdfBase64, filename: data.filename }
+  }
+
+  /**
    * Get week range for a given date
    * Returns Monday to Sunday of that week
    */

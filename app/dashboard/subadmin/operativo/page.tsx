@@ -3,6 +3,7 @@
 import React, { useState, useMemo, useEffect, useRef } from "react";
 import {
   Box,
+  alpha,
   Alert,
   Paper,
   Table,
@@ -133,6 +134,9 @@ export default function OperativoSubadminPage() {
   const [withdrawing, setWithdrawing] = useState(false);
   const [withdrawError, setWithdrawError] = useState<string | null>(null);
   const [walletHistoryModalOpen, setWalletHistoryModalOpen] = useState(false);
+  // Deep-link desde Reportes: ?managerId=xxx resalta y scrollea a la card del cobrador
+  const [highlightedCobradorId, setHighlightedCobradorId] = useState<string | null>(null);
+  const highlightHandledRef = useRef(false);
   const [managerLoansModalOpen, setManagerLoansModalOpen] = useState(false);
   const [selectedManagerForLoans, setSelectedManagerForLoans] = useState<User | null>(null);
   const [liquidationModalOpen, setLiquidationModalOpen] = useState(false);
@@ -155,6 +159,26 @@ export default function OperativoSubadminPage() {
   const cobradores = useMemo(() => {
     return users.filter((user) => user.role === "prestamista");
   }, [users]);
+
+  useEffect(() => {
+    if (highlightHandledRef.current || cobradores.length === 0) return;
+    if (typeof window === "undefined") return;
+    const targetId = new URLSearchParams(window.location.search).get("managerId");
+    if (!targetId || !cobradores.some((c) => c.id === targetId)) return;
+    highlightHandledRef.current = true;
+    setHighlightedCobradorId(targetId);
+    // Esperar al render de la card antes de scrollear
+    const scrollTimer = window.setTimeout(() => {
+      document
+        .getElementById(`cobrador-${targetId}`)
+        ?.scrollIntoView({ behavior: "smooth", block: "center" });
+    }, 150);
+    const clearTimer = window.setTimeout(() => setHighlightedCobradorId(null), 3500);
+    return () => {
+      window.clearTimeout(scrollTimer);
+      window.clearTimeout(clearTimer);
+    };
+  }, [cobradores]);
 
   // Ref para prevenir llamadas duplicadas
   const hasFetchedManagersRef = useRef(false);
@@ -536,7 +560,18 @@ export default function OperativoSubadminPage() {
                   const dineroPrestado = managersDineroPrestado[cobrador.id];
                   const isLoadingSafe = loadingSafeBalances[cobrador.id];
                   return (
-                    <Paper key={`collector-${cobrador.id}`} elevation={0} sx={{ bgcolor: '#FFFFFF', borderRadius: 2, overflow: 'hidden' }}>
+                    <Paper
+                      key={`collector-${cobrador.id}`}
+                      id={`cobrador-${cobrador.id}`}
+                      elevation={0}
+                      sx={{
+                        bgcolor: '#FFFFFF',
+                        borderRadius: 2,
+                        overflow: 'hidden',
+                        transition: 'box-shadow 0.3s',
+                        ...(highlightedCobradorId === cobrador.id && { boxShadow: (t) => `0 0 0 3px ${t.palette.primary.main}` }),
+                      }}
+                    >
                       {/* Header */}
                       <Box sx={{ px: 2, pt: 2, pb: 1.5 }}>
                         <Typography variant="subtitle2" fontWeight={700}>
@@ -670,7 +705,15 @@ export default function OperativoSubadminPage() {
                         const safeBalance = safeBalances[cobrador.id] ?? 0;
                         const isLoadingSafe = loadingSafeBalances[cobrador.id];
                         return (
-                          <TableRow key={`collector-${cobrador.id}`} hover>
+                          <TableRow
+                            key={`collector-${cobrador.id}`}
+                            id={`cobrador-${cobrador.id}`}
+                            hover
+                            sx={{
+                              transition: 'background-color 0.3s',
+                              ...(highlightedCobradorId === cobrador.id && { bgcolor: (t) => alpha(t.palette.primary.main, 0.12) }),
+                            }}
+                          >
                             <TableCell>
                               <Typography variant="body2" sx={{ fontWeight: 500 }}>{cobrador.fullName}</Typography>
                               <Typography variant="caption" color="text.secondary">{cobrador.email}</Typography>

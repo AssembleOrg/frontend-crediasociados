@@ -48,8 +48,11 @@ import {
   ExpandMore,
   Assessment,
   Edit,
+  Download,
 } from '@mui/icons-material'
+import { useRouter } from 'next/navigation'
 import { collectorReportService, type CollectorPeriodReport } from '@/services/collector-report.service'
+import { downloadPdfFromBase64 } from '@/lib/pdf-download'
 import { collectorWalletService } from '@/services/collector-wallet.service'
 import { usersService } from '@/services/users.service'
 import { useCurrentUser } from '@/hooks/useCurrentUser'
@@ -66,8 +69,11 @@ export default function CollectorReportView({
   subtitle = 'Selecciona un día o un rango de fechas para ver el reporte'
 }: CollectorReportViewProps) {
   const theme = useTheme()
+  const router = useRouter()
   const currentUser = useCurrentUser()
   const [currentMonth, setCurrentMonth] = useState(new Date())
+  const [downloadingPdf, setDownloadingPdf] = useState(false)
+  const [pdfError, setPdfError] = useState<string | null>(null)
   const [selectedRange, setSelectedRange] = useState<{ start: Date; end: Date } | null>(null)
   const [tempStart, setTempStart] = useState<Date | null>(null)
   const [report, setReport] = useState<CollectorPeriodReport | null>(null)
@@ -164,6 +170,29 @@ export default function CollectorReportView({
     } finally {
       setLoading(false)
     }
+  }
+
+  const handleDownloadPdf = async () => {
+    if (!selectedRange) return
+    try {
+      setDownloadingPdf(true)
+      setPdfError(null)
+      const startStr = formatDateToString(normalizeDate(selectedRange.start))
+      const endStr = formatDateToString(normalizeDate(selectedRange.end))
+      const { pdfBase64, filename } = await collectorReportService.downloadPeriodReportPdf(startStr, endStr, managerId)
+      downloadPdfFromBase64(pdfBase64, filename || `reporte-cobrador-${startStr}_${endStr}.pdf`)
+    } catch (err: any) {
+      setPdfError(err.response?.data?.message || 'Error al generar el PDF del reporte')
+    } finally {
+      setDownloadingPdf(false)
+    }
+  }
+
+  // Subadmin viendo el reporte de un cobrador: acceso rápido a su billetera en Operativa
+  const isSubadminView = Boolean(managerId) && currentUser?.role === 'subadmin'
+  const goToWallet = () => {
+    if (!managerId) return
+    router.push(`/dashboard/subadmin/operativo?managerId=${managerId}`)
   }
 
   useEffect(() => {
@@ -630,9 +659,22 @@ export default function CollectorReportView({
 
               {/* ── Header cobrador ── */}
               <Paper sx={{ p: { xs: 2, sm: 3 }, mb: 2, bgcolor: '#FFFFFF', borderLeft: 4, borderLeftColor: 'primary.main' }}>
-                <Typography variant="h6" fontWeight={600} gutterBottom>
-                  {report.collector?.fullName || 'Cobrador'}
-                </Typography>
+                <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 1, mb: 1 }}>
+                  <Typography variant="h6" fontWeight={600}>
+                    {report.collector?.fullName || 'Cobrador'}
+                  </Typography>
+                  <Button
+                    variant="outlined"
+                    size="small"
+                    startIcon={downloadingPdf ? <CircularProgress size={14} color="inherit" /> : <Download sx={{ fontSize: 16 }} />}
+                    onClick={handleDownloadPdf}
+                    disabled={downloadingPdf}
+                    sx={{ flexShrink: 0, whiteSpace: 'nowrap' }}
+                  >
+                    {downloadingPdf ? 'Generando…' : 'Descargar PDF'}
+                  </Button>
+                </Box>
+                {pdfError && <Alert severity="error" sx={{ mb: 1.5 }} onClose={() => setPdfError(null)}>{pdfError}</Alert>}
                 <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr 1fr', sm: 'repeat(3, 1fr)' }, gap: 1 }}>
                   <Box>
                     <Typography variant="caption" color="text.secondary">Usuario</Typography>
@@ -782,6 +824,27 @@ export default function CollectorReportView({
                   />
                   <ChevronRight sx={{ color: 'text.disabled' }} />
                 </ListItem>
+                {isSubadminView && (
+                  <>
+                    <Divider />
+                    <ListItem
+                      component="div"
+                      onClick={goToWallet}
+                      sx={{ py: 1.5, px: 2, cursor: 'pointer', '&:hover': { bgcolor: 'action.hover' } }}
+                    >
+                      <ListItemIcon sx={{ minWidth: 36 }}>
+                        <AccountBalanceWallet sx={{ fontSize: 20, color: 'primary.main' }} />
+                      </ListItemIcon>
+                      <ListItemText
+                        primary="Billetera del Cobrador"
+                        secondary="Ir a Operativa: wallet, caja fuerte y liquidación"
+                        primaryTypographyProps={{ variant: 'body2', fontWeight: 600 }}
+                        secondaryTypographyProps={{ variant: 'caption' }}
+                      />
+                      <ChevronRight sx={{ color: 'text.disabled' }} />
+                    </ListItem>
+                  </>
+                )}
               </Paper>
 
               {/* ── Resumen Financiero — fila cliqueable ── */}
