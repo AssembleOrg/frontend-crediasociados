@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import { ThemeProvider } from "@/lib/ThemeProvider";
 import DolarBlueProvider from "@/components/providers/DolarBlueProvider";
 import { CacheResetProvider } from "@/components/providers/CacheResetProvider";
+import { PistechReport } from "@/components/providers/PistechReport";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -44,6 +45,7 @@ export default function RootLayout({
             <DolarBlueProvider>
               {children}
             </DolarBlueProvider>
+            <PistechReport />
           </CacheResetProvider>
         </ThemeProvider>
       </body>
