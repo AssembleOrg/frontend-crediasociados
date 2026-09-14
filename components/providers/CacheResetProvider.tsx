@@ -22,6 +22,16 @@ export function CacheResetProvider({ children }: { children: React.ReactNode }) 
   const hasCleared = useRef(false)
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated)
 
+  // Versiones anteriores guardaban el cache del subadmin (clientes, préstamos) en
+  // localStorage: se borra en cualquier página, haya sesión o no.
+  useEffect(() => {
+    try {
+      localStorage.removeItem('subadmin-session-storage')
+    } catch {
+      // Ignore errors
+    }
+  }, [])
+
   useEffect(() => {
     // Only clear once per page load, and only if authenticated
     if (!hasCleared.current && isAuthenticated) {

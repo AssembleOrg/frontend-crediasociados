@@ -220,10 +220,9 @@ export const useAdminStore = create<AdminStore>()(
           sessionStorage.removeItem(name)
         },
       },
+      // Sólo filtros: reportes y enriquecimientos traen managers, clientes (DNI/CUIT) y
+      // préstamos, y se vuelven a pedir en cada carga (CacheResetProvider limpia igual).
       partialize: (state) => ({
-        reports: state.reports,
-        subadminEnrichments: state.subadminEnrichments,
-        lastEnrichmentFetch: state.lastEnrichmentFetch,
         timeFilter: state.timeFilter,
         dateRange: state.dateRange,
         selectedSubadmin: state.selectedSubadmin,

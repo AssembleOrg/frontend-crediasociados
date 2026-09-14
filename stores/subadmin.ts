@@ -210,10 +210,30 @@ export const useSubadminStore = create<SubadminStore>()(
     })),
     {
       name: 'subadmin-session-storage',
+      // sessionStorage (antes caía en localStorage por default) y sólo filtros: los
+      // enriquecimientos traen clientes (DNI/CUIT) y préstamos, y se vuelven a pedir.
+      storage: {
+        getItem: (name) => {
+          if (typeof window === 'undefined') return null
+          const str = sessionStorage.getItem(name)
+          if (!str) return null
+          const { state } = JSON.parse(str)
+          if (state?.dateRange) {
+            state.dateRange.from = new Date(state.dateRange.from)
+            state.dateRange.to = new Date(state.dateRange.to)
+          }
+          return { state }
+        },
+        setItem: (name, value) => {
+          if (typeof window === 'undefined') return
+          sessionStorage.setItem(name, JSON.stringify(value))
+        },
+        removeItem: (name) => {
+          if (typeof window === 'undefined') return
+          sessionStorage.removeItem(name)
+        },
+      },
       partialize: (state) => ({
-        // Persist critical session data
-        managerEnrichments: state.managerEnrichments,
-        lastEnrichmentFetch: state.lastEnrichmentFetch,
         timeFilter: state.timeFilter,
         dateRange: state.dateRange,
         selectedManager: state.selectedManager,

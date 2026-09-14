@@ -305,6 +305,7 @@ export function clearAllData() {
     const localStorageKeys = [
       'auth-storage',
       'app-storage',
+      'subadmin-session-storage', // versiones anteriores la guardaban en localStorage
       // Add any other localStorage keys used by the app
     ]
     

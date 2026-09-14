@@ -42,12 +42,14 @@ api.interceptors.response.use(
           if (currentPath !== '/login') {
             
             
-            // Clear auth store
-            const authStore = useAuthStore.getState();
-            authStore.clearAuth();
-            
-            // Redirect to login
-            window.location.href = '/login';
+            // Sesión vencida: limpiar lo mismo que el logout (auth, stores y storages),
+            // no sólo el auth store. Import dinámico para no crear un ciclo con cache-manager.
+            import('@/lib/cache-manager')
+              .then(({ clearAllData }) => clearAllData())
+              .catch(() => useAuthStore.getState().clearAuth())
+              .finally(() => {
+                window.location.href = '/login';
+              });
           }
         }
       }

@@ -5,6 +5,16 @@ import type { User, AuthState, UserRole } from '@/types/auth';
 const SESSION_MARKER = 'cookie-session';
 
 /**
+ * Lo único del usuario que se guarda en localStorage: lo que la UI necesita al recargar.
+ * DNI, CUIT, teléfono, billetera y demás quedan sólo en memoria durante la sesión.
+ */
+const persistableUser = (user: User | null | undefined): User | null => {
+  if (!user) return null;
+  const { id, email, fullName, role, clientQuota, usedClientQuota, availableClientQuota } = user;
+  return { id, email, fullName, role, clientQuota, usedClientQuota, availableClientQuota } as User;
+};
+
+/**
  * THE WAREHOUSE - Auth Store
  * Single Source of Truth for authenticated user data + auth tokens.
  * Data persisted in localStorage (unlimited size) + lightweight cookie for tokens.
@@ -101,7 +111,7 @@ export const useAuthStore = create<AuthStore>()(
     }),
     {
       name: 'auth-storage',
-      version: 2,
+      version: 3,
       storage: createJSONStorage(() => localStorage),
       migrate: (persistedState: any) => {
         if (!persistedState || typeof persistedState !== 'object') {
@@ -112,6 +122,7 @@ export const useAuthStore = create<AuthStore>()(
           ...persistedState,
           token: persistedState.isAuthenticated ? SESSION_MARKER : null,
           refreshToken: null,
+          currentUser: persistableUser(persistedState.currentUser),
         };
       },
       partialize: (state) => ({
@@ -120,7 +131,7 @@ export const useAuthStore = create<AuthStore>()(
         userRole: state.userRole,
         token: state.token,
         isAuthenticated: state.isAuthenticated,
-        currentUser: state.currentUser,
+        currentUser: persistableUser(state.currentUser),
       }),
       skipHydration: true, // Skip SSR hydration to prevent React #418 in Brave
       onRehydrateStorage: () => (state, error) => {
