@@ -6,7 +6,7 @@ import { useAuthStore } from '@/stores/auth';
 /**
  * Widget de reportes de Pistech (pestaña acoplada al borde → reporte al grupo de WhatsApp).
  *
- * Se configura por entorno; sin token no se carga nada:
+ * Token y proyecto vienen fijos (el token es público: igual viaja en el HTML) y el entorno los pisa:
  *   NEXT_PUBLIC_PISTECH_REPORT_TOKEN     token público del proyecto (panel → Proyectos → General)
  *   NEXT_PUBLIC_PISTECH_REPORT_PROJECT   id del proyecto en el panel
  *   NEXT_PUBLIC_PISTECH_REPORT_ENDPOINT  host del servicio (default: producción)
@@ -14,7 +14,7 @@ import { useAuthStore } from '@/stores/auth';
  * Título, color, tema y «sólo usuarios logueados» se manejan desde el panel sin redeploy.
  * Este componente le avisa al widget si hay sesión, para cuando esa opción está activa.
  */
-const TOKEN = process.env.NEXT_PUBLIC_PISTECH_REPORT_TOKEN || '';
+const TOKEN = process.env.NEXT_PUBLIC_PISTECH_REPORT_TOKEN || 'aMamAIdEMzoF50nnRod1h836p7ezcLxN';
 const PROJECT = process.env.NEXT_PUBLIC_PISTECH_REPORT_PROJECT || 'crediasociados';
 const ENDPOINT = (process.env.NEXT_PUBLIC_PISTECH_REPORT_ENDPOINT || 'https://whatsapp-pistech-neonize-production.up.railway.app').replace(/\/$/, '');
 
