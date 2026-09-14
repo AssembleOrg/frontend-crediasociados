@@ -25,6 +25,13 @@ import { requestDeduplicator } from '@/lib/request-deduplicator'
  * Clear ALL browser storages (localStorage, sessionStorage, cookies) EXCEPT auth
  * Use this on F5 refresh to ensure no corrupted cached data
  */
+/**
+ * Historial del widget de reportes de Pistech: sólo ids públicos opacos, separados por
+ * usuario (hash). No es cache de la app y no tiene datos personales: sobrevive al F5 y al
+ * logout, así cada usuario vuelve a ver sus reportes.
+ */
+const isWidgetKey = (key: string) => key.startsWith('pistech_report:');
+
 export function clearAllStoragesOnRefresh() {
   if (typeof window === 'undefined') return;
 
@@ -45,7 +52,7 @@ export function clearAllStoragesOnRefresh() {
     const keysToKeep = ['auth-storage']; // Keep auth storage key
     const allKeys = Object.keys(localStorage);
     allKeys.forEach(key => {
-      if (!keysToKeep.includes(key)) {
+      if (!keysToKeep.includes(key) && !isWidgetKey(key)) {
         localStorage.removeItem(key);
       }
     });
@@ -360,9 +367,15 @@ export function clearAllData() {
     }
 
     // Force clear all localStorage and sessionStorage as fallback
-    // This is a more aggressive approach - clears everything
+    // This is a more aggressive approach - clears everything (except the widget history)
     try {
+      const widgetEntries = Object.keys(localStorage)
+        .filter(isWidgetKey)
+        .map((key) => [key, localStorage.getItem(key)] as const)
       localStorage.clear()
+      widgetEntries.forEach(([key, value]) => {
+        if (value !== null) localStorage.setItem(key, value)
+      })
     } catch (e) {
       // Ignore errors
     }
