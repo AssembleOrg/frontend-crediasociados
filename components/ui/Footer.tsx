@@ -4,11 +4,6 @@ import { Box, Typography, Link, Divider } from '@mui/material'
 import { WhatsApp } from '@mui/icons-material'
 
 export function Footer() {
-  const handlePistechClick = (e: React.MouseEvent) => {
-    e.preventDefault()
-    window.open('https://wa.me/5491138207230', '_blank')
-  }
-
   return (
     <Box
       component="footer"
@@ -49,8 +44,9 @@ export function Footer() {
             Desarrollado por
           </Typography>
           <Link
-            component="button"
-            onClick={handlePistechClick}
+            href="https://pistech.com.ar"
+            target="_blank"
+            rel="noopener"
             sx={{
               display: 'inline-flex',
               alignItems: 'center',
