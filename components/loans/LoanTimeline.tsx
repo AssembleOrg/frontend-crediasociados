@@ -44,14 +44,16 @@ const TimelineNode: React.FC<TimelineNodeProps> = ({
   const isPaid = subloan.status === 'PAID'
   const isPartial = subloan.status === 'PARTIAL'
 
-  // Reset only allowed if last payment was today
-  const canReset = isPaid && onResetClick && (() => {
+  // Misma regla que el backend (payments.service resetSubLoanPayments): se puede
+  // resetear si la cuota tiene pagos (completa o parcial) y el último se CARGÓ
+  // hace menos de 24 horas. Se usa createdAt, no paymentDate: un pago cargado hoy
+  // con fecha de cobro de otro día también tiene que poder corregirse.
+  const canReset = (isPaid || isPartial) && !!onResetClick && (() => {
     if (!subloan.payments || subloan.payments.length === 0) return false
-    const todayStr = DateTime.now().setZone('America/Argentina/Buenos_Aires').toFormat('yyyy-MM-dd')
-    return subloan.payments.some((p: any) => {
-      const payDate = DateTime.fromISO(p.paymentDate || p.createdAt).setZone('America/Argentina/Buenos_Aires').toFormat('yyyy-MM-dd')
-      return payDate === todayStr
-    })
+    const lastCreatedMs = Math.max(
+      ...subloan.payments.map((p: any) => new Date(p.createdAt || p.paymentDate).getTime()),
+    )
+    return Number.isFinite(lastCreatedMs) && Date.now() - lastCreatedMs <= 24 * 60 * 60 * 1000
   })()
 
   const [editDateOpen, setEditDateOpen] = useState(false)
@@ -368,7 +370,7 @@ const TimelineNode: React.FC<TimelineNodeProps> = ({
             }}
           />
 
-          {/* Reset Button - only if payment was today */}
+          {/* Reset Button - solo si el último pago se cargó hace menos de 24 hs */}
           {canReset && (
             compact ? (
               <IconButton
