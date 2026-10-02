@@ -25,6 +25,7 @@ import {
   useTheme,
 } from '@mui/material'
 import {
+  Campaign,
   Close,
   DoneAll,
   MoneyOff,
@@ -45,15 +46,22 @@ interface NotificationsBellProps {
   role?: string | null
 }
 
-const TYPE_META: Record<
-  NotificationType,
-  { icon: React.ReactNode; color: 'primary' | 'error' | 'warning' | 'success' }
-> = {
+type TypeMeta = {
+  icon: React.ReactNode
+  color: 'primary' | 'error' | 'warning' | 'success'
+}
+
+const TYPE_META: Record<NotificationType, TypeMeta> = {
   CLIENT_CREATED: { icon: <PersonAdd fontSize="small" />, color: 'primary' },
   CLIENT_LOSS: { icon: <MoneyOff fontSize="small" />, color: 'error' },
   CLIENT_LOSS_REVERTED: { icon: <Restore fontSize="small" />, color: 'success' },
   LOAN_FINISHED_EARLY: { icon: <ReceiptLong fontSize="small" />, color: 'warning' },
+  SYSTEM_NOTICE: { icon: <Campaign fontSize="small" />, color: 'primary' },
 }
+
+/** Tipos que el backend agregue antes que el front se muestran como aviso genérico. */
+const getTypeMeta = (type: string): TypeMeta =>
+  TYPE_META[type as NotificationType] ?? TYPE_META.SYSTEM_NOTICE
 
 const formatMoney = (value: unknown) =>
   `$${Number(value ?? 0).toLocaleString('es-AR')}`
@@ -200,7 +208,7 @@ export function NotificationsBell({ role }: NotificationsBellProps) {
           ) : (
             <List disablePadding>
               {notifications.map((notification) => {
-                const meta = TYPE_META[notification.type] ?? TYPE_META.CLIENT_CREATED
+                const meta = getTypeMeta(notification.type)
                 const unread = !notification.readAt
                 return (
                   <ListItemButton
@@ -283,11 +291,11 @@ export function NotificationsBell({ role }: NotificationsBellProps) {
             >
               <Box
                 sx={{
-                  color: `${(TYPE_META[selected.type] ?? TYPE_META.CLIENT_CREATED).color}.main`,
+                  color: `${getTypeMeta(selected.type).color}.main`,
                   display: 'flex',
                 }}
               >
-                {(TYPE_META[selected.type] ?? TYPE_META.CLIENT_CREATED).icon}
+                {getTypeMeta(selected.type).icon}
               </Box>
               {selected.title}
               <IconButton
@@ -299,7 +307,7 @@ export function NotificationsBell({ role }: NotificationsBellProps) {
               </IconButton>
             </DialogTitle>
             <DialogContent dividers>
-              <Typography variant="body2" sx={{ mb: 2 }}>
+              <Typography variant="body2" sx={{ mb: 2, whiteSpace: 'pre-line' }}>
                 {selected.message}
               </Typography>
 

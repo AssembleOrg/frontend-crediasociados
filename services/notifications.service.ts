@@ -4,7 +4,9 @@ export type NotificationType =
   | 'CLIENT_CREATED'
   | 'CLIENT_LOSS'
   | 'CLIENT_LOSS_REVERTED'
-  | 'LOAN_FINISHED_EARLY';
+  | 'LOAN_FINISHED_EARLY'
+  // Aviso genérico (correcciones manuales, comunicados): solo title + message
+  | 'SYSTEM_NOTICE';
 
 export interface AppNotification {
   id: string;
