@@ -2,11 +2,13 @@
 
 import { useState } from 'react'
 import { Box, Typography, Chip, Tooltip, useTheme, useMediaQuery, IconButton, CircularProgress, Button, Dialog, DialogTitle, DialogContent, DialogActions, TextField, Stack } from '@mui/material'
-import { CheckCircle, RadioButtonUnchecked, Warning, Error, Refresh, AttachMoney, Edit, CalendarMonth, ChevronLeft, ChevronRight } from '@mui/icons-material'
+import { CheckCircle, RadioButtonUnchecked, Warning, Error, AttachMoney, Edit, CalendarMonth, ChevronLeft, ChevronRight, DeleteOutline } from '@mui/icons-material'
 import type { SubLoanWithClientInfo } from '@/services/subloans-lookup.service'
 import { subLoansService } from '@/services/sub-loans.service'
 import { formatCurrencyDisplay, toAmount } from '@/lib/formatters'
 import { DateTime } from 'luxon'
+
+const RESET_WINDOW_MS = 48 * 60 * 60 * 1000
 
 interface LoanTimelineProps {
   clientName: string
@@ -44,16 +46,16 @@ const TimelineNode: React.FC<TimelineNodeProps> = ({
   const isPaid = subloan.status === 'PAID'
   const isPartial = subloan.status === 'PARTIAL'
 
-  // Misma regla que el backend (payments.service resetSubLoanPayments): se puede
-  // resetear si la cuota tiene pagos (completa o parcial) y el último se CARGÓ
-  // hace menos de 24 horas. Se usa createdAt, no paymentDate: un pago cargado hoy
-  // con fecha de cobro de otro día también tiene que poder corregirse.
+  // Misma regla que el backend (payments.service resetSubLoanPayments): se pueden
+  // eliminar los pagos si la cuota tiene pagos (completa o parcial) y TODOS se
+  // CARGARON en las últimas 48 horas. Se usa createdAt, no paymentDate: un pago
+  // cargado hoy con fecha de cobro de otro día también tiene que poder corregirse.
   const canReset = (isPaid || isPartial) && !!onResetClick && (() => {
     if (!subloan.payments || subloan.payments.length === 0) return false
-    const lastCreatedMs = Math.max(
+    const oldestCreatedMs = Math.min(
       ...subloan.payments.map((p: any) => new Date(p.createdAt || p.paymentDate).getTime()),
     )
-    return Number.isFinite(lastCreatedMs) && Date.now() - lastCreatedMs <= 24 * 60 * 60 * 1000
+    return Number.isFinite(oldestCreatedMs) && Date.now() - oldestCreatedMs <= RESET_WINDOW_MS
   })()
 
   const [editDateOpen, setEditDateOpen] = useState(false)
@@ -121,7 +123,8 @@ const TimelineNode: React.FC<TimelineNodeProps> = ({
   }
 
   const paymentDescriptions = getPaymentDescriptions()
-  const canInteract = !isPaid && (onPaymentClick || onDateUpdated)
+  const canPayOrEdit = !isPaid && !!(onPaymentClick || onDateUpdated)
+  const canInteract = canPayOrEdit || canReset
   const [showActions, setShowActions] = useState(false)
 
   const handleNodeClick = () => {
@@ -133,6 +136,12 @@ const TimelineNode: React.FC<TimelineNodeProps> = ({
     e.stopPropagation()
     setShowActions(false)
     if (onPaymentClick) onPaymentClick(subloan)
+  }
+
+  const handleDeleteClick = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    setShowActions(false)
+    onResetClick?.(subloan)
   }
 
   const handleEditDateClick = (e: React.MouseEvent<HTMLElement>) => {
@@ -261,7 +270,7 @@ const TimelineNode: React.FC<TimelineNodeProps> = ({
           {/* Action Buttons Row (inline, not absolute) */}
           {canInteract && showActions ? (
             <Box sx={{ display: 'flex', gap: 0.5, mb: 0.5, justifyContent: 'center' }}>
-              {onPaymentClick && (
+              {canPayOrEdit && onPaymentClick && (
                 <Tooltip title="Registrar pago">
                   <IconButton
                     size="small"
@@ -279,22 +288,45 @@ const TimelineNode: React.FC<TimelineNodeProps> = ({
                   </IconButton>
                 </Tooltip>
               )}
-              <Tooltip title="Cambiar fecha">
-                <IconButton
-                  size="small"
-                  onClick={handleEditDateClick}
-                  sx={{
-                    width: compact ? 28 : 36,
-                    height: compact ? 28 : 36,
-                    bgcolor: '#1976d2',
-                    color: 'white',
-                    boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
-                    '&:hover': { bgcolor: '#1565c0' },
-                  }}
-                >
-                  <Edit sx={{ fontSize: compact ? 14 : 18 }} />
-                </IconButton>
-              </Tooltip>
+              {canPayOrEdit && (
+                <Tooltip title="Cambiar fecha">
+                  <IconButton
+                    size="small"
+                    onClick={handleEditDateClick}
+                    sx={{
+                      width: compact ? 28 : 36,
+                      height: compact ? 28 : 36,
+                      bgcolor: '#1976d2',
+                      color: 'white',
+                      boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
+                      '&:hover': { bgcolor: '#1565c0' },
+                    }}
+                  >
+                    <Edit sx={{ fontSize: compact ? 14 : 18 }} />
+                  </IconButton>
+                </Tooltip>
+              )}
+              {canReset && (
+                <Tooltip title="Eliminar pago">
+                  <IconButton
+                    size="small"
+                    onClick={handleDeleteClick}
+                    disabled={resettingSubloanId === subloan.id}
+                    sx={{
+                      width: compact ? 28 : 36,
+                      height: compact ? 28 : 36,
+                      bgcolor: '#d32f2f',
+                      color: 'white',
+                      boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
+                      '&:hover': { bgcolor: '#b71c1c' },
+                    }}
+                  >
+                    {resettingSubloanId === subloan.id
+                      ? <CircularProgress size={compact ? 12 : 16} sx={{ color: 'white' }} />
+                      : <DeleteOutline sx={{ fontSize: compact ? 16 : 20 }} />}
+                  </IconButton>
+                </Tooltip>
+              )}
             </Box>
           ) : (
             // Spacer to keep consistent height when actions not shown
@@ -370,32 +402,6 @@ const TimelineNode: React.FC<TimelineNodeProps> = ({
             }}
           />
 
-          {/* Reset Button - solo si el último pago se cargó hace menos de 24 hs */}
-          {canReset && (
-            compact ? (
-              <IconButton
-                size="small"
-                color="warning"
-                onClick={(e) => { e.stopPropagation(); onResetClick(subloan) }}
-                disabled={resettingSubloanId === subloan.id}
-                sx={{ mt: 0.5, width: 24, height: 24 }}
-              >
-                {resettingSubloanId === subloan.id ? <CircularProgress size={12} /> : <Refresh sx={{ fontSize: 14 }} />}
-              </IconButton>
-            ) : (
-              <Button
-                size="small"
-                variant="outlined"
-                color="warning"
-                startIcon={resettingSubloanId === subloan.id ? <CircularProgress size={14} /> : <Refresh sx={{ fontSize: 14 }} />}
-                onClick={(e) => { e.stopPropagation(); onResetClick(subloan) }}
-                disabled={resettingSubloanId === subloan.id}
-                sx={{ mt: 1, minWidth: 'auto', px: 1, py: 0.5, fontSize: '10px', textTransform: 'none', borderWidth: 1.5, fontWeight: 600 }}
-              >
-                {resettingSubloanId === subloan.id ? 'Reseteando...' : 'Resetear'}
-              </Button>
-            )
-          )}
         </Box>
       </Tooltip>
 

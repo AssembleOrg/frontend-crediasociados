@@ -29,6 +29,7 @@ import { paymentsService } from '@/services/payments.service'
 import { useCobrosFilters } from '@/hooks/useCobrosFilters'
 import { getUrgencyColor } from '@/lib/cobros/urgencyHelpers'
 import { iosColors } from '@/lib/theme'
+import { formatCurrencyDisplay } from '@/lib/formatters'
 
 import ClientSummaryCard from '@/components/cobros/ClientSummaryCard'
 
@@ -319,10 +320,10 @@ export default function CobrosPage() {
     setSubloanToReset(null)
     try {
       await paymentsService.resetPayments(subLoanId)
-      setSuccessSnack('Pagos reseteados exitosamente')
+      setSuccessSnack('Pago eliminado')
       refresh()
     } catch (error: any) {
-      const msg = error?.response?.data?.message || error?.message || 'Error al resetear los pagos'
+      const msg = error?.response?.data?.message || error?.message || 'Error al eliminar el pago'
       setSuccessSnack(`❌ ${msg}`)
     } finally {
       setResettingSubloanId(null)
@@ -579,16 +580,16 @@ export default function CobrosPage() {
       />
 
       <Dialog open={!!subloanToReset} onClose={() => setSubloanToReset(null)} maxWidth="xs" fullWidth>
-        <DialogTitle>Resetear pagos</DialogTitle>
+        <DialogTitle>Eliminar pago de la cuota #{subloanToReset?.paymentNumber}</DialogTitle>
         <DialogContent>
           <Typography variant="body2" color="text.secondary">
-            Se eliminarán todos los pagos de esta cuota y se revertirá el saldo de la billetera. Esta acción no se puede deshacer.
+            Se eliminarán los pagos de esta cuota ({subloanToReset ? formatCurrencyDisplay(subloanToReset.paidAmount ?? 0) : ''}) y se descontarán de la caja y la billetera. Solo se puede hacer hasta 48 hs después de cargado. No se puede deshacer.
           </Typography>
         </DialogContent>
         <DialogActions sx={{ p: 2 }}>
           <Button onClick={() => setSubloanToReset(null)}>Cancelar</Button>
-          <Button variant="contained" color="warning" onClick={handleConfirmReset}>
-            Resetear
+          <Button variant="contained" color="error" onClick={handleConfirmReset}>
+            Eliminar
           </Button>
         </DialogActions>
       </Dialog>
