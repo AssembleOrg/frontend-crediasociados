@@ -22,7 +22,9 @@ interface InFlightRequest<T> {
 class RequestDeduplicator {
   private cache: Map<string, CacheEntry<unknown>> = new Map()
   private inFlight: Map<string, InFlightRequest<unknown>> = new Map()
-  private debounceTimers: Map<string, NodeJS.Timeout> = new Map()
+  // Sube con cada invalidate(key): un request que arrancó antes de la
+  // invalidación termina igual para quien lo espera, pero no se cachea.
+  private generation: Map<string, number> = new Map()
   
   // Configuración por defecto
   private defaultTTL = 30000 // 30 segundos
@@ -67,62 +69,57 @@ class RequestDeduplicator {
 
     this.stats.cacheMisses++
 
-    // 2. Verificar si hay un request en vuelo
+    // 2. Verificar si hay un request en vuelo (o ya programado) con la misma
+    // clave: todos los que llaman en la misma ventana comparten la promesa.
     const inFlight = this.inFlight.get(key)
     if (inFlight) {
       this.stats.deduplicatedRequests++
       return inFlight.promise as Promise<T>
     }
 
-    // 3. Crear nuevo request
+    // 3. Crear nuevo request y registrarlo en vuelo YA, antes de que corra el
+    // timer. Antes se registraba recién al disparar el fetch, y una segunda
+    // llamada en el mismo tick pisaba el timer anterior con clearTimeout: la
+    // primera promesa no resolvía ni rechazaba nunca, y el componente que la
+    // esperaba quedaba "cargando" para siempre (alta de clientes con 0 clientes).
     const promise = this.executeWithDebounce(key, fetcher, debounce, ttl)
-    
+    const entry: InFlightRequest<T> = { promise, timestamp: Date.now() }
+    this.inFlight.set(key, entry)
+    const settle = () => {
+      if (this.inFlight.get(key) === entry) this.inFlight.delete(key)
+    }
+    promise.then(settle, settle)
+
     return promise
   }
 
-  private async executeWithDebounce<T>(
+  private executeWithDebounce<T>(
     key: string,
     fetcher: () => Promise<T>,
     debounce: number,
     ttl: number
   ): Promise<T> {
-    // Limpiar timer anterior si existe
-    const existingTimer = this.debounceTimers.get(key)
-    if (existingTimer) {
-      clearTimeout(existingTimer)
-    }
+    const generation = this.generation.get(key) ?? 0
 
     return new Promise<T>((resolve, reject) => {
-      const timer = setTimeout(async () => {
-        this.debounceTimers.delete(key)
-        
+      setTimeout(async () => {
         try {
-          // Marcar como en vuelo
-          const fetchPromise = fetcher()
-          this.inFlight.set(key, {
-            promise: fetchPromise,
-            timestamp: Date.now()
-          })
+          const data = await fetcher()
 
-          const data = await fetchPromise
-
-          // Guardar en caché
-          this.cache.set(key, {
-            data,
-            timestamp: Date.now(),
-            expiresAt: Date.now() + ttl
-          })
+          // Guardar en caché solo si nadie invalidó la clave mientras tanto
+          if ((this.generation.get(key) ?? 0) === generation) {
+            this.cache.set(key, {
+              data,
+              timestamp: Date.now(),
+              expiresAt: Date.now() + ttl
+            })
+          }
 
           resolve(data)
         } catch (error) {
           reject(error)
-        } finally {
-          // Remover de en vuelo
-          this.inFlight.delete(key)
         }
       }, debounce)
-
-      this.debounceTimers.set(key, timer)
     })
   }
 
@@ -131,12 +128,11 @@ class RequestDeduplicator {
    */
   invalidate(key: string): void {
     this.cache.delete(key)
+    // No se cancela el request en vuelo (quien lo espera tiene que recibir
+    // respuesta): solo se saca del mapa para que el próximo pedido vaya al
+    // backend, y se marca para que su resultado no quede cacheado.
     this.inFlight.delete(key)
-    const timer = this.debounceTimers.get(key)
-    if (timer) {
-      clearTimeout(timer)
-      this.debounceTimers.delete(key)
-    }
+    this.generation.set(key, (this.generation.get(key) ?? 0) + 1)
   }
 
   /**
@@ -144,8 +140,9 @@ class RequestDeduplicator {
    */
   invalidatePattern(pattern: string | RegExp): void {
     const regex = typeof pattern === 'string' ? new RegExp(pattern) : pattern
-    
-    for (const key of this.cache.keys()) {
+    const keys = new Set([...this.cache.keys(), ...this.inFlight.keys()])
+
+    for (const key of keys) {
       if (regex.test(key)) {
         this.invalidate(key)
       }
@@ -157,11 +154,10 @@ class RequestDeduplicator {
    */
   clearAll(): void {
     this.cache.clear()
-    this.inFlight.clear()
-    for (const timer of this.debounceTimers.values()) {
-      clearTimeout(timer)
+    for (const key of this.inFlight.keys()) {
+      this.generation.set(key, (this.generation.get(key) ?? 0) + 1)
     }
-    this.debounceTimers.clear()
+    this.inFlight.clear()
   }
 
   /**

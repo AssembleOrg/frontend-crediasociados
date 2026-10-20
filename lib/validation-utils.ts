@@ -14,6 +14,7 @@ export const ValidationMessages = {
   required: 'Este campo es requerido',
   email: 'El email no tiene un formato válido',
   dni: 'El DNI debe contener solo números',
+  dniOrCuit: 'Ingresá el DNI o el CUIT del cliente',
   cuit: 'El CUIT debe tener 11 dígitos',
   phone: 'El teléfono no tiene un formato válido',
   amount: 'El monto debe ser un número válido',
@@ -101,30 +102,42 @@ export class ValidationUtils {
   }
 }
 
+const validateClientFields = (data: Partial<Client>): ValidationResult => {
+  const errors: ValidationResult = {}
+
+  const fullNameError = ValidationUtils.validateRequired(data.fullName || '', 'Nombre completo')
+  if (fullNameError) errors.fullName = fullNameError
+
+  const emailError = ValidationUtils.validateEmail(data.email || '')
+  if (emailError) errors.email = emailError
+
+  const dniError = ValidationUtils.validateDNI(data.dni || '')
+  if (dniError) errors.dni = dniError
+
+  const cuitError = ValidationUtils.validateCUIT(data.cuit || '')
+  if (cuitError) errors.cuit = cuitError
+
+  const phoneError = ValidationUtils.validatePhone(data.phone || '')
+  if (phoneError) errors.phone = phoneError
+
+  return errors
+}
+
 export const ClientValidation = {
   validateCreateClient: (data: Partial<Client>): ValidationResult => {
-    const errors: ValidationResult = {}
+    const errors = validateClientFields(data)
 
-    const fullNameError = ValidationUtils.validateRequired(data.fullName || '', 'Nombre completo')
-    if (fullNameError) errors.fullName = fullNameError
-
-    const emailError = ValidationUtils.validateEmail(data.email || '')
-    if (emailError) errors.email = emailError
-
-    const dniError = ValidationUtils.validateDNI(data.dni || '')
-    if (dniError) errors.dni = dniError
-
-    const cuitError = ValidationUtils.validateCUIT(data.cuit || '')
-    if (cuitError) errors.cuit = cuitError
-
-    const phoneError = ValidationUtils.validatePhone(data.phone || '')
-    if (phoneError) errors.phone = phoneError
+    // El backend rechaza el alta sin DNI ni CUIT: avisar en el formulario en
+    // vez de mandar el request y mostrar el 400.
+    if (!errors.dni && !errors.cuit && !data.dni?.trim() && !data.cuit?.trim()) {
+      errors.dni = ValidationMessages.dniOrCuit
+    }
 
     return errors
   },
 
   validateUpdateClient: (data: Partial<Client>): ValidationResult => {
-    return ClientValidation.validateCreateClient(data)
+    return validateClientFields(data)
   }
 }
 

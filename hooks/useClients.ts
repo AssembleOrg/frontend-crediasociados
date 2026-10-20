@@ -2,8 +2,6 @@
 
 import { useState, useCallback, useEffect, useRef } from 'react';
 
-// Module-level lock to prevent duplicate fetches across instances
-let globalClientsFetchInFlight = false;
 import { useClientsStore } from '@/stores/clients';
 import { useAdminStore } from '@/stores/admin';
 import { useSubadminStore } from '@/stores/subadmin';
@@ -52,9 +50,10 @@ export const useClients = () => {
   const fetchClients = useCallback(
     async (params?: PaginationParams): Promise<void> => {
       if (!currentUser) return;
-      if (globalClientsFetchInFlight && !params) return;
-      if (!params) globalClientsFetchInFlight = true;
 
+      // Varias instancias del hook (página, modales, dashboard) piden la misma
+      // lista: el requestDeduplicator las junta en un solo request y cada
+      // instancia resuelve su propio isLoading.
       setIsLoading(true);
       setError(null);
 
@@ -74,7 +73,6 @@ export const useClients = () => {
         setError(apiError.message || 'Failed to fetch clients');
       } finally {
         setIsLoading(false);
-        globalClientsFetchInFlight = false;
       }
     },
     [currentUser, clientsStore]
@@ -240,7 +238,6 @@ export const useClients = () => {
 
   useEffect(() => {
     if (currentUser && clientsStore.clients.length === 0) {
-      globalClientsFetchInFlight = false // Safety reset
       fetchClients();
     }
   }, [currentUser]);
