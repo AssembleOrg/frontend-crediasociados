@@ -118,6 +118,11 @@ export function LoanSimulationModal({
             nextMonth.setMonth(nextMonth.getMonth() + 1)
             return nextMonth.toISOString()
           }
+          if (formData.paymentFrequency === 'BIWEEKLY') {
+            const inTwoWeeks = new Date(today)
+            inTwoWeeks.setDate(inTwoWeeks.getDate() + 14)
+            return inTwoWeeks.toISOString()
+          }
           return undefined
         })(),
         description: formData.description || undefined,
