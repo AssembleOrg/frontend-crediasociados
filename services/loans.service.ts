@@ -26,6 +26,8 @@ export interface RenewLoanRequest {
   firstDueDate: string;
   description?: string;
   notes?: string;
+  /** Monto con que se cancela el préstamo anterior; si es menor al saldo, la diferencia es descuento. */
+  settlementAmount?: number;
 }
 
 export interface RenewLoanResponse {
@@ -33,6 +35,7 @@ export interface RenewLoanResponse {
     id: string;
     loanTrack: string;
     settledAmount: number;
+    forgivenAmount?: number;
   };
   newLoan: LoanResponseDto | null;
   pdfBase64: string;

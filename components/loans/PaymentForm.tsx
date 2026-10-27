@@ -108,6 +108,9 @@ export interface PaymentFormProps {
   renewPaymentDay?: RenewPaymentDay
   renewTotalPayments?: string
   renewFirstDueDate?: string
+  renewOutstanding?: number
+  renewSettlement?: string
+  onRenewSettlementChange?: (v: string) => void
   onRenewAmountChange?: (v: string) => void
   onRenewInterestPctChange?: (v: string) => void
   onRenewPenaltyPctChange?: (v: string) => void
@@ -164,6 +167,9 @@ export function PaymentForm({
   renewPaymentDay = '',
   renewTotalPayments = '',
   renewFirstDueDate = '',
+  renewOutstanding = 0,
+  renewSettlement = '',
+  onRenewSettlementChange,
   onRenewAmountChange,
   onRenewInterestPctChange,
   onRenewPenaltyPctChange,
@@ -579,6 +585,38 @@ export function PaymentForm({
                         Valores precargados del préstamo · todos editables
                       </Typography>
                     </Box>
+
+                    {(() => {
+                      const settlement = parseFloat(unformatAmount(renewSettlement)) || 0
+                      const discount = Math.max(0, renewOutstanding - settlement)
+                      const overpaid = settlement > renewOutstanding
+                      return (
+                        <Box sx={{ mb: 2 }}>
+                          <TextField
+                            label="Cobra para cancelar el préstamo actual"
+                            type="text"
+                            value={formatAmount(renewSettlement)}
+                            onChange={(e) => onRenewSettlementChange?.(unformatAmount(e.target.value))}
+                            inputMode="numeric"
+                            InputProps={{
+                              startAdornment: <InputAdornment position="start"><AttachMoney /></InputAdornment>,
+                            }}
+                            error={overpaid || settlement <= 0}
+                            helperText={
+                              overpaid
+                                ? `No puede superar el saldo de ${formatCurrencyDisplay(renewOutstanding)}`
+                                : `Saldo pendiente: ${formatCurrencyDisplay(renewOutstanding)} · bajalo solo si hay descuento`
+                            }
+                            fullWidth
+                          />
+                          {!overpaid && settlement > 0 && discount > 0 && (
+                            <Alert severity="warning" sx={{ mt: 1, borderRadius: 2 }}>
+                              Descuento de {formatCurrencyDisplay(discount)}: se condona y se le avisa al asociado.
+                            </Alert>
+                          )}
+                        </Box>
+                      )
+                    })()}
 
                     <Box
                       sx={{

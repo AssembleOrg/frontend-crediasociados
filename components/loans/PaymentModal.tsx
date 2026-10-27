@@ -106,6 +106,9 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
   const [renewPaymentDay, setRenewPaymentDay] = useState<'MONDAY' | 'TUESDAY' | 'WEDNESDAY' | 'THURSDAY' | 'FRIDAY' | 'SATURDAY' | ''>('')
   const [renewTotalPayments, setRenewTotalPayments] = useState<string>('')
   const [renewFirstDueDate, setRenewFirstDueDate] = useState<string>('')
+  // Saldo del préstamo a renovar (misma cuenta que el backend) y monto con que se cancela
+  const [renewOutstanding, setRenewOutstanding] = useState<number>(0)
+  const [renewSettlement, setRenewSettlement] = useState<string>('')
 
   // ── Derived ────────────────────────────────────────────────────────────────
   const currentSubloan = useMemo(
@@ -144,6 +147,8 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
       setRenewTotalPayments('')
       setRenewFirstDueDate('')
       setRenewPaymentDay('')
+      setRenewOutstanding(0)
+      setRenewSettlement('')
       return
     }
     setHasUserEdited(false)
@@ -236,6 +241,16 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
         setRenewTotalPayments(
           loan.totalPayments != null ? String(loan.totalPayments) : ''
         )
+        const loanSubLoans =
+          // El tipo generado dice string[], pero /loans/:id devuelve las cuotas completas
+          ((loan as unknown as { subLoans?: { status: string; totalAmount: number | string; paidAmount: number | string }[] })
+            .subLoans) ?? []
+        const outstanding = loanSubLoans
+          .filter((s) => s.status !== 'PAID')
+          .reduce((sum, s) => sum + Math.max(0, Number(s.totalAmount) - Number(s.paidAmount || 0)), 0)
+        const rounded = Math.round(outstanding * 100) / 100
+        setRenewOutstanding(rounded)
+        setRenewSettlement(rounded > 0 ? numberToFormattedAmount(rounded) : '')
       })
       .catch((err) => {
         if (cancelled) return
@@ -299,8 +314,11 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
     const penalty = renewPenaltyPct.trim() === '' ? 0 : parseFloat(renewPenaltyPct.replace(',', '.'))
     const cuotas = parseInt(renewTotalPayments, 10)
     const needsPaymentDay = renewFrequency !== 'DAILY' && renewFrequency !== 'MONTHLY'
+    const settlement = parseFloat(unformatAmount(renewSettlement)) || 0
     return (
       amt > 0 &&
+      settlement > 0 &&
+      settlement <= renewOutstanding &&
       !isNaN(interest) &&
       interest >= 0 &&
       !isNaN(penalty) &&
@@ -320,6 +338,8 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
     renewFirstDueDate,
     renewFrequency,
     renewPaymentDay,
+    renewSettlement,
+    renewOutstanding,
   ])
 
   const handleRenewLoan = async () => {
@@ -341,6 +361,9 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
         firstDueDate: renewFirstDueDate,
         description: notes || undefined,
       }
+      // Solo se manda si hay descuento: sin el campo, el backend cobra el saldo completo.
+      const settlement = parseFloat(unformatAmount(renewSettlement)) || 0
+      if (settlement < renewOutstanding) payload.settlementAmount = settlement
 
       const result = await loansService.renewLoan(
         currentSubloan.loanId,
@@ -614,6 +637,9 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
     renewPaymentDay,
     renewTotalPayments,
     renewFirstDueDate,
+    renewOutstanding,
+    renewSettlement,
+    onRenewSettlementChange: setRenewSettlement,
     onRenewAmountChange: setRenewAmount,
     onRenewInterestPctChange: setRenewInterestPct,
     onRenewPenaltyPctChange: setRenewPenaltyPct,
