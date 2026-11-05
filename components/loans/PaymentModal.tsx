@@ -7,7 +7,7 @@
  * All form logic lives in PaymentForm.
  */
 
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import {
   Dialog,
@@ -109,6 +109,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
   // Saldo del préstamo a renovar (misma cuenta que el backend) y monto con que se cancela
   const [renewOutstanding, setRenewOutstanding] = useState<number>(0)
   const [renewSettlement, setRenewSettlement] = useState<string>('')
+  const renewPrefilledLoanId = useRef<string | null>(null)
 
   // ── Derived ────────────────────────────────────────────────────────────────
   const currentSubloan = useMemo(
@@ -149,6 +150,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
       setRenewPaymentDay('')
       setRenewOutstanding(0)
       setRenewSettlement('')
+      renewPrefilledLoanId.current = null
       return
     }
     setHasUserEdited(false)
@@ -210,15 +212,19 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
   // Fetch loan details and prefill renewal form when renewMode is activated
   useEffect(() => {
     if (!renewMode || !currentSubloan?.loanId) return
-    // Already loaded for this loan
-    if (loanDetails?.id === currentSubloan.loanId) return
+    // Ya precargado: destildar y volver a tildar no pisa lo que editó el usuario.
+    // No alcanza con mirar loanDetails: el efecto de totalPayments también lo llena
+    // al abrir el modal y el formulario quedaba vacío con saldo $0.
+    if (renewPrefilledLoanId.current === currentSubloan.loanId) return
 
+    const loanId = currentSubloan.loanId
     let cancelled = false
     setLoanLoading(true)
     loansService
-      .getLoanById(currentSubloan.loanId)
+      .getLoanById(loanId)
       .then((loan) => {
         if (cancelled) return
+        renewPrefilledLoanId.current = loanId
         setLoanDetails(loan)
         const capital = Number(loan.originalAmount ?? loan.amount ?? 0)
         setRenewAmount(capital > 0 ? numberToFormattedAmount(capital) : '')

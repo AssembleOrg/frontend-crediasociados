@@ -712,7 +712,7 @@ export function PaymentForm({
 
                     <Alert severity="success" sx={{ mb: 2 }} icon={<Info />}>
                       <Typography variant="body2">
-                        Se cancelará <strong>{formatCurrencyDisplay(outstandingBalance)}</strong> (ingresa a tu billetera) y se desembolsará <strong>{formatCurrencyDisplay(parseFloat(unformatAmount(renewAmount)) || 0)}</strong> (egresa de tu billetera).
+                        Se cancelará <strong>{formatCurrencyDisplay(parseFloat(unformatAmount(renewSettlement)) || 0)}</strong> (ingresa a tu billetera) y se desembolsará <strong>{formatCurrencyDisplay(parseFloat(unformatAmount(renewAmount)) || 0)}</strong> (egresa de tu billetera).
                       </Typography>
                     </Alert>
 
