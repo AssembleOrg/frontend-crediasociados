@@ -8,6 +8,7 @@ import { Footer } from '@/components/ui/Footer';
 import { VersionNotification } from '@/components/ui/VersionNotification';
 import { MobileBottomNav } from '@/components/layout/MobileBottomNav';
 import AuthProvider from '@/components/providers/AuthProvider';
+import { SessionBootstrap } from '@/components/providers/SessionBootstrap';
 import { useAuth } from '@/hooks/useAuth';
 import { useNavBadges } from '@/hooks/useNavBadges';
 
@@ -19,6 +20,7 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
     <Box
       sx={{ display: 'flex', flexDirection: 'column', height: '100dvh', overflow: 'hidden' }}
     >
+      <SessionBootstrap />
       <DashboardNav />
       <DolarBlueTicker />
       <Box

@@ -19,6 +19,9 @@ const api: AxiosInstance = axios.create({
 });
 
 export const setAuthToken = (_token: string | null) => {};
+
+// Varios requests pueden dar 401 a la vez: una sola salida.
+let leavingAfter401 = false;
 api.interceptors.response.use(
   (response: AxiosResponse) => response,
   (error) => {
@@ -39,16 +42,22 @@ api.interceptors.response.use(
         if (typeof window !== 'undefined') {
           // Avoid redirect loop if already on login page
           const currentPath = window.location.pathname;
-          if (currentPath !== '/login') {
+          if (currentPath !== '/login' && !leavingAfter401) {
+            leavingAfter401 = true;
             
             
             // Sesión vencida: limpiar lo mismo que el logout (auth, stores y storages),
             // no sólo el auth store. Import dinámico para no crear un ciclo con cache-manager.
+            // La cookie es httpOnly: sólo el backend puede borrarla (logout es
+            // público). ?salir=1 evita que el proxy la mande de vuelta al panel.
             import('@/lib/cache-manager')
               .then(({ clearAllData }) => clearAllData())
               .catch(() => useAuthStore.getState().clearAuth())
+              .then(() =>
+                fetch('/api/auth/logout', { method: 'POST', credentials: 'include' }).catch(() => undefined),
+              )
               .finally(() => {
-                window.location.href = '/login';
+                window.location.href = '/login?salir=1';
               });
           }
         }

@@ -20,6 +20,7 @@ import { useFinanzasStore } from '@/stores/finanzas'
 import { useOperativaStore } from '@/stores/operativa'
 import { useDolarBlueStore } from '@/stores/dolar-blue'
 import { requestDeduplicator } from '@/lib/request-deduplicator'
+import { LOAN_DRAFT_PREFIX, clearAllLoanDrafts } from '@/lib/loan-draft'
 
 /**
  * Clear ALL browser storages (localStorage, sessionStorage, cookies) EXCEPT auth
@@ -52,7 +53,7 @@ export function clearAllStoragesOnRefresh() {
     const keysToKeep = ['auth-storage']; // Keep auth storage key
     const allKeys = Object.keys(localStorage);
     allKeys.forEach(key => {
-      if (!keysToKeep.includes(key) && !isWidgetKey(key)) {
+      if (!keysToKeep.includes(key) && !isWidgetKey(key) && !key.startsWith(LOAN_DRAFT_PREFIX)) {
         localStorage.removeItem(key);
       }
     });
@@ -292,6 +293,9 @@ export function clearAllData() {
   if (appStore.clearGlobalLoading) {
     appStore.clearGlobalLoading()
   }
+
+  // Borradores de préstamo: no dejarlos en un teléfono compartido
+  clearAllLoanDrafts()
 
   // Clear auth store (logout) - MUST be last
   const authStore = useAuthStore.getState()

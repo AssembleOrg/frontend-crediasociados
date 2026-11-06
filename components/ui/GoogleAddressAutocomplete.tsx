@@ -5,7 +5,7 @@ import { TextField, Box, Typography, Chip, InputAdornment, Autocomplete as MuiAu
 import { LocationOn, Home, Info } from '@mui/icons-material'
 import { useLoadScript } from '@react-google-maps/api'
 
-const libraries: ("places")[] = ["places"]
+import { GOOGLE_MAPS_LIBRARIES as libraries } from "@/lib/google-maps"
 
 interface GoogleAddressAutocompleteProps {
   value: string

@@ -16,6 +16,7 @@ import { authService } from '@/services/auth.service';
 import { usersService } from '@/services/users.service';
 import { apiUserToUser } from '@/types/transforms';
 import { clearAllCaches, clearAllData } from '@/lib/cache-manager';
+import { captureSessionLocation } from '@/lib/session-location';
 import type { LoginDto, ApiError } from '@/types/auth';
 
 /**
@@ -112,6 +113,9 @@ export const useAuth = () => {
         authStore.setTokens(null, null);
         authStore.setAuthentication(true);
 
+        // Una vez por inicio de sesión: desde dónde se entró (Dispositivos).
+        captureSessionLocation();
+
         // CRITICAL: Fetch complete user data with quotas
         // Login endpoint might not include clientQuota/usedClientQuota
         try {
@@ -185,7 +189,9 @@ export const useAuth = () => {
     const freshState = useAuthStore.getState();
     const dashboardRoute = freshState.getDashboardRoute();
     
-    router.push(dashboardRoute);
+    // replace: que el login no quede en el historial (el botón atrás de
+    // Android volvía al formulario y parecía que se había cerrado la sesión).
+    router.replace(dashboardRoute);
   }, [router]);
 
   const clearError = useCallback(() => {

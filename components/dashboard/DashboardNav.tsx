@@ -14,7 +14,7 @@ import {
   Snackbar,
   Alert,
 } from '@mui/material';
-import { AccountCircle, ExitToApp, LockReset } from '@mui/icons-material';
+import { AccountCircle, Devices, ExitToApp, LockReset } from '@mui/icons-material';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
@@ -22,6 +22,8 @@ import { Logo } from '@/components/ui/Logo';
 import { RoleUtils, type UserRole } from '@/lib/role-utils';
 import { ChangePasswordModal } from '@/components/users/ChangePasswordModal';
 import { NotificationsBell } from '@/components/notifications/NotificationsBell';
+import { DevicesModal } from '@/components/sessions/DevicesModal';
+import { useAuthStore } from '@/stores/auth';
 import api from '@/services/api';
 
 export function DashboardNav() {
@@ -31,6 +33,7 @@ export function DashboardNav() {
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [isLogoutLoading, setIsLogoutLoading] = useState(false);
   const [changePasswordModalOpen, setChangePasswordModalOpen] = useState(false);
+  const [devicesOpen, setDevicesOpen] = useState(false);
   const [changePasswordLoading, setChangePasswordLoading] = useState(false);
   const [changePasswordError, setChangePasswordError] = useState<string | null>(null);
   const [showToast, setShowToast] = useState(false);
@@ -105,7 +108,7 @@ export function DashboardNav() {
             display: 'flex',
             alignItems: 'center',
           }}
-          onClick={() => router.push('/')}
+          onClick={() => router.push(useAuthStore.getState().getDashboardRoute())}
         >
           <Logo
             width={140}
@@ -202,6 +205,15 @@ export function DashboardNav() {
               <AccountCircle sx={{ mr: 1 }} />
               Mi Perfil
             </MenuItem>
+            <MenuItem
+              onClick={() => {
+                handleClose();
+                setDevicesOpen(true);
+              }}
+            >
+              <Devices sx={{ mr: 1 }} />
+              Dispositivos
+            </MenuItem>
             <MenuItem onClick={handleOpenChangePassword}>
               <LockReset sx={{ mr: 1 }} />
               Cambiar Contraseña
@@ -218,6 +230,8 @@ export function DashboardNav() {
         </Box>
       </Toolbar>
     </AppBar>
+
+    <DevicesModal open={devicesOpen} onClose={() => setDevicesOpen(false)} />
 
     <ChangePasswordModal
       open={changePasswordModalOpen}

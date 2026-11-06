@@ -20,6 +20,7 @@ import {
   Divider,
   Autocomplete,
   CircularProgress,
+  Alert,
 } from '@mui/material'
 import {
   AttachMoney,
@@ -36,6 +37,8 @@ import { ValidationUtils } from '@/lib/validation-utils'
 import { clientsService } from '@/services/clients.service'
 import PhoneChip from '@/components/ui/PhoneChip'
 import { apiClientToClient } from '@/types/transforms'
+import { useAuthStore } from '@/stores/auth'
+import { clearLoanDraft, loadLoanDraft, saveLoanDraft } from '@/lib/loan-draft'
 import type { Client } from '@/types/auth'
 
 
@@ -89,6 +92,9 @@ export function CreateLoanModal({
   const [searchResults, setSearchResults] = useState<Client[]>([])
   const [isSearching, setIsSearching] = useState(false)
   const [selectedClient, setSelectedClient] = useState<Client | null>(null)
+  const userId = useAuthStore((s) => s.userId)
+  const [draftRestored, setDraftRestored] = useState(false)
+  const [draftReady, setDraftReady] = useState(false)
 
   // Reset form cuando se cierra el modal
   useEffect(() => {
@@ -114,6 +120,56 @@ export function CreateLoanModal({
       setSelectedClient(null)
     }
   }, [open])
+
+  // Borrador: al abrir, recuperar lo que se estaba cargando
+  useEffect(() => {
+    if (!open) {
+      setDraftReady(false)
+      setDraftRestored(false)
+      return
+    }
+    const draft = loadLoanDraft<typeof formData, Client>(userId)
+    if (draft) {
+      setFormData({
+        ...draft.formData,
+        firstDueDate: draft.formData.firstDueDate ? new Date(draft.formData.firstDueDate as unknown as string) : null,
+      })
+      setSelectedClient(draft.selectedClient)
+      setSearchInput(draft.searchInput || '')
+      setDraftRestored(true)
+    }
+    setDraftReady(true)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, userId])
+
+  // Borrador: guardar mientras se carga
+  useEffect(() => {
+    if (!open || !draftReady) return
+    const hasData = Boolean(formData.clientId || formData.amount || formData.totalPayments || formData.baseInterestRate)
+    const t = setTimeout(() => {
+      if (hasData) saveLoanDraft(userId, { formData, selectedClient, searchInput })
+    }, 400)
+    return () => clearTimeout(t)
+  }, [open, draftReady, userId, formData, selectedClient, searchInput])
+
+  const discardDraft = () => {
+    clearLoanDraft(userId)
+    setDraftRestored(false)
+    setFormData({
+      clientId: '',
+      amount: '',
+      baseInterestRate: '',
+      penaltyInterestRate: '',
+      currency: 'ARS' as const,
+      paymentFrequency: 'WEEKLY' as 'DAILY' | 'WEEKLY' | 'BIWEEKLY' | 'MONTHLY',
+      paymentDay: 'FRIDAY' as 'MONDAY' | 'TUESDAY' | 'WEDNESDAY' | 'THURSDAY' | 'FRIDAY' | 'SATURDAY',
+      totalPayments: '',
+      firstDueDate: null,
+      description: ''
+    })
+    setSelectedClient(null)
+    setSearchInput('')
+  }
 
   // Search clients after 2 characters
   // Only search if user is actively typing (not when selecting from dropdown)
@@ -363,11 +419,13 @@ export function CreateLoanModal({
   }
 
   const handleLoanCreated = () => {
+    clearLoanDraft(userId)
     // Close the parent CreateLoanModal to show only the success modal
     onClose()
   }
 
   const handleClose = () => {
+    clearLoanDraft(userId)
     setSimulatedLoans([])
     onClose()
   }
@@ -515,6 +573,19 @@ export function CreateLoanModal({
             overflow: 'visible'
           }}>
             <CardContent sx={{ p: { xs: 2.5, sm: 4 } }}>
+              {draftRestored && (
+                <Alert
+                  severity='info'
+                  sx={{ mb: 2 }}
+                  action={
+                    <Button color='inherit' size='small' onClick={discardDraft}>
+                      Descartar
+                    </Button>
+                  }
+                >
+                  Recuperamos el préstamo que estabas cargando.
+                </Alert>
+              )}
               {/* Client Selection with Search */}
               <Box sx={{ mb: 3 }}>
                 <Autocomplete
